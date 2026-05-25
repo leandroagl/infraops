@@ -36,7 +36,7 @@ export class InfradocService {
       );
     }
 
-    return (response.data.data as Record<string, unknown>[]).map(this.mapClient);
+    return (response.data.data as Record<string, unknown>[]).map((raw) => this.mapClient(raw));
   }
 
   private mapClient(raw: Record<string, unknown>): InfradocClient {
