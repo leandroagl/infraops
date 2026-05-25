@@ -18,6 +18,7 @@ describe('AuthService', () => {
 
   const mockUser: User = {
     id: 'user-1',
+    name: 'Lea Aguilera',
     email: 'lea@ondra.com',
     passwordHash: 'hashed_password',
     role: UserRole.TL,
