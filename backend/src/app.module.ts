@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './users/user.entity';
 
 @Module({
   imports: [
@@ -13,7 +12,7 @@ import { User } from './users/user.entity';
       username: process.env.DB_USER ?? 'postgres',
       password: process.env.DB_PASSWORD ?? '',
       database: process.env.DB_NAME ?? 'infraops',
-      entities: [User],
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: process.env.NODE_ENV !== 'production',
     }),
   ],
