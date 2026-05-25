@@ -22,4 +22,15 @@ describe('generateRandomPassword', () => {
     const p2 = generateRandomPassword();
     expect(p1).not.toBe(p2);
   });
+
+  it('contains at least one lowercase letter', () => {
+    expect(/[a-z]/.test(generateRandomPassword())).toBe(true);
+  });
+
+  it('only contains characters from the allowed set', () => {
+    const allowed = /^[A-Za-z0-9!@#$%^&*()\-_=+]+$/;
+    for (let i = 0; i < 50; i++) {
+      expect(allowed.test(generateRandomPassword())).toBe(true);
+    }
+  });
 });
