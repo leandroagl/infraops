@@ -12,10 +12,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
   ) {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET environment variable is not set');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: secret,
     });
   }
 
@@ -30,7 +34,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (
       user.lastLogoutAt !== null &&
-      new Date(payload.iat! * 1000) < user.lastLogoutAt
+      new Date(payload.iat! * 1000) <= user.lastLogoutAt
     ) {
       throw new UnauthorizedException();
     }

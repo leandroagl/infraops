@@ -1,6 +1,7 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { User } from '../../users/user.entity';
 import { UserRole } from '../../users/user-role.enum';
 import { JwtPayload } from '../auth.types';
@@ -90,5 +91,16 @@ describe('JwtStrategy', () => {
     const result = await strategy.validate(payload);
 
     expect(result).toEqual(payload);
+  });
+
+  it('lanza Error en el constructor si JWT_SECRET no está definido', () => {
+    const original = process.env.JWT_SECRET;
+    delete process.env.JWT_SECRET;
+
+    expect(() => new JwtStrategy(userRepository as unknown as Repository<User>)).toThrow(
+      'JWT_SECRET environment variable is not set',
+    );
+
+    process.env.JWT_SECRET = original;
   });
 });
