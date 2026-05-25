@@ -24,6 +24,8 @@ async function seed(): Promise<void> {
 
   await dataSource.initialize();
 
+  let plainPassword: string | null = null;
+
   try {
     const userRepository = dataSource.getRepository(User);
 
@@ -36,7 +38,7 @@ async function seed(): Promise<void> {
       return;
     }
 
-    const plainPassword = generateRandomPassword();
+    plainPassword = generateRandomPassword();
     const passwordHash = await bcrypt.hash(plainPassword, 10);
 
     const admin = userRepository.create({
@@ -48,16 +50,16 @@ async function seed(): Promise<void> {
     });
 
     await userRepository.save(admin);
-
-    process.stdout.write('\n─────────────────────────────────────────────\n');
-    process.stdout.write('Usuario admin creado:\n');
-    process.stdout.write(`  Email:      ${SEED_EMAIL}\n`);
-    process.stdout.write(`  Contraseña: ${plainPassword}\n`);
-    process.stdout.write('  Guardá esta contraseña — no se volverá a mostrar.\n');
-    process.stdout.write('─────────────────────────────────────────────\n\n');
   } finally {
     await dataSource.destroy();
   }
+
+  process.stdout.write('\n─────────────────────────────────────────────\n');
+  process.stdout.write('Usuario admin creado:\n');
+  process.stdout.write(`  Email:      ${SEED_EMAIL}\n`);
+  process.stdout.write(`  Contraseña: ${plainPassword!}\n`);
+  process.stdout.write('  Guardá esta contraseña — no se volverá a mostrar.\n');
+  process.stdout.write('─────────────────────────────────────────────\n\n');
 }
 
 seed().catch((err: unknown) => {
