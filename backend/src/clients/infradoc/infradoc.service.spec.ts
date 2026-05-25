@@ -1,0 +1,110 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { HttpService } from '@nestjs/axios';
+import { ServiceUnavailableException } from '@nestjs/common';
+import { AxiosHeaders, AxiosResponse } from 'axios';
+import { of } from 'rxjs';
+import { InfradocService } from './infradoc.service';
+
+describe('InfradocService', () => {
+  let service: InfradocService;
+  let httpService: { get: jest.Mock };
+
+  const makeRaw = (override: Record<string, unknown> = {}) => ({
+    client_id: '1',
+    client_name: 'ACME Corp',
+    client_abbreviation: 'ACME',
+    client_type: 'Empresa',
+    client_website: 'acme.com',
+    client_referral: null,
+    client_rate: null,
+    client_currency_code: null,
+    client_net_terms: null,
+    client_tax_id_number: null,
+    client_is_lead: '0',
+    client_notes: null,
+    client_archived_at: null,
+    ...override,
+  });
+
+  const axiosRes = (data: object): AxiosResponse => ({
+    data,
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config: { headers: new AxiosHeaders() },
+  });
+
+  beforeEach(async () => {
+    httpService = { get: jest.fn() };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        InfradocService,
+        { provide: HttpService, useValue: httpService },
+      ],
+    }).compile();
+
+    service = module.get<InfradocService>(InfradocService);
+  });
+
+  it('mapea los campos de InfraDoc al formato InfradocClient', async () => {
+    httpService.get.mockReturnValue(
+      of(axiosRes({ success: 'True', count: 1, data: [makeRaw()] })),
+    );
+
+    const result = await service.getClients();
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      infradocId: 1,
+      name: 'ACME Corp',
+      abbreviation: 'ACME',
+      type: 'Empresa',
+      website: 'acme.com',
+      referral: null,
+      rate: null,
+      currencyCode: null,
+      netTerms: null,
+      taxIdNumber: null,
+      isLead: false,
+      notes: null,
+      isActive: true,
+    });
+  });
+
+  it('setea isActive en false cuando client_archived_at tiene fecha', async () => {
+    httpService.get.mockReturnValue(
+      of(axiosRes({
+        success: 'True',
+        count: 1,
+        data: [makeRaw({ client_archived_at: '2026-01-01 00:00:00' })],
+      })),
+    );
+
+    const result = await service.getClients();
+
+    expect(result[0].isActive).toBe(false);
+  });
+
+  it('convierte client_is_lead "1" a true', async () => {
+    httpService.get.mockReturnValue(
+      of(axiosRes({
+        success: 'True',
+        count: 1,
+        data: [makeRaw({ client_is_lead: '1' })],
+      })),
+    );
+
+    const result = await service.getClients();
+
+    expect(result[0].isLead).toBe(true);
+  });
+
+  it('lanza ServiceUnavailableException cuando InfraDoc devuelve success False', async () => {
+    httpService.get.mockReturnValue(
+      of(axiosRes({ success: 'False', message: 'Auth failed' })),
+    );
+
+    await expect(service.getClients()).rejects.toThrow(ServiceUnavailableException);
+  });
+});
