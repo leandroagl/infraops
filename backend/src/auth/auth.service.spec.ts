@@ -60,6 +60,12 @@ describe('AuthService', () => {
         email: 'lea@ondra.com',
         role: UserRole.TL,
       });
+      expect(jwtService.sign).toHaveBeenCalledWith({
+        sub: 'user-1',
+        email: 'lea@ondra.com',
+        role: UserRole.TL,
+        mustChangePassword: false,
+      });
     });
 
     it('incluye mustChangePassword: true cuando el usuario debe cambiar contraseña', async () => {
@@ -84,6 +90,12 @@ describe('AuthService', () => {
     it('lanza UnauthorizedException si la password es incorrecta', async () => {
       userRepository.findOne.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('lanza UnauthorizedException si el usuario está inactivo', async () => {
+      userRepository.findOne.mockResolvedValue(null); // isActive:true filter returns null
 
       await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
     });
@@ -127,6 +139,14 @@ describe('AuthService', () => {
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       await expect(service.changePassword('user-1', dto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('lanza UnauthorizedException si el usuario no existe', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.changePassword('nonexistent', dto)).rejects.toThrow(
         UnauthorizedException,
       );
     });

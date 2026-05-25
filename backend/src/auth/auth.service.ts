@@ -19,7 +19,7 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<LoginResponseDto> {
     const user = await this.userRepository.findOne({
-      where: { email: dto.email },
+      where: { email: dto.email, isActive: true },
     });
 
     if (!user) {
@@ -52,9 +52,13 @@ export class AuthService {
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
+    if (!user) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
     const passwordValid = await bcrypt.compare(
       dto.currentPassword,
-      user!.passwordHash,
+      user.passwordHash,
     );
 
     if (!passwordValid) {
