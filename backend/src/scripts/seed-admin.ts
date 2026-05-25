@@ -34,7 +34,7 @@ async function seed(): Promise<void> {
     });
 
     if (existing) {
-      process.stdout.write('El usuario admin ya existe. Seed omitido.\n');
+      process.stdout.write(`El usuario admin ya existe (${existing.email}). Seed omitido.\n`);
       return;
     }
 
