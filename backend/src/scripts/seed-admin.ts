@@ -54,10 +54,12 @@ async function seed(): Promise<void> {
     await dataSource.destroy();
   }
 
+  if (!plainPassword) return;
+
   process.stdout.write('\n─────────────────────────────────────────────\n');
   process.stdout.write('Usuario admin creado:\n');
   process.stdout.write(`  Email:      ${SEED_EMAIL}\n`);
-  process.stdout.write(`  Contraseña: ${plainPassword!}\n`);
+  process.stdout.write(`  Contraseña: ${plainPassword}\n`);
   process.stdout.write('  Guardá esta contraseña — no se volverá a mostrar.\n');
   process.stdout.write('─────────────────────────────────────────────\n\n');
 }
