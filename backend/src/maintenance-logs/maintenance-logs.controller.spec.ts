@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
@@ -145,6 +146,12 @@ describe('MaintenanceLogsController', () => {
       maintenanceLogsService.update.mockRejectedValue(new NotFoundException());
 
       await expect(controller.update('task-1', dto)).rejects.toThrow(NotFoundException);
+    });
+
+    it('propaga BadRequestException si el body está vacío', async () => {
+      maintenanceLogsService.update.mockRejectedValue(new BadRequestException());
+
+      await expect(controller.update('task-1', {})).rejects.toThrow(BadRequestException);
     });
   });
 });
