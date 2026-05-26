@@ -35,6 +35,8 @@ describe('UsersService', () => {
     mustChangePassword: false,
     lastLogoutAt: null,
     isActive: true,
+    technicianId: null,
+    technician: null,
     createdAt: new Date('2026-01-01'),
   };
 
@@ -45,6 +47,7 @@ describe('UsersService', () => {
     role: UserRole.TL,
     mustChangePassword: false,
     isActive: true,
+    technicianId: null,
     createdAt: mockUser.createdAt,
   };
 

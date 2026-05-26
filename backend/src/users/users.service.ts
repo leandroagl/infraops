@@ -12,7 +12,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './user.entity';
 
-export type UserResponse = Omit<User, 'passwordHash' | 'lastLogoutAt'>;
+export type UserResponse = Omit<User, 'passwordHash' | 'lastLogoutAt' | 'technician'>;
 export type CreateUserResponse = UserResponse & { plainPassword: string };
 
 @Injectable()
@@ -117,7 +117,7 @@ export class UsersService {
 
   private toResponse(user: User): UserResponse {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, lastLogoutAt, ...response } = user;
+    const { passwordHash, lastLogoutAt, technician, ...response } = user;
     return response;
   }
 }

@@ -2,8 +2,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { Technician } from '../technicians/technician.entity';
 import { UserRole } from './user-role.enum';
 
 @Entity('users')
@@ -31,6 +34,13 @@ export class User {
 
   @Column({ default: true })
   isActive: boolean;
+
+  @Column({ name: 'technician_id', type: 'uuid', nullable: true, default: null })
+  technicianId: string | null;
+
+  @OneToOne(() => Technician)
+  @JoinColumn({ name: 'technician_id' })
+  technician: Technician | null;
 
   @CreateDateColumn()
   createdAt: Date;
