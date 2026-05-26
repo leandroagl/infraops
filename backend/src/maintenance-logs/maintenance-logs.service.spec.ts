@@ -149,6 +149,16 @@ describe('MaintenanceLogsService', () => {
         ForbiddenException,
       );
     });
+
+    it('lanza NotFoundException si el usuario no existe', async () => {
+      taskRepository.findOne.mockResolvedValue(mockTask);
+      logRepository.findOne.mockResolvedValue(null);
+      userRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.create('task-1', createDto, 'user-1')).rejects.toThrow(
+        'Usuario no encontrado',
+      );
+    });
   });
 
   describe('findByTaskId', () => {

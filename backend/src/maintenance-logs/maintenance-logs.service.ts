@@ -32,7 +32,8 @@ export class MaintenanceLogsService {
     if (existing) throw new ConflictException('Esta tarea ya tiene un log registrado');
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user?.technicianId) throw new ForbiddenException('El usuario no tiene perfil técnico');
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    if (!user.technicianId) throw new ForbiddenException('El usuario no tiene perfil técnico');
 
     const log = this.logRepository.create({
       taskId,
