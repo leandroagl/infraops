@@ -10,6 +10,6 @@ import { InfradocService } from './infradoc/infradoc.service';
   imports: [TypeOrmModule.forFeature([Client]), HttpModule],
   controllers: [ClientsController],
   providers: [ClientsService, InfradocService],
-  exports: [ClientsService],
+  exports: [ClientsService, TypeOrmModule],
 })
 export class ClientsModule {}

@@ -11,6 +11,6 @@ import { TechniciansService } from './technicians.service';
   imports: [TypeOrmModule.forFeature([Technician]), UsersModule],
   controllers: [TechniciansController],
   providers: [TechniciansService, JwtAuthGuard, RolesGuard],
-  exports: [TechniciansService],
+  exports: [TechniciansService, TypeOrmModule],
 })
 export class TechniciansModule {}
