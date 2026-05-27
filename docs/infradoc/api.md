@@ -1,0 +1,1053 @@
+====== API ======
+
+
+Use ITFlow's API to work with ITFlow in scripts third-party applications.
+
+The current version of the ITFlow API is v1. It can be accessed at **itflow.example.com/api/v1/{module}/{function}.php**
+
+===== Generating an API Key =====
+
+  - Login and navigate to the **Admin Settings** page
+  - Select **API Keys**
+  - Select **Create** to open the New Key modal
+  - On Details tab, input the key name and expiration date. Select whether the key will allow access to all clients or a specific client
+  - On Keys tab, note down the API key and credential password and select the checkbox to confirm you've made a copy of the keys. You will not see these admin in the admin interface.
+  - Select Create to add the key into the database
+
+===== Modules with API support at present =====
+
+  * assets
+  * certificates
+  * clients
+  * contacts
+  * credentials (logins)
+  * documents
+  * domains
+  * expenses
+  * invoices
+  * invoice_items
+  * locations
+  * networks
+  * payments
+  * products
+  * quotes
+  * software
+  * tickets
+  * vendors
+
+
+===== API Functions =====
+
+  * read
+  * create //(partial)//
+  * update //(partial)//
+  * delete //(partial)//
+
+
+  * //We may also add archive//
+
+===== Request Methods =====
+
+  * GET - Retrieving (READ) data
+  * POST - Inserting (CREATE), Updating (UPDATE) or Deleting (DELETE) data
+
+==== Data Returned ====
+
+  * Success - True/False
+  * Message - Failure info / Helpful debug info
+  * Count - Count of rows affected/returned
+  * Data - The data requested/created/changed
+
+
+==== Notes ====
+
+  * For read requests, 50 records are shown by default. This can be adjusted by supplying the ''limit'' and ''offset'' parameters.
+  * For POST requests, the ''client_id'' parameter is always required if the API key used has scope/access to all clients
+  * Be sure to check your Apache/PHP error logs if you're running into issues
+
+==== API Docs/Examples ====
+
+Documentation / an example of how to use a module API endpoint is shown on that module's doc page. Additional examples are available [[https://github.com/itflow-org/itflow-api-powershell|here]].
+
+
+
+----
+
+
+====== API ======
+
+Use ITFlow's API to work with ITFlow in scripts and third-party applications.
+
+The current version of the ITFlow API is v1. It can be accessed at **itflow.example.com/api/v1/{module}/{function}.php**
+
+===== Generating an API Key =====
+
+  - Login and navigate to the **Admin Settings** page
+  - Select **API Keys**
+  - Select **Create** to open the New Key modal
+  - On Details tab, input the key name and expiration date. Select whether the key will allow access to all clients or a specific client
+  - On Keys tab, note down the API key and credential password and select the checkbox to confirm you've made a copy of the keys. You will not see these again in the admin interface.
+  - Select Create to add the key into the database
+
+===== Modules with API support =====
+
+  * assets
+  * certificates
+  * clients
+  * contacts
+  * credentials (logins)
+  * documents
+  * domains
+  * expenses
+  * invoices
+  * invoice_items
+  * locations
+  * networks
+  * payments
+  * products
+  * quotes
+  * software
+  * tickets
+  * vendors
+
+===== API Functions =====
+
+  * read
+  * create //(partial - see module details)//
+  * update //(partial - see module details)//
+  * delete //(partial - see module details)//
+  * archive //(clients and contacts only)//
+  * unarchive //(clients and contacts only)//
+  * resolve //(tickets only)//
+
+===== Request Methods =====
+
+  * GET - Retrieving (READ) data
+  * POST - Inserting (CREATE), Updating (UPDATE), Deleting (DELETE), or Archiving data
+
+==== Data Returned ====
+
+  * Success - True/False
+  * Message - Failure info / Helpful debug info
+  * Count - Count of rows affected/returned
+  * Data - The data requested/created/changed
+
+==== Notes ====
+
+  * For read requests, 50 records are shown by default. This can be adjusted by supplying the ''limit'' and ''offset'' parameters.
+  * For POST requests, the ''client_id'' parameter is always required if the API key used has scope/access to all clients
+  * Be sure to check your Apache/PHP error logs if you're running into issues
+
+----
+
+====== API Reference Guide ======
+
+**Current API v1 Endpoints, Authentication, Examples, and Integration Guide**
+
+===== Quick Start Guide =====
+
+==== Your First API Call in 5 Minutes ====
+
+  - **Generate API Key**
+    - Login to ITFlow as admin
+    - Navigate to **Admin > API**
+    - Click **New Key**
+    - Choose scope: **All Clients** (for testing) or **Specific Client**
+    - Copy the generated key
+
+  - **Test Connection**
+<code bash>
+curl "https://itflow.yourdomain.com/api/v1/clients/read.php?api_key=YOUR_KEY&limit=1"
+</code>
+
+  - **Expected Response**
+<code json>
+{
+  "success": "True",
+  "count": 1,
+  "data": [{"client_id": "123", "client_name": "Example Corp"}]
+}
+</code>
+
+===== API Overview =====
+
+  * **Base URL**: ''/api/v1/{module}/{function}.php''
+  * **Version**: 1.0 (current)
+  * **Authentication**: API Key via query parameter ''?api_key=YOUR_KEY''
+  * **Response Format**: JSON with ''success'', ''message'', ''count'', ''data'' fields
+  * **Pagination**: Default 50 records, adjustable with ''limit'' and ''offset'' parameters
+  * **Content-Type**: ''application/json'' for POST requests
+  * **Character Encoding**: UTF-8 (utf8mb4 in database)
+
+==== Standard Response Format ====
+
+<code json>
+{
+  "success": "True|False",
+  "message": "Descriptive status message",
+  "count": 50,
+  "data": [
+    {
+      "id": 123,
+      "field": "value"
+    }
+  ]
+}
+</code>
+
+==== Create Response Format ====
+
+<code json>
+{
+  "success": "True",
+  "count": "1",
+  "data": [
+    {
+      "insert_id": 123
+    }
+  ]
+}
+</code>
+
+===== Authentication & Security =====
+
+==== API Key Management ====
+
+  * **Generation**: Admin > API > New Key
+  * **Scoping Options**:
+    * **All Clients** (client_id = 0): Full access to all client data
+    * **Specific Client**: Limited to single client data only
+  * **Usage**: Query parameter ''?api_key=YOUR_KEY'' for GET, or in JSON body for POST
+  * **Security**: Keys stored encrypted in database with expiration dates
+
+==== Best Practices ====
+
+  * **Rotate keys** regularly (monthly recommended)
+  * **Use client-scoped keys** for third-party integrations
+  * **Store keys securely** (environment variables, not code)
+  * **Monitor usage** via Apache/PHP logs
+  * **Use HTTPS only** for all API calls
+
+----
+
+===== Module Reference =====
+
+==== Assets ''/api/v1/assets/'' ====
+
+**Purpose**: Computer and equipment inventory management
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get asset information
+  * ''POST /create.php'' - Create new asset record
+  * ''POST /update.php'' - Update existing asset
+  * ''POST /delete.php'' - Delete asset record
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| asset_id | integer | Get specific asset by ID |
+| asset_type | string | Filter by asset type (auto-capitalized) |
+| asset_name | string | Filter by exact asset name |
+| asset_serial | string | Filter by serial number |
+| asset_mac | string | Filter by MAC address (searches primary interface) |
+| asset_uri | string | Filter by URI |
+
+**Create/Update Parameters (POST)**:
+
+^ Parameter ^ Type ^ Required (Create) ^ Description ^
+| api_key | string | Yes | API authentication key |
+| client_id | integer | Yes* | Required if API key has all-client access |
+| asset_name | string | Yes | Asset name/hostname |
+| asset_description | string | No | Asset description |
+| asset_type | string | No | Type (Laptop, Desktop, Server, etc.) |
+| asset_make | string | No | Manufacturer |
+| asset_model | string | No | Model name/number |
+| asset_serial | string | No | Serial number |
+| asset_os | string | No | Operating system |
+| asset_ip | string | No | IP address (stored in primary interface) |
+| asset_mac | string | No | MAC address (stored in primary interface) |
+| asset_uri | string | No | Management URL |
+| asset_status | string | No | Status (Deployed, Spare, etc.) |
+| asset_purchase_date | date | No | Purchase date (YYYY-MM-DD) |
+| asset_warranty_expire | date | No | Warranty expiration date |
+| asset_install_date | date | No | Installation date |
+| asset_notes | string | No | Notes |
+| asset_vendor_id | integer | No | Associated vendor ID |
+| asset_location_id | integer | No | Associated location ID |
+| asset_contact_id | integer | No | Associated contact ID |
+| asset_network_id | integer | No | Network ID for primary interface |
+
+**Update Additional Parameters**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| asset_id | integer | Yes | ID of asset to update |
+
+**Delete Parameters**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| asset_id | integer | Yes | ID of asset to delete |
+
+<wrap em>Note: Deleting an asset also removes all associated network interfaces.</wrap>
+
+**Example - Create Asset**:
+
+<code bash>
+curl -X POST "https://itflow.example.com/api/v1/assets/create.php" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_key": "YOUR_API_KEY",
+    "client_id": 1,
+    "asset_name": "DESKTOP-001",
+    "asset_type": "Desktop",
+    "asset_make": "Dell",
+    "asset_model": "OptiPlex 7090",
+    "asset_serial": "ABC123XYZ",
+    "asset_os": "Windows 11 Pro",
+    "asset_ip": "192.168.1.100",
+    "asset_mac": "00:11:22:33:44:55",
+    "asset_status": "Deployed"
+  }'
+</code>
+
+----
+
+==== Certificates ''/api/v1/certificates/'' ====
+
+**Purpose**: SSL/TLS certificate management and expiration tracking
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get certificate information
+  * ''POST /create.php'' - Create certificate record
+
+<wrap em>Note: Update and delete endpoints are not implemented.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| certificate_id | integer | Get specific certificate by ID |
+| certificate_name | string | Filter by certificate name |
+
+**Create Parameters (POST)**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| api_key | string | Yes | API authentication key |
+| client_id | integer | Yes* | Required if API key has all-client access |
+| certificate_name | string | Yes | Certificate friendly name |
+| certificate_domain | string | Yes | Domain the certificate covers |
+| certificate_description | string | No | Description |
+| certificate_issued_by | string | No | Issuing authority (e.g., Let's Encrypt) |
+| certificate_expire | date | No | Expiration date (YYYY-MM-DD) |
+| certificate_public_key | string | No | Certificate content/public key |
+| certificate_notes | string | No | Additional notes |
+| certificate_domain_id | integer | No | Link to domains table |
+
+----
+
+==== Clients ''/api/v1/clients/'' ====
+
+**Purpose**: Customer/company management
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get client information
+  * ''POST /create.php'' - Create new client
+  * ''POST /update.php'' - Update client details
+  * ''POST /archive.php'' - Archive client
+  * ''POST /unarchive.php'' - Unarchive client
+
+<wrap em>Note: Delete endpoint is not implemented. Use archive instead.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| client_name | string | Get specific client by exact name |
+
+**Create Parameters (POST)**:
+
+<wrap em>Important: Creating clients requires an API key with "All Clients" scope (client_id = 0).</wrap>
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| api_key | string | Yes | API authentication key (must be all-client scope) |
+| client_name | string | Yes | Client/company name |
+| client_type | string | No | Business type/category |
+| client_website | string | No | Website URL (https:// prefix auto-removed) |
+| client_referral | string | No | Referral source |
+| client_rate | decimal | No | Hourly rate |
+| client_currency_code | string | No | Currency code (e.g., USD) |
+| client_net_terms | integer | No | Payment terms in days |
+| client_tax_id_number | string | No | Tax ID/EIN |
+| client_abbreviation | string | No | Short code (max 6 chars) |
+| client_is_lead | integer | No | Lead flag (0 or 1) |
+| client_notes | string | No | Additional notes |
+
+**Update Additional Parameters**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| client_id | integer | Yes | ID of client to update |
+
+**Archive/Unarchive Parameters**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| client_id | integer | Yes | ID of client (from API key scope) |
+
+<wrap em>Note: Archiving a client automatically stops all recurring invoices for that client.</wrap>
+
+----
+
+==== Contacts ''/api/v1/contacts/'' ====
+
+**Purpose**: Individual contact management within client organizations
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get contact information
+  * ''POST /create.php'' - Create new contact
+  * ''POST /update.php'' - Update contact details
+  * ''POST /delete.php'' - Delete contact record
+  * ''POST /archive.php'' - Archive contact
+  * ''POST /unarchive.php'' - Unarchive contact
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| contact_id | integer | Get specific contact by ID |
+| contact_email | string | Get contact by email address |
+| contact_phone_or_mobile | string | Get contact by phone or mobile number |
+
+**Create Parameters (POST)**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| api_key | string | Yes | API authentication key |
+| client_id | integer | Yes* | Required if API key has all-client access |
+| contact_name | string | Yes | Full name |
+| contact_email | string | Yes | Email address (must be unique per client) |
+| contact_title | string | No | Job title |
+| contact_department | string | No | Department |
+| contact_phone | string | No | Phone number (non-digits stripped) |
+| contact_extension | string | No | Phone extension |
+| contact_mobile | string | No | Mobile number (non-digits stripped) |
+| contact_notes | string | No | Notes |
+| contact_primary | integer | No | Primary contact flag (0 or 1) |
+| contact_important | integer | No | Important flag (0 or 1) |
+| contact_billing | integer | No | Billing contact flag (0 or 1) |
+| contact_technical | integer | No | Technical contact flag (0 or 1) |
+| contact_location_id | integer | No | Associated location ID |
+
+<wrap em>Note: Setting contact_primary = 1 will remove primary flag from other contacts for that client.</wrap>
+
+**Update Additional Parameters**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| contact_id | integer | Yes | ID of contact to update |
+
+**Delete Parameters**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| contact_id | integer | Yes | ID of contact to delete |
+
+**Archive/Unarchive Parameters**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| contact_id | integer | Yes | ID of contact to archive/unarchive |
+
+<wrap em>Note: Archiving a contact also archives their associated user account if one exists.</wrap>
+
+----
+
+==== Credentials ''/api/v1/credentials/'' ====
+
+**Purpose**: Password and login management (encrypted storage)
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get credential information
+  * ''POST /create.php'' - Create new credential record
+  * ''POST /update.php'' - Update credential details
+
+<wrap em>Note: Delete endpoint is not implemented.</wrap>
+
+<wrap em>Important: The ''api_key_decrypt_password'' parameter is required for ALL credential operations.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| api_key_decrypt_password | string | Yes | Decryption password for the API key |
+| credential_id | integer | No | Get specific credential by ID |
+
+**Create Parameters (POST)**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| api_key | string | Yes | API authentication key |
+| api_key_decrypt_password | string | Yes | Decryption password |
+| client_id | integer | Yes* | Required if API key has all-client access |
+| credential_name | string | Yes | Credential name/label |
+| credential_password | string | Yes | Password (will be encrypted) |
+| credential_description | string | No | Description |
+| credential_uri | string | No | Login URL |
+| credential_uri_2 | string | No | Secondary URL |
+| credential_username | string | No | Username (will be encrypted) |
+| credential_otp_secret | string | No | TOTP/2FA secret |
+| credential_note | string | No | Additional notes |
+| credential_important | integer | No | Important flag (0 or 1) |
+| credential_contact_id | integer | No | Associated contact ID |
+| credential_vendor_id | integer | No | Associated vendor ID |
+| credential_asset_id | integer | No | Associated asset ID |
+| credential_software_id | integer | No | Associated software ID |
+
+**Update Additional Parameters**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| credential_id | integer | Yes | ID of credential to update |
+| api_key_decrypt_password | string | Yes | Decryption password |
+
+<wrap em>Note: Updating the password field automatically updates the password_changed_at timestamp.</wrap>
+
+----
+
+==== Documents ''/api/v1/documents/'' ====
+
+**Purpose**: Internal documentation and knowledge base articles
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get document information
+  * ''POST /create.php'' - Create new document
+  * ''POST /update.php'' - Update document
+
+<wrap em>Note: Delete endpoint is not implemented.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| document_id | integer | Get specific document by ID |
+
+**Create Parameters (POST)**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| api_key | string | Yes | API authentication key |
+| client_id | integer | Yes* | Required if API key has all-client access |
+| document_name | string | Yes | Document title |
+| document_content | string | Yes | Document content (HTML supported) |
+| document_description | string | No | Brief description |
+| document_folder_id | integer | No | Folder ID for organization |
+
+**Update Additional Parameters**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| document_id | integer | Yes | ID of document to update |
+
+----
+
+==== Domains ''/api/v1/domains/'' ====
+
+**Purpose**: Domain name management and renewal tracking
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get domain information
+
+<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| domain_id | integer | Get specific domain by ID |
+| domain_name | string | Get domain by exact name |
+
+**Response Fields**:
+
+^ Field ^ Type ^ Description ^
+| domain_id | integer | Primary key |
+| domain_name | string | Domain name |
+| domain_description | string | Description |
+| domain_expire | date | Expiration date |
+| domain_ip | string | IP address(es) |
+| domain_name_servers | string | Name servers |
+| domain_mail_servers | string | MX records |
+| domain_txt | string | TXT records |
+| domain_raw_whois | string | Raw WHOIS data |
+| domain_notes | string | Notes |
+| domain_registrar | integer | Registrar vendor ID |
+| domain_webhost | integer | Web host vendor ID |
+| domain_dnshost | integer | DNS host vendor ID |
+| domain_mailhost | integer | Mail host vendor ID |
+| domain_client_id | integer | Client ID |
+
+----
+
+==== Expenses ''/api/v1/expenses/'' ====
+
+**Purpose**: Track business expenses
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get expense information
+
+<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
+
+<wrap em>Important: Expenses require an API key with "All Clients" scope.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| expense_id | integer | Get specific expense by ID |
+
+----
+
+==== Invoices ''/api/v1/invoices/'' ====
+
+**Purpose**: Access invoice records
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get invoice information
+
+<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| invoice_id | integer | Get specific invoice by ID |
+
+----
+
+===== Invoice Items ''/api/v1/invoice_items/'' =====
+
+**Purpose**: Retrieve line items associated with invoices
+
+**Available Endpoints**:
+  * ''GET /read.php'' - List/get invoice line items
+
+==== Read Parameters (GET) ====
+
+^ Parameter ^ Type ^ Description ^
+| invoice_id | integer | Filter items by invoice ID |
+| item_id | integer | Get a specific line item by ID |
+
+==== Response Fields ====
+
+^ Field ^ Type ^ Description ^
+| item_id | integer | Unique line item ID |
+| item_name | string | Name/title of the line item |
+| item_description | string | Description or notes |
+| item_quantity | decimal | Quantity billed |
+| item_price | decimal | Unit price |
+| item_subtotal | decimal | quantity × price |
+| item_tax | decimal | Tax amount applied |
+| item_total | decimal | subtotal + tax |
+| item_order | integer | Display sort order |
+| item_tax_id | integer | Associated tax rate ID (0 = no tax) |
+| item_product_id | integer | Associated product ID (0 = ad-hoc item) |
+| item_invoice_id | integer | Parent invoice ID |
+| item_created_at | datetime | Record creation timestamp |
+| item_updated_at | datetime | Last update timestamp |
+| item_archived_at | datetime | Archive timestamp (null if active) |
+
+==== Example - Get all items for an invoice ====
+
+<code bash>
+curl "https://itflow.example.com/api/v1/invoice_items/read.php?api_key=YOUR_KEY&invoice_id=101"
+</code>
+
+==== Example Response ====
+
+<code json>
+{
+  "success": "True",
+  "count": 2,
+  "data": [
+    {
+      "item_id": "184",
+      "item_name": "make pizza",
+      "item_description": "Do it",
+      "item_quantity": "1.00",
+      "item_price": "100.00",
+      "item_subtotal": "100.00",
+      "item_tax": "0.00",
+      "item_total": "100.00",
+      "item_order": "1",
+      "item_tax_id": "0",
+      "item_product_id": "0",
+      "item_invoice_id": "101",
+      "item_created_at": "2026-03-10 13:11:30",
+      "item_updated_at": null,
+      "item_archived_at": null
+    }
+  ]
+}
+</code>
+
+==== Locations ''/api/v1/locations/'' ====
+
+**Purpose**: Manage client office/site locations
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get location information
+  * ''POST /create.php'' - Create new location
+
+<wrap em>Note: Update and delete endpoints are not implemented.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| location_id | integer | Get specific location by ID |
+
+**Create Parameters (POST)**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| api_key | string | Yes | API authentication key |
+| client_id | integer | Yes* | Required if API key has all-client access |
+| location_name | string | Yes | Location name |
+| location_description | string | No | Description |
+| location_country | string | No | Country |
+| location_address | string | No | Street address |
+| location_city | string | No | City |
+| location_state | string | No | State/province |
+| location_zip | string | No | ZIP/postal code |
+| location_hours | string | No | Business hours |
+| location_notes | string | No | Notes |
+| location_primary | integer | No | Primary location flag (0 or 1) |
+
+<wrap em>Note: Setting location_primary = 1 will remove primary flag from other locations for that client.</wrap>
+
+----
+
+==== Networks ''/api/v1/networks/'' ====
+
+**Purpose**: Network infrastructure documentation
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get network information
+
+<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| network_id | integer | Get specific network by ID |
+| network_name | string | Get network by exact name |
+
+----
+
+==== Payments ''/api/v1/payments/'' ====
+
+**Purpose**: Access payment records
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get payment information
+
+<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
+
+<wrap em>Important: Payments require an API key with "All Clients" scope.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| payment_id | integer | Get specific payment by ID |
+| payment_invoice_id | integer | Get all payments for an invoice |
+
+----
+
+==== Products ''/api/v1/products/'' ====
+
+**Purpose**: Access product/service catalog
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get product information
+
+<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
+
+<wrap em>Important: Products require an API key with "All Clients" scope.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| product_id | integer | Get specific product by ID |
+
+----
+
+==== Quotes ''/api/v1/quotes/'' ====
+
+**Purpose**: Access sales quote records
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get quote information
+
+<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| quote_id | integer | Get specific quote by ID |
+
+----
+
+==== Software ''/api/v1/software/'' ====
+
+**Purpose**: Software license and application tracking
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get software information
+
+<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| software_id | integer | Get specific software by ID |
+| software_name | string | Get by exact name |
+| software_type | string | Filter by type |
+
+----
+
+==== Tickets ''/api/v1/tickets/'' ====
+
+**Purpose**: Help desk and issue tracking
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get ticket information
+  * ''POST /create.php'' - Create new ticket
+  * ''POST /resolve.php'' - Resolve/close ticket
+
+<wrap em>Note: Update and delete endpoints are not implemented.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| ticket_id | integer | Get specific ticket by ID (includes status information) |
+
+**Create Parameters (POST)**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| api_key | string | Yes | API authentication key |
+| client_id | integer | No | Client ID (defaults to 0 if not provided) |
+| ticket_subject | string | Yes | Ticket subject/title |
+| ticket_details | string | No | Ticket description |
+| ticket_priority | string | No | Priority (Low, Medium, High) - defaults to "Low" |
+| ticket_contact_id | integer | No | Contact ID (auto-selects primary contact if not provided) |
+| ticket_asset_id | integer | No | Related asset ID |
+| ticket_vendor_id | integer | No | Escalation vendor ID |
+| ticket_vendor_ticket_id | integer | No | Vendor's ticket number |
+| ticket_assigned_to | integer | No | Assigned user ID |
+| ticket_billable | integer | No | Billable flag (0 or 1) |
+
+<wrap em>Note: Ticket number is auto-generated based on system settings. Ticket source is set to "API".</wrap>
+
+**Resolve Parameters (POST)**:
+
+^ Parameter ^ Type ^ Required ^ Description ^
+| ticket_id | integer | Yes | ID of ticket to resolve |
+
+<wrap em>Note: Resolving sets status to Resolved and records the resolution timestamp. Also sets first response time if not already set.</wrap>
+
+**Example - Create Ticket**:
+
+<code bash>
+curl -X POST "https://itflow.example.com/api/v1/tickets/create.php" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_key": "YOUR_API_KEY",
+    "client_id": 456,
+    "ticket_subject": "Printer offline",
+    "ticket_details": "Office printer not responding to print jobs",
+    "ticket_priority": "Medium"
+  }'
+</code>
+
+----
+
+==== Vendors ''/api/v1/vendors/'' ====
+
+**Purpose**: Manage vendor/supplier records
+
+**Available Endpoints**:
+
+  * ''GET /read.php'' - List/get vendor information
+
+<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
+
+**Read Parameters (GET)**:
+
+^ Parameter ^ Type ^ Description ^
+| vendor_id | integer | Get specific vendor by ID |
+
+----
+
+===== Custom API Extensions =====
+
+**Location**: ''/api/v1/custom/''
+
+ITFlow supports custom API endpoints. Place custom PHP files in the ''custom'' directory to extend API functionality.
+
+----
+
+===== Error Handling & Troubleshooting =====
+
+==== HTTP Status Codes ====
+
+^ Code ^ Description ^
+| 200 | Success - Request completed successfully |
+| 401 | Unauthorized - Invalid or missing API key |
+| 405 | Method Not Allowed - Only GET and POST supported |
+
+==== Common Error Messages ====
+
+^ Message ^ Cause ^
+| "Authentication failed. API key is invalid or has expired." | Invalid or expired API key |
+| "No resource (for this client and company) with the specified parameter(s)." | Record not found or access denied |
+| "Auth success but insert query failed..." | Missing required fields or duplicate data |
+| "Auth success but update query failed..." | Invalid ID or no matching record |
+| "Auth success but delete query failed..." | Invalid ID or client mismatch |
+
+==== Troubleshooting Steps ====
+
+  - **API Key Issues**
+    * Verify key is correct (copy/paste errors common)
+    * Check key scope (client-specific vs all clients)
+    * Confirm key hasn't expired
+
+  - **Permission Errors**
+    * Add ''client_id'' parameter for scoped keys
+    * Verify client_id exists and is accessible
+
+  - **Server Errors**
+    * Check Apache/PHP error logs: ''/var/log/apache2/error.log''
+    * Verify ITFlow database connectivity
+    * Check PHP memory limits for large requests
+
+  - **Data Issues**
+    * Validate required fields for POST requests
+    * Check data types (strings, integers, dates)
+    * Verify foreign key relationships exist
+    * Ensure unique constraints aren't violated (e.g., contact email per client)
+
+----
+
+===== Integration Examples =====
+
+==== PowerShell ====
+
+**List All Clients**:
+
+<code powershell>
+$apiKey = "YOUR-API-KEY"
+$baseUrl = "https://itflow.yourdomain.com"
+$uri = "$baseUrl/api/v1/clients/read.php?api_key=$apiKey"
+
+Invoke-RestMethod -Uri $uri | ConvertTo-Json
+</code>
+
+**Create New Asset**:
+
+<code powershell>
+$uri = "https://itflow.yourdomain.com/api/v1/assets/create.php"
+$body = @{
+    "api_key" = "YOUR-API-KEY"
+    "asset_name" = "Sample Laptop"
+    "asset_type" = "Laptop"
+    "asset_make" = "Dell"
+    "asset_model" = "Latitude 5520"
+    "client_id" = "1"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method Post -Uri $uri -Body $body -ContentType "application/json"
+</code>
+
+==== Python ====
+
+<code python>
+import requests
+
+api_key = "YOUR_API_KEY"
+base_url = "https://itflow.yourdomain.com/api/v1/"
+
+# Get all clients
+response = requests.get(f"{base_url}clients/read.php?api_key={api_key}")
+data = response.json()
+print(data)
+
+# Create new ticket
+ticket_data = {
+    "api_key": api_key,
+    "client_id": 456,
+    "ticket_subject": "Network issue",
+    "ticket_details": "Unable to access shared drive",
+    "ticket_priority": "High"
+}
+
+response = requests.post(f"{base_url}tickets/create.php", json=ticket_data)
+result = response.json()
+print(result)
+</code>
+
+==== PHP ====
+
+<code php>
+<?php
+$api_key = 'YOUR_API_KEY';
+$base_url = 'https://itflow.yourdomain.com/api/v1/';
+
+// Get clients
+$url = $base_url . 'clients/read.php?api_key=' . $api_key;
+$response = file_get_contents($url);
+$data = json_decode($response, true);
+
+print_r($data);
+?>
+</code>
+
+==== cURL ====
+
+<code bash>
+# Get all assets for a client
+curl "https://itflow.example.com/api/v1/assets/read.php?api_key=YOUR_KEY&limit=10"
+
+# Create a contact
+curl -X POST "https://itflow.example.com/api/v1/contacts/create.php" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_key": "YOUR_KEY",
+    "client_id": 1,
+    "contact_name": "John Smith",
+    "contact_email": "john@example.com",
+    "contact_phone": "5551234567",
+    "contact_primary": 1
+  }'
+</code>
+
+----
+
+===== API Module Summary =====
+
+^ Module ^ Read ^ Create ^ Update ^ Delete ^ Archive ^ Other ^
+| Assets | ✓ | ✓ | ✓ | ✓ | - | - |
+| Certificates | ✓ | ✓ | - | - | - | - |
+| Clients | ✓ | ✓ | ✓ | - | ✓ | unarchive |
+| Contacts | ✓ | ✓ | ✓ | ✓ | ✓ | unarchive |
+| Credentials | ✓ | ✓ | ✓ | - | - | - |
+| Documents | ✓ | ✓ | ✓ | - | - | - |
+| Domains | ✓ | - | - | - | - | - |
+| Expenses | ✓ | - | - | - | - | - |
+| Invoices | ✓ | - | - | - | - | - |
+| [[#invoice_items_api_v1_invoice_items|Invoice Items]] | ✓ | - | - | - | - | - |
+| Locations | ✓ | ✓ | - | - | - | - |
+| Networks | ✓ | - | - | - | - | - |
+| Payments | ✓ | - | - | - | - | - |
+| Products | ✓ | - | - | - | - | - |
+| Quotes | ✓ | - | - | - | - | - |
+| Software | ✓ | - | - | - | - | - |
+| Tickets | ✓ | ✓ | - | - | - | resolve |
+| Vendors | ✓ | - | - | - | - | - |
+
+
+## Documentación completa ITFlow
+https://docs.itflow.org/
