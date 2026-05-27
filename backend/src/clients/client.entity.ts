@@ -16,16 +16,16 @@ export class Client {
   @Column()
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   abbreviation: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   type: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   website: string | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   referral: string | null;
 
   @Column({
@@ -38,13 +38,13 @@ export class Client {
   })
   rate: number | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   currencyCode: string | null;
 
   @Column({ type: 'int', nullable: true })
   netTerms: number | null;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   taxIdNumber: string | null;
 
   @Column({ default: false })

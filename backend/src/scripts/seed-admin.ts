@@ -6,6 +6,7 @@ import { DataSource } from 'typeorm';
 import bcrypt from 'bcrypt';
 import { User } from '../users/user.entity';
 import { UserRole } from '../users/user-role.enum';
+import { Technician } from '../technicians/technician.entity';
 import { generateRandomPassword } from '../common/utils/password.util';
 
 const SEED_EMAIL = 'admininfraops@ondra.com.ar';
@@ -18,7 +19,7 @@ async function seed(): Promise<void> {
     username: process.env.DB_USER ?? 'postgres',
     password: process.env.DB_PASSWORD ?? '',
     database: process.env.DB_NAME ?? 'infraops',
-    entities: [User],
+    entities: [User, Technician],
     synchronize: false,
   });
 

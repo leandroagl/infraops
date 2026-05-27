@@ -1,7 +1,7 @@
 import { UserRole } from '../../users/user-role.enum';
 
 export class LoginResponseDto {
-  token: string;
+  accessToken: string;
   mustChangePassword: boolean;
   user: {
     id: string;
