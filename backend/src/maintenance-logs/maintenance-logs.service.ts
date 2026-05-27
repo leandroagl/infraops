@@ -62,6 +62,9 @@ export class MaintenanceLogsService {
       throw new BadRequestException('Se debe proveer al menos un campo para actualizar');
     }
 
+    const task = await this.taskRepository.findOne({ where: { id: taskId } });
+    if (!task) throw new NotFoundException('Tarea no encontrada');
+
     const log = await this.logRepository.findOne({ where: { taskId } });
     if (!log) throw new NotFoundException('Esta tarea no tiene log registrado');
 

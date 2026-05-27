@@ -12,5 +12,6 @@ import { MaintenanceLogsService } from './maintenance-logs.service';
   imports: [TypeOrmModule.forFeature([MaintenanceLog, Task, User])],
   controllers: [MaintenanceLogsController],
   providers: [MaintenanceLogsService, JwtAuthGuard, RolesGuard],
+  exports: [MaintenanceLogsService],
 })
 export class MaintenanceLogsModule {}

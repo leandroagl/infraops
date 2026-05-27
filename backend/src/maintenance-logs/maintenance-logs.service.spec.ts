@@ -195,6 +195,7 @@ describe('MaintenanceLogsService', () => {
   describe('update', () => {
     it('actualiza payload y devuelve el log actualizado', async () => {
       const updatedLog = { ...mockLog, payload: [{ item: 'VMware', result: 'ok' as const }] };
+      taskRepository.findOne.mockResolvedValue(mockTask);
       logRepository.findOne
         .mockResolvedValueOnce(mockLog)     // buscar por taskId
         .mockResolvedValueOnce(updatedLog); // loadLog
@@ -212,10 +213,19 @@ describe('MaintenanceLogsService', () => {
     });
 
     it('lanza NotFoundException si la tarea no tiene log', async () => {
+      taskRepository.findOne.mockResolvedValue(mockTask);
       logRepository.findOne.mockResolvedValue(null);
 
       await expect(service.update('task-1', { notes: 'test' })).rejects.toThrow(
         'Esta tarea no tiene log registrado',
+      );
+    });
+
+    it('lanza NotFoundException si la tarea no existe', async () => {
+      taskRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.update('nonexistent', { notes: 'test' })).rejects.toThrow(
+        'Tarea no encontrada',
       );
     });
   });
