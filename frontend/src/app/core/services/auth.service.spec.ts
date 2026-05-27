@@ -8,7 +8,8 @@ import { LoginResponse } from '../models/auth.models';
 
 const MOCK_RESPONSE: LoginResponse = {
   accessToken: 'eyJhbGciOiJIUzI1NiJ9.test.sig',
-  user: { id: 1, email: 'pepe@ondra.com.ar', role: 'ADMIN' },
+  mustChangePassword: false,
+  user: { id: '550e8400-e29b-41d4-a716-446655440000', email: 'pepe@ondra.com.ar', role: 'ADMIN' },
 };
 
 describe('AuthService', () => {

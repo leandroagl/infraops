@@ -1,10 +1,10 @@
 export type UserRole = 'ADMIN' | 'TL' | 'TECHNICIAN' | 'COORDINATOR';
 
 export interface AuthUser {
-  id: number;
+  id: string;
   email: string;
   role: UserRole;
-  technicianId?: number;
+  technicianId?: string | null;
 }
 
 export interface LoginResponse {
@@ -14,10 +14,10 @@ export interface LoginResponse {
 }
 
 export interface JwtPayload {
-  sub: number;
+  sub: string;
   email: string;
   role: UserRole;
-  technicianId?: number;
+  technicianId?: string | null;
   iat: number;
   exp: number;
 }
