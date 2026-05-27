@@ -1,0 +1,60 @@
+@use '@angular/material' as mat;
+@use 'sass:map';
+
+// ── Google Fonts ─────────────────────────────────────────────
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+// ── Angular Material: tema dark custom ───────────────────────
+@include mat.core();
+
+$infraops-primary: mat.define-palette(mat.$light-blue-palette, 400, 200, 700);
+$infraops-accent:  mat.define-palette(mat.$cyan-palette, 400);
+$infraops-warn:    mat.define-palette(mat.$red-palette, 400);
+
+$infraops-theme: mat.define-dark-theme((
+  color: (
+    primary:  $infraops-primary,
+    accent:   $infraops-accent,
+    warn:     $infraops-warn,
+  ),
+  typography: mat.define-typography-config(
+    $font-family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
+    $body-1: mat.define-typography-level(13px, 1.4, 400),
+  ),
+  density: -1,
+));
+
+@include mat.all-component-themes($infraops-theme);
+
+// Override de superficies de Material para que respeten nuestros tokens
+.mat-mdc-dialog-container .mdc-dialog__surface,
+.mat-mdc-menu-panel,
+.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel {
+  background: var(--surface) !important;
+  border: 1px solid var(--border-lo) !important;
+}
+
+.mat-mdc-form-field .mdc-text-field--filled {
+  background-color: var(--card) !important;
+}
+
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: var(--elevated);
+  --mdc-snackbar-supporting-text-color: var(--tx-hi);
+}
+
+// ── Tokens de diseño ─────────────────────────────────────────
+@import 'styles/tokens';
+
+// ── Reset ─────────────────────────────────────────────────────
+@import 'styles/reset';
+
+// ── Tipografía ────────────────────────────────────────────────
+@import 'styles/typography';
+
+// ── Componentes globales ──────────────────────────────────────
+@import 'styles/components';
+
+// ── Ag-Grid overrides ─────────────────────────────────────────
+@import 'styles/ag-grid';

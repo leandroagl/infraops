@@ -1,0 +1,66 @@
+<div class="login-page">
+
+  <div class="login-wrapper">
+
+    <!-- Marca -->
+    <div class="brand">
+      <div class="brand__logo">
+        <div class="brand__icon">
+          <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:var(--accent);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+            <path d="M8 21h8M12 17v4"/>
+          </svg>
+        </div>
+        <span class="brand__name">InfraOps</span>
+      </div>
+      <div class="brand__tagline">ONDRA · Sistema de operaciones</div>
+    </div>
+
+    <!-- Card -->
+    <div class="login-card">
+      <p class="login-card__title">Iniciar sesión</p>
+      <p class="login-card__subtitle">Accedé con tu cuenta de operaciones</p>
+
+      <!-- Error global -->
+      <div class="alert--error" *ngIf="errorMessage">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;flex-shrink:0;margin-top:1px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        {{ errorMessage }}
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
+        <mat-form-field appearance="fill" class="field-full">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email"
+                 placeholder="usuario@ondra.com.ar" autocomplete="email" />
+          <mat-error *ngIf="form.get('email')?.hasError('required')">El email es requerido</mat-error>
+          <mat-error *ngIf="form.get('email')?.hasError('email')">Email inválido</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="field-full">
+          <mat-label>Contraseña</mat-label>
+          <input matInput type="password" formControlName="password"
+                 placeholder="••••••••" autocomplete="current-password" />
+          <mat-error *ngIf="form.get('password')?.hasError('required')">La contraseña es requerida</mat-error>
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          color="primary"
+          type="submit"
+          class="btn-submit"
+          [disabled]="loading">
+          <mat-spinner *ngIf="loading" diameter="14" class="spinner"></mat-spinner>
+          <span>{{ loading ? 'Verificando...' : 'Ingresar' }}</span>
+        </button>
+
+      </form>
+    </div>
+
+    <div class="login-footer">v0.1.0 · Solo acceso interno</div>
+
+  </div>
+
+</div>

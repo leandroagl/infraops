@@ -1,0 +1,15 @@
+.ag-theme-alpine-dark {
+  --ag-background-color:         var(--surface);
+  --ag-odd-row-background-color: var(--card);
+  --ag-row-hover-color:          var(--hover);
+  --ag-border-color:             var(--border-lo);
+  --ag-header-background-color:  var(--elevated);
+  --ag-header-foreground-color:  var(--tx-lo);
+  --ag-foreground-color:         var(--tx-hi);
+  --ag-font-size:                12px;
+  --ag-font-family:              var(--font-ui);
+  --ag-row-height:               50px;
+  --ag-header-height:            36px;
+  --ag-cell-horizontal-padding:  14px;
+  --ag-selected-row-background-color: var(--accent-bg);
+}

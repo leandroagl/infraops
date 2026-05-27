@@ -1,0 +1,40 @@
+:root {
+  // Superficies
+  --base:     #0f1117;
+  --surface:  #161b22;
+  --card:     #1e2530;
+  --elevated: #252e3f;
+  --hover:    #2a3447;
+
+  // Bordes
+  --border:    #2d3748;
+  --border-lo: #1e2737;
+  --border-md: #3d4f6a;
+
+  // Texto
+  --tx-hi: #f0f4f8;
+  --tx-md: #8b95a6;
+  --tx-lo: #4a5568;
+
+  // Estado
+  --crit:    #f87171;  --crit-bg:  #450a0a;  --crit-bd:  #7f1d1d;
+  --warn:    #fb923c;  --warn-bg:  #431407;  --warn-bd:  #7c2d12;
+  --ok:      #4ade80;  --ok-bg:    #052e16;  --ok-bd:    #166534;
+  --neutral: #9ca3af;  --neutral-bg:#1c1f26; --neutral-bd:#374151;
+
+  // Accent
+  --accent:  #0ea5e9;  --accent-bg: #071a29; --accent-bd: #0c3454;
+
+  // Por tipo de tarea
+  --srv:    #60a5fa;  --srv-bg:    #0c1a3a;  --srv-bd:    #1e3a8a;
+  --purple: #a78bfa;  --purple-bg: #1a0c3a;  --purple-bd: #4c1d95;
+
+  // Tipografía
+  --font-ui:   -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  // Radios
+  --radius:    8px;
+  --radius-lg: 12px;
+  --radius-sm: 6px;
+}
