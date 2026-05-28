@@ -48,6 +48,7 @@ describe('InfrastructureService', () => {
 
     await service.getClientInfrastructure('uuid-1');
 
+    expect(clientsService.findInfradocId).toHaveBeenCalledWith('uuid-1');
     expect(infradocAssetsService.getAssets).toHaveBeenCalledWith(99);
   });
 

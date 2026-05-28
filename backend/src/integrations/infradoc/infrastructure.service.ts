@@ -4,10 +4,10 @@ import { InfradocAssetsService, RawInfradocAsset } from './infradoc-assets.servi
 import { ClientInfrastructureDto, InfraAssetDto } from './dto/client-infrastructure.dto';
 
 const ASSET_TYPE_MAP = {
-  servers: ['Server'],
-  vms:     ['Virtual Machine'],
-  nas:     ['NAS', 'QNAP'],
-  routers: ['Router', 'Firewall'],
+  servers: ['server'],
+  vms:     ['virtual machine'],
+  nas:     ['nas', 'qnap'],
+  routers: ['router', 'firewall'],
 };
 
 @Injectable()
@@ -29,7 +29,7 @@ export class InfrastructureService {
     const result: ClientInfrastructureDto = { servers: [], vms: [], nas: [], routers: [] };
 
     for (const asset of raw) {
-      const type = (asset.asset_type ?? '').trim();
+      const type = (asset.asset_type ?? '').trim().toLowerCase();
       const mapped = this.mapAsset(asset);
 
       if (ASSET_TYPE_MAP.servers.includes(type)) result.servers.push(mapped);
