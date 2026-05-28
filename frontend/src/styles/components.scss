@@ -1,36 +1,95 @@
 // ── Badge de estado ──────────────────────────────────────────
+// Pill con dot — mismo estilo que ONDRA Monitor status-chip
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
-  border-radius: 5px;
-  font-size: 10px;
-  font-weight: 500;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   font-family: var(--font-mono);
-  border: 1px solid;
 
-  &--crit    { background: var(--crit-bg);    color: var(--crit);    border-color: var(--crit-bd);    }
-  &--warn    { background: var(--warn-bg);    color: var(--warn);    border-color: var(--warn-bd);    }
-  &--ok      { background: var(--ok-bg);      color: var(--ok);      border-color: var(--ok-bd);      }
-  &--neutral { background: var(--neutral-bg); color: var(--neutral); border-color: var(--neutral-bd); }
-  &--srv     { background: var(--srv-bg);     color: var(--srv);     border-color: var(--srv-bd);     }
-  &--purple  { background: var(--purple-bg);  color: var(--purple);  border-color: var(--purple-bd);  }
-  &--accent  { background: var(--accent-bg);  color: var(--accent);  border-color: var(--accent-bd);  }
-  &--na      { background: var(--elevated);   color: var(--tx-md);   border-color: var(--border);     }
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &--crit    {
+    background: var(--crit-bg);    color: var(--crit);    border: 1px solid var(--crit-bd);
+    .dot { background: var(--crit); }
+  }
+  &--warn    {
+    background: var(--warn-bg);    color: var(--warn);    border: 1px solid var(--warn-bd);
+    .dot { background: var(--warn); }
+  }
+  &--ok      {
+    background: var(--ok-bg);      color: var(--ok);      border: 1px solid var(--ok-bd);
+    .dot { background: var(--ok); }
+  }
+  &--neutral {
+    background: var(--neutral-bg); color: var(--neutral); border: 1px solid var(--neutral-bd);
+    .dot { background: var(--neutral); }
+  }
+  &--srv     {
+    background: var(--srv-bg);     color: var(--srv);     border: 1px solid var(--srv-bd);
+    .dot { background: var(--srv); }
+  }
+  &--purple  {
+    background: var(--purple-bg);  color: var(--purple);  border: 1px solid var(--purple-bd);
+    .dot { background: var(--purple); }
+  }
+  &--accent  {
+    background: var(--accent-bg);  color: var(--accent);  border: 1px solid var(--accent-bd);
+    .dot { background: var(--accent); }
+  }
+  &--na {
+    background: transparent;
+    color: var(--tx-lo);
+    border: 1px solid var(--border-lo);
+    .dot { background: var(--tx-lo); }
+  }
 }
 
 // ── Card ─────────────────────────────────────────────────────
 .card {
-  background: var(--card);
+  background: var(--surface);
   border: 1px solid var(--border-lo);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-lo);
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--tx-md);
+    font-family: var(--font-mono);
+  }
+
+  &__body {
+    padding: 16px;
+  }
 }
 
 .surface-card {
   background: var(--surface);
   border: 1px solid var(--border-lo);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
 }
 
 // ── KPI card ─────────────────────────────────────────────────
@@ -39,12 +98,14 @@
   border: 1px solid var(--border-lo);
   border-radius: var(--radius);
   padding: 10px 14px;
+  box-shadow: var(--shadow-card);
 
   &__value {
     font-size: 22px;
     font-weight: 500;
     line-height: 1;
     font-family: var(--font-mono);
+    color: var(--tx-hi);
   }
 
   &__label {
@@ -64,14 +125,14 @@
   gap: 6px;
   padding: 6px 14px;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   font-family: var(--font-ui);
   border: 1px solid;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--transition);
 
-  &--primary   { background: var(--accent);   color: #fff;         border-color: var(--accent);   }
+  &--primary   { background: var(--accent);   color: #0a0d12;      border-color: var(--accent);   }
   &--secondary { background: var(--elevated);  color: var(--tx-md); border-color: var(--border);   }
   &--danger    { background: var(--crit-bg);   color: var(--crit);  border-color: var(--crit-bd);  }
 
@@ -86,14 +147,14 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--tx-hi);
-  font-size: 12px;
+  font-size: 13px;
   font-family: var(--font-ui);
   padding: 6px 12px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition);
   width: 100%;
 
-  &:focus { border-color: var(--accent-bd); box-shadow: 0 0 0 3px rgba(14,165,233,.08); }
+  &:focus { border-color: var(--accent-bd); box-shadow: 0 0 0 3px rgba(77,208,225,.08); }
   &::placeholder { color: var(--tx-lo); }
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
@@ -114,14 +175,14 @@
 .nav-item {
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: var(--tx-lo);
   border: 1px solid transparent;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--transition), color var(--transition);
 
   &:hover {
     background: var(--hover);
@@ -152,4 +213,113 @@
   background: var(--border-lo);
   border: none;
   margin: 0;
+}
+
+// ── Error banner ──────────────────────────────────────────────
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--crit-bg);
+  border: 1px solid var(--crit-bd);
+  border-radius: var(--radius);
+  color: var(--crit);
+  font-size: 13px;
+
+  button { margin-left: auto; }
+}
+
+// ── Animaciones ───────────────────────────────────────────────
+@keyframes scaleFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.fade-in {
+  animation: scaleFadeIn 380ms cubic-bezier(0.34, 1.10, 0.64, 1) forwards;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--elevated) 25%, var(--hover) 50%, var(--elevated) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+// ── Utilidades ────────────────────────────────────────────────
+.flex         { display: flex; }
+.flex-col     { display: flex; flex-direction: column; }
+.flex-center  { display: flex; align-items: center; justify-content: center; }
+.gap-sm       { gap: 8px; }
+.gap-md       { gap: 16px; }
+.gap-lg       { gap: 24px; }
+.text-muted   { color: var(--tx-lo); }
+.text-secondary { color: var(--tx-md); }
+.text-accent  { color: var(--accent); }
+.mono         { font-family: var(--font-mono); font-size: 0.875em; letter-spacing: -0.02em; }
+.w-full       { width: 100%; }
+.overflow-hidden { overflow: hidden; }
+
+// ── Dialog inner layout ───────────────────────────────────────
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border-lo);
+}
+
+.dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tx-hi);
+  margin: 0;
+}
+
+.dialog-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 24px 20px;
+}
+
+// ── Form field ────────────────────────────────────────────────
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &__label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--tx-lo);
+    font-family: var(--font-mono);
+  }
+}
+
+// ── Password display ──────────────────────────────────────────
+.password-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
 }
