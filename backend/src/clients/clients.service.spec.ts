@@ -55,6 +55,7 @@ describe('ClientsService', () => {
   beforeEach(async () => {
     clientRepository = {
       find: jest.fn(),
+      findOne: jest.fn(),
       create: jest.fn((data) => data),
       save: jest.fn((data) => Promise.resolve({ ...data, id: 'new-uuid' })),
       update: jest.fn().mockResolvedValue(undefined),
@@ -159,6 +160,28 @@ describe('ClientsService', () => {
       await service.syncWithInfradoc();
 
       await expect(service.syncWithInfradoc(true)).resolves.toBeDefined();
+    });
+  });
+
+  describe('findInfradocId', () => {
+    it('devuelve infradocId para un cliente existente', async () => {
+      clientRepository.findOne.mockResolvedValue({ id: 'uuid-1', infradocId: 42 });
+
+      const result = await service.findInfradocId('uuid-1');
+
+      expect(result).toBe(42);
+      expect(clientRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'uuid-1' },
+        select: ['infradocId'],
+      });
+    });
+
+    it('devuelve null si el cliente no existe', async () => {
+      clientRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.findInfradocId('uuid-no-existe');
+
+      expect(result).toBeNull();
     });
   });
 });

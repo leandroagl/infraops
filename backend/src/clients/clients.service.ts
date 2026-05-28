@@ -31,6 +31,14 @@ export class ClientsService {
     return clients.map(({ infradocId, lastSyncedAt, ...rest }) => rest);
   }
 
+  async findInfradocId(id: string): Promise<number | null> {
+    const client = await this.clientRepository.findOne({
+      where: { id },
+      select: ['infradocId'],
+    });
+    return client?.infradocId ?? null;
+  }
+
   async syncWithInfradoc(skipCooldown = false): Promise<SyncResult> {
     if (!skipCooldown && this.lastSyncAt !== null) {
       const elapsed = Date.now() - this.lastSyncAt.getTime();
