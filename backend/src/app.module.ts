@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { TechniciansModule } from './technicians/technicians.module';
 import { TasksModule } from './tasks/tasks.module';
 import { MaintenanceLogsModule } from './maintenance-logs/maintenance-logs.module';
+import { InfradocIntegrationModule } from './integrations/infradoc/infradoc-integration.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { MaintenanceLogsModule } from './maintenance-logs/maintenance-logs.modul
     TechniciansModule,
     TasksModule,
     MaintenanceLogsModule,
+    InfradocIntegrationModule,
   ],
 })
 export class AppModule {}
