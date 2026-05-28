@@ -3,11 +3,24 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 @Component({
   selector: 'app-password-display-dialog',
-  template: '',
+  templateUrl: './password-display-dialog.component.html',
 })
 export class PasswordDisplayDialogComponent {
+  copied = false;
+
   constructor(
     private dialogRef: MatDialogRef<PasswordDisplayDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: { name: string; plainPassword: string },
   ) {}
+
+  copy(): void {
+    navigator.clipboard.writeText(this.data.plainPassword).then(() => {
+      this.copied = true;
+      setTimeout(() => (this.copied = false), 2000);
+    });
+  }
+
+  close(): void {
+    this.dialogRef.close();
+  }
 }
