@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { User } from '../../../core/models/user.models';
 import { UserRole } from '../../../core/models/auth.models';
 import { UsersService } from '../../../core/services/users.service';
@@ -15,12 +17,13 @@ const SEED_ADMIN_EMAIL = 'admininfraops@ondra.com.ar';
   templateUrl: './users.component.html',
   styleUrl: './users.component.scss',
 })
-export class UsersComponent implements OnInit {
+export class UsersComponent implements OnInit, OnDestroy {
   users: User[] = [];
   loading = false;
   error = '';
 
   private readonly currentUserId: string;
+  private destroy$ = new Subject<void>();
 
   constructor(
     private usersService: UsersService,
@@ -33,6 +36,11 @@ export class UsersComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadUsers();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadUsers(): void {
@@ -83,7 +91,7 @@ export class UsersComponent implements OnInit {
       data: { mode: 'create' },
       width: '480px',
     });
-    ref.afterClosed().subscribe(result => {
+    ref.afterClosed().pipe(takeUntil(this.destroy$)).subscribe(result => {
       if (!result) return;
       this.loadUsers();
       if (result.plainPassword) {
@@ -99,11 +107,12 @@ export class UsersComponent implements OnInit {
     this.dialog
       .open(UserFormDialogComponent, { data: { mode: 'edit', user }, width: '480px' })
       .afterClosed()
+      .pipe(takeUntil(this.destroy$))
       .subscribe(updated => { if (updated) this.loadUsers(); });
   }
 
   toggleStatus(user: User): void {
-    this.usersService.updateStatus(user.id, !user.isActive).subscribe({
+    this.usersService.updateStatus(user.id, !user.isActive).pipe(takeUntil(this.destroy$)).subscribe({
       next: () => this.loadUsers(),
       error: () =>
         this.snackBar.open('No se pudo actualizar el estado.', '', {
@@ -114,7 +123,7 @@ export class UsersComponent implements OnInit {
   }
 
   resetPassword(user: User): void {
-    this.usersService.resetPassword(user.id).subscribe({
+    this.usersService.resetPassword(user.id).pipe(takeUntil(this.destroy$)).subscribe({
       next: res =>
         this.dialog.open(PasswordDisplayDialogComponent, {
           data: { name: user.name, plainPassword: res.plainPassword },

@@ -2,7 +2,7 @@
   <div class="users-header">
     <div>
       <h1 class="users-header__title">Usuarios</h1>
-      <span class="users-header__count">{{ users.length }} usuarios registrados</span>
+      <span class="users-header__count" *ngIf="!loading">{{ users.length }} usuarios registrados</span>
     </div>
     <button class="btn btn--primary" (click)="openCreateDialog()">
       <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">
