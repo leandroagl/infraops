@@ -8,6 +8,8 @@ import { InfradocAssetsService } from './infradoc-assets.service';
 describe('InfradocAssetsService', () => {
   let service: InfradocAssetsService;
   let httpService: { get: jest.Mock };
+  let savedUrl: string | undefined;
+  let savedKey: string | undefined;
 
   const makeRawAsset = (override: Record<string, unknown> = {}) => ({
     asset_id: '101',
@@ -28,6 +30,11 @@ describe('InfradocAssetsService', () => {
   });
 
   beforeEach(async () => {
+    savedUrl = process.env.INFRADOC_URL;
+    savedKey = process.env.INFRADOC_API_KEY;
+    process.env.INFRADOC_URL     = 'http://infradoc.test';
+    process.env.INFRADOC_API_KEY = 'test-api-key';
+
     httpService = { get: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -38,6 +45,11 @@ describe('InfradocAssetsService', () => {
     }).compile();
 
     service = module.get<InfradocAssetsService>(InfradocAssetsService);
+  });
+
+  afterEach(() => {
+    process.env.INFRADOC_URL     = savedUrl;
+    process.env.INFRADOC_API_KEY = savedKey;
   });
 
   it('devuelve los assets crudos de ITFlow para el cliente', async () => {
@@ -79,6 +91,34 @@ describe('InfradocAssetsService', () => {
   it('devuelve array vacío cuando el cliente no tiene assets', async () => {
     httpService.get.mockReturnValue(
       of(axiosRes({ success: 'True', count: 0, data: [] })),
+    );
+
+    const result = await service.getAssets(42);
+
+    expect(result).toEqual([]);
+  });
+
+  it('lanza Error con mensaje descriptivo cuando INFRADOC_URL no está configurado', async () => {
+    delete process.env.INFRADOC_URL;
+
+    await expect(service.getAssets(42)).rejects.toThrow(
+      'INFRADOC_URL and INFRADOC_API_KEY deben estar configurados',
+    );
+    expect(httpService.get).not.toHaveBeenCalled();
+  });
+
+  it('lanza Error con mensaje descriptivo cuando INFRADOC_API_KEY no está configurado', async () => {
+    delete process.env.INFRADOC_API_KEY;
+
+    await expect(service.getAssets(42)).rejects.toThrow(
+      'INFRADOC_URL and INFRADOC_API_KEY deben estar configurados',
+    );
+    expect(httpService.get).not.toHaveBeenCalled();
+  });
+
+  it('devuelve array vacío cuando la respuesta devuelve data no-array', async () => {
+    httpService.get.mockReturnValue(
+      of(axiosRes({ success: 'True', count: 0, data: null })),
     );
 
     const result = await service.getAssets(42);

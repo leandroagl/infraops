@@ -1,11 +1,10 @@
 import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 import { ClientInfrastructureDto } from './dto/client-infrastructure.dto';
 import { InfrastructureService } from './infrastructure.service';
 
 @Controller('infradoc')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard)
 export class InfrastructureController {
   constructor(private readonly infrastructureService: InfrastructureService) {}
 

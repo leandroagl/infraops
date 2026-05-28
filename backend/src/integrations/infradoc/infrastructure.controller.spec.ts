@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
 import { InfrastructureController } from './infrastructure.controller';
 import { InfrastructureService } from './infrastructure.service';
 import { ClientInfrastructureDto } from './dto/client-infrastructure.dto';
@@ -25,7 +24,6 @@ describe('InfrastructureController', () => {
       providers: [
         { provide: InfrastructureService, useValue: infrastructureService },
         { provide: JwtAuthGuard, useValue: { canActivate: () => true } },
-        { provide: RolesGuard,   useValue: { canActivate: () => true } },
       ],
     }).compile();
 
