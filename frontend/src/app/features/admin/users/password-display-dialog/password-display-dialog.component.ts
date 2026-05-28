@@ -14,9 +14,11 @@ export class PasswordDisplayDialogComponent {
   ) {}
 
   copy(): void {
-    navigator.clipboard.writeText(this.data.plainPassword).then(() => {
+    navigator.clipboard?.writeText(this.data.plainPassword).then(() => {
       this.copied = true;
       setTimeout(() => (this.copied = false), 2000);
+    }).catch(() => {
+      // clipboard unavailable — password is visible in the dialog
     });
   }
 

@@ -63,7 +63,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   isCurrentUser(user: User): boolean {
-    return user.id === this.currentUserId;
+    return !!this.currentUserId && user.id === this.currentUserId;
   }
 
   roleBadgeClass(role: UserRole): string {

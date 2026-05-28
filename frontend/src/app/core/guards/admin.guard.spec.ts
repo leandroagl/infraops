@@ -46,6 +46,6 @@ describe('AdminGuard', () => {
     authSpy.getCurrentUser.and.returnValue(null);
     const navSpy = spyOn(router, 'navigate');
     expect(guard.canActivate()).toBeFalse();
-    expect(navSpy).toHaveBeenCalledWith(['/dashboard']);
+    expect(navSpy).toHaveBeenCalledWith(['/login']);
   });
 });
