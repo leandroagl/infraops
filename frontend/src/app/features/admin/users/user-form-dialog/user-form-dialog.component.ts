@@ -1,9 +1,11 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { User, CreateUserPayload, UpdateUserPayload } from '../../../../core/models/user.models';
 import { UserRole } from '../../../../core/models/auth.models';
 import { UsersService } from '../../../../core/services/users.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 export interface UserFormDialogData {
   mode: 'create' | 'edit';
@@ -14,10 +16,11 @@ export interface UserFormDialogData {
   selector: 'app-user-form-dialog',
   templateUrl: './user-form-dialog.component.html',
 })
-export class UserFormDialogComponent implements OnInit {
+export class UserFormDialogComponent implements OnInit, OnDestroy {
   form!: FormGroup;
   loading = false;
   error = '';
+  private destroy$ = new Subject<void>();
 
   readonly roles: { value: UserRole; label: string }[] = [
     { value: 'ADMIN',       label: 'Admin' },
@@ -32,6 +35,11 @@ export class UserFormDialogComponent implements OnInit {
     private dialogRef: MatDialogRef<UserFormDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: UserFormDialogData,
   ) {}
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   ngOnInit(): void {
     const u = this.data.user;
@@ -52,9 +60,11 @@ export class UserFormDialogComponent implements OnInit {
 
     if (this.data.mode === 'create') {
       const payload: CreateUserPayload = this.form.getRawValue();
-      this.usersService.create(payload).subscribe({
-        next: res =>
-          this.dialogRef.close({ name: res.name, plainPassword: res.plainPassword }),
+      this.usersService.create(payload).pipe(takeUntil(this.destroy$)).subscribe({
+        next: res => {
+          this.loading = false;
+          this.dialogRef.close({ name: res.name, plainPassword: res.plainPassword });
+        },
         error: err => {
           this.loading = false;
           this.error = err.error?.message ?? 'No se pudo crear el usuario.';
@@ -65,8 +75,11 @@ export class UserFormDialogComponent implements OnInit {
         name: this.form.value.name,
         role: this.form.value.role,
       };
-      this.usersService.update(this.data.user!.id, payload).subscribe({
-        next: () => this.dialogRef.close(true),
+      this.usersService.update(this.data.user!.id, payload).pipe(takeUntil(this.destroy$)).subscribe({
+        next: () => {
+          this.loading = false;
+          this.dialogRef.close(true);
+        },
         error: err => {
           this.loading = false;
           this.error = err.error?.message ?? 'No se pudo actualizar el usuario.';
