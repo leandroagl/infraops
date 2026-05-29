@@ -1,0 +1,67 @@
+<div class="page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Tareas</h1>
+      <span class="page-header__count" *ngIf="!loading">{{ tasks.length }} tareas</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select class="input" style="width:160px;font-size:12px;padding:5px 10px"
+              [(ngModel)]="filterStatus" (change)="load()">
+        <option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</option>
+      </select>
+      <button class="btn btn--primary" (click)="openCreateDialog()">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nueva tarea
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error-banner">
+    {{ error }}
+    <button class="btn btn--secondary" style="padding:4px 10px;font-size:12px" (click)="load()">Reintentar</button>
+  </div>
+
+  <div class="surface-card">
+    <ng-container *ngIf="loading">
+      <div style="padding:16px;display:flex;flex-direction:column;gap:8px">
+        <div class="skeleton" style="height:42px;border-radius:var(--radius-sm)"></div>
+        <div class="skeleton" style="height:42px;border-radius:var(--radius-sm)"></div>
+        <div class="skeleton" style="height:42px;border-radius:var(--radius-sm)"></div>
+      </div>
+    </ng-container>
+
+    <table *ngIf="!loading" class="data-table">
+      <thead>
+        <tr>
+          <th>CLIENTE</th>
+          <th>TIPO</th>
+          <th>TÉCNICO</th>
+          <th>FECHA</th>
+          <th>ESTADO</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let task of tasks">
+          <td class="td-main">{{ task.client?.name ?? '—' }}</td>
+          <td>
+            <span class="badge" [ngClass]="typeBadge(task.type)">{{ typeLabel(task.type) }}</span>
+          </td>
+          <td class="td-secondary">{{ task.technician?.user?.name ?? '—' }}</td>
+          <td class="td-secondary mono">{{ formatDate(task.scheduledDate) }}</td>
+          <td>
+            <span class="badge" [ngClass]="statusBadge(task.status)">
+              <span class="dot"></span>{{ statusLabel(task.status) }}
+            </span>
+          </td>
+        </tr>
+        <tr *ngIf="tasks.length === 0">
+          <td colspan="5" style="text-align:center;color:var(--tx-lo);font-size:12px;padding:32px">
+            No hay tareas{{ filterStatus ? ' con ese estado' : '' }}.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -11,6 +11,8 @@ import { UserFormDialogComponent } from './users/user-form-dialog/user-form-dial
 import { PasswordDisplayDialogComponent } from './users/password-display-dialog/password-display-dialog.component';
 import { TechniciansComponent } from './technicians/technicians.component';
 import { AssignTechnicianDialogComponent } from './technicians/assign-technician-dialog/assign-technician-dialog.component';
+import { TasksComponent } from './tasks/tasks.component';
+import { TaskCreateDialogComponent } from './tasks/task-create-dialog/task-create-dialog.component';
 
 @NgModule({
   declarations: [
@@ -20,6 +22,8 @@ import { AssignTechnicianDialogComponent } from './technicians/assign-technician
     PasswordDisplayDialogComponent,
     TechniciansComponent,
     AssignTechnicianDialogComponent,
+    TasksComponent,
+    TaskCreateDialogComponent,
   ],
   imports: [
     CommonModule,

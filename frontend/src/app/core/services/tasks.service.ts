@@ -10,6 +10,13 @@ export interface TaskFilters {
   technicianId?: string;
 }
 
+export interface CreateTaskPayload {
+  clientId: string;
+  technicianId: string;
+  type: string;
+  scheduledDate: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TasksService {
   private readonly base = `${environment.apiUrl}/tasks`;
@@ -22,6 +29,10 @@ export class TasksService {
     if (filters.clientId)    params = params.set('clientId',    filters.clientId);
     if (filters.technicianId) params = params.set('technicianId', filters.technicianId);
     return this.http.get<Task[]>(this.base, { params });
+  }
+
+  create(payload: CreateTaskPayload): Observable<Task> {
+    return this.http.post<Task>(this.base, payload);
   }
 
   updateStatus(id: string, payload: UpdateTaskStatusPayload): Observable<Task> {
