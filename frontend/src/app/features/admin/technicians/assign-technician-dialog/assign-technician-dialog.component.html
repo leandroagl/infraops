@@ -1,0 +1,39 @@
+<h2 mat-dialog-title style="font-size:15px;font-weight:600;color:var(--tx-hi);margin:0 0 16px">
+  Asignar perfil técnico
+</h2>
+
+<mat-dialog-content>
+  <p style="font-size:12px;color:var(--tx-md);margin:0 0 16px">
+    Seleccioná un usuario activo para asignarle perfil de técnico.
+  </p>
+
+  <div *ngIf="loading" style="color:var(--tx-lo);font-size:12px">Cargando usuarios...</div>
+
+  <div *ngIf="!loading && availableUsers.length === 0 && !error"
+       style="color:var(--tx-lo);font-size:12px">
+    No hay usuarios disponibles para asignar.
+  </div>
+
+  <div *ngIf="!loading && availableUsers.length > 0" style="display:flex;flex-direction:column;gap:6px">
+    <label
+      *ngFor="let user of availableUsers"
+      class="user-option"
+      [class.selected]="selectedUserId === user.id">
+      <input type="radio" name="userId" [value]="user.id" [(ngModel)]="selectedUserId" style="display:none">
+      <div class="user-option__info">
+        <span class="user-option__name">{{ user.name }}</span>
+        <span class="user-option__email">{{ user.email }}</span>
+      </div>
+    </label>
+  </div>
+
+  <div *ngIf="error" style="margin-top:12px;font-size:12px;color:var(--crit)">{{ error }}</div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" style="gap:8px;padding-top:16px">
+  <button class="btn btn--secondary" (click)="cancel()">Cancelar</button>
+  <button class="btn btn--primary" (click)="confirm()"
+          [disabled]="!selectedUserId || saving">
+    {{ saving ? 'Asignando...' : 'Asignar' }}
+  </button>
+</mat-dialog-actions>
