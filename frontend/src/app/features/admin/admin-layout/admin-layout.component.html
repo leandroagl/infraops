@@ -1,0 +1,12 @@
+<div class="admin-layout">
+  <nav class="admin-nav">
+    <a
+      *ngFor="let tab of tabs"
+      [routerLink]="tab.path"
+      class="admin-nav__tab"
+      [class.active]="isActive(tab.path)">
+      {{ tab.label }}
+    </a>
+  </nav>
+  <router-outlet></router-outlet>
+</div>
