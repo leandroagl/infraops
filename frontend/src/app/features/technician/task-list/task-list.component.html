@@ -2,23 +2,23 @@
 
   <!-- ── Greeting ───────────────────────────────────────── -->
   <div class="greeting">
-    <div class="greeting__avatar">{{ currentUser?.email?.[0]?.toUpperCase() }}</div>
-    <div>
-      <div class="greeting__name">{{ currentUser?.email }}</div>
-      <div class="greeting__sub">{{ currentUser?.role }}</div>
+    <div class="greeting__avatar">{{ technicianName[0]?.toUpperCase() }}</div>
+    <div class="greeting__info">
+      <div class="greeting__name">Buenas, {{ technicianName }}</div>
+      <div class="greeting__sub">Tenés {{ tasks.length }} tareas asignadas · {{ overdueCount + thisWeekCount }} requieren atención</div>
     </div>
     <div class="greeting__kpis">
       <div class="kpi">
-        <div class="kpi__value">{{ tasks.length }}</div>
-        <div class="kpi__label">Total</div>
+        <div class="kpi__value kv-crit">{{ overdueCount }}</div>
+        <div class="kpi__label">Vencidas</div>
       </div>
       <div class="kpi">
-        <div class="kpi__value" [class.text-crit]="urgentCount > 0">{{ urgentCount }}</div>
-        <div class="kpi__label">Urgentes</div>
+        <div class="kpi__value kv-warn">{{ thisWeekCount }}</div>
+        <div class="kpi__label">Esta semana</div>
       </div>
       <div class="kpi">
-        <div class="kpi__value text-ok">{{ doneTasks.length }}</div>
-        <div class="kpi__label">Completadas</div>
+        <div class="kpi__value kv-ok">{{ onTimeCount }}</div>
+        <div class="kpi__label">En plazo</div>
       </div>
     </div>
   </div>
@@ -38,23 +38,21 @@
     </div>
   </ng-container>
 
-  <!-- ── Tareas activas ──────────────────────────────────── -->
+  <!-- ── Tareas ──────────────────────────────────────────── -->
   <ng-container *ngIf="!loading">
 
-    <div *ngIf="pendingTasks.length > 0 || inProgressTasks.length > 0">
+    <!-- Requieren atención (vencidas) -->
+    <div *ngIf="overdueTasks.length > 0">
       <div class="sec-hdr">
-        <span class="sec-lbl">Pendientes</span>
-        <span class="sec-cnt">{{ pendingTasks.length + inProgressTasks.length }}</span>
-        <div class="sec-line"></div>
+        <span class="sec-lbl sec-lbl--crit">Requieren atención</span>
+        <span class="sec-cnt sec-cnt--crit">{{ overdueTasks.length }}</span>
+        <div class="sec-line sec-line--crit"></div>
       </div>
       <div class="task-list">
         <div
-          *ngFor="let task of inProgressTasks.concat(pendingTasks)"
-          class="task"
+          *ngFor="let task of overdueTasks"
+          class="task t-crit"
           [class.active]="selectedTask?.id === task.id"
-          [class.t-visit]="task.type === 'TERMINAL_MAINTENANCE' || task.type === 'SITE_VISIT'"
-          [class.t-srv]="task.type !== 'TERMINAL_MAINTENANCE' && task.type !== 'SITE_VISIT'"
-          [class.t-crit]="isOverdue(task)"
           (click)="selectTask(task)">
 
           <div class="task__icon" [ngClass]="typeIconClass(task.type)">
@@ -66,22 +64,64 @@
 
           <div class="task__body">
             <div class="task__client">{{ task.client?.name ?? task.clientId }}</div>
-            <div class="task__sub">{{ typeLabel(task.type) }} · {{ formatDate(task.scheduledDate) }}</div>
-            <div class="task__chips">
-              <span class="badge" [ngClass]="task.status === 'IN_PROGRESS' ? 'badge--accent' : 'badge--neutral'">
-                {{ task.status === 'IN_PROGRESS' ? 'En curso' : 'Pendiente' }}
-              </span>
-            </div>
+            <div class="task__sub">{{ typeLabel(task.type) }}</div>
           </div>
 
           <div class="task__right">
-            <span class="urg" [ngClass]="urgencyClass(task)">{{ urgencyLabel(task) }}</span>
+            <span class="urg" [ngClass]="urgencyClass(daysFromToday(task.scheduledDate))">
+              {{ urgencyLabel(daysFromToday(task.scheduledDate)) }}
+            </span>
+            <div class="task-st">
+              <div class="sdot" [style.background]="statusDotColor(task)"></div>
+              {{ task.status === 'IN_PROGRESS' ? 'En curso' : 'Pendiente' }}
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── Completadas ─────────────────────────────────── -->
+    <!-- Pendientes (activas, no vencidas) -->
+    <div *ngIf="pendingTasks.length > 0">
+      <div class="sec-hdr">
+        <span class="sec-lbl">Pendientes</span>
+        <span class="sec-cnt">{{ pendingTasks.length }}</span>
+        <div class="sec-line"></div>
+      </div>
+      <div class="task-list">
+        <div
+          *ngFor="let task of pendingTasks"
+          class="task"
+          [class.active]="selectedTask?.id === task.id"
+          [class.t-visit]="task.type === 'TERMINAL_MAINTENANCE' || task.type === 'SITE_VISIT'"
+          [class.t-srv]="task.type !== 'TERMINAL_MAINTENANCE' && task.type !== 'SITE_VISIT'"
+          (click)="selectTask(task)">
+
+          <div class="task__icon" [ngClass]="typeIconClass(task.type)">
+            <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <path d="M8 21h8M12 17v4"/>
+            </svg>
+          </div>
+
+          <div class="task__body">
+            <div class="task__client">{{ task.client?.name ?? task.clientId }}</div>
+            <div class="task__sub">{{ typeLabel(task.type) }}</div>
+          </div>
+
+          <div class="task__right">
+            <span class="urg" [ngClass]="urgencyClass(daysFromToday(task.scheduledDate))">
+              {{ urgencyLabel(daysFromToday(task.scheduledDate)) }}
+            </span>
+            <div class="task-st">
+              <div class="sdot" [style.background]="statusDotColor(task)"></div>
+              {{ task.status === 'IN_PROGRESS' ? 'En curso' : 'Pendiente' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Completadas -->
     <div *ngIf="doneTasks.length > 0">
       <div class="sec-hdr">
         <span class="sec-lbl">Completadas</span>
@@ -98,7 +138,7 @@
           </div>
           <div class="task__body">
             <div class="task__client">{{ task.client?.name ?? task.clientId }}</div>
-            <div class="task__sub">{{ typeLabel(task.type) }} · {{ formatDate(task.scheduledDate) }}</div>
+            <div class="task__sub">{{ typeLabel(task.type) }}</div>
           </div>
           <div class="task__right">
             <span class="badge badge--ok">{{ task.status === 'DONE' ? 'Listo' : task.status === 'ESCALATED' ? 'Escalado' : 'No hecho' }}</span>
@@ -118,7 +158,6 @@
 <div class="overlay" [class.open]="selectedTask" (click)="closeDrawer()"></div>
 <div class="drawer" [class.open]="selectedTask">
   <ng-container *ngIf="selectedTask">
-    <!-- el detalle se agrega en el próximo paso -->
     <div class="d-hdr">
       <div>
         <div class="d-client">{{ selectedTask.client?.name ?? selectedTask.clientId }}</div>

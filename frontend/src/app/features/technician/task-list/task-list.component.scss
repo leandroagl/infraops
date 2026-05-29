@@ -81,8 +81,9 @@
   }
 }
 
-.text-crit { color: var(--crit); }
-.text-ok   { color: var(--ok);   }
+.kv-crit { color: var(--crit); }
+.kv-warn { color: var(--warn); }
+.kv-ok   { color: var(--ok);   }
 
 // ── Section header ───────────────────────────────────────────
 .sec-hdr {
@@ -189,12 +190,6 @@
     margin-top: 2px;
   }
 
-  &__chips {
-    display: flex;
-    gap: 5px;
-    margin-top: 7px;
-  }
-
   &__right {
     flex-shrink: 0;
     display: flex;
@@ -214,6 +209,37 @@
   background: var(--purple-bg);
   border: 1px solid var(--purple-bd);
   color: var(--purple);
+}
+
+// ── Status dot + text ────────────────────────────────────────
+.task-st {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--tx-lo);
+}
+
+.sdot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+// ── Section header variants ──────────────────────────────────
+.sec-lbl--crit {
+  color: var(--crit);
+}
+
+.sec-cnt--crit {
+  background: var(--crit-bg);
+  border-color: var(--crit-bd);
+  color: var(--crit);
+}
+
+.sec-line--crit {
+  background: var(--crit-bd);
 }
 
 // ── Urgency badge ────────────────────────────────────────────

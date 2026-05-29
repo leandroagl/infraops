@@ -25,18 +25,80 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
   get currentUser() { return this.authService.getCurrentUser(); }
 
-  get pendingTasks()    { return this.tasks.filter(t => t.status === 'PENDING');     }
-  get inProgressTasks() { return this.tasks.filter(t => t.status === 'IN_PROGRESS'); }
-  get doneTasks()       { return this.tasks.filter(t => t.status === 'DONE' || t.status === 'ESCALATED' || t.status === 'NOT_DONE'); }
+  // ── Helpers de urgencia ───────────────────────────────────────────────────
 
-  get urgentCount() {
+  /** Días enteros entre hoy (medianoche local) y la fecha dada. Positivo = futuro, negativo = pasado. */
+  daysFromToday(date: string): number {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return this.tasks.filter(t => {
-      if (t.status === 'DONE' || t.status === 'ESCALATED' || t.status === 'NOT_DONE') return false;
-      const d = new Date(t.scheduledDate);
-      return d <= today;
+    // Parse YYYY-MM-DD as local time to avoid UTC-offset shifting the day boundary
+    const [year, month, day] = date.split('T')[0].split('-').map(Number);
+    const target = new Date(year, month - 1, day, 0, 0, 0, 0);
+    return Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  urgencyLabel(days: number): string {
+    if (days < 0) return `+${Math.abs(days)}d vencido`;
+    if (days <= 7) return `vence en ${days}d`;
+    return `${days}d restantes`;
+  }
+
+  urgencyClass(days: number): string {
+    if (days < 0) return 'urg-crit';
+    if (days <= 7) return 'urg-warn';
+    return 'urg-ok';
+  }
+
+  statusDotColor(task: Task): string {
+    const days = this.daysFromToday(task.scheduledDate);
+    if (days < 0) return 'var(--crit)';
+    if (days <= 7) return 'var(--warn)';
+    return 'var(--ok)';
+  }
+
+  // ── KPI getters ───────────────────────────────────────────────────────────
+
+  private get activeTasks(): Task[] {
+    return this.tasks.filter(
+      t => t.status !== 'DONE' && t.status !== 'ESCALATED' && t.status !== 'NOT_DONE',
+    );
+  }
+
+  get overdueCount(): number {
+    return this.activeTasks.filter(t => this.daysFromToday(t.scheduledDate) < 0).length;
+  }
+
+  get thisWeekCount(): number {
+    return this.activeTasks.filter(t => {
+      const d = this.daysFromToday(t.scheduledDate);
+      return d >= 0 && d <= 7;
     }).length;
+  }
+
+  get onTimeCount(): number {
+    return this.activeTasks.filter(t => this.daysFromToday(t.scheduledDate) > 7).length;
+  }
+
+  get technicianName(): string {
+    const nameFromTask = this.tasks[0]?.technician?.user?.name;
+    if (nameFromTask) return nameFromTask;
+    return this.currentUser?.email?.split('@')[0] ?? '';
+  }
+
+  // ── Secciones de la lista ─────────────────────────────────────────────────
+
+  get overdueTasks(): Task[] {
+    return this.activeTasks.filter(t => this.daysFromToday(t.scheduledDate) < 0);
+  }
+
+  get pendingTasks(): Task[] {
+    return this.activeTasks.filter(t => this.daysFromToday(t.scheduledDate) >= 0);
+  }
+
+  get doneTasks(): Task[] {
+    return this.tasks.filter(
+      t => t.status === 'DONE' || t.status === 'ESCALATED' || t.status === 'NOT_DONE',
+    );
   }
 
   ngOnInit(): void {
@@ -70,20 +132,6 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.selectedTask = null;
   }
 
-  isOverdue(task: Task): boolean {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return new Date(task.scheduledDate) < today;
-  }
-
-  isDueThisWeek(task: Task): boolean {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const d = new Date(task.scheduledDate);
-    const diff = (d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-    return diff >= 0 && diff <= 7;
-  }
-
   typeLabel(type: TaskType): string {
     const labels: Record<TaskType, string> = {
       SERVER_MAINTENANCE:   'Mantenimiento de servidores',
@@ -98,18 +146,6 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
   typeIconClass(type: TaskType): string {
     return type === 'TERMINAL_MAINTENANCE' || type === 'SITE_VISIT' ? 'ti-visit' : 'ti-srv';
-  }
-
-  urgencyClass(task: Task): string {
-    if (this.isOverdue(task)) return 'urg-crit';
-    if (this.isDueThisWeek(task)) return 'urg-warn';
-    return 'urg-ok';
-  }
-
-  urgencyLabel(task: Task): string {
-    if (this.isOverdue(task)) return 'Vencido';
-    if (this.isDueThisWeek(task)) return 'Esta semana';
-    return 'Al día';
   }
 
   formatDate(date: string): string {
