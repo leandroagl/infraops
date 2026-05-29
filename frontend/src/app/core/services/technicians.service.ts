@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Technician, AssignTechnicianPayload } from '../models/technician.models';
 
@@ -12,19 +11,14 @@ export class TechniciansService {
   constructor(private http: HttpClient) {}
 
   getAll(): Observable<Technician[]> {
-    return this.http
-      .get<{ ok: boolean; data: Technician[] }>(this.base)
-      .pipe(map(r => r.data));
+    return this.http.get<Technician[]>(this.base);
   }
 
   assign(payload: AssignTechnicianPayload): Observable<Technician> {
-    return this.http
-      .post<{ ok: boolean; data: Technician }>(this.base, payload)
-      .pipe(map(r => r.data));
+    return this.http.post<Technician>(this.base, payload);
   }
 
   remove(id: string): Observable<void> {
-    return this.http
-      .delete<void>(`${this.base}/${id}`);
+    return this.http.delete<void>(`${this.base}/${id}`);
   }
 }
