@@ -7,5 +7,6 @@ export class LoginResponseDto {
     id: string;
     email: string;
     role: UserRole;
+    technicianId: string | null;
   };
 }

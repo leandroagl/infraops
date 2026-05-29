@@ -25,6 +25,7 @@ describe('AuthService', () => {
     mustChangePassword: false,
     lastLogoutAt: null,
     isActive: true,
+    technicianId: null,
     createdAt: new Date(),
   };
 
@@ -54,12 +55,13 @@ describe('AuthService', () => {
 
       const result = await service.login(dto);
 
-      expect(result.token).toBe('jwt-token');
+      expect(result.accessToken).toBe('jwt-token');
       expect(result.mustChangePassword).toBe(false);
       expect(result.user).toEqual({
         id: 'user-1',
         email: 'lea@ondra.com',
         role: UserRole.TL,
+        technicianId: null,
       });
       expect(jwtService.sign).toHaveBeenCalledWith({
         sub: 'user-1',
