@@ -21,6 +21,11 @@ const routes: Routes = [
           import('./features/dashboard/dashboard.module').then(m => m.DashboardModule),
       },
       {
+        path: 'tasks',
+        loadChildren: () =>
+          import('./features/technician/technician.module').then(m => m.TechnicianModule),
+      },
+      {
         path: 'admin',
         canActivate: [AdminGuard],
         loadChildren: () =>
