@@ -1,0 +1,120 @@
+<form [formGroup]="form" class="mf">
+
+  <div class="ds-title">Registro de controles</div>
+
+  <!-- ── Éxito ────────────────────────────────────────── -->
+  <div *ngIf="success" class="mf-success">
+    <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+    Registro guardado correctamente.
+  </div>
+
+  <!-- ── Error ─────────────────────────────────────────── -->
+  <div *ngIf="error" class="mf-error">{{ error }}</div>
+
+  <!-- ── Sin infraestructura ──────────────────────────── -->
+  <div *ngIf="servers.length === 0 && vms.length === 0" class="mf-empty">
+    No hay activos registrados para controlar.
+  </div>
+
+  <!-- ── Servidores ────────────────────────────────────── -->
+  <ng-container formArrayName="servers">
+    <div *ngFor="let _ of servers.controls; let i = index"
+         [formGroupName]="i" class="mf-card">
+
+      <div class="mf-card__title">
+        <div class="mf-card__icon">
+          <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round">
+            <rect x="2" y="3" width="20" height="14" rx="2"/>
+          </svg>
+        </div>
+        {{ serverAt(i).get('name')?.value }}
+      </div>
+
+      <!-- DCDIAG -->
+      <div class="mf-row">
+        <span class="mf-lbl">DCDIAG</span>
+        <select formControlName="dcdiag" class="mf-sel"
+                [ngClass]="resultClass(serverAt(i).get('dcdiag')?.value)">
+          <option *ngFor="let o of resultOptions" [value]="o.value">{{ o.label }}</option>
+        </select>
+      </div>
+      <div class="mf-row" *ngIf="serverAt(i).get('dcdiag')?.value !== 'ok'">
+        <span class="mf-lbl">Detalle</span>
+        <input formControlName="dcdiagNotes" class="mf-input" placeholder="Describí el error..." />
+      </div>
+      <div class="mf-alert" *ngIf="serverAt(i).get('dcdiag')?.value === 'error'">
+        <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Recordá abrir ticket en Odoo antes de intentar resolver.
+      </div>
+
+      <!-- Veeam -->
+      <div class="mf-row">
+        <span class="mf-lbl">Veeam</span>
+        <select formControlName="veeam" class="mf-sel"
+                [ngClass]="resultClass(serverAt(i).get('veeam')?.value)">
+          <option *ngFor="let o of resultOptions" [value]="o.value">{{ o.label }}</option>
+        </select>
+      </div>
+      <div class="mf-row" *ngIf="serverAt(i).get('veeam')?.value !== 'ok'">
+        <span class="mf-lbl">Detalle</span>
+        <input formControlName="veeamNotes" class="mf-input" placeholder="Describí el problema..." />
+      </div>
+
+      <!-- Métricas -->
+      <div class="mf-row">
+        <span class="mf-lbl">Métricas</span>
+        <select formControlName="metrics" class="mf-sel"
+                [ngClass]="resultClass(serverAt(i).get('metrics')?.value)">
+          <option *ngFor="let o of resultOptions" [value]="o.value">{{ o.label }}</option>
+        </select>
+      </div>
+
+    </div>
+  </ng-container>
+
+  <!-- ── VMs ───────────────────────────────────────────── -->
+  <ng-container *ngIf="vms.length > 0">
+    <div class="mf-section-lbl">Máquinas virtuales</div>
+    <div class="mf-card">
+      <ng-container formArrayName="vms">
+        <div *ngFor="let _ of vms.controls; let i = index"
+             [formGroupName]="i" class="mf-row mf-row--vm">
+          <span class="mf-vm-name">{{ vmAt(i).get('name')?.value }}</span>
+          <select formControlName="status" class="mf-sel"
+                  [ngClass]="resultClass(vmAt(i).get('status')?.value)">
+            <option *ngFor="let o of resultOptions" [value]="o.value">{{ o.label }}</option>
+          </select>
+        </div>
+      </ng-container>
+    </div>
+  </ng-container>
+
+  <!-- ── Notas generales ───────────────────────────────── -->
+  <div class="mf-section-lbl">Notas generales</div>
+  <textarea formControlName="notes" class="mf-textarea"
+            placeholder="Observaciones adicionales..."></textarea>
+
+  <!-- ── Acciones ──────────────────────────────────────── -->
+  <div *ngIf="!success" class="mf-actions">
+    <button type="button" class="btn btn--secondary"
+            [disabled]="saving"
+            (click)="submit('IN_PROGRESS')">
+      Guardar borrador
+    </button>
+    <button type="button" class="btn btn--danger"
+            [disabled]="saving"
+            (click)="submit('ESCALATED')">
+      Escalar
+    </button>
+    <button type="button" class="btn btn--primary"
+            [disabled]="saving"
+            (click)="submit('DONE')">
+      {{ saving ? 'Guardando...' : 'Marcar como completado' }}
+    </button>
+  </div>
+
+</form>

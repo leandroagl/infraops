@@ -50,6 +50,14 @@
   </div>
 </div>
 
+<!-- ── Formulario ──────────────────────────────────────── -->
+<app-maintenance-form
+  *ngIf="infrastructure && task.status !== 'DONE' && task.status !== 'ESCALATED' && task.status !== 'NOT_DONE'"
+  [task]="task"
+  [infrastructure]="infrastructure"
+  (saved)="loadInfrastructure()">
+</app-maintenance-form>
+
 <!-- ── Infraestructura ──────────────────────────────────── -->
 <div class="ds">
   <div class="ds-title">Infraestructura del cliente</div>
