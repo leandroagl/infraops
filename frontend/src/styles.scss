@@ -1,14 +1,13 @@
 @use '@angular/material' as mat;
-@use 'sass:map';
 
-// ── Google Fonts ─────────────────────────────────────────────
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
+// ── Google Fonts ──────────────────────────────────────────────
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 
-// ── Angular Material: tema dark custom ───────────────────────
+// ── Angular Material: tema dark ───────────────────────────────
 @include mat.core();
 
-$infraops-primary: mat.define-palette(mat.$light-blue-palette, 400, 200, 700);
-$infraops-accent:  mat.define-palette(mat.$cyan-palette, 400);
+$infraops-primary: mat.define-palette(mat.$cyan-palette, 400, 200, 700);
+$infraops-accent:  mat.define-palette(mat.$blue-grey-palette, 400);
 $infraops-warn:    mat.define-palette(mat.$red-palette, 400);
 
 $infraops-theme: mat.define-dark-theme((
@@ -18,21 +17,42 @@ $infraops-theme: mat.define-dark-theme((
     warn:     $infraops-warn,
   ),
   typography: mat.define-typography-config(
-    $font-family: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif',
-    $body-1: mat.define-typography-level(13px, 1.4, 400),
+    $font-family: "'DM Sans', sans-serif",
+    $body-1: mat.define-typography-level(14px, 1.5, 400),
   ),
   density: -1,
 ));
 
 @include mat.all-component-themes($infraops-theme);
 
-// Override de superficies de Material para que respeten nuestros tokens
+// ── Overrides Angular Material ────────────────────────────────
+
+.mat-mdc-form-field {
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: var(--border) !important;
+  }
+
+  &:hover .mdc-notched-outline__leading,
+  &:hover .mdc-notched-outline__notch,
+  &:hover .mdc-notched-outline__trailing {
+    border-color: var(--border-md) !important;
+  }
+}
+
+.mat-mdc-dialog-container {
+  --mdc-dialog-container-color: var(--elevated);
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
 .mat-mdc-dialog-container .mdc-dialog__surface,
 .mat-mdc-menu-panel,
 .mat-mdc-select-panel,
 .mat-mdc-autocomplete-panel {
-  background: var(--surface) !important;
-  border: 1px solid var(--border-lo) !important;
+  background: var(--elevated) !important;
+  border: 1px solid var(--border) !important;
 }
 
 .mat-mdc-form-field .mdc-text-field--filled {
@@ -42,9 +62,57 @@ $infraops-theme: mat.define-dark-theme((
 .mat-mdc-snack-bar-container {
   --mdc-snackbar-container-color: var(--elevated);
   --mdc-snackbar-supporting-text-color: var(--tx-hi);
+  --mat-snack-bar-button-color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius) !important;
 }
 
-// ── Tokens de diseño ─────────────────────────────────────────
+.mat-mdc-snack-bar-container.snack-error {
+  --mdc-snackbar-container-color: var(--crit-bg);
+  --mdc-snackbar-supporting-text-color: var(--crit);
+  border-color: var(--crit-bd);
+}
+
+.mat-mdc-snack-bar-container.snack-success {
+  --mdc-snackbar-container-color: var(--ok-bg);
+  --mdc-snackbar-supporting-text-color: var(--ok);
+  border-color: var(--ok-bd);
+}
+
+.mat-mdc-table {
+  background: transparent !important;
+
+  .mat-mdc-row:hover .mat-mdc-cell {
+    background: var(--hover) !important;
+  }
+
+  .mat-mdc-header-cell {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--tx-lo);
+    border-bottom-color: var(--border-lo) !important;
+  }
+
+  .mat-mdc-cell {
+    border-bottom-color: var(--border-lo) !important;
+    font-size: 13px;
+    color: var(--tx-hi);
+  }
+}
+
+.mat-mdc-nav-list .mat-mdc-list-item {
+  border-radius: var(--radius) !important;
+  margin-bottom: 2px;
+
+  &.active {
+    background: var(--accent-bg) !important;
+    color: var(--accent) !important;
+  }
+}
+
+// ── Tokens de diseño ──────────────────────────────────────────
 @import 'styles/tokens';
 
 // ── Reset ─────────────────────────────────────────────────────
