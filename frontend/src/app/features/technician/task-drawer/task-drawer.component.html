@@ -1,0 +1,166 @@
+<!-- ── Metadata ─────────────────────────────────────────── -->
+<div class="ds">
+  <div class="ds-title">Detalle de la tarea</div>
+  <div class="ctx-grid">
+    <div class="ctx-item">
+      <div class="ctx-ico ctx-ico--srv">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ctx-lbl">Tipo</div>
+        <div class="ctx-val">{{ typeLabel(task.type) }}</div>
+      </div>
+    </div>
+    <div class="ctx-item">
+      <div class="ctx-ico ctx-ico--neutral">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ctx-lbl">Fecha programada</div>
+        <div class="ctx-val">{{ formatDate(task.scheduledDate) }}</div>
+      </div>
+    </div>
+    <div class="ctx-item">
+      <div class="ctx-ico ctx-ico--neutral">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round">
+          <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ctx-lbl">Estado</div>
+        <span class="badge" [ngClass]="statusBadge(task.status)">{{ statusLabel(task.status) }}</span>
+      </div>
+    </div>
+    <div class="ctx-item" *ngIf="task.odooTicketId">
+      <div class="ctx-ico ctx-ico--warn">
+        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round">
+          <path d="M15 5H19a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"/>
+          <path d="M9 3h6v4H9z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ctx-lbl">Ticket Odoo</div>
+        <div class="ctx-val mono">#{{ task.odooTicketId }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Infraestructura ──────────────────────────────────── -->
+<div class="ds">
+  <div class="ds-title">Infraestructura del cliente</div>
+
+  <div *ngIf="loadingInfra" class="infra-loading">
+    <div class="skeleton" style="height:32px;border-radius:var(--radius-sm)"></div>
+    <div class="skeleton" style="height:32px;border-radius:var(--radius-sm)"></div>
+  </div>
+
+  <div *ngIf="infraError" class="infra-error">{{ infraError }}</div>
+
+  <div *ngIf="!loadingInfra && !infraError && !hasInfra" class="infra-empty">
+    Sin activos registrados en InfraDoc.
+  </div>
+
+  <ng-container *ngIf="infrastructure && !loadingInfra">
+
+    <!-- Servidores -->
+    <ng-container *ngIf="infrastructure.servers.length > 0">
+      <div class="infra-section-lbl">Servidores ({{ infrastructure.servers.length }})</div>
+      <div class="srv-table">
+        <div class="srv-table-head">
+          <span class="srv-th"></span>
+          <span class="srv-th">Nombre</span>
+          <span class="srv-th">IP</span>
+          <span class="srv-th">OS</span>
+          <span class="srv-th">Modelo</span>
+          <span class="srv-th"></span>
+        </div>
+        <ng-container *ngFor="let srv of infrastructure.servers; trackBy: trackByAssetId">
+          <div class="srv-row" [class.expanded]="isExpanded(srv.assetId)" (click)="toggleServer(srv.assetId)">
+            <div class="srv-row-icon">
+              <svg viewBox="0 0 24 24" style="width:8px;height:8px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+              </svg>
+            </div>
+            <div class="srv-name-cell">
+              <div class="srv-name">{{ srv.name }}</div>
+            </div>
+            <div class="srv-cell mono">{{ srv.ip ?? '—' }}</div>
+            <div class="srv-cell">{{ srv.os ?? '—' }}</div>
+            <div class="srv-cell">{{ srv.model ?? '—' }}</div>
+            <button class="srv-expand-btn" (click)="toggleServer(srv.assetId); $event.stopPropagation()">
+              {{ isExpanded(srv.assetId) ? '▲' : '▼' }}
+            </button>
+          </div>
+          <div class="srv-expand-panel" [class.open]="isExpanded(srv.assetId)">
+            <div class="expand-detail">
+              <span class="ctx-lbl">IP:</span>
+              <span class="mono">{{ srv.ip ?? 'No registrada' }}</span>
+            </div>
+            <div class="expand-detail">
+              <span class="ctx-lbl">Sistema operativo:</span>
+              <span>{{ srv.os ?? 'No registrado' }}</span>
+            </div>
+            <div class="expand-detail">
+              <span class="ctx-lbl">Modelo:</span>
+              <span>{{ srv.model ?? 'No registrado' }}</span>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </ng-container>
+
+    <!-- VMs -->
+    <ng-container *ngIf="infrastructure.vms.length > 0">
+      <div class="infra-section-lbl">Máquinas virtuales ({{ infrastructure.vms.length }})</div>
+      <div class="vm-list">
+        <div *ngFor="let vm of infrastructure.vms; trackBy: trackByAssetId" class="vm-row">
+          <div class="vm-icon">
+            <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+            </svg>
+          </div>
+          <span class="vm-name">{{ vm.name }}</span>
+          <span class="mono vm-ip">{{ vm.ip ?? '—' }}</span>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- NAS -->
+    <ng-container *ngIf="infrastructure.nas.length > 0">
+      <div class="infra-section-lbl">NAS / QNAP ({{ infrastructure.nas.length }})</div>
+      <div class="vm-list">
+        <div *ngFor="let nas of infrastructure.nas; trackBy: trackByAssetId" class="vm-row">
+          <div class="vm-icon">
+            <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round">
+              <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/>
+            </svg>
+          </div>
+          <span class="vm-name">{{ nas.name }}</span>
+          <span class="mono vm-ip">{{ nas.ip ?? '—' }}</span>
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Routers -->
+    <ng-container *ngIf="infrastructure.routers.length > 0">
+      <div class="infra-section-lbl">Routers / Firewalls ({{ infrastructure.routers.length }})</div>
+      <div class="vm-list">
+        <div *ngFor="let r of infrastructure.routers; trackBy: trackByAssetId" class="vm-row">
+          <div class="vm-icon">
+            <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round">
+              <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20"/>
+            </svg>
+          </div>
+          <span class="vm-name">{{ r.name }}</span>
+          <span class="mono vm-ip">{{ r.ip ?? '—' }}</span>
+        </div>
+      </div>
+    </ng-container>
+
+  </ng-container>
+</div>
