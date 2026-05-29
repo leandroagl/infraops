@@ -25,7 +25,7 @@ export class TaskDrawerComponent implements OnChanges {
     }
   }
 
-  private loadInfrastructure(): void {
+  loadInfrastructure(): void {
     this.infrastructure = null;
     this.infraError = '';
     this.loadingInfra = true;
