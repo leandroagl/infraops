@@ -157,21 +157,10 @@
 <!-- ── Overlay + Drawer ────────────────────────────────── -->
 <div class="overlay" [class.open]="selectedTask" (click)="closeDrawer()"></div>
 <div class="drawer" [class.open]="selectedTask">
-  <ng-container *ngIf="selectedTask">
-    <div class="d-hdr">
-      <div>
-        <div class="d-client">{{ selectedTask.client?.name ?? selectedTask.clientId }}</div>
-        <div class="d-sub">{{ typeLabel(selectedTask.type) }}</div>
-      </div>
-      <button class="d-close" (click)="closeDrawer()">
-        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-    <div class="d-body">
-      <app-task-drawer [task]="selectedTask"></app-task-drawer>
-    </div>
-  </ng-container>
+  <app-task-drawer
+    *ngIf="selectedTask"
+    [task]="selectedTask"
+    (taskCompleted)="closeDrawer()"
+    (taskNotDone)="closeDrawer()">
+  </app-task-drawer>
 </div>

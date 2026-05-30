@@ -248,6 +248,61 @@ describe('TaskListComponent', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Drawer integration (Fase 6)
+  // ---------------------------------------------------------------------------
+  describe('drawer integration', () => {
+    it('should pass selectedTask to app-task-drawer', () => {
+      const task = makeTask({ id: 'task-sel', scheduledDate: dateOffsetDays(5) });
+      component.selectTask(task);
+      fixture.detectChanges();
+      const drawer = fixture.nativeElement.querySelector('app-task-drawer');
+      expect(drawer).toBeTruthy();
+    });
+
+    it('should set selectedTask to null on closeDrawer()', () => {
+      component.selectedTask = makeTask();
+      component.closeDrawer();
+      expect(component.selectedTask).toBeNull();
+    });
+
+    it('overlay should have class "open" when selectedTask is set', () => {
+      component.selectedTask = makeTask();
+      fixture.detectChanges();
+      const overlay = fixture.nativeElement.querySelector('.overlay');
+      expect(overlay.classList.contains('open')).toBe(true);
+    });
+
+    it('overlay should NOT have class "open" when selectedTask is null', () => {
+      component.selectedTask = null;
+      fixture.detectChanges();
+      const overlay = fixture.nativeElement.querySelector('.overlay');
+      expect(overlay.classList.contains('open')).toBe(false);
+    });
+
+    it('drawer should have class "open" when selectedTask is set', () => {
+      component.selectedTask = makeTask();
+      fixture.detectChanges();
+      const drawer = fixture.nativeElement.querySelector('.drawer');
+      expect(drawer.classList.contains('open')).toBe(true);
+    });
+
+    it('should NOT render .d-hdr directly in task-list template', () => {
+      component.selectedTask = makeTask();
+      fixture.detectChanges();
+      // .d-hdr belongs to task-drawer now — task-list should not have its own
+      const dHdr = fixture.nativeElement.querySelector('.d-hdr');
+      expect(dHdr).toBeNull();
+    });
+
+    it('should NOT render .d-body wrapper in task-list template', () => {
+      component.selectedTask = makeTask();
+      fixture.detectChanges();
+      const dBody = fixture.nativeElement.querySelector('.d-body');
+      expect(dBody).toBeNull();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Template tests
   // ---------------------------------------------------------------------------
   describe('template', () => {
