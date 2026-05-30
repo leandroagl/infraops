@@ -2,13 +2,15 @@ export class InfraAssetDto {
   assetId: number;
   name: string;
   ip: string | null;
+  bmcIp: string | null;
+  bmcType: string | null;
   os: string | null;
   model: string | null;
 }
 
 export class ClientInfrastructureDto {
-  servers: InfraAssetDto[];
-  vms: InfraAssetDto[];
+  esxiHosts: InfraAssetDto[];
+  windowsVMs: InfraAssetDto[];
   nas: InfraAssetDto[];
   routers: InfraAssetDto[];
 }
