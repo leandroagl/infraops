@@ -1,120 +1,238 @@
-import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
-import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+} from '@angular/core';
+import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { Task } from '../../../../core/models/task.models';
-import { ClientInfrastructure, InfraAsset } from '../../../../core/models/infradoc.models';
-import { LogItem, LogResult, MaintenanceLogsService } from '../../../../core/services/maintenance-logs.service';
-import { TasksService } from '../../../../core/services/tasks.service';
+import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
+import {
+  ServerMaintenancePayload,
+  TerminalPayload,
+} from '../../../../core/models/maintenance-log.models';
 
 @Component({
   selector: 'app-maintenance-form',
   templateUrl: './maintenance-form.component.html',
   styleUrl: './maintenance-form.component.scss',
 })
-export class MaintenanceFormComponent implements OnInit {
+export class MaintenanceFormComponent implements OnChanges {
   @Input() task!: Task;
   @Input() infrastructure!: ClientInfrastructure;
-  @Output() saved = new EventEmitter<void>();
+
+  @Output() requestComplete = new EventEmitter<ServerMaintenancePayload | TerminalPayload>();
+  @Output() requestNotDone = new EventEmitter<void>();
 
   form!: FormGroup;
-  saving = false;
-  error = '';
-  success = false;
 
-  readonly resultOptions = [
-    { value: 'ok',   label: 'OK'       },
-    { value: 'warn', label: 'Atención' },
-    { value: 'error', label: 'Error'   },
-  ];
+  constructor(private fb: FormBuilder) {}
 
-  constructor(
-    private fb: FormBuilder,
-    private logsService: MaintenanceLogsService,
-    private tasksService: TasksService,
-  ) {}
-
-  ngOnInit(): void {
-    this.buildForm();
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['infrastructure'] && this.infrastructure) {
+      this.buildForm();
+    }
   }
+
+  // ── Getters condicionales ────────────────────────────────────────────────────
+
+  get hasServers(): boolean  { return this.infrastructure?.servers?.length > 0; }
+  get hasVMware(): boolean   { return this.infrastructure?.vms?.length > 0; }
+  get hasQNAP(): boolean     { return this.infrastructure?.nas?.length > 0; }
+  get hasVeeam(): boolean    { return this.infrastructure?.vms?.length > 0; }
+  get hasRouter(): boolean   { return this.infrastructure?.routers?.length > 0; }
+
+  get serverControls(): FormArray {
+    return this.form.get('servers') as FormArray;
+  }
+
+  get isTerminalType(): boolean {
+    return this.task?.type === 'TERMINAL_MAINTENANCE' || this.task?.type === 'SITE_VISIT';
+  }
+
+  get isServerType(): boolean {
+    return this.task?.type === 'SERVER_MAINTENANCE';
+  }
+
+  get isUnsupported(): boolean {
+    return this.task?.type === 'AV_CONTROL'
+      || this.task?.type === 'UPS_CONTROL'
+      || this.task?.type === 'ENDPOINT_INVENTORY';
+  }
+
+  // ── Form construction ───────────────────────────────────────────────────────
 
   private buildForm(): void {
     this.form = this.fb.group({
+      // Windows servers (FormArray, rebuilt from infrastructure.servers)
       servers: this.fb.array(
-        this.infrastructure.servers.map(srv => this.serverGroup(srv)),
+        this.infrastructure.servers.map(() => this.fb.group({
+          reboot:   ['—'],
+          updates:  ['—'],
+          notes:    [''],
+          expanded: [false],
+        }))
       ),
-      vms: this.fb.array(
-        this.infrastructure.vms.map(vm => this.vmGroup(vm)),
-      ),
+      // DCDIAG (global)
+      dcdiag:       ['OK'],
+      dcdiagDetail: [''],
+      // VMware
+      vmCpu:        [null as number | null],
+      vmMem:        [null as number | null],
+      vmStorage:    [null as number | null],
+      highVMs:      [''],
+      snapshotsOk:  [false],
+      // QNAP
+      qnapSpace:    [null as number | null],
+      qnapRaid:     ['ok'],
+      qnapFirmware: [false],
+      // Veeam
+      veeamStatus:   ['ok'],
+      veeamAffected: [''],
+      // Router
+      routerFirmwareUpdated: [false],
+      routerFirmwareVersion: [''],
+      routerBackupDone:      [false],
+      // Terminal checklist
+      cleanedTemp:     [false],
+      windowsUpdates:  [false],
+      antivirusOk:     [false],
+      diskSpace:       [false],
+      licenses:        [false],
+      // Network checklist
+      connectivity: [false],
+      switches:     [false],
+      // Observations (terminal)
+      observations: [''],
+      // Notes (always)
       notes: [''],
     });
   }
 
-  private serverGroup(srv: InfraAsset): FormGroup {
-    return this.fb.group({
-      name:        [srv.name],
-      dcdiag:      ['ok', Validators.required],
-      dcdiagNotes: [''],
-      veeam:       ['ok', Validators.required],
-      veeamNotes:  [''],
-      metrics:     ['ok', Validators.required],
-    });
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  dcdiagHasError(): boolean {
+    return this.form.get('dcdiag')?.value?.startsWith('ERROR') ?? false;
   }
 
-  private vmGroup(vm: InfraAsset): FormGroup {
-    return this.fb.group({
-      name:   [vm.name],
-      status: ['ok', Validators.required],
-    });
+  selectClass(value: string): string {
+    if (!value || value === '—') return 'mf-sel--na';
+    if (value.startsWith('OK') || value.startsWith('Aplicados')) return 'mf-sel--ok';
+    if (value.startsWith('Pendiente') || value === 'Pendientes sin aplicar') return 'mf-sel--warn';
+    if (value.startsWith('Error')) return 'mf-sel--crit';
+    return 'mf-sel--na';
   }
 
-  get servers(): FormArray { return this.form.get('servers') as FormArray; }
-  get vms(): FormArray     { return this.form.get('vms') as FormArray;     }
-
-  serverAt(i: number): FormGroup { return this.servers.at(i) as FormGroup; }
-  vmAt(i: number): FormGroup     { return this.vms.at(i) as FormGroup;     }
-
-  resultClass(value: string): string {
-    return value === 'ok' ? 'sel--ok' : value === 'warn' ? 'sel--warn' : 'sel--error';
+  metricClass(value: number | null, warnThreshold: number, critThreshold: number): string {
+    if (value === null || value === undefined || isNaN(value)) return '';
+    if (value >= critThreshold) return 'mf-inp--crit';
+    if (value >= warnThreshold) return 'mf-inp--warn';
+    return 'mf-inp--ok';
   }
 
-  submit(finalStatus: 'IN_PROGRESS' | 'DONE' | 'ESCALATED'): void {
-    if (this.form.invalid || this.saving) return;
+  showHighVMs(): boolean {
+    const v = this.form.value;
+    return Number(v.vmCpu) >= 60 || Number(v.vmMem) >= 70 || Number(v.vmStorage) >= 70;
+  }
 
-    this.saving = true;
-    this.error = '';
+  toggleExpand(index: number): void {
+    const ctrl = this.serverControls.at(index).get('expanded');
+    ctrl?.setValue(!ctrl.value);
+  }
 
-    const payload = this.buildPayload();
-    const notes = this.form.value.notes || undefined;
+  getServerGroup(index: number): FormGroup {
+    return this.serverControls.at(index) as FormGroup;
+  }
 
-    this.logsService.create(this.task.id, { payload, notes }).subscribe({
-      next: () => {
-        if (finalStatus !== 'IN_PROGRESS') {
-          this.tasksService.updateStatus(this.task.id, { status: finalStatus }).subscribe({
-            next: () => { this.saving = false; this.success = true; this.saved.emit(); },
-            error: () => { this.saving = false; this.error = 'Log guardado, pero no se pudo actualizar el estado.'; },
-          });
-        } else {
-          this.saving = false;
-          this.success = true;
-          this.saved.emit();
-        }
+  // ── Payload construction ────────────────────────────────────────────────────
+
+  buildPayload(): ServerMaintenancePayload | TerminalPayload {
+    const v = this.form.value;
+
+    if (this.isTerminalType) {
+      const payload: TerminalPayload = {
+        type: 'TERMINAL_MAINTENANCE',
+        checks: {
+          cleanedTemp:    v.cleanedTemp,
+          windowsUpdates: v.windowsUpdates,
+          antivirusOk:    v.antivirusOk,
+          diskSpace:      v.diskSpace,
+          licenses:       v.licenses,
+        },
+        network: {
+          connectivity: v.connectivity,
+          switches:     v.switches,
+        },
+        observations: v.observations || undefined,
+        notes:        v.notes || undefined,
+      };
+      return payload;
+    }
+
+    // SERVER_MAINTENANCE (and unsupported types — payload still built as server type)
+    const servers = this.infrastructure.servers.map((srv, i) => ({
+      serverId:   srv.assetId,
+      serverName: srv.name,
+      reboot:     v.servers[i]?.reboot ?? '—',
+      updates:    v.servers[i]?.updates ?? '—',
+      notes:      v.servers[i]?.notes || undefined,
+    }));
+
+    const payload: ServerMaintenancePayload = {
+      type: 'SERVER_MAINTENANCE',
+      windows: {
+        servers,
+        dcdiag:       v.dcdiag,
+        dcdiagDetail: this.dcdiagHasError() ? (v.dcdiagDetail || undefined) : undefined,
       },
-      error: () => { this.saving = false; this.error = 'No se pudo guardar el registro.'; },
-    });
+      notes: v.notes || undefined,
+    };
+
+    if (this.hasVMware) {
+      payload.vmware = {
+        cpuUsage:     Number(v.vmCpu),
+        memUsage:     Number(v.vmMem),
+        storageUsage: Number(v.vmStorage),
+        highUsageVMs: v.highVMs || undefined,
+        snapshotsOk:  v.snapshotsOk,
+      };
+    }
+
+    if (this.hasQNAP) {
+      payload.qnap = {
+        spaceUsed:       Number(v.qnapSpace),
+        raidStatus:      v.qnapRaid,
+        firmwareUpdated: v.qnapFirmware,
+      };
+    }
+
+    if (this.hasVeeam) {
+      payload.veeam = {
+        status:      v.veeamStatus,
+        affectedVMs: v.veeamStatus !== 'ok' ? (v.veeamAffected || undefined) : undefined,
+      };
+    }
+
+    if (this.hasRouter) {
+      payload.router = {
+        firmwareUpdated: v.routerFirmwareUpdated,
+        firmwareVersion: v.routerFirmwareVersion || undefined,
+        backupDone:      v.routerBackupDone,
+      };
+    }
+
+    return payload;
   }
 
-  private buildPayload(): LogItem[] {
-    const items: LogItem[] = [];
+  // ── Actions ──────────────────────────────────────────────────────────────────
 
-    for (const srv of this.servers.value) {
-      items.push({ item: `${srv.name} — DCDIAG`,  result: srv.dcdiag  as LogResult, notes: srv.dcdiagNotes || undefined });
-      items.push({ item: `${srv.name} — Veeam`,   result: srv.veeam   as LogResult, notes: srv.veeamNotes  || undefined });
-      items.push({ item: `${srv.name} — Métricas`, result: srv.metrics as LogResult });
-    }
+  submit(): void {
+    this.requestComplete.emit(this.buildPayload());
+  }
 
-    for (const vm of this.vms.value) {
-      items.push({ item: `${vm.name} — Estado VM`, result: vm.status as LogResult });
-    }
-
-    return items;
+  submitNotDone(): void {
+    this.requestNotDone.emit();
   }
 }

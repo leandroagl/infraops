@@ -171,3 +171,288 @@
   border-top: 1px solid var(--border-lo);
   margin-top: 4px;
 }
+
+// ── Select semantic classes (from selectClass()) ────────────────────────────
+.mf-sel {
+  &.mf-sel--na   { }
+  &.mf-sel--ok   { border-color: var(--ok-bd);   background: var(--ok-bg);   color: var(--ok);   }
+  &.mf-sel--warn { border-color: var(--warn-bd); background: var(--warn-bg); color: var(--warn); }
+  &.mf-sel--crit { border-color: var(--crit-bd); background: var(--crit-bg); color: var(--crit); }
+}
+
+// ── Input metric classes (from metricClass()) ───────────────────────────────
+.mf-input {
+  &.mf-inp--ok   { border-color: var(--ok-bd);   background: var(--ok-bg);   }
+  &.mf-inp--warn { border-color: var(--warn-bd); background: var(--warn-bg); }
+  &.mf-inp--crit { border-color: var(--crit-bd); background: var(--crit-bg); }
+}
+
+// ── Input row layout ─────────────────────────────────────────────────────────
+.mf-inp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+  &:last-child { margin-bottom: 0; }
+}
+
+.mf-inp-lbl {
+  font-size: 10px;
+  color: var(--tx-md);
+  flex-shrink: 0;
+  min-width: 72px;
+}
+
+.mf-inp-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mf-inp-suffix {
+  position: absolute;
+  right: 8px;
+  font-size: 10px;
+  color: var(--tx-lo);
+  pointer-events: none;
+}
+
+.mf-input--mini {
+  max-width: 80px;
+  padding-right: 28px;
+}
+
+// ── Server table ─────────────────────────────────────────────────────────────
+.mf-srv-table {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.mf-srv-head {
+  display: grid;
+  grid-template-columns: 16px 1fr 52px 130px 130px 28px;
+  align-items: center;
+  padding: 5px 10px;
+  background: var(--elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.mf-srv-th {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--tx-lo);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.mf-srv-row {
+  display: grid;
+  grid-template-columns: 16px 1fr 52px 130px 130px 28px;
+  align-items: center;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border-lo);
+  cursor: pointer;
+  transition: background 0.1s;
+  &:last-of-type { border-bottom: none; }
+  &:hover { background: var(--elevated); }
+  &.mf-srv-row--expanded { background: var(--elevated); border-bottom: none; }
+}
+
+.mf-srv-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--srv-bg);
+  border: 1px solid var(--srv-bd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mf-srv-name-cell {
+  padding: 0 8px;
+  min-width: 0;
+}
+
+.mf-srv-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--tx-hi);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mf-srv-access {
+  font-size: 9px;
+  color: var(--tx-lo);
+}
+
+.mf-srv-role-badge {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  color: var(--tx-md);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.mf-srv-sel {
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 6px;
+  font-size: 10px;
+  color: var(--tx-hi);
+  outline: none;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  width: 100%;
+  &:focus { border-color: var(--srv-bd); }
+
+  &.mf-sel--na   { }
+  &.mf-sel--ok   { border-color: var(--ok-bd);   background: var(--ok-bg);   color: var(--ok);   }
+  &.mf-sel--warn { border-color: var(--warn-bd); background: var(--warn-bg); color: var(--warn); }
+  &.mf-sel--crit { border-color: var(--crit-bd); background: var(--crit-bg); color: var(--crit); }
+}
+
+.mf-expand-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--tx-lo);
+  font-size: 10px;
+  transition: color 0.1s, background 0.1s;
+  margin-left: auto;
+  &:hover { background: var(--border); color: var(--tx-md); }
+}
+
+.mf-expand-panel {
+  background: var(--elevated);
+  border-bottom: 1px solid var(--border-lo);
+  padding: 8px 10px 10px 36px;
+  display: none;
+  &.mf-expand-panel--open { display: block; }
+}
+
+// ── Report card ──────────────────────────────────────────────────────────────
+.mf-cl-rpt {
+  background: var(--card);
+  border: 1px solid var(--border-lo);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 4px;
+  &:last-of-type { margin-bottom: 0; }
+  &.mf-cl-rpt--warn { border-color: var(--warn-bd); }
+}
+
+.mf-cl-rpt-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mf-cl-rpt-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tx-lo);
+  flex-shrink: 0;
+}
+
+.mf-cl-rpt-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--tx-hi);
+  flex: 1;
+}
+
+// ── Checklist item ───────────────────────────────────────────────────────────
+.mf-cl-item {
+  background: var(--card);
+  border: 1px solid var(--border-lo);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  transition: background 0.1s;
+  margin-bottom: 4px;
+  &:last-of-type { margin-bottom: 0; }
+  &:hover { background: var(--elevated); }
+}
+
+.mf-cl-chk-native {
+  display: none;
+}
+
+.mf-cl-chk {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
+  margin-top: 1px;
+
+  svg { opacity: 0; }
+
+  input:checked + & {
+    background: var(--ok-bg);
+    border-color: var(--ok-bd);
+    svg { opacity: 1; }
+  }
+}
+
+// Since :has is not always reliable, use label-based approach
+.mf-cl-item input[type="checkbox"]:checked ~ .mf-cl-chk {
+  background: var(--ok-bg);
+  border-color: var(--ok-bd);
+  svg { opacity: 1; }
+}
+
+.mf-cl-text {
+  flex: 1;
+  font-size: 11px;
+  color: var(--tx-hi);
+  line-height: 1.4;
+}
+
+// ── DCDIAG specific ──────────────────────────────────────────────────────────
+.mf-dcdiag-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.mf-dcdiag-detail {
+  flex: 1;
+  background: var(--crit-bg);
+  border: 1px solid var(--crit-bd);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  color: var(--crit);
+  outline: none;
+  font-family: var(--font-ui);
+  &::placeholder { color: var(--crit); opacity: 0.6; }
+}
