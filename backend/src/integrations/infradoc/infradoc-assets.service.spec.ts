@@ -125,4 +125,42 @@ describe('InfradocAssetsService', () => {
 
     expect(result).toEqual([]);
   });
+
+  describe('getAssetInterfaces', () => {
+    it('llama al endpoint con asset_id y devuelve array de interfaces', async () => {
+      const iface = { ...makeRawAsset(), interface_name: 'iLO', interface_ip: '10.0.1.200' };
+      httpService.get.mockReturnValue(
+        of(axiosRes({ success: 'True', count: 1, data: [iface] })),
+      );
+
+      const result = await service.getAssetInterfaces(101);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].interface_ip).toBe('10.0.1.200');
+      expect(httpService.get).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/assets/read.php'),
+        expect.objectContaining({
+          params: expect.objectContaining({ asset_id: 101 }),
+        }),
+      );
+    });
+
+    it('devuelve array vacío cuando data no es array', async () => {
+      httpService.get.mockReturnValue(
+        of(axiosRes({ success: 'True', count: 0, data: null })),
+      );
+
+      const result = await service.getAssetInterfaces(101);
+
+      expect(result).toEqual([]);
+    });
+
+    it('lanza ServiceUnavailableException cuando InfraDoc devuelve success False', async () => {
+      httpService.get.mockReturnValue(
+        of(axiosRes({ success: 'False', message: 'Not found' })),
+      );
+
+      await expect(service.getAssetInterfaces(101)).rejects.toThrow(ServiceUnavailableException);
+    });
+  });
 });
