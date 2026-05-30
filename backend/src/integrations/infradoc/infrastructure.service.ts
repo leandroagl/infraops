@@ -3,13 +3,6 @@ import { ClientsService } from '../../clients/clients.service';
 import { InfradocAssetsService, RawInfradocAsset } from './infradoc-assets.service';
 import { ClientInfrastructureDto, InfraAssetDto } from './dto/client-infrastructure.dto';
 
-const ASSET_TYPE_MAP = {
-  servers: ['server'],
-  vms:     ['virtual machine'],
-  nas:     ['nas', 'qnap'],
-  routers: ['router', 'firewall'],
-};
-
 @Injectable()
 export class InfrastructureService {
   constructor(
@@ -22,32 +15,78 @@ export class InfrastructureService {
     if (infradocId === null) throw new NotFoundException('Cliente no encontrado');
 
     const raw = await this.infradocAssetsService.getAssets(infradocId);
-    return this.groupAssets(raw);
+
+    const serverIds = [
+      ...new Set(
+        raw
+          .filter(a => (a.asset_type ?? '').trim().toLowerCase() === 'server')
+          .map(a => a.asset_id),
+      ),
+    ];
+
+    const interfaceArrays = await Promise.all(
+      serverIds.map(id => this.infradocAssetsService.getAssetInterfaces(Number(id))),
+    );
+
+    const bmcMap = new Map<string, { bmcIp: string | null; bmcType: string | null }>();
+    serverIds.forEach((id, i) => {
+      bmcMap.set(id, this.resolveBmc(interfaceArrays[i]));
+    });
+
+    return this.groupAssets(raw, bmcMap);
   }
 
-  private groupAssets(raw: RawInfradocAsset[]): ClientInfrastructureDto {
-    const result: ClientInfrastructureDto = { servers: [], vms: [], nas: [], routers: [] };
+  private resolveBmc(interfaces: RawInfradocAsset[]): { bmcIp: string | null; bmcType: string | null } {
+    const BMC_PATTERNS = ['ilo', 'idrac', 'xclarity'];
+    const bmc = interfaces.find(iface =>
+      BMC_PATTERNS.some(p => (iface.interface_name ?? '').toLowerCase().includes(p)),
+    );
+    if (!bmc || !bmc.interface_ip) return { bmcIp: null, bmcType: null };
+    return { bmcIp: bmc.interface_ip, bmcType: bmc.interface_name ?? null };
+  }
+
+  private groupAssets(
+    raw: RawInfradocAsset[],
+    bmcMap: Map<string, { bmcIp: string | null; bmcType: string | null }>,
+  ): ClientInfrastructureDto {
+    const result: ClientInfrastructureDto = {
+      esxiHosts:  [],
+      windowsVMs: [],
+      nas:        [],
+      routers:    [],
+    };
 
     for (const asset of raw) {
       const type = (asset.asset_type ?? '').trim().toLowerCase();
-      const mapped = this.mapAsset(asset);
+      const make = (asset.asset_make ?? '').trim().toLowerCase();
+      const os   = (asset.asset_os   ?? '').trim().toLowerCase();
 
-      if (ASSET_TYPE_MAP.servers.includes(type)) result.servers.push(mapped);
-      else if (ASSET_TYPE_MAP.vms.includes(type)) result.vms.push(mapped);
-      else if (ASSET_TYPE_MAP.nas.includes(type)) result.nas.push(mapped);
-      else if (ASSET_TYPE_MAP.routers.includes(type)) result.routers.push(mapped);
+      if (type === 'server') {
+        result.esxiHosts.push(this.mapAsset(asset, bmcMap.get(asset.asset_id)));
+      } else if (type === 'virtual machine' && os.startsWith('windows server')) {
+        result.windowsVMs.push(this.mapAsset(asset));
+      } else if (type === 'firewall/router' || type === 'router' || type === 'firewall') {
+        result.routers.push(this.mapAsset(asset));
+      } else if (type === 'nas' || make === 'qnap') {
+        result.nas.push(this.mapAsset(asset));
+      }
     }
 
     return result;
   }
 
-  private mapAsset(raw: RawInfradocAsset): InfraAssetDto {
+  private mapAsset(
+    raw: RawInfradocAsset,
+    bmc?: { bmcIp: string | null; bmcType: string | null },
+  ): InfraAssetDto {
     return {
       assetId: Number(raw.asset_id),
-      name: raw.asset_name,
-      ip: raw.asset_ip ?? null,
-      os: raw.asset_os ?? null,
-      model: raw.asset_model ?? null,
+      name:    raw.asset_name,
+      ip:      raw.interface_ip  || null,
+      bmcIp:   bmc?.bmcIp  ?? null,
+      bmcType: bmc?.bmcType ?? null,
+      os:      raw.asset_os    || null,
+      model:   raw.asset_model || null,
     };
   }
 }
