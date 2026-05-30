@@ -267,22 +267,6 @@
   padding: 48px 0;
 }
 
-// ── Overlay ──────────────────────────────────────────────────
-.overlay {
-  position: fixed;
-  inset: 0;
-  right: 520px;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 40;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s;
-
-  &.open {
-    opacity: 1;
-  }
-}
-
 // ── Drawer ───────────────────────────────────────────────────
 .drawer {
   position: fixed;

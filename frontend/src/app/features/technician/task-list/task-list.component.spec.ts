@@ -265,20 +265,6 @@ describe('TaskListComponent', () => {
       expect(component.selectedTask).toBeNull();
     });
 
-    it('overlay should have class "open" when selectedTask is set', () => {
-      component.selectedTask = makeTask();
-      fixture.detectChanges();
-      const overlay = fixture.nativeElement.querySelector('.overlay');
-      expect(overlay.classList.contains('open')).toBe(true);
-    });
-
-    it('overlay should NOT have class "open" when selectedTask is null', () => {
-      component.selectedTask = null;
-      fixture.detectChanges();
-      const overlay = fixture.nativeElement.querySelector('.overlay');
-      expect(overlay.classList.contains('open')).toBe(false);
-    });
-
     it('drawer should have class "open" when selectedTask is set', () => {
       component.selectedTask = makeTask();
       fixture.detectChanges();
