@@ -115,7 +115,8 @@
     *ngIf="infrastructure && isActiveTask"
     [task]="task"
     [infrastructure]="infrastructure"
-    (saved)="loadInfrastructure()">
+    (requestComplete)="onRequestComplete($event)"
+    (requestNotDone)="onRequestNotDone()">
   </app-maintenance-form>
 
 </div>

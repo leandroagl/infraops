@@ -271,7 +271,8 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  right: 520px;
+  background: rgba(0, 0, 0, 0.3);
   z-index: 40;
   opacity: 0;
   pointer-events: none;
@@ -279,7 +280,6 @@
 
   &.open {
     opacity: 1;
-    pointer-events: all;
   }
 }
 
