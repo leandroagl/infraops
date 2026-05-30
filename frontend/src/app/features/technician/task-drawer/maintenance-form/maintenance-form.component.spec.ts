@@ -1,6 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SimpleChange } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
 import { MaintenanceFormComponent } from './maintenance-form.component';
 import { Task } from '../../../../core/models/task.models';
 import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
@@ -22,10 +28,10 @@ const makeTask = (type = 'SERVER_MAINTENANCE'): Task => ({
 });
 
 const makeInfra = (overrides: Partial<ClientInfrastructure> = {}): ClientInfrastructure => ({
-  servers: [{ assetId: 1, name: 'SRV-DC01', ip: '10.0.0.1', os: 'Windows Server 2019', model: null }],
-  vms: [{ assetId: 2, name: 'VM-APP01', ip: '10.0.0.2', os: null, model: null }],
-  nas: [{ assetId: 3, name: 'NAS-01', ip: '10.0.0.3', os: null, model: 'QNAP TS-453D' }],
-  routers: [{ assetId: 4, name: 'MKT-01', ip: '10.0.0.254', os: null, model: 'MikroTik' }],
+  esxiHosts: [{ assetId: 2, name: 'host1.kemini', ip: '192.168.0.104', bmcIp: '192.168.0.200', bmcType: 'iLO', os: 'VMware ESXi 7.0', model: 'HPE DL380' }],
+  windowsVMs: [{ assetId: 3, name: '47DC', ip: '192.168.1.18', bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null }],
+  nas: [{ assetId: 10, name: 'QNAP', ip: '192.168.1.21', bmcIp: null, bmcType: null, os: null, model: 'QNAP TS-453D' }],
+  routers: [{ assetId: 1, name: 'MikroTik', ip: '192.168.99.1', bmcIp: null, bmcType: null, os: 'RouterOS', model: 'CCR2004' }],
   ...overrides,
 });
 
@@ -48,59 +54,67 @@ describe('MaintenanceFormComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [MaintenanceFormComponent],
-      imports: [ReactiveFormsModule],
+      imports: [
+        ReactiveFormsModule,
+        NoopAnimationsModule,
+        MatCheckboxModule,
+        MatFormFieldModule,
+        MatSelectModule,
+        MatInputModule,
+        MatButtonModule,
+      ],
     }).compileComponents();
   });
 
   // ── Getters condicionales ───────────────────────────────────────────────────
 
   describe('conditional getters', () => {
-    it('hasServers should be true when infrastructure.servers.length > 0', () => {
+    it('hasServers should be true when windowsVMs.length > 0', () => {
       init(makeTask(), makeInfra());
       expect(component.hasServers).toBeTrue();
     });
 
-    it('hasServers should be false when servers array is empty', () => {
-      init(makeTask(), makeInfra({ servers: [] }));
+    it('hasServers should be false when windowsVMs is empty', () => {
+      init(makeTask(), makeInfra({ windowsVMs: [] }));
       expect(component.hasServers).toBeFalse();
     });
 
-    it('hasVMware should be true when infrastructure.vms.length > 0', () => {
+    it('hasVMware should be true when esxiHosts.length > 0', () => {
       init(makeTask(), makeInfra());
       expect(component.hasVMware).toBeTrue();
     });
 
-    it('hasVMware should be false when vms array is empty', () => {
-      init(makeTask(), makeInfra({ vms: [] }));
+    it('hasVMware should be false when esxiHosts is empty', () => {
+      init(makeTask(), makeInfra({ esxiHosts: [] }));
       expect(component.hasVMware).toBeFalse();
     });
 
-    it('hasQNAP should be true when infrastructure.nas.length > 0', () => {
+    it('hasQNAP should be true when nas.length > 0', () => {
       init(makeTask(), makeInfra());
       expect(component.hasQNAP).toBeTrue();
     });
 
-    it('hasQNAP should be false when nas array is empty', () => {
+    it('hasQNAP should be false when nas is empty', () => {
       init(makeTask(), makeInfra({ nas: [] }));
       expect(component.hasQNAP).toBeFalse();
     });
 
-    it('hasVeeam should be true when infrastructure.vms.length > 0', () => {
+    it('hasVeeam should be true when esxiHosts.length > 0', () => {
       init(makeTask(), makeInfra());
       expect(component.hasVeeam).toBeTrue();
     });
 
-    it('hasVeeam should be false when vms array is empty', () => {
-      init(makeTask(), makeInfra({ vms: [] }));
+    it('hasVeeam should be false when esxiHosts is empty', () => {
+      init(makeTask(), makeInfra({ esxiHosts: [] }));
       expect(component.hasVeeam).toBeFalse();
     });
 
-    it('hasRouter should be true when infrastructure.routers.length > 0', () => {
+    it('hasRouter should be true when routers.length > 0', () => {
       init(makeTask(), makeInfra());
       expect(component.hasRouter).toBeTrue();
     });
 
-    it('hasRouter should be false when routers array is empty', () => {
+    it('hasRouter should be false when routers is empty', () => {
       init(makeTask(), makeInfra({ routers: [] }));
       expect(component.hasRouter).toBeFalse();
     });
@@ -110,63 +124,76 @@ describe('MaintenanceFormComponent', () => {
 
   describe('buildPayload — SERVER_MAINTENANCE', () => {
     it('should build ServerMaintenancePayload with type SERVER_MAINTENANCE', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ vms: [], nas: [], routers: [] }));
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.type).toBe('SERVER_MAINTENANCE');
     });
 
-    it('should include windows.servers with reboot and updates per server', () => {
-      const infra = makeInfra({ vms: [], nas: [], routers: [] });
+    it('should include windows.servers with rebootScript and updates per VM', () => {
+      const infra = makeInfra({ esxiHosts: [], nas: [], routers: [] });
       init(makeTask('SERVER_MAINTENANCE'), infra);
-      component.serverControls.at(0).patchValue({ reboot: 'OK', updates: 'Aplicados hoy' });
+      component.serverControls.at(0).patchValue({ rebootScript: 'ok', updates: 'ok' });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.windows.servers.length).toBe(1);
-      expect(payload.windows.servers[0].serverName).toBe('SRV-DC01');
-      expect(payload.windows.servers[0].reboot).toBe('OK');
-      expect(payload.windows.servers[0].updates).toBe('Aplicados hoy');
+      expect(payload.windows.servers[0].serverName).toBe('47DC');
+      expect(payload.windows.servers[0].rebootScript).toBe('ok');
+      expect(payload.windows.servers[0].updates).toBe('ok');
+    });
+
+    it('should capture rebootScript error value', () => {
+      const infra = makeInfra({ esxiHosts: [], nas: [], routers: [] });
+      init(makeTask('SERVER_MAINTENANCE'), infra);
+      component.serverControls.at(0).patchValue({ rebootScript: 'error' });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.windows.servers[0].rebootScript).toBe('error');
     });
 
     it('should include windows.dcdiag from form value', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ vms: [], nas: [], routers: [] }));
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       component.form.patchValue({ dcdiag: 'OK (FSR)' });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.windows.dcdiag).toBe('OK (FSR)');
     });
 
     it('should include windows.dcdiagDetail only when dcdiag starts with ERROR', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ vms: [], nas: [], routers: [] }));
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       component.form.patchValue({ dcdiag: 'ERROR (DNS)', dcdiagDetail: 'DNS lookup failed' });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.windows.dcdiagDetail).toBe('DNS lookup failed');
     });
 
     it('should NOT include windows.dcdiagDetail when dcdiag does not start with ERROR', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ vms: [], nas: [], routers: [] }));
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       component.form.patchValue({ dcdiag: 'OK', dcdiagDetail: 'some text' });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.windows.dcdiagDetail).toBeUndefined();
     });
 
-    it('should include vmware section only when hasVMware is true', () => {
+    it('should include vmware as array of host entries when hasVMware is true', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }));
-      component.form.patchValue({ vmCpu: 45, vmMem: 60, vmStorage: 55, snapshotsOk: true });
+      component.vmwareHostControls.at(0).patchValue({ cpuUsage: 45, memUsage: 60, storageUsage: 55, snapshotsOk: true });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.vmware).toBeDefined();
-      expect(payload.vmware!.cpuUsage).toBe(45);
+      expect(Array.isArray(payload.vmware)).toBeTrue();
+      expect(payload.vmware![0].cpuUsage).toBe(45);
+      expect(payload.vmware![0].hostName).toBe('host1.kemini');
+      expect(payload.vmware![0].snapshotsOk).toBeTrue();
     });
 
     it('should NOT include vmware section when hasVMware is false', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ vms: [], nas: [], routers: [] }));
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.vmware).toBeUndefined();
     });
 
-    it('should include qnap section only when hasQNAP is true', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ vms: [], routers: [] }));
-      component.form.patchValue({ qnapSpace: 65, qnapRaid: 'ok', qnapFirmware: false });
+    it('should include qnap section as array when hasQNAP is true', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({ spaceUsed: 65, raidStatus: 'ok', firmwareUpdated: false });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.qnap).toBeDefined();
-      expect(payload.qnap!.spaceUsed).toBe(65);
+      expect(Array.isArray(payload.qnap)).toBeTrue();
+      expect(payload.qnap![0].spaceUsed).toBe(65);
+      expect(payload.qnap![0].deviceName).toBe('QNAP');
     });
 
     it('should include veeam section only when hasVeeam is true', () => {
@@ -177,29 +204,22 @@ describe('MaintenanceFormComponent', () => {
       expect(payload.veeam!.status).toBe('ok');
     });
 
-    it('should include veeam.affectedVMs only when status is partial', () => {
+    it('should include veeam.missingVMs array when status is missing', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }));
-      component.form.patchValue({ veeamStatus: 'partial', veeamAffected: 'VM-APP01, VM-DB01' });
+      component.form.patchValue({ veeamStatus: 'missing', veeamMissing: ['VM-APP01', 'VM-DB01'] });
       const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.veeam!.affectedVMs).toBe('VM-APP01, VM-DB01');
+      expect(payload.veeam!.missingVMs).toEqual(['VM-APP01', 'VM-DB01']);
     });
 
-    it('should include veeam.affectedVMs when status is missing', () => {
+    it('should NOT include veeam.missingVMs when status is ok', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }));
-      component.form.patchValue({ veeamStatus: 'missing', veeamAffected: 'VM-ALL' });
+      component.form.patchValue({ veeamStatus: 'ok', veeamMissing: ['should be ignored'] });
       const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.veeam!.affectedVMs).toBe('VM-ALL');
-    });
-
-    it('should NOT include veeam.affectedVMs when status is ok', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }));
-      component.form.patchValue({ veeamStatus: 'ok', veeamAffected: 'should be ignored' });
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.veeam!.affectedVMs).toBeUndefined();
+      expect(payload.veeam!.missingVMs).toBeUndefined();
     });
 
     it('should include router section only when hasRouter is true', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ vms: [], nas: [] }));
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }));
       component.form.patchValue({ routerFirmwareUpdated: true, routerFirmwareVersion: '7.14', routerBackupDone: true });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.router).toBeDefined();
@@ -249,7 +269,7 @@ describe('MaintenanceFormComponent', () => {
 
   describe('outputs', () => {
     it('should emit requestComplete with payload on submit()', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ vms: [], nas: [], routers: [] }));
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       const emitted: (ServerMaintenancePayload | TerminalPayload)[] = [];
       component.requestComplete.subscribe(p => emitted.push(p));
       component.submit();
@@ -267,8 +287,6 @@ describe('MaintenanceFormComponent', () => {
 
     it('should NOT inject logsService or tasksService — constructor only has FormBuilder', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra());
-      // If the component compiled and initialized without those services being provided,
-      // it means it doesn't depend on them
       expect(component).toBeTruthy();
       expect((component as any).logsService).toBeUndefined();
       expect((component as any).tasksService).toBeUndefined();
@@ -279,16 +297,15 @@ describe('MaintenanceFormComponent', () => {
 
   describe('ngOnChanges', () => {
     it('should rebuild serverControls when infrastructure input changes', () => {
-      const infra1 = makeInfra({ servers: [{ assetId: 1, name: 'SRV-A', ip: null, os: null, model: null }] });
+      const infra1 = makeInfra({ windowsVMs: [{ assetId: 1, name: 'VM-A', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null }] });
       init(makeTask('SERVER_MAINTENANCE'), infra1);
       expect(component.serverControls.length).toBe(1);
 
-      // Simulate infrastructure input change with 2 servers
       const infra2: ClientInfrastructure = {
         ...infra1,
-        servers: [
-          { assetId: 1, name: 'SRV-A', ip: null, os: null, model: null },
-          { assetId: 2, name: 'SRV-B', ip: null, os: null, model: null },
+        windowsVMs: [
+          { assetId: 1, name: 'VM-A', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null },
+          { assetId: 2, name: 'VM-B', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2022', model: null },
         ],
       };
       component.infrastructure = infra2;
@@ -296,29 +313,80 @@ describe('MaintenanceFormComponent', () => {
 
       expect(component.serverControls.length).toBe(2);
     });
+
+    it('should rebuild qnapDeviceControls matching nas count', () => {
+      const infra1 = makeInfra({ esxiHosts: [], nas: [{ assetId: 10, name: 'NAS1', ip: null, bmcIp: null, bmcType: null, os: null, model: null }] });
+      init(makeTask('SERVER_MAINTENANCE'), infra1);
+      expect(component.qnapDeviceControls.length).toBe(1);
+
+      const infra2: ClientInfrastructure = {
+        ...infra1,
+        nas: [
+          { assetId: 10, name: 'NAS1', ip: null, bmcIp: null, bmcType: null, os: null, model: null },
+          { assetId: 11, name: 'NAS2', ip: null, bmcIp: null, bmcType: null, os: null, model: null },
+        ],
+      };
+      component.infrastructure = infra2;
+      component.ngOnChanges({ infrastructure: { currentValue: infra2, previousValue: infra1, firstChange: false, isFirstChange: () => false } });
+
+      expect(component.qnapDeviceControls.length).toBe(2);
+    });
+
+    it('should rebuild vmwareHostControls matching esxiHosts count', () => {
+      const infra1 = makeInfra({ esxiHosts: [{ assetId: 2, name: 'host1', ip: null, bmcIp: null, bmcType: null, os: 'VMware ESXi 7.0', model: null }] });
+      init(makeTask('SERVER_MAINTENANCE'), infra1);
+      expect(component.vmwareHostControls.length).toBe(1);
+
+      const infra2: ClientInfrastructure = {
+        ...infra1,
+        esxiHosts: [
+          { assetId: 2, name: 'host1', ip: null, bmcIp: null, bmcType: null, os: 'VMware ESXi 7.0', model: null },
+          { assetId: 22, name: 'host2', ip: null, bmcIp: null, bmcType: null, os: 'VMware ESXi 6.7', model: null },
+        ],
+      };
+      component.infrastructure = infra2;
+      component.ngOnChanges({ infrastructure: { currentValue: infra2, previousValue: infra1, firstChange: false, isFirstChange: () => false } });
+
+      expect(component.vmwareHostControls.length).toBe(2);
+    });
   });
 
   // ── selectClass ─────────────────────────────────────────────────────────────
 
   describe('selectClass', () => {
-    it('should return mf-sel--na for dash value', () => {
+    it('should return mf-sel--na for unrecognized value', () => {
       init(makeTask(), makeInfra());
       expect(component.selectClass('—')).toBe('mf-sel--na');
     });
 
-    it('should return mf-sel--ok for OK value', () => {
+    it('should return mf-sel--ok for "ok"', () => {
+      init(makeTask(), makeInfra());
+      expect(component.selectClass('ok')).toBe('mf-sel--ok');
+    });
+
+    it('should return mf-sel--ok for "OK"', () => {
       init(makeTask(), makeInfra());
       expect(component.selectClass('OK')).toBe('mf-sel--ok');
     });
 
-    it('should return mf-sel--warn for Pendiente value', () => {
+    it('should return mf-sel--warn for "pending"', () => {
       init(makeTask(), makeInfra());
-      expect(component.selectClass('Pendiente — ventana')).toBe('mf-sel--warn');
+      expect(component.selectClass('pending')).toBe('mf-sel--warn');
     });
 
-    it('should return mf-sel--crit for Error value', () => {
+    it('should return mf-sel--warn for "falta_configurar"', () => {
       init(makeTask(), makeInfra());
-      expect(component.selectClass('Error')).toBe('mf-sel--crit');
+      expect(component.selectClass('falta_configurar')).toBe('mf-sel--warn');
+    });
+
+    it('should return mf-sel--crit for "error"', () => {
+      init(makeTask(), makeInfra());
+      expect(component.selectClass('error')).toBe('mf-sel--crit');
+    });
+
+    it('should return mf-sel--crit for "failed"', () => {
+      init(makeTask(), makeInfra());
+      expect(component.selectClass('failed')).toBe('mf-sel--crit');
     });
   });
 
@@ -335,6 +403,120 @@ describe('MaintenanceFormComponent', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra());
       component.form.patchValue({ dcdiag: 'OK' });
       expect(component.dcdiagHasError()).toBeFalse();
+    });
+  });
+
+  // ── BMC controls ────────────────────────────────────────────────────────────
+
+  describe('BMC controls', () => {
+    it('bmcHostControls should have one entry per esxiHost', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
+      expect(component.bmcHostControls.length).toBe(1);
+    });
+
+    it('bmcHostControls should be empty when esxiHosts is empty', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [] }));
+      expect(component.bmcHostControls.length).toBe(0);
+    });
+
+    it('bmcHasAlert should return false when alertStatus is ok', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
+      component.getBmcGroup(0).patchValue({ alertStatus: 'ok' });
+      expect(component.bmcHasAlert(0)).toBeFalse();
+    });
+
+    it('bmcHasAlert should return true when alertStatus is alerta', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
+      component.getBmcGroup(0).patchValue({ alertStatus: 'alerta' });
+      expect(component.bmcHasAlert(0)).toBeTrue();
+    });
+
+    it('getBmcGroup should return the FormGroup for the given index', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
+      const group = component.getBmcGroup(0);
+      expect(group.get('firmwareVersion')).not.toBeNull();
+      expect(group.get('biosVersion')).not.toBeNull();
+      expect(group.get('alertStatus')).not.toBeNull();
+      expect(group.get('alertNote')).not.toBeNull();
+    });
+
+    it('should rebuild bmcHostControls when infrastructure changes', () => {
+      const infra1 = makeInfra({ esxiHosts: [{ assetId: 2, name: 'h1', ip: null, bmcIp: null, bmcType: null, os: null, model: null }] });
+      init(makeTask('SERVER_MAINTENANCE'), infra1);
+      expect(component.bmcHostControls.length).toBe(1);
+
+      const infra2: ClientInfrastructure = {
+        ...infra1,
+        esxiHosts: [
+          { assetId: 2, name: 'h1', ip: null, bmcIp: null, bmcType: null, os: null, model: null },
+          { assetId: 22, name: 'h2', ip: null, bmcIp: null, bmcType: null, os: null, model: null },
+        ],
+      };
+      component.infrastructure = infra2;
+      component.ngOnChanges({ infrastructure: { currentValue: infra2, previousValue: infra1, firstChange: false, isFirstChange: () => false } });
+
+      expect(component.bmcHostControls.length).toBe(2);
+    });
+  });
+
+  // ── buildPayload — BMC section ───────────────────────────────────────────────
+
+  describe('buildPayload — BMC section', () => {
+    it('should include bmc array when hasVMware is true', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.bmc).toBeDefined();
+      expect(Array.isArray(payload.bmc)).toBeTrue();
+      expect(payload.bmc!.length).toBe(1);
+      expect(payload.bmc![0].hostId).toBe(2);
+      expect(payload.bmc![0].hostName).toBe('host1.kemini');
+    });
+
+    it('should NOT include bmc when hasVMware is false', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.bmc).toBeUndefined();
+    });
+
+    it('should include firmwareVersion and biosVersion when filled', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
+      component.getBmcGroup(0).patchValue({ firmwareVersion: '2.82', biosVersion: 'U30 v2.86' });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.bmc![0].firmwareVersion).toBe('2.82');
+      expect(payload.bmc![0].biosVersion).toBe('U30 v2.86');
+    });
+
+    it('should omit firmwareVersion and biosVersion when empty', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
+      component.getBmcGroup(0).patchValue({ firmwareVersion: '', biosVersion: '' });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.bmc![0].firmwareVersion).toBeUndefined();
+      expect(payload.bmc![0].biosVersion).toBeUndefined();
+    });
+
+    it('should include alertNote when alertStatus is alerta', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
+      component.getBmcGroup(0).patchValue({ alertStatus: 'alerta', alertNote: 'Fan warning' });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.bmc![0].alertStatus).toBe('alerta');
+      expect(payload.bmc![0].alertNote).toBe('Fan warning');
+    });
+
+    it('should NOT include alertNote when alertStatus is ok', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
+      component.getBmcGroup(0).patchValue({ alertStatus: 'ok', alertNote: 'should be ignored' });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.bmc![0].alertStatus).toBe('ok');
+      expect(payload.bmc![0].alertNote).toBeUndefined();
+    });
+  });
+
+  // ── selectClass — alerta ─────────────────────────────────────────────────────
+
+  describe('selectClass — alerta', () => {
+    it('should return mf-sel--crit for "alerta"', () => {
+      init(makeTask(), makeInfra());
+      expect(component.selectClass('alerta')).toBe('mf-sel--crit');
     });
   });
 });

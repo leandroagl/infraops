@@ -10,6 +10,7 @@ import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { Task } from '../../../../core/models/task.models';
 import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
 import {
+  BmcEntry,
   ServerMaintenancePayload,
   TerminalPayload,
 } from '../../../../core/models/maintenance-log.models';
@@ -38,14 +39,26 @@ export class MaintenanceFormComponent implements OnChanges {
 
   // ── Getters condicionales ────────────────────────────────────────────────────
 
-  get hasServers(): boolean  { return this.infrastructure?.servers?.length > 0; }
-  get hasVMware(): boolean   { return this.infrastructure?.vms?.length > 0; }
-  get hasQNAP(): boolean     { return this.infrastructure?.nas?.length > 0; }
-  get hasVeeam(): boolean    { return this.infrastructure?.vms?.length > 0; }
-  get hasRouter(): boolean   { return this.infrastructure?.routers?.length > 0; }
+  get hasServers(): boolean { return this.infrastructure?.windowsVMs?.length > 0; }
+  get hasVMware(): boolean  { return this.infrastructure?.esxiHosts?.length > 0; }
+  get hasQNAP(): boolean    { return this.infrastructure?.nas?.length > 0; }
+  get hasVeeam(): boolean   { return this.infrastructure?.esxiHosts?.length > 0; }
+  get hasRouter(): boolean  { return this.infrastructure?.routers?.length > 0; }
 
   get serverControls(): FormArray {
     return this.form.get('servers') as FormArray;
+  }
+
+  get vmwareHostControls(): FormArray {
+    return this.form.get('vmwareHosts') as FormArray;
+  }
+
+  get qnapDeviceControls(): FormArray {
+    return this.form.get('qnapDevices') as FormArray;
+  }
+
+  get bmcHostControls(): FormArray {
+    return this.form.get('bmcHosts') as FormArray;
   }
 
   get isTerminalType(): boolean {
@@ -66,47 +79,53 @@ export class MaintenanceFormComponent implements OnChanges {
 
   private buildForm(): void {
     this.form = this.fb.group({
-      // Windows servers (FormArray, rebuilt from infrastructure.servers)
       servers: this.fb.array(
-        this.infrastructure.servers.map(() => this.fb.group({
-          reboot:   ['—'],
-          updates:  ['—'],
-          notes:    [''],
-          expanded: [false],
+        this.infrastructure.windowsVMs.map(() => this.fb.group({
+          rebootScript: ['ok'],
+          updates:      ['ok'],
+          notes:        [''],
+          expanded:     [false],
         }))
       ),
-      // DCDIAG (global)
       dcdiag:       ['OK'],
       dcdiagDetail: [''],
-      // VMware
-      vmCpu:        [null as number | null],
-      vmMem:        [null as number | null],
-      vmStorage:    [null as number | null],
-      highVMs:      [''],
-      snapshotsOk:  [false],
-      // QNAP
-      qnapSpace:    [null as number | null],
-      qnapRaid:     ['ok'],
-      qnapFirmware: [false],
-      // Veeam
-      veeamStatus:   ['ok'],
-      veeamAffected: [''],
-      // Router
+      vmwareHosts: this.fb.array(
+        this.infrastructure.esxiHosts.map(() => this.fb.group({
+          cpuUsage:     [null as number | null],
+          memUsage:     [null as number | null],
+          storageUsage: [null as number | null],
+          highUsageVMs: [[] as string[]],
+          snapshotsOk:  [false],
+        }))
+      ),
+      qnapDevices: this.fb.array(
+        this.infrastructure.nas.map(() => this.fb.group({
+          spaceUsed:       [null as number | null],
+          raidStatus:      ['ok'],
+          firmwareUpdated: [false],
+        }))
+      ),
+      bmcHosts: this.fb.array(
+        this.infrastructure.esxiHosts.map(() => this.fb.group({
+          firmwareVersion: [''],
+          biosVersion:     [''],
+          alertStatus:     ['ok'],
+          alertNote:       [''],
+        }))
+      ),
+      veeamStatus:  ['ok'],
+      veeamMissing: [[] as string[]],
       routerFirmwareUpdated: [false],
       routerFirmwareVersion: [''],
       routerBackupDone:      [false],
-      // Terminal checklist
-      cleanedTemp:     [false],
-      windowsUpdates:  [false],
-      antivirusOk:     [false],
-      diskSpace:       [false],
-      licenses:        [false],
-      // Network checklist
+      cleanedTemp:    [false],
+      windowsUpdates: [false],
+      antivirusOk:    [false],
+      diskSpace:      [false],
+      licenses:       [false],
       connectivity: [false],
       switches:     [false],
-      // Observations (terminal)
       observations: [''],
-      // Notes (always)
       notes: [''],
     });
   }
@@ -118,10 +137,10 @@ export class MaintenanceFormComponent implements OnChanges {
   }
 
   selectClass(value: string): string {
-    if (!value || value === '—') return 'mf-sel--na';
-    if (value.startsWith('OK') || value.startsWith('Aplicados')) return 'mf-sel--ok';
-    if (value.startsWith('Pendiente') || value === 'Pendientes sin aplicar') return 'mf-sel--warn';
-    if (value.startsWith('Error')) return 'mf-sel--crit';
+    if (!value) return 'mf-sel--na';
+    if (value === 'ok' || value === 'OK') return 'mf-sel--ok';
+    if (value === 'pending' || value === 'degraded' || value === 'falta_configurar' || value === 'ERROR Systemlog') return 'mf-sel--warn';
+    if (value === 'error' || value === 'failed' || value === 'ERROR' || value === 'alerta') return 'mf-sel--crit';
     return 'mf-sel--na';
   }
 
@@ -132,9 +151,12 @@ export class MaintenanceFormComponent implements OnChanges {
     return 'mf-inp--ok';
   }
 
-  showHighVMs(): boolean {
-    const v = this.form.value;
-    return Number(v.vmCpu) >= 60 || Number(v.vmMem) >= 70 || Number(v.vmStorage) >= 70;
+  showHighVMsForHost(i: number): boolean {
+    const ctrl = this.vmwareHostControls.at(i);
+    const cpu     = Number(ctrl.get('cpuUsage')?.value);
+    const mem     = Number(ctrl.get('memUsage')?.value);
+    const storage = Number(ctrl.get('storageUsage')?.value);
+    return cpu >= 60 || mem >= 70 || storage >= 70;
   }
 
   toggleExpand(index: number): void {
@@ -144,6 +166,14 @@ export class MaintenanceFormComponent implements OnChanges {
 
   getServerGroup(index: number): FormGroup {
     return this.serverControls.at(index) as FormGroup;
+  }
+
+  getBmcGroup(index: number): FormGroup {
+    return this.bmcHostControls.at(index) as FormGroup;
+  }
+
+  bmcHasAlert(index: number): boolean {
+    return this.getBmcGroup(index).get('alertStatus')?.value === 'alerta';
   }
 
   // ── Payload construction ────────────────────────────────────────────────────
@@ -171,13 +201,12 @@ export class MaintenanceFormComponent implements OnChanges {
       return payload;
     }
 
-    // SERVER_MAINTENANCE (and unsupported types — payload still built as server type)
-    const servers = this.infrastructure.servers.map((srv, i) => ({
-      serverId:   srv.assetId,
-      serverName: srv.name,
-      reboot:     v.servers[i]?.reboot ?? '—',
-      updates:    v.servers[i]?.updates ?? '—',
-      notes:      v.servers[i]?.notes || undefined,
+    const servers = this.infrastructure.windowsVMs.map((vm, i) => ({
+      serverId:     vm.assetId,
+      serverName:   vm.name,
+      rebootScript: v.servers[i]?.rebootScript ?? 'ok',
+      updates:      v.servers[i]?.updates ?? 'ok',
+      notes:        v.servers[i]?.notes || undefined,
     }));
 
     const payload: ServerMaintenancePayload = {
@@ -191,27 +220,50 @@ export class MaintenanceFormComponent implements OnChanges {
     };
 
     if (this.hasVMware) {
-      payload.vmware = {
-        cpuUsage:     Number(v.vmCpu),
-        memUsage:     Number(v.vmMem),
-        storageUsage: Number(v.vmStorage),
-        highUsageVMs: v.highVMs || undefined,
-        snapshotsOk:  v.snapshotsOk,
-      };
+      payload.vmware = this.infrastructure.esxiHosts.map((host, i) => {
+        const ctrl = this.vmwareHostControls.at(i).value;
+        return {
+          hostId:       host.assetId,
+          hostName:     host.name,
+          cpuUsage:     Number(ctrl.cpuUsage),
+          memUsage:     Number(ctrl.memUsage),
+          storageUsage: Number(ctrl.storageUsage),
+          highUsageVMs: ctrl.highUsageVMs?.length ? ctrl.highUsageVMs : undefined,
+          snapshotsOk:  ctrl.snapshotsOk,
+        };
+      });
+
+      payload.bmc = this.infrastructure.esxiHosts.map((host, i) => {
+        const ctrl = this.bmcHostControls.at(i).value;
+        const entry: BmcEntry = {
+          hostId:      host.assetId,
+          hostName:    host.name,
+          alertStatus: ctrl.alertStatus,
+        };
+        if (ctrl.firmwareVersion) entry.firmwareVersion = ctrl.firmwareVersion;
+        if (ctrl.biosVersion)     entry.biosVersion     = ctrl.biosVersion;
+        if (ctrl.alertStatus === 'alerta' && ctrl.alertNote) entry.alertNote = ctrl.alertNote;
+        return entry;
+      });
     }
 
     if (this.hasQNAP) {
-      payload.qnap = {
-        spaceUsed:       Number(v.qnapSpace),
-        raidStatus:      v.qnapRaid,
-        firmwareUpdated: v.qnapFirmware,
-      };
+      payload.qnap = this.infrastructure.nas.map((nas, i) => {
+        const ctrl = this.qnapDeviceControls.at(i).value;
+        return {
+          deviceId:        nas.assetId,
+          deviceName:      nas.name,
+          spaceUsed:       Number(ctrl.spaceUsed),
+          raidStatus:      ctrl.raidStatus,
+          firmwareUpdated: ctrl.firmwareUpdated,
+        };
+      });
     }
 
     if (this.hasVeeam) {
       payload.veeam = {
-        status:      v.veeamStatus,
-        affectedVMs: v.veeamStatus !== 'ok' ? (v.veeamAffected || undefined) : undefined,
+        status:     v.veeamStatus,
+        missingVMs: v.veeamStatus !== 'ok' ? (v.veeamMissing ?? []) : undefined,
       };
     }
 
