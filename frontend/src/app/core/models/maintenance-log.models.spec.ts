@@ -15,13 +15,27 @@ describe('maintenance-log.models', () => {
         type: 'SERVER_MAINTENANCE',
         windows: {
           servers: [
-            { serverId: 1, serverName: 'SRV-DC01', reboot: 'no', updates: 'ok' },
+            { serverId: 1, serverName: '47DC', rebootScript: 'ok', updates: 'ok' },
           ],
           dcdiag: 'OK',
         },
       };
       expect(p.windows.servers.length).toBe(1);
-      expect(p.windows.servers[0].reboot).toBe('no');
+      expect(p.windows.servers[0].rebootScript).toBe('ok');
+    });
+
+    it('should accept all rebootScript values', () => {
+      const values: Array<'ok' | 'error' | 'falta_configurar'> = ['ok', 'error', 'falta_configurar'];
+      values.forEach(rebootScript => {
+        const p: ServerMaintenancePayload = {
+          type: 'SERVER_MAINTENANCE',
+          windows: {
+            servers: [{ serverId: 1, serverName: '47DC', rebootScript, updates: 'ok' }],
+            dcdiag: 'OK',
+          },
+        };
+        expect(p.windows.servers[0].rebootScript).toBe(rebootScript);
+      });
     });
 
     it('should accept optional dcdiagDetail when dcdiag starts with ERROR', () => {
@@ -36,46 +50,71 @@ describe('maintenance-log.models', () => {
       expect(p.windows.dcdiagDetail).toBe('DNS server unreachable');
     });
 
-    it('should accept optional vmware section', () => {
+    it('should accept vmware as array of host entries', () => {
       const p: ServerMaintenancePayload = {
         type: 'SERVER_MAINTENANCE',
         windows: { servers: [], dcdiag: 'OK' },
-        vmware: {
-          cpuUsage: 45,
-          memUsage: 60,
-          storageUsage: 55,
-          snapshotsOk: true,
-        },
+        vmware: [
+          { hostId: 2, hostName: 'host1.kemini', cpuUsage: 45, memUsage: 60, storageUsage: 55, snapshotsOk: true },
+          { hostId: 22, hostName: 'host2.kemini', cpuUsage: 30, memUsage: 50, storageUsage: 40, snapshotsOk: false },
+        ],
       };
-      expect(p.vmware?.cpuUsage).toBe(45);
-      expect(p.vmware?.snapshotsOk).toBe(true);
+      expect(p.vmware?.length).toBe(2);
+      expect(p.vmware?.[0].hostName).toBe('host1.kemini');
+      expect(p.vmware?.[1].snapshotsOk).toBe(false);
     });
 
-    it('should accept optional qnap section', () => {
+    it('should accept optional qnap section as array with degraded status', () => {
       const p: ServerMaintenancePayload = {
         type: 'SERVER_MAINTENANCE',
         windows: { servers: [], dcdiag: 'OK' },
-        qnap: { spaceUsed: 65, raidStatus: 'ok', firmwareUpdated: false },
+        qnap: [{ deviceId: 10, deviceName: 'QNAP TS-453D', spaceUsed: 65, raidStatus: 'degraded', firmwareUpdated: false }],
       };
-      expect(p.qnap?.raidStatus).toBe('ok');
+      expect(p.qnap?.[0].raidStatus).toBe('degraded');
     });
 
-    it('should accept optional veeam section', () => {
+    it('should accept optional veeam section with missingVMs as string array', () => {
       const p: ServerMaintenancePayload = {
         type: 'SERVER_MAINTENANCE',
         windows: { servers: [], dcdiag: 'OK' },
-        veeam: { status: 'partial', affectedVMs: 'VM-WEB01' },
+        veeam: { status: 'missing', missingVMs: ['VM-WEB01', 'VM-SQL01'] },
       };
-      expect(p.veeam?.status).toBe('partial');
+      expect(p.veeam?.status).toBe('missing');
+      expect(p.veeam?.missingVMs).toEqual(['VM-WEB01', 'VM-SQL01']);
     });
 
     it('should accept optional router section', () => {
       const p: ServerMaintenancePayload = {
         type: 'SERVER_MAINTENANCE',
         windows: { servers: [], dcdiag: 'OK' },
-        router: { firmwareUpdated: true, firmwareVersion: '1.2.3', backupDone: true },
+        router: { firmwareUpdated: true, firmwareVersion: '7.14.2', backupDone: true },
       };
       expect(p.router?.firmwareUpdated).toBe(true);
+    });
+
+    it('should accept optional bmc section as array of BmcEntry', () => {
+      const p: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], dcdiag: 'OK' },
+        bmc: [
+          { hostId: 2, hostName: 'host1.kemini', firmwareVersion: '2.82', biosVersion: 'U30 v2.86', alertStatus: 'ok' },
+          { hostId: 3, hostName: 'host2.kemini', alertStatus: 'alerta', alertNote: 'Fan sensor warning' },
+        ],
+      };
+      expect(p.bmc?.length).toBe(2);
+      expect(p.bmc?.[0].alertStatus).toBe('ok');
+      expect(p.bmc?.[1].alertNote).toBe('Fan sensor warning');
+    });
+
+    it('should accept BmcEntry without optional fields', () => {
+      const p: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], dcdiag: 'OK' },
+        bmc: [{ hostId: 1, hostName: 'host1', alertStatus: 'ok' }],
+      };
+      expect(p.bmc?.[0].firmwareVersion).toBeUndefined();
+      expect(p.bmc?.[0].biosVersion).toBeUndefined();
+      expect(p.bmc?.[0].alertNote).toBeUndefined();
     });
   });
 

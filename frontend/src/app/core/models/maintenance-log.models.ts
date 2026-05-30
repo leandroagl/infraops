@@ -5,26 +5,30 @@
 export interface WindowsServerEntry {
   serverId: number;
   serverName: string;
-  reboot: 'yes' | 'no' | 'pending';
+  rebootScript: 'ok' | 'error' | 'falta_configurar';
   updates: 'ok' | 'pending' | 'failed';
   notes?: string;
 }
 
 export interface WindowsSection {
   servers: WindowsServerEntry[];
-  dcdiag: string;        // 'OK' | 'ERROR: ...' — texto libre
-  dcdiagDetail?: string; // Solo cuando dcdiag empieza con 'ERROR'
+  dcdiag: string;
+  dcdiagDetail?: string;
 }
 
-export interface VMwareSection {
-  cpuUsage: number;       // %
-  memUsage: number;       // %
-  storageUsage: number;   // %
-  highUsageVMs?: string;  // Texto libre si alguna métrica alta
+export interface VMwareHostEntry {
+  hostId: number;
+  hostName: string;
+  cpuUsage: number;
+  memUsage: number;
+  storageUsage: number;
+  highUsageVMs?: string[];
   snapshotsOk: boolean;
 }
 
 export interface QNAPSection {
+  deviceId: number;
+  deviceName: string;
   spaceUsed: number;
   raidStatus: 'ok' | 'degraded' | 'failed';
   firmwareUpdated: boolean;
@@ -32,7 +36,7 @@ export interface QNAPSection {
 
 export interface VeeamSection {
   status: 'ok' | 'partial' | 'missing';
-  affectedVMs?: string;  // Solo cuando status es partial o missing
+  missingVMs?: string[];
 }
 
 export interface RouterSection {
@@ -41,13 +45,23 @@ export interface RouterSection {
   backupDone: boolean;
 }
 
+export interface BmcEntry {
+  hostId:           number;
+  hostName:         string;
+  firmwareVersion?: string;
+  biosVersion?:     string;
+  alertStatus:      'ok' | 'alerta';
+  alertNote?:       string;
+}
+
 export interface ServerMaintenancePayload {
   type: 'SERVER_MAINTENANCE';
   windows: WindowsSection;
-  vmware?: VMwareSection;
-  qnap?: QNAPSection;
+  vmware?: VMwareHostEntry[];
+  qnap?: QNAPSection[];
   veeam?: VeeamSection;
   router?: RouterSection;
+  bmc?: BmcEntry[];
   notes?: string;
 }
 
