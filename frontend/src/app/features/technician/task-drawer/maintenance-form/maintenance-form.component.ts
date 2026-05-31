@@ -11,6 +11,7 @@ import { Task } from '../../../../core/models/task.models';
 import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
 import {
   BmcEntry,
+  MaintenancePayload,
   ServerMaintenancePayload,
   TerminalPayload,
 } from '../../../../core/models/maintenance-log.models';
@@ -23,8 +24,10 @@ import {
 export class MaintenanceFormComponent implements OnChanges {
   @Input() task!: Task;
   @Input() infrastructure!: ClientInfrastructure;
+  @Input() savedPayload: MaintenancePayload | null = null;
 
   @Output() requestComplete = new EventEmitter<ServerMaintenancePayload | TerminalPayload>();
+  @Output() requestSave = new EventEmitter<ServerMaintenancePayload | TerminalPayload>();
   @Output() requestNotDone = new EventEmitter<void>();
 
   form!: FormGroup;
@@ -282,6 +285,10 @@ export class MaintenanceFormComponent implements OnChanges {
 
   submit(): void {
     this.requestComplete.emit(this.buildPayload());
+  }
+
+  save(): void {
+    this.requestSave.emit(this.buildPayload());
   }
 
   submitNotDone(): void {

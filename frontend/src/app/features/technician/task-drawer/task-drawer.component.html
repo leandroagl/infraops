@@ -16,8 +16,8 @@
       <span class="badge" [ngClass]="statusBadge(task.status)">{{ statusLabel(task.status) }}</span>
     </div>
   </div>
-  <button class="d-close" (click)="taskCompleted.emit()">
-    <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round">
+  <button mat-icon-button class="d-close" (click)="taskCompleted.emit()">
+    <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round">
       <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
     </svg>
   </button>
@@ -26,96 +26,21 @@
 <!-- ── Body ──────────────────────────────────────────────── -->
 <div class="d-body">
 
-  <!-- Contexto del cliente — InfraDoc -->
-  <div class="ds">
-    <div class="ds-title">Contexto del cliente · InfraDoc</div>
-
-    <div *ngIf="loadingInfra" class="infra-loading">
-      <div class="skeleton" style="height:32px;border-radius:var(--radius-sm)"></div>
-      <div class="skeleton" style="height:32px;border-radius:var(--radius-sm)"></div>
-    </div>
-
-    <div *ngIf="infraError" class="infra-error">{{ infraError }}</div>
-
-    <div *ngIf="!loadingInfra && !infraError && !hasInfra" class="infra-empty">
-      Sin activos registrados en InfraDoc.
-    </div>
-
-    <ng-container *ngIf="infrastructure && !loadingInfra">
-
-      <!-- Servidores -->
-      <ng-container *ngIf="infrastructure.servers.length > 0">
-        <div class="infra-section-lbl">Servidores ({{ infrastructure.servers.length }})</div>
-        <div class="vm-list">
-          <div *ngFor="let srv of infrastructure.servers" class="vm-row">
-            <div class="vm-icon">
-              <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round">
-                <rect x="2" y="3" width="20" height="14" rx="2"/>
-              </svg>
-            </div>
-            <span class="vm-name">{{ srv.name }}</span>
-            <span class="mono vm-ip">{{ srv.ip ?? '—' }}</span>
-          </div>
-        </div>
-      </ng-container>
-
-      <!-- Máquinas virtuales -->
-      <ng-container *ngIf="infrastructure.vms.length > 0">
-        <div class="infra-section-lbl">Máquinas virtuales ({{ infrastructure.vms.length }})</div>
-        <div class="vm-list">
-          <div *ngFor="let vm of infrastructure.vms" class="vm-row">
-            <div class="vm-icon">
-              <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round">
-                <rect x="2" y="3" width="20" height="14" rx="2"/>
-              </svg>
-            </div>
-            <span class="vm-name">{{ vm.name }}</span>
-            <span class="mono vm-ip">{{ vm.ip ?? '—' }}</span>
-          </div>
-        </div>
-      </ng-container>
-
-      <!-- NAS / QNAP -->
-      <ng-container *ngIf="infrastructure.nas.length > 0">
-        <div class="infra-section-lbl">NAS / QNAP ({{ infrastructure.nas.length }})</div>
-        <div class="vm-list">
-          <div *ngFor="let nas of infrastructure.nas" class="vm-row">
-            <div class="vm-icon">
-              <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round">
-                <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/>
-              </svg>
-            </div>
-            <span class="vm-name">{{ nas.name }}</span>
-            <span class="mono vm-ip">{{ nas.ip ?? '—' }}</span>
-          </div>
-        </div>
-      </ng-container>
-
-      <!-- Routers / Firewalls -->
-      <ng-container *ngIf="infrastructure.routers.length > 0">
-        <div class="infra-section-lbl">Routers / Firewalls ({{ infrastructure.routers.length }})</div>
-        <div class="vm-list">
-          <div *ngFor="let r of infrastructure.routers" class="vm-row">
-            <div class="vm-icon">
-              <svg viewBox="0 0 24 24" style="width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round">
-                <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20"/>
-              </svg>
-            </div>
-            <span class="vm-name">{{ r.name }}</span>
-            <span class="mono vm-ip">{{ r.ip ?? '—' }}</span>
-          </div>
-        </div>
-      </ng-container>
-
-    </ng-container>
+  <div *ngIf="loadingInfra" class="infra-loading">
+    <div class="skeleton" style="height:32px;border-radius:var(--radius-sm)"></div>
+    <div class="skeleton" style="height:32px;border-radius:var(--radius-sm)"></div>
   </div>
+
+  <div *ngIf="infraError" class="infra-error">{{ infraError }}</div>
 
   <!-- Formulario de mantenimiento -->
   <app-maintenance-form
     *ngIf="infrastructure && isActiveTask"
     [task]="task"
     [infrastructure]="infrastructure"
+    [savedPayload]="savedPayload"
     (requestComplete)="onRequestComplete($event)"
+    (requestSave)="onRequestSave($event)"
     (requestNotDone)="onRequestNotDone()">
   </app-maintenance-form>
 
@@ -124,72 +49,28 @@
 <!-- ── Footer ─────────────────────────────────────────────── -->
 <div class="d-footer" *ngIf="isActiveTask">
 
-  <!-- SERVER_MAINTENANCE -->
-  <ng-container *ngIf="task.type === 'SERVER_MAINTENANCE'">
-    <button class="btn btn--primary" (click)="triggerFormComplete()">Completar mantenimiento</button>
-    <button class="btn btn--secondary" (click)="taskCompleted.emit()">Cerrar</button>
-  </ng-container>
+  <div class="d-footer__actions">
+    <!-- SERVER_MAINTENANCE -->
+    <ng-container *ngIf="task.type === 'SERVER_MAINTENANCE'">
+      <button mat-flat-button color="primary" (click)="triggerFormComplete()">Completar mantenimiento</button>
+      <button mat-stroked-button (click)="triggerFormSave()">Guardar progreso</button>
+      <button mat-stroked-button (click)="taskCompleted.emit()">Cerrar</button>
+    </ng-container>
 
-  <!-- TERMINAL_MAINTENANCE | SITE_VISIT -->
-  <ng-container *ngIf="task.type === 'TERMINAL_MAINTENANCE' || task.type === 'SITE_VISIT'">
-    <button class="btn btn--primary" (click)="triggerFormComplete()">Marcar visita como realizada</button>
-    <button class="btn btn--danger" (click)="onRequestNotDone()">No concretada</button>
-  </ng-container>
+    <!-- TERMINAL_MAINTENANCE | SITE_VISIT -->
+    <ng-container *ngIf="task.type === 'TERMINAL_MAINTENANCE' || task.type === 'SITE_VISIT'">
+      <button mat-flat-button color="primary" (click)="triggerFormComplete()">Marcar visita como realizada</button>
+      <button mat-flat-button color="warn" (click)="onRequestNotDone()">No concretada</button>
+    </ng-container>
 
-  <!-- Tipos sin formulario -->
-  <ng-container *ngIf="task.type === 'AV_CONTROL' || task.type === 'UPS_CONTROL' || task.type === 'ENDPOINT_INVENTORY'">
-    <button class="btn btn--primary" disabled>Completar</button>
-  </ng-container>
-
-</div>
-
-<!-- ── Modal de confirmación ────────────────────────────── -->
-<div class="modal-ov" [class.open]="showConfirmModal">
-  <div class="modal">
-    <div class="modal-hdr">
-      <div class="modal-hdr-title">Confirmar registro</div>
-    </div>
-    <div class="modal-body">
-      <ng-container *ngIf="issuesSummary">
-
-        <!-- DCDIAG con errores -->
-        <div *ngIf="issuesSummary.dcdiagErrors.length > 0" class="modal-alert-box">
-          <strong>DCDIAG con errores:</strong>
-          <div *ngFor="let e of issuesSummary.dcdiagErrors">{{ e }}</div>
-          <div style="margin-top:6px;font-size:11px;color:var(--warn)">
-            Verificá que abriste ticket en Odoo antes de continuar.
-          </div>
-        </div>
-
-        <!-- Veeam: backups ausentes -->
-        <div *ngIf="issuesSummary.veeamMissing" class="modal-alert-box">
-          <strong>Veeam: backups ausentes.</strong>
-          Verificá el estado de los jobs antes de confirmar.
-        </div>
-
-        <!-- Campos sin completar -->
-        <div *ngIf="issuesSummary.emptyFields.length > 0" class="modal-incomplete">
-          Campos sin completar: {{ issuesSummary.emptyFields.join(', ') }}
-        </div>
-
-        <!-- Todo OK -->
-        <div
-          *ngIf="!hasAlerts && issuesSummary.emptyFields.length === 0"
-          style="font-size:12px;color:var(--ok)">
-          Todo completo. El registro se guardará y la tarea pasará a DONE.
-        </div>
-
-      </ng-container>
-
-      <div *ngIf="confirmError" style="color:var(--crit);font-size:12px;margin-top:8px">
-        {{ confirmError }}
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn--secondary" (click)="onCancelModal()">Volver a revisar</button>
-      <button class="btn btn--primary" (click)="onConfirmModal()">
-        Confirmar{{ hasAlerts ? ' · enviar alerta' : '' }}
-      </button>
-    </div>
+    <!-- Tipos sin formulario -->
+    <ng-container *ngIf="task.type === 'AV_CONTROL' || task.type === 'UPS_CONTROL' || task.type === 'ENDPOINT_INVENTORY'">
+      <button mat-flat-button color="primary" disabled>Completar</button>
+    </ng-container>
   </div>
+
+  <p *ngIf="confirmError" class="d-footer__err">{{ confirmError }}</p>
+  <p *ngIf="saveProgressMsg" class="d-footer__ok">{{ saveProgressMsg }}</p>
+  <p *ngIf="saveProgressError" class="d-footer__err">{{ saveProgressError }}</p>
+
 </div>

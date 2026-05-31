@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { of } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
+import { of, throwError } from 'rxjs';
 
 import { TaskDrawerComponent } from './task-drawer.component';
 import { InfradocService } from '../../../core/services/infradoc.service';
@@ -60,17 +61,25 @@ function makeTerminalPayload(overrides: Partial<TerminalPayload> = {}): Terminal
   };
 }
 
+const mockDialog = {
+  open: () => ({ afterClosed: () => of(false) }),
+} as unknown as MatDialog;
+
+const mockDialogThatConfirms = {
+  open: () => ({ afterClosed: () => of(true) }),
+} as unknown as MatDialog;
+
 // ── Pure unit tests (no TestBed) ─────────────────────────────────────────────
 
 describe('TaskDrawerComponent — pure unit tests', () => {
   let component: TaskDrawerComponent;
 
   const mockInfradoc = { getClientInfrastructure: () => of(null) } as any;
-  const mockLogs = { create: () => of({}) } as any;
+  const mockLogs = { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } as any;
   const mockTasks = { updateStatus: () => of({}) } as any;
 
   beforeEach(() => {
-    component = new TaskDrawerComponent(mockInfradoc, mockLogs, mockTasks);
+    component = new TaskDrawerComponent(mockInfradoc, mockLogs, mockTasks, mockDialog);
     component.task = makeTask();
   });
 
@@ -150,7 +159,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
 
     it('should flag emptyFields when vmware cpuUsage is NaN', () => {
       const payload = makeServerPayload({
-        vmware: { cpuUsage: NaN, memUsage: 50, storageUsage: 40, snapshotsOk: true },
+        vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: NaN, memUsage: 50, storageUsage: 40, snapshotsOk: true }],
       });
       const issues = component.detectIssues(payload);
       expect(issues.emptyFields.length).toBeGreaterThan(0);
@@ -158,7 +167,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
 
     it('should flag emptyFields when vmware memUsage is NaN', () => {
       const payload = makeServerPayload({
-        vmware: { cpuUsage: 40, memUsage: NaN, storageUsage: 40, snapshotsOk: true },
+        vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: 40, memUsage: NaN, storageUsage: 40, snapshotsOk: true }],
       });
       const issues = component.detectIssues(payload);
       expect(issues.emptyFields.length).toBeGreaterThan(0);
@@ -167,7 +176,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     it('should return empty issues when all fields are complete and OK', () => {
       const payload = makeServerPayload({
         windows: { servers: [], dcdiag: 'OK' },
-        vmware: { cpuUsage: 40, memUsage: 50, storageUsage: 30, snapshotsOk: true },
+        vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: 40, memUsage: 50, storageUsage: 30, snapshotsOk: true }],
         veeam: { status: 'ok' },
       });
       const issues = component.detectIssues(payload);
@@ -182,38 +191,6 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(issues.dcdiagErrors.length).toBe(0);
       expect(issues.veeamMissing).toBe(false);
       expect(issues.emptyFields.length).toBe(0);
-    });
-  });
-
-  // ── Modal state ────────────────────────────────────────────────────────────
-
-  describe('modal state', () => {
-    it('showConfirmModal should be false initially', () => {
-      expect(component.showConfirmModal).toBe(false);
-    });
-
-    it('onRequestComplete should set showConfirmModal to true', () => {
-      const payload = makeServerPayload();
-      component.onRequestComplete(payload);
-      expect(component.showConfirmModal).toBe(true);
-    });
-
-    it('onRequestComplete should store pendingPayload', () => {
-      const payload = makeServerPayload();
-      component.onRequestComplete(payload);
-      expect(component.pendingPayload).toBe(payload);
-    });
-
-    it('onRequestComplete should compute issuesSummary', () => {
-      const payload = makeServerPayload();
-      component.onRequestComplete(payload);
-      expect(component.issuesSummary).not.toBeNull();
-    });
-
-    it('onCancelModal should set showConfirmModal to false', () => {
-      component.showConfirmModal = true;
-      component.onCancelModal();
-      expect(component.showConfirmModal).toBe(false);
     });
   });
 
@@ -245,6 +222,204 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(component.isActiveTask).toBe(false);
     });
   });
+
+  // ── onRequestSave ─────────────────────────────────────────────────────────
+
+  describe('onRequestSave()', () => {
+    let createSpy: jasmine.Spy;
+    let updateSpy: jasmine.Spy;
+    let updateStatusSpy: jasmine.Spy;
+    let saveComponent: TaskDrawerComponent;
+
+    beforeEach(() => {
+      createSpy = jasmine.createSpy('create').and.returnValue(of({}));
+      updateSpy = jasmine.createSpy('update').and.returnValue(of({}));
+      updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(of({}));
+      saveComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: createSpy, update: updateSpy } as any,
+        { updateStatus: updateStatusSpy } as any,
+        mockDialog,
+      );
+      saveComponent.task = makeTask({ status: 'PENDING' });
+    });
+
+    it('llama a logsService.create con el payload correcto', () => {
+      const payload = makeServerPayload();
+
+      saveComponent.onRequestSave(payload);
+
+      expect(createSpy).toHaveBeenCalledWith('task-1', { payload });
+    });
+
+    it('transiciona a IN_PROGRESS cuando la tarea está en PENDING', () => {
+      saveComponent.onRequestSave(makeServerPayload());
+
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'IN_PROGRESS' });
+    });
+
+    it('no llama a updateStatus si la tarea ya está en IN_PROGRESS', () => {
+      saveComponent.task = makeTask({ status: 'IN_PROGRESS' });
+
+      saveComponent.onRequestSave(makeServerPayload());
+
+      expect(updateStatusSpy).not.toHaveBeenCalled();
+    });
+
+    it('usa logsService.update cuando create falla con 409', () => {
+      createSpy.and.returnValue(throwError(() => ({ status: 409 })));
+
+      saveComponent.onRequestSave(makeServerPayload());
+
+      expect(updateSpy).toHaveBeenCalled();
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'IN_PROGRESS' });
+    });
+
+    it('establece saveProgressMsg en éxito', () => {
+      saveComponent.onRequestSave(makeServerPayload());
+
+      expect(saveComponent.saveProgressMsg).toBeTruthy();
+      expect(saveComponent.saveProgressError).toBe('');
+    });
+
+    it('establece saveProgressError si create falla con error distinto de 409', () => {
+      createSpy.and.returnValue(throwError(() => ({ status: 500 })));
+
+      saveComponent.onRequestSave(makeServerPayload());
+
+      expect(saveComponent.saveProgressError).toBeTruthy();
+      expect(saveComponent.saveProgressMsg).toBe('');
+    });
+  });
+
+  // ── saveAndComplete — transición PENDING → IN_PROGRESS → DONE ────────────
+
+  describe('saveAndComplete() via onRequestComplete()', () => {
+    let createSpy: jasmine.Spy;
+    let updateSpy: jasmine.Spy;
+    let updateStatusSpy: jasmine.Spy;
+    let completeComponent: TaskDrawerComponent;
+
+    beforeEach(() => {
+      createSpy = jasmine.createSpy('create').and.returnValue(of({}));
+      updateSpy = jasmine.createSpy('update').and.returnValue(of({}));
+      updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(of({}));
+      completeComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: createSpy, update: updateSpy } as any,
+        { updateStatus: updateStatusSpy } as any,
+        mockDialogThatConfirms,
+      );
+    });
+
+    it('hace doble transición PENDING → IN_PROGRESS → DONE cuando tarea está en PENDING', () => {
+      completeComponent.task = makeTask({ status: 'PENDING' });
+
+      completeComponent.onRequestComplete(makeServerPayload());
+
+      expect(updateStatusSpy.calls.count()).toBe(2);
+      expect(updateStatusSpy.calls.argsFor(0)).toEqual(['task-1', { status: 'IN_PROGRESS' }]);
+      expect(updateStatusSpy.calls.argsFor(1)).toEqual(['task-1', { status: 'DONE' }]);
+    });
+
+    it('hace una sola transición IN_PROGRESS → DONE cuando tarea ya está en IN_PROGRESS', () => {
+      completeComponent.task = makeTask({ status: 'IN_PROGRESS' });
+
+      completeComponent.onRequestComplete(makeServerPayload());
+
+      expect(updateStatusSpy.calls.count()).toBe(1);
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE' });
+    });
+
+    it('usa update() si create() falla con 409 al completar', () => {
+      completeComponent.task = makeTask({ status: 'IN_PROGRESS' });
+      createSpy.and.returnValue(throwError(() => ({ status: 409 })));
+
+      completeComponent.onRequestComplete(makeServerPayload());
+
+      expect(updateSpy).toHaveBeenCalled();
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE' });
+    });
+  });
+
+  // ── loadInfrastructure — log loading ────────────────────────────────────────
+
+  describe('loadInfrastructure() — log loading', () => {
+    const mockInfra = { esxiHosts: [], windowsVMs: [], nas: [], routers: [] };
+    const mockLogPayload: ServerMaintenancePayload = {
+      type: 'SERVER_MAINTENANCE',
+      windows: { servers: [], dcdiag: 'ERROR (DNS)' },
+    };
+
+    let infradocSpy: jasmine.Spy;
+    let getLogSpy: jasmine.Spy;
+    let loadComponent: TaskDrawerComponent;
+
+    beforeEach(() => {
+      infradocSpy = jasmine.createSpy('getClientInfrastructure').and.returnValue(of(mockInfra));
+      getLogSpy   = jasmine.createSpy('get');
+      loadComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: infradocSpy } as any,
+        { create: () => of({}), update: () => of({}), get: getLogSpy } as any,
+        { updateStatus: () => of({}) } as any,
+        mockDialog,
+      );
+      loadComponent.task = makeTask();
+    });
+
+    it('asigna savedPayload con el payload del log cuando el log existe', () => {
+      getLogSpy.and.returnValue(of({ id: 'log-1', taskId: 'task-1', technicianId: 'tech-1', payload: mockLogPayload, registeredAt: '2026-05-31' }));
+
+      loadComponent.loadInfrastructure();
+
+      expect(loadComponent.savedPayload).toBe(mockLogPayload);
+    });
+
+    it('asigna savedPayload null cuando el log devuelve 404', () => {
+      getLogSpy.and.returnValue(throwError(() => ({ status: 404 })));
+
+      loadComponent.loadInfrastructure();
+
+      expect(loadComponent.savedPayload).toBeNull();
+      expect(loadComponent.infraError).toBe('');
+    });
+
+    it('asigna savedPayload null y no muestra error cuando el log falla con 500', () => {
+      getLogSpy.and.returnValue(throwError(() => ({ status: 500 })));
+
+      loadComponent.loadInfrastructure();
+
+      expect(loadComponent.savedPayload).toBeNull();
+      expect(loadComponent.infraError).toBe('');
+    });
+
+    it('pone loadingInfra en false sólo después de que el log también resuelve', () => {
+      getLogSpy.and.returnValue(of({ id: 'l1', taskId: 't1', technicianId: 't1', payload: mockLogPayload, registeredAt: '2026' }));
+
+      loadComponent.loadInfrastructure();
+
+      expect(loadComponent.loadingInfra).toBeFalse();
+      expect(loadComponent.infrastructure).not.toBeNull();
+    });
+
+    it('asigna infrastructure e savedPayload de forma atómica', () => {
+      getLogSpy.and.returnValue(of({ id: 'l1', taskId: 't1', technicianId: 't1', payload: mockLogPayload, registeredAt: '2026' }));
+
+      loadComponent.loadInfrastructure();
+
+      expect(loadComponent.infrastructure).not.toBeNull();
+      expect(loadComponent.savedPayload).toBe(mockLogPayload);
+    });
+
+    it('asigna infraError y pone loadingInfra en false cuando infradoc falla', () => {
+      infradocSpy.and.returnValue(throwError(() => ({ status: 503 })));
+
+      loadComponent.loadInfrastructure();
+
+      expect(loadComponent.loadingInfra).toBeFalse();
+      expect(loadComponent.infraError).toBeTruthy();
+    });
+  });
 });
 
 // ── Template tests (TestBed) ─────────────────────────────────────────────────
@@ -259,8 +434,9 @@ describe('TaskDrawerComponent — template tests', () => {
       schemas: [NO_ERRORS_SCHEMA],
       providers: [
         { provide: InfradocService, useValue: { getClientInfrastructure: () => of(null) } },
-        { provide: MaintenanceLogsService, useValue: { create: () => of({}) } },
+        { provide: MaintenanceLogsService, useValue: { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } },
         { provide: TasksService, useValue: { updateStatus: () => of({}) } },
+        { provide: MatDialog, useValue: { open: () => ({ afterClosed: () => of(false) }) } },
       ],
     }).compileComponents();
 
@@ -273,50 +449,58 @@ describe('TaskDrawerComponent — template tests', () => {
     fixture.detectChanges();
   }
 
+  function findButton(text: string): HTMLButtonElement | null {
+    const buttons = fixture.nativeElement.querySelectorAll('.d-footer button');
+    return Array.from(buttons).find(
+      (b: any) => b.textContent?.trim().includes(text)
+    ) as HTMLButtonElement ?? null;
+  }
+
   // ── Footer buttons ─────────────────────────────────────────────────────────
 
   describe('footer buttons', () => {
     it('should render "Completar mantenimiento" button for SERVER_MAINTENANCE', () => {
       setupWithType('SERVER_MAINTENANCE');
-      const btn = fixture.nativeElement.querySelector('.d-footer .btn--primary');
+      const btn = findButton('Completar mantenimiento');
       expect(btn).toBeTruthy();
-      expect(btn.textContent.trim()).toContain('Completar mantenimiento');
+    });
+
+    it('should render "Guardar progreso" button for SERVER_MAINTENANCE', () => {
+      setupWithType('SERVER_MAINTENANCE');
+      const btn = findButton('Guardar progreso');
+      expect(btn).toBeTruthy();
     });
 
     it('should render "Marcar visita como realizada" for TERMINAL_MAINTENANCE', () => {
       setupWithType('TERMINAL_MAINTENANCE');
-      const btn = fixture.nativeElement.querySelector('.d-footer .btn--primary');
+      const btn = findButton('Marcar visita como realizada');
       expect(btn).toBeTruthy();
-      expect(btn.textContent.trim()).toContain('Marcar visita como realizada');
     });
 
     it('should render "Marcar visita como realizada" for SITE_VISIT', () => {
       setupWithType('SITE_VISIT');
-      const btn = fixture.nativeElement.querySelector('.d-footer .btn--primary');
+      const btn = findButton('Marcar visita como realizada');
       expect(btn).toBeTruthy();
-      expect(btn.textContent.trim()).toContain('Marcar visita como realizada');
     });
 
     it('should render "No concretada" button for SITE_VISIT', () => {
       setupWithType('SITE_VISIT');
-      const btn = fixture.nativeElement.querySelector('.d-footer .btn--danger');
+      const btn = findButton('No concretada');
       expect(btn).toBeTruthy();
-      expect(btn.textContent.trim()).toContain('No concretada');
     });
 
     it('should render disabled "Completar" for AV_CONTROL', () => {
       setupWithType('AV_CONTROL');
-      const btn = fixture.nativeElement.querySelector('.d-footer .btn--primary');
+      const btn = findButton('Completar');
       expect(btn).toBeTruthy();
-      expect(btn.disabled).toBe(true);
-      expect(btn.textContent.trim()).toContain('Completar');
+      expect(btn!.disabled).toBe(true);
     });
 
     it('should render disabled "Completar" for UPS_CONTROL', () => {
       setupWithType('UPS_CONTROL');
-      const btn = fixture.nativeElement.querySelector('.d-footer .btn--primary');
+      const btn = findButton('Completar');
       expect(btn).toBeTruthy();
-      expect(btn.disabled).toBe(true);
+      expect(btn!.disabled).toBe(true);
     });
 
     it('should NOT render footer when task is DONE', () => {
@@ -350,21 +534,25 @@ describe('TaskDrawerComponent — template tests', () => {
     });
   });
 
-  // ── Modal ──────────────────────────────────────────────────────────────────
+  // ── Progress messages ──────────────────────────────────────────────────────
 
-  describe('modal', () => {
-    it('should not show modal-ov with class "open" initially', () => {
+  describe('progress messages', () => {
+    it('should show saveProgressMsg in footer when set', () => {
       setupWithType('SERVER_MAINTENANCE');
-      const modal = fixture.nativeElement.querySelector('.modal-ov');
-      expect(modal.classList.contains('open')).toBe(false);
+      component.saveProgressMsg = 'Progreso guardado.';
+      fixture.detectChanges();
+      const el = fixture.nativeElement.querySelector('.d-footer__ok');
+      expect(el).toBeTruthy();
+      expect(el.textContent).toContain('Progreso guardado.');
     });
 
-    it('should add "open" class to modal-ov when showConfirmModal is true', () => {
+    it('should show saveProgressError in footer when set', () => {
       setupWithType('SERVER_MAINTENANCE');
-      component.showConfirmModal = true;
+      component.saveProgressError = 'No se pudo guardar el progreso.';
       fixture.detectChanges();
-      const modal = fixture.nativeElement.querySelector('.modal-ov');
-      expect(modal.classList.contains('open')).toBe(true);
+      const errors = fixture.nativeElement.querySelectorAll('.d-footer__err');
+      const msgs = Array.from(errors).map((e: any) => e.textContent?.trim());
+      expect(msgs.some(m => m?.includes('No se pudo guardar'))).toBe(true);
     });
   });
 });

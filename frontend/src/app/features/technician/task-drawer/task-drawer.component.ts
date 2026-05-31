@@ -7,6 +7,9 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Observable, catchError, map, of, switchMap, tap, throwError } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
 import { Task, TaskType } from '../../../core/models/task.models';
 import { ClientInfrastructure } from '../../../core/models/infradoc.models';
 import {
@@ -14,9 +17,16 @@ import {
   ServerMaintenancePayload,
 } from '../../../core/models/maintenance-log.models';
 import { InfradocService } from '../../../core/services/infradoc.service';
-import { MaintenanceLogsService } from '../../../core/services/maintenance-logs.service';
+import {
+  MaintenanceLog,
+  MaintenanceLogsService,
+} from '../../../core/services/maintenance-logs.service';
 import { TasksService } from '../../../core/services/tasks.service';
 import { MaintenanceFormComponent } from './maintenance-form/maintenance-form.component';
+import {
+  ConfirmMaintenanceDialogComponent,
+  ConfirmMaintenanceDialogData,
+} from './confirm-maintenance-dialog/confirm-maintenance-dialog.component';
 
 @Component({
   selector: 'app-task-drawer',
@@ -32,18 +42,20 @@ export class TaskDrawerComponent implements OnChanges {
   @ViewChild(MaintenanceFormComponent) maintenanceForm?: MaintenanceFormComponent;
 
   infrastructure: ClientInfrastructure | null = null;
+  savedPayload: MaintenancePayload | null = null;
   loadingInfra = false;
   infraError = '';
-
-  showConfirmModal = false;
-  pendingPayload: MaintenancePayload | null = null;
-  issuesSummary: { dcdiagErrors: string[]; veeamMissing: boolean; emptyFields: string[] } | null = null;
   confirmError = '';
+  saveProgressMsg = '';
+  saveProgressError = '';
+
+  private pendingPayload: MaintenancePayload | null = null;
 
   constructor(
     private infradocService: InfradocService,
     private logsService: MaintenanceLogsService,
     private tasksService: TasksService,
+    private dialog: MatDialog,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -54,11 +66,23 @@ export class TaskDrawerComponent implements OnChanges {
 
   loadInfrastructure(): void {
     this.infrastructure = null;
+    this.savedPayload = null;
     this.infraError = '';
     this.loadingInfra = true;
 
-    this.infradocService.getClientInfrastructure(this.task.clientId).subscribe({
-      next: data => { this.infrastructure = data; this.loadingInfra = false; },
+    this.infradocService.getClientInfrastructure(this.task.clientId).pipe(
+      switchMap(infra =>
+        this.logsService.get(this.task.id).pipe(
+          map(log => ({ infra, savedPayload: log.payload })),
+          catchError(() => of({ infra, savedPayload: null as MaintenancePayload | null }))
+        )
+      )
+    ).subscribe({
+      next: ({ infra, savedPayload }) => {
+        this.infrastructure = infra;
+        this.savedPayload = savedPayload;
+        this.loadingInfra = false;
+      },
       error: () => {
         this.infraError = 'No se pudo cargar la infraestructura del cliente.';
         this.loadingInfra = false;
@@ -118,13 +142,16 @@ export class TaskDrawerComponent implements OnChanges {
       ? [srv.windows.dcdiag]
       : [];
 
-    const veeamMissing = srv.veeam?.status === 'missing';
+    const veeamMissing = srv.veeam?.status === 'missing' || srv.veeam?.status === 'partial';
 
     const emptyFields: string[] = [];
-    if (srv.vmware) {
-      if (isNaN(srv.vmware.cpuUsage))     emptyFields.push('CPU%');
-      if (isNaN(srv.vmware.memUsage))     emptyFields.push('Memoria%');
-      if (isNaN(srv.vmware.storageUsage)) emptyFields.push('Storage%');
+    if (srv.vmware?.length) {
+      srv.vmware.forEach((host) => {
+        const label = srv.vmware!.length > 1 ? ` (${host.hostName})` : '';
+        if (isNaN(host.cpuUsage))     emptyFields.push(`CPU%${label}`);
+        if (isNaN(host.memUsage))     emptyFields.push(`Memoria%${label}`);
+        if (isNaN(host.storageUsage)) emptyFields.push(`Storage%${label}`);
+      });
     }
 
     return { dcdiagErrors, veeamMissing, emptyFields };
@@ -134,8 +161,8 @@ export class TaskDrawerComponent implements OnChanges {
 
   get hasInfra(): boolean {
     if (!this.infrastructure) return false;
-    const { servers, vms, nas, routers } = this.infrastructure;
-    return servers.length + vms.length + nas.length + routers.length > 0;
+    const { esxiHosts, windowsVMs, nas, routers } = this.infrastructure;
+    return esxiHosts.length + windowsVMs.length + nas.length + routers.length > 0;
   }
 
   get isActiveTask(): boolean {
@@ -144,41 +171,60 @@ export class TaskDrawerComponent implements OnChanges {
       && this.task.status !== 'NOT_DONE';
   }
 
-  get hasAlerts(): boolean {
-    return (this.issuesSummary?.dcdiagErrors.length ?? 0) > 0
-      || (this.issuesSummary?.veeamMissing ?? false);
+  // ── Actions ──────────────────────────────────────────────────────────────────
+
+  triggerFormComplete(): void {
+    this.maintenanceForm?.submit();
   }
 
-  // ── Modal actions ───────────────────────────────────────────────────────────
+  triggerFormSave(): void {
+    this.maintenanceForm?.save();
+  }
+
+  onRequestSave(payload: MaintenancePayload): void {
+    this.saveProgressMsg = '';
+    this.saveProgressError = '';
+
+    this.upsertLog(payload).pipe(
+      switchMap(() => {
+        if (this.task.status === 'PENDING') {
+          return this.tasksService.updateStatus(this.task.id, { status: 'IN_PROGRESS' });
+        }
+        return of(null as unknown as Task);
+      })
+    ).subscribe({
+      next: () => { this.saveProgressMsg = 'Progreso guardado.'; },
+      error: () => { this.saveProgressError = 'No se pudo guardar el progreso. Intentá de nuevo.'; },
+    });
+  }
 
   onRequestComplete(payload: MaintenancePayload): void {
     this.pendingPayload = payload;
-    this.issuesSummary = this.detectIssues(payload);
-    this.showConfirmModal = true;
+    const issuesSummary = this.detectIssues(payload);
+    const hasAlerts = issuesSummary.dcdiagErrors.length > 0 || issuesSummary.veeamMissing;
+
+    const data: ConfirmMaintenanceDialogData = { issuesSummary, hasAlerts };
+    this.dialog.open(ConfirmMaintenanceDialogComponent, { data, width: '420px' })
+      .afterClosed()
+      .subscribe((confirmed: boolean) => {
+        if (confirmed) this.saveAndComplete();
+      });
   }
 
-  onCancelModal(): void {
-    this.showConfirmModal = false;
-  }
-
-  onConfirmModal(): void {
+  private saveAndComplete(): void {
     if (!this.pendingPayload) return;
     this.confirmError = '';
 
-    this.logsService.create(this.task.id, { payload: this.pendingPayload }).subscribe({
-      next: () => {
-        this.tasksService.updateStatus(this.task.id, { status: 'DONE' }).subscribe({
-          next: () => {
-            this.showConfirmModal = false;
-            this.taskCompleted.emit();
-          },
-          error: () => {
-            this.confirmError = 'Log guardado, pero no se pudo actualizar el estado de la tarea.';
-          },
-        });
-      },
+    let logSaved = false;
+    this.upsertLog(this.pendingPayload).pipe(
+      tap(() => { logSaved = true; }),
+      switchMap(() => this.transitionToDone())
+    ).subscribe({
+      next: () => { this.taskCompleted.emit(); },
       error: () => {
-        this.confirmError = 'No se pudo guardar el registro. Intentá de nuevo.';
+        this.confirmError = logSaved
+          ? 'Log guardado, pero no se pudo actualizar el estado de la tarea.'
+          : 'No se pudo guardar el registro. Intentá de nuevo.';
       },
     });
   }
@@ -190,8 +236,26 @@ export class TaskDrawerComponent implements OnChanges {
     });
   }
 
-  triggerFormComplete(): void {
-    this.maintenanceForm?.submit();
+  // ── Private helpers ──────────────────────────────────────────────────────────
+
+  private upsertLog(payload: MaintenancePayload): Observable<MaintenanceLog> {
+    return this.logsService.create(this.task.id, { payload }).pipe(
+      catchError((err: HttpErrorResponse) => {
+        if (err.status === 409) {
+          return this.logsService.update(this.task.id, { payload });
+        }
+        return throwError(() => err);
+      })
+    );
+  }
+
+  private transitionToDone(): Observable<Task> {
+    if (this.task.status === 'PENDING') {
+      return this.tasksService.updateStatus(this.task.id, { status: 'IN_PROGRESS' }).pipe(
+        switchMap(() => this.tasksService.updateStatus(this.task.id, { status: 'DONE' }))
+      );
+    }
+    return this.tasksService.updateStatus(this.task.id, { status: 'DONE' });
   }
 
   // ── Labels ──────────────────────────────────────────────────────────────────
