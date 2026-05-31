@@ -276,6 +276,21 @@ describe('InfrastructureService', () => {
       const result = await service.getClientInfrastructure('uuid-1');
 
       expect(result.esxiHosts[0].bmcIp).toBeNull();
+      expect(result.esxiHosts[0].bmcType).toBe('iLO'); // type preserved even without IP
+    });
+
+    it('devuelve bmcIp null cuando getAssetInterfaces falla (degradación graceful)', async () => {
+      infradocAssetsService.getAssets.mockResolvedValue([
+        makeAsset({ asset_id: '10', asset_type: 'Server' }),
+      ]);
+      infradocAssetsService.getAssetInterfaces.mockRejectedValue(
+        new Error('InfraDoc timeout'),
+      );
+
+      const result = await service.getClientInfrastructure('uuid-1');
+
+      expect(result.esxiHosts).toHaveLength(1);
+      expect(result.esxiHosts[0].bmcIp).toBeNull();
       expect(result.esxiHosts[0].bmcType).toBeNull();
     });
 

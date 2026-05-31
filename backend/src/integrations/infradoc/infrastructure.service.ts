@@ -24,8 +24,12 @@ export class InfrastructureService {
       ),
     ];
 
-    const interfaceArrays = await Promise.all(
+    const settledResults = await Promise.allSettled(
       serverIds.map(id => this.infradocAssetsService.getAssetInterfaces(Number(id))),
+    );
+
+    const interfaceArrays = settledResults.map(r =>
+      r.status === 'fulfilled' ? r.value : [],
     );
 
     const bmcMap = new Map<string, { bmcIp: string | null; bmcType: string | null }>();
@@ -41,8 +45,11 @@ export class InfrastructureService {
     const bmc = interfaces.find(iface =>
       BMC_PATTERNS.some(p => (iface.interface_name ?? '').toLowerCase().includes(p)),
     );
-    if (!bmc || !bmc.interface_ip) return { bmcIp: null, bmcType: null };
-    return { bmcIp: bmc.interface_ip, bmcType: bmc.interface_name ?? null };
+    if (!bmc) return { bmcIp: null, bmcType: null };
+    return {
+      bmcIp:   bmc.interface_ip  || null,
+      bmcType: bmc.interface_name ?? null,
+    };
   }
 
   private groupAssets(
