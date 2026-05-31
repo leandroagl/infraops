@@ -38,6 +38,7 @@ export class TaskDrawerComponent implements OnChanges {
 
   @Output() taskCompleted = new EventEmitter<void>();
   @Output() taskNotDone = new EventEmitter<void>();
+  @Output() drawerClosed = new EventEmitter<void>();
 
   @ViewChild(MaintenanceFormComponent) maintenanceForm?: MaintenanceFormComponent;
 
@@ -74,7 +75,7 @@ export class TaskDrawerComponent implements OnChanges {
       switchMap(infra =>
         this.logsService.get(this.task.id).pipe(
           map(log => ({ infra, savedPayload: log.payload })),
-          catchError(() => of({ infra, savedPayload: null as MaintenancePayload | null }))
+          catchError(() => of({ infra, savedPayload: null }))
         )
       )
     ).subscribe({

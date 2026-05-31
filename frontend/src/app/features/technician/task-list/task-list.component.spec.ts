@@ -248,6 +248,83 @@ describe('TaskListComponent', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // onTaskCompleted / onTaskNotDone — reactive status updates
+  // ---------------------------------------------------------------------------
+  describe('onTaskCompleted()', () => {
+    it('should update the selected task status to DONE in the tasks array', () => {
+      const task = makeTask({ id: 'task-1', status: 'IN_PROGRESS', scheduledDate: dateOffsetDays(5) });
+      component.tasks = [task];
+      component.selectedTask = task;
+
+      component.onTaskCompleted();
+
+      expect(component.tasks[0].status).toBe('DONE');
+    });
+
+    it('should close the drawer after updating status', () => {
+      const task = makeTask({ id: 'task-1', status: 'IN_PROGRESS', scheduledDate: dateOffsetDays(5) });
+      component.tasks = [task];
+      component.selectedTask = task;
+
+      component.onTaskCompleted();
+
+      expect(component.selectedTask).toBeNull();
+    });
+
+    it('should move the task to doneTasks (not pendingTasks)', () => {
+      const task = makeTask({ id: 'task-1', status: 'IN_PROGRESS', scheduledDate: dateOffsetDays(5) });
+      component.tasks = [task];
+      component.selectedTask = task;
+
+      component.onTaskCompleted();
+
+      expect(component.doneTasks.length).toBe(1);
+      expect(component.pendingTasks.length).toBe(0);
+    });
+
+    it('should do nothing if selectedTask is null', () => {
+      component.tasks = [makeTask({ id: 'task-1', status: 'PENDING' })];
+      component.selectedTask = null;
+
+      component.onTaskCompleted();
+
+      expect(component.tasks[0].status).toBe('PENDING');
+    });
+  });
+
+  describe('onTaskNotDone()', () => {
+    it('should update the selected task status to NOT_DONE in the tasks array', () => {
+      const task = makeTask({ id: 'task-1', status: 'PENDING', scheduledDate: dateOffsetDays(5) });
+      component.tasks = [task];
+      component.selectedTask = task;
+
+      component.onTaskNotDone();
+
+      expect(component.tasks[0].status).toBe('NOT_DONE');
+    });
+
+    it('should close the drawer after updating status', () => {
+      const task = makeTask({ id: 'task-1', status: 'PENDING', scheduledDate: dateOffsetDays(5) });
+      component.tasks = [task];
+      component.selectedTask = task;
+
+      component.onTaskNotDone();
+
+      expect(component.selectedTask).toBeNull();
+    });
+
+    it('should move the task to doneTasks', () => {
+      const task = makeTask({ id: 'task-1', status: 'PENDING', scheduledDate: dateOffsetDays(5) });
+      component.tasks = [task];
+      component.selectedTask = task;
+
+      component.onTaskNotDone();
+
+      expect(component.doneTasks.length).toBe(1);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Drawer integration (Fase 6)
   // ---------------------------------------------------------------------------
   describe('drawer integration', () => {

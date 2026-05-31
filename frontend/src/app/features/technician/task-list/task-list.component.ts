@@ -132,6 +132,24 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.selectedTask = null;
   }
 
+  onTaskCompleted(): void {
+    this.updateTaskStatusLocally(this.selectedTask?.id, 'DONE');
+    this.closeDrawer();
+  }
+
+  onTaskNotDone(): void {
+    this.updateTaskStatusLocally(this.selectedTask?.id, 'NOT_DONE');
+    this.closeDrawer();
+  }
+
+  private updateTaskStatusLocally(taskId: string | undefined, status: TaskStatus): void {
+    if (!taskId) return;
+    const idx = this.tasks.findIndex(t => t.id === taskId);
+    if (idx !== -1) {
+      this.tasks[idx] = { ...this.tasks[idx], status };
+    }
+  }
+
   typeLabel(type: TaskType): string {
     const labels: Record<TaskType, string> = {
       SERVER_MAINTENANCE:   'Mantenimiento de servidores',
