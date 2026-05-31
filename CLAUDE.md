@@ -52,6 +52,7 @@ TDD:       Jest (backend) · Angular Testing Library (frontend)
 - **Sin código especulativo:** si algo no está definido, preguntar antes de asumir
 - **Simplicidad sobre over-engineering:** soluciones mantenibles por cualquier técnico del equipo
 - **Sin standalone components** en Angular salvo que haya una razón técnica concreta
+- **Componentes reutilizables:** antes de implementar cualquier componente, revisar si la lógica ya existe o puede extraerse a `shared/` — no duplicar
 
 ---
 
@@ -178,16 +179,144 @@ InfraOps genera tarea → TL asigna → Laura coordina fecha con cliente
 |---|---|---|
 | InfraDoc | Lectura (API) | Inventario de infraestructura por cliente |
 | Odoo | Lectura + escritura (API) | Tickets, métricas de técnicos y clientes |
-| ManageEngine Endpoint Manager | Lectura (API) | Inventario de parque informático |
 
 ---
 
 ## UI — Patrones aprobados
 
 - **Patrón principal:** Master/Detail Drawer (lista a la izquierda, panel deslizable a la derecha)
-- **Tablas:** Ag-Grid (no Angular Material table para listados grandes)
-- **Formularios y componentes:** Angular Material
+- **Tablas:** Ag-Grid **cuando se solicite explícitamente**; `mat-table` para tablas simples o secundarias
+- **Todos los componentes interactivos:** Angular Material — sin excepción (ver reglas abajo)
 - **Tema:** dark, con variables CSS definidas en los mockups de referencia
+
+### Reactividad de estado — regla obligatoria
+
+**Cuando una acción en un componente hijo cambia el estado de una entidad, el componente padre actualiza su array local inmediatamente, sin recargar desde la API.**
+
+- No llamar a `load()` ni hacer un nuevo request HTTP para reflejar un cambio que ya conocemos.
+- Mutar el array local con `tasks[idx] = { ...tasks[idx], status: newStatus }` (inmutable, dispara change detection).
+- Si el hijo necesita señalar un cambio de estado, emitir el nuevo estado o la entidad actualizada como `EventEmitter<T>`, no `EventEmitter<void>`.
+- Los eventos de "cerrar panel" y "acción completada" deben ser outputs separados para mantener semántica limpia:
+
+```typescript
+// ✅ Correcto — semántica separada
+@Output() taskCompleted = new EventEmitter<void>(); // acción con cambio de estado
+@Output() drawerClosed  = new EventEmitter<void>(); // cierre sin acción
+
+// ❌ Incorrecto — evento sobrecargado
+@Output() taskCompleted = new EventEmitter<void>(); // usado para ambas cosas
+```
+
+```typescript
+// ✅ En el padre — actualización local instantánea
+onTaskCompleted(): void {
+  const idx = this.tasks.findIndex(t => t.id === this.selectedTask?.id);
+  if (idx !== -1) this.tasks[idx] = { ...this.tasks[idx], status: 'DONE' };
+  this.closeDrawer();
+}
+
+// ❌ Incorrecto — recarga innecesaria
+onTaskCompleted(): void {
+  this.closeDrawer();
+  this.load(); // evitar
+}
+```
+
+---
+
+## Angular Material — Reglas obligatorias
+
+**Todo elemento interactivo usa Angular Material. No hay excepciones.**
+Nunca usar `<input>`, `<select>`, `<textarea>`, `<button>` nativos en templates Angular.
+
+### Formularios
+
+```html
+<!-- Inputs de texto y área -->
+<mat-form-field appearance="outline" subscriptSizing="dynamic">
+  <mat-label>Label</mat-label>
+  <input matInput formControlName="field" />
+</mat-form-field>
+
+<!-- Select simple -->
+<mat-form-field appearance="outline" subscriptSizing="dynamic">
+  <mat-label>Label</mat-label>
+  <mat-select formControlName="field">
+    <mat-option value="x">Opción</mat-option>
+  </mat-select>
+</mat-form-field>
+
+<!-- Multi-select -->
+<mat-select multiple formControlName="field">
+  <mat-option *ngFor="let item of items" [value]="item.id">{{ item.name }}</mat-option>
+</mat-select>
+
+<!-- Checkbox -->
+<mat-checkbox formControlName="active">Activo</mat-checkbox>
+```
+
+**`appearance="outline"` es el único estilo permitido para `mat-form-field`.**
+No usar `appearance="fill"` ni `appearance="legacy"`.
+
+### Botones
+
+```html
+<button mat-flat-button color="primary">Guardar</button>
+<button mat-stroked-button>Cancelar</button>
+<button mat-flat-button color="warn">Eliminar</button>
+<button mat-icon-button><mat-icon>close</mat-icon></button>
+```
+
+### Coloring semántico en mat-form-field
+
+Usar CSS custom properties con `[ngClass]`, nunca `::ng-deep`:
+
+```scss
+mat-form-field.mf-sel--ok   { --mdc-outlined-text-field-container-color: var(--ok-bg);   --mat-select-trigger-text-color: var(--ok);   }
+mat-form-field.mf-sel--warn { --mdc-outlined-text-field-container-color: var(--warn-bg); --mat-select-trigger-text-color: var(--warn); }
+mat-form-field.mf-sel--crit { --mdc-outlined-text-field-container-color: var(--crit-bg); --mat-select-trigger-text-color: var(--crit); }
+```
+
+### Tablas
+
+- **Ag-Grid** (`ag-grid-angular`, tema `ag-theme-alpine-dark`) → cuando se solicita **explícitamente** o para la tabla principal de una vista con >20 filas, ordenamiento complejo o celdas con renderers custom.
+- **`mat-table`** → tablas secundarias, paneles de detalle, listas cortas dentro de un drawer.
+- **Nunca `mat-table` cuando ya se definió Ag-Grid** para esa vista — no mezclar ambas en la misma pantalla.
+
+### Módulos por módulo Angular
+
+Importar únicamente los módulos que el template usa. Módulos base requeridos:
+
+| Módulo Angular | Módulos Material obligatorios |
+|---|---|
+| `auth` | MatFormFieldModule, MatInputModule, MatButtonModule, MatProgressSpinnerModule |
+| `admin` | MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule, MatDialogModule, MatSnackBarModule, MatMenuModule, MatProgressSpinnerModule |
+| `technician` | MatFormFieldModule, MatInputModule, MatSelectModule, MatCheckboxModule, MatButtonModule, MatSnackBarModule |
+
+**Specs:** agregar `NoopAnimationsModule` + todos los módulos Material usados en el template al `TestBed.configureTestingModule`.
+
+### Componentes reutilizables — criterios de extracción
+
+Antes de escribir cualquier componente, evaluar si pertenece a `shared/`:
+
+| Señal | Acción |
+|---|---|
+| El mismo bloque HTML aparece en 2+ vistas | Extraer a `shared/components/` |
+| La lógica de un pipe o formato se repite | Extraer a `shared/pipes/` |
+| Un formulario de filtros se usa en múltiples tablas | Componente `FilterBarComponent` en shared |
+| Un badge, chip o celda de estado se repite | Componente o directiva en shared |
+| Un diálogo de confirmación se usa en más de un módulo | `ConfirmDialogComponent` en shared |
+
+**Estructura de shared:**
+```
+frontend/src/app/shared/
+├── components/   ← componentes visuales reutilizables
+├── directives/   ← directivas de comportamiento
+├── pipes/        ← transformaciones de datos
+└── shared.module.ts
+```
+
+Cuando un componente nuevo duplique lógica existente, **refactorizar primero** y luego continuar.
 
 ### Vistas definidas
 - `Panel Admin` — gestión de tareas + indicadores generales
@@ -205,7 +334,9 @@ docs/
 ├── flows/
 │   ├── server-maintenance.md
 │   └── terminal-visits.md
-├── mockups/                # HTML mockups de referencia visual
+|── infradoc/ api.md
+├── mockups/                
+# HTML mockups de referencia visual
 └── REVIEW_RULES.md         # Criterios de revisión de código
 ```
 
@@ -220,6 +351,11 @@ docs/
 - No saltear tests — TDD es obligatorio en todo el proyecto
 - No cachear datos de InfraDoc en la base de datos de InfraOps
 - No crear standalone components en Angular sin justificación explícita
+- **No usar elementos HTML nativos en formularios:** prohibido `<input>`, `<select>`, `<textarea>`, `<button>` sueltos en templates Angular — siempre Angular Material
+- **No usar `appearance="fill"` ni `appearance="legacy"`** en `mat-form-field` — solo `appearance="outline"`
+- **No usar `mat-table` cuando la vista ya tiene Ag-Grid** — no mezclar motores de tabla en la misma pantalla
+- **No implementar Ag-Grid si no fue solicitado explícitamente** para esa vista
+- **No duplicar lógica de componentes:** si dos componentes hacen lo mismo, extraer a `shared/` antes de continuar
 
 ---
 
