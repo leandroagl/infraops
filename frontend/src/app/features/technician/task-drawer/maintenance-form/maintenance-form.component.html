@@ -1,23 +1,23 @@
 <form [formGroup]="form" class="mf" *ngIf="form">
 
-  <!-- ── Windows Server ────────────────────────────────── -->
+  <!-- ── Servidores Windows ─────────────────────────────── -->
   <ng-container *ngIf="hasServers">
 
-    <div class="mf-section-lbl">Windows Server</div>
+    <div class="mf-section-lbl">Servidores</div>
 
     <div class="mf-srv-table">
       <div class="mf-srv-head">
         <span></span>
         <span class="mf-srv-th" style="padding-left:8px">Servidor</span>
-        <span class="mf-srv-th" style="text-align:center">OS</span>
-        <span class="mf-srv-th" style="padding-left:5px">Reinicio</span>
-        <span class="mf-srv-th" style="padding-left:5px">Win Updates</span>
+        <span class="mf-srv-th">Script reinicio</span>
+        <span class="mf-srv-th">Win Updates</span>
         <span></span>
       </div>
 
       <ng-container formArrayName="servers">
         <ng-container *ngFor="let _ of serverControls.controls; let i = index"
                       [formGroupName]="i">
+
           <div class="mf-srv-row" [class.mf-srv-row--expanded]="getServerGroup(i).get('expanded')?.value">
 
             <div class="mf-srv-icon">
@@ -27,45 +27,46 @@
             </div>
 
             <div class="mf-srv-name-cell">
-              <div class="mf-srv-name">{{ infrastructure.servers[i].name }}</div>
-              <div class="mf-srv-access">{{ infrastructure.servers[i].ip ?? '—' }}</div>
+              <div class="mf-srv-name">{{ infrastructure.windowsVMs[i].name }}</div>
+              <div class="mf-srv-access">{{ infrastructure.windowsVMs[i].ip ?? '—' }}</div>
             </div>
 
-            <span class="mf-srv-role-badge">{{ infrastructure.servers[i].os ?? '—' }}</span>
+            <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-srv-ff"
+                            [ngClass]="selectClass(getServerGroup(i).get('rebootScript')?.value)">
+              <mat-select formControlName="rebootScript">
+                <mat-option value="ok">OK</mat-option>
+                <mat-option value="falta_configurar">Sin configurar</mat-option>
+                <mat-option value="error">Error</mat-option>
+              </mat-select>
+            </mat-form-field>
 
-            <div style="padding:0 5px">
-              <select formControlName="reboot" class="mf-srv-sel"
-                      [ngClass]="selectClass(getServerGroup(i).get('reboot')?.value)">
-                <option value="—">—</option>
-                <option value="OK">OK</option>
-                <option value="Reinicio aplicado">Reinicio aplicado</option>
-                <option value="Pendiente — ventana">Pendiente — ventana</option>
-                <option value="Error">Error</option>
-              </select>
-            </div>
+            <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-srv-ff"
+                            [ngClass]="selectClass(getServerGroup(i).get('updates')?.value)">
+              <mat-select formControlName="updates">
+                <mat-option value="ok">Al día</mat-option>
+                <mat-option value="pending">Pendientes</mat-option>
+                <mat-option value="failed">Error</mat-option>
+              </mat-select>
+            </mat-form-field>
 
-            <div style="padding:0 5px">
-              <select formControlName="updates" class="mf-srv-sel"
-                      [ngClass]="selectClass(getServerGroup(i).get('updates')?.value)">
-                <option value="—">—</option>
-                <option value="OK — todo aplicado">OK — aplicado</option>
-                <option value="Pendientes aplicados hoy">Aplicados hoy</option>
-                <option value="Pendientes sin aplicar">Pendientes</option>
-                <option value="Error al actualizar">Error</option>
-              </select>
-            </div>
-
-            <button type="button" class="mf-expand-btn" (click)="toggleExpand(i)">
-              {{ getServerGroup(i).get('expanded')?.value ? '▴' : '▾' }}
+            <button mat-icon-button type="button" class="mf-expand-btn" (click)="toggleExpand(i)">
+              <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round">
+                <polyline *ngIf="!getServerGroup(i).get('expanded')?.value" points="6 9 12 15 18 9"/>
+                <polyline *ngIf="getServerGroup(i).get('expanded')?.value"  points="18 15 12 9 6 15"/>
+              </svg>
             </button>
+
           </div>
 
           <div class="mf-expand-panel" [class.mf-expand-panel--open]="getServerGroup(i).get('expanded')?.value">
-            <div class="mf-inp-row">
-              <span class="mf-inp-lbl">Nota</span>
-              <input formControlName="notes" class="mf-input"
-                     placeholder="Detalles, error puntual, acción tomada..." />
+            <div class="mf-expand-detail">
+              <span class="mf-lbl">S.O.</span>
+              <span class="mf-expand-os">{{ infrastructure.windowsVMs[i].os ?? '—' }}</span>
             </div>
+            <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field" style="margin-top:6px">
+              <mat-label>Nota</mat-label>
+              <input matInput formControlName="notes" placeholder="Detalles, error puntual, acción tomada..." />
+            </mat-form-field>
           </div>
 
         </ng-container>
@@ -78,183 +79,217 @@
         <div class="mf-cl-rpt-dot"></div>
         <span class="mf-cl-rpt-label">DCDIAG — análisis del dominio Active Directory</span>
       </div>
-      <div class="mf-dcdiag-wrap">
-        <select formControlName="dcdiag" class="mf-sel"
-                [ngClass]="selectClass(form.get('dcdiag')?.value)">
-          <option value="OK">OK</option>
-          <option value="OK (FSR)">OK (FSR)</option>
-          <option value="ERROR">ERROR</option>
-          <option value="ERROR (Systemlog)">ERROR (Systemlog)</option>
-          <option value="ERROR (DNS)">ERROR (DNS)</option>
-          <option value="ERROR (replicación)">ERROR (replicación)</option>
-          <option value="ERROR (otro)">ERROR (otro)</option>
-        </select>
-        <input *ngIf="dcdiagHasError()"
-               formControlName="dcdiagDetail"
-               class="mf-dcdiag-detail"
-               placeholder="Detalle del error..." />
+      <div class="mf-dcdiag-row">
+        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field"
+                        [ngClass]="selectClass(form.get('dcdiag')?.value)">
+          <mat-select formControlName="dcdiag">
+            <mat-option value="OK">OK</mat-option>
+            <mat-option value="ERROR">ERROR</mat-option>
+            <mat-option value="ERROR Systemlog">ERROR Systemlog</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field *ngIf="dcdiagHasError()"
+                        appearance="fill" subscriptSizing="dynamic" class="mf-form-field mf-dcdiag-detail-ff">
+          <mat-label>Detalle</mat-label>
+          <input matInput formControlName="dcdiagDetail" placeholder="Describí el error..." />
+        </mat-form-field>
       </div>
-      <div *ngIf="dcdiagHasError()" class="mf-alert">
+      <div *ngIf="dcdiagHasError()" class="mf-alert" style="margin-top:8px">
         <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0">
-          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-          <polyline points="22,6 12,13 2,6"/>
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        Se generará una alerta automática al completar el mantenimiento
+        Se generará una alerta al completar. Verificá que abriste ticket en Odoo.
       </div>
     </div>
 
   </ng-container>
 
-  <!-- ── VMware ────────────────────────────────────────── -->
+  <!-- ── VMware ESXi ──────────────────────────────────── -->
   <ng-container *ngIf="hasVMware">
 
-    <div class="mf-section-lbl">VMware</div>
+    <div class="mf-section-lbl">VMware ESXi</div>
 
-    <div class="mf-cl-rpt">
-      <div class="mf-cl-rpt-hdr">
-        <div class="mf-cl-rpt-dot"></div>
-        <span class="mf-cl-rpt-label">Recursos del host</span>
-      </div>
+    <div class="mf-vmware-grid" formArrayName="vmwareHosts">
+      <div *ngFor="let _ of vmwareHostControls.controls; let i = index"
+           [formGroupName]="i"
+           class="mf-cl-rpt mf-vmware-card">
 
-      <div class="mf-inp-row">
-        <span class="mf-inp-lbl">CPU</span>
-        <div class="mf-inp-wrap">
-          <input formControlName="vmCpu" type="number" min="0" max="100"
-                 class="mf-input mf-input--mini"
-                 [ngClass]="metricClass(form.get('vmCpu')?.value, 60, 80)"
-                 placeholder="0" />
-          <span class="mf-inp-suffix">%</span>
+        <div class="mf-cl-rpt-hdr">
+          <div class="mf-cl-rpt-dot" style="background:var(--srv)"></div>
+          <span class="mf-cl-rpt-label">{{ infrastructure.esxiHosts[i].name }}</span>
+          <span class="mono mf-host-ip">{{ infrastructure.esxiHosts[i].ip ?? '—' }}</span>
         </div>
-      </div>
 
-      <div class="mf-inp-row">
-        <span class="mf-inp-lbl">Memoria</span>
-        <div class="mf-inp-wrap">
-          <input formControlName="vmMem" type="number" min="0" max="100"
-                 class="mf-input mf-input--mini"
-                 [ngClass]="metricClass(form.get('vmMem')?.value, 70, 85)"
-                 placeholder="0" />
-          <span class="mf-inp-suffix">%</span>
-        </div>
-      </div>
+        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-metric-ff"
+                        [ngClass]="metricClass(vmwareHostControls.at(i).get('cpuUsage')?.value, 60, 80)">
+          <mat-label>CPU</mat-label>
+          <input matInput formControlName="cpuUsage" type="number" min="0" max="100" placeholder="0" />
+          <span matTextSuffix>%</span>
+        </mat-form-field>
 
-      <div class="mf-inp-row">
-        <span class="mf-inp-lbl">Storage</span>
-        <div class="mf-inp-wrap">
-          <input formControlName="vmStorage" type="number" min="0" max="100"
-                 class="mf-input mf-input--mini"
-                 [ngClass]="metricClass(form.get('vmStorage')?.value, 70, 85)"
-                 placeholder="0" />
-          <span class="mf-inp-suffix">%</span>
-        </div>
+        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-metric-ff"
+                        [ngClass]="metricClass(vmwareHostControls.at(i).get('memUsage')?.value, 70, 85)">
+          <mat-label>Memoria</mat-label>
+          <input matInput formControlName="memUsage" type="number" min="0" max="100" placeholder="0" />
+          <span matTextSuffix>%</span>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-metric-ff"
+                        [ngClass]="metricClass(vmwareHostControls.at(i).get('storageUsage')?.value, 70, 85)">
+          <mat-label>Storage</mat-label>
+          <input matInput formControlName="storageUsage" type="number" min="0" max="100" placeholder="0" />
+          <span matTextSuffix>%</span>
+        </mat-form-field>
+
+        <mat-form-field *ngIf="showHighVMsForHost(i)"
+                        appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+          <mat-label>VMs afectadas</mat-label>
+          <mat-select formControlName="highUsageVMs" multiple>
+            <mat-option *ngFor="let vm of infrastructure.windowsVMs" [value]="vm.name">
+              {{ vm.name }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-checkbox formControlName="snapshotsOk" class="mf-cl-mat mf-snapshot-check">
+          Snapshots revisados y limpiados
+        </mat-checkbox>
+
       </div>
     </div>
-
-    <div *ngIf="showHighVMs()" class="mf-cl-rpt mf-cl-rpt--warn">
-      <div class="mf-cl-rpt-hdr">
-        <div class="mf-cl-rpt-dot" style="background:var(--warn)"></div>
-        <span class="mf-cl-rpt-label">VMs con alto consumo</span>
-      </div>
-      <div class="mf-inp-row">
-        <span class="mf-inp-lbl">VMs afectadas</span>
-        <input formControlName="highVMs" class="mf-input"
-               placeholder="Ej: VM-APP01, VM-SQL01" />
-      </div>
-    </div>
-
-    <label class="mf-cl-item">
-      <input formControlName="snapshotsOk" type="checkbox" class="mf-cl-chk-native" />
-      <div class="mf-cl-chk">
-        <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="var(--ok)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <span class="mf-cl-text">Revisar y limpiar snapshots pendientes</span>
-    </label>
 
   </ng-container>
 
-  <!-- ── QNAP ──────────────────────────────────────────── -->
+  <!-- ── BMC / Gestión remota ───────────────────────────────────────────── -->
+  <ng-container *ngIf="hasVMware">
+
+    <div class="mf-section-lbl">BMC / Gestión remota</div>
+
+    <div class="mf-vmware-grid" formArrayName="bmcHosts">
+      <div *ngFor="let _ of bmcHostControls.controls; let i = index"
+           [formGroupName]="i"
+           class="mf-cl-rpt mf-vmware-card">
+
+        <div class="mf-cl-rpt-hdr">
+          <div class="mf-cl-rpt-dot" style="background:var(--srv)"></div>
+          <span class="mf-cl-rpt-label">{{ infrastructure.esxiHosts[i].name }}</span>
+          <span *ngIf="infrastructure.esxiHosts[i].bmcType"
+                class="badge badge--srv">{{ infrastructure.esxiHosts[i].bmcType }}</span>
+          <span class="mono mf-host-ip">{{ infrastructure.esxiHosts[i].bmcIp ?? '—' }}</span>
+        </div>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+          <mat-label>Versión firmware</mat-label>
+          <input matInput formControlName="firmwareVersion" placeholder="Ej: 2.82" />
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+          <mat-label>Versión BIOS</mat-label>
+          <input matInput formControlName="biosVersion" placeholder="Ej: U30 v2.86" />
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field"
+                        [ngClass]="selectClass(getBmcGroup(i).get('alertStatus')?.value)">
+          <mat-label>Alertas detectadas</mat-label>
+          <mat-select formControlName="alertStatus">
+            <mat-option value="ok">OK</mat-option>
+            <mat-option value="alerta">ALERTA</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field *ngIf="bmcHasAlert(i)"
+                        appearance="fill" subscriptSizing="dynamic"
+                        class="mf-form-field mf-dcdiag-detail-ff">
+          <mat-label>Nota de alerta</mat-label>
+          <input matInput formControlName="alertNote"
+                 placeholder="Describí la alerta detectada..." />
+        </mat-form-field>
+
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- ── QNAP / NAS ───────────────────────────────────── -->
   <ng-container *ngIf="hasQNAP">
 
     <div class="mf-section-lbl">QNAP / NAS</div>
 
-    <div class="mf-cl-rpt">
-      <div class="mf-cl-rpt-hdr">
-        <div class="mf-cl-rpt-dot"></div>
-        <span class="mf-cl-rpt-label">Espacio utilizado</span>
-      </div>
-      <div class="mf-inp-row">
-        <span class="mf-inp-lbl">Espacio</span>
-        <div class="mf-inp-wrap">
-          <input formControlName="qnapSpace" type="number" min="0" max="100"
-                 class="mf-input mf-input--mini"
-                 [ngClass]="metricClass(form.get('qnapSpace')?.value, 70, 85)"
-                 placeholder="0" />
-          <span class="mf-inp-suffix">%</span>
+    <ng-container formArrayName="qnapDevices">
+      <ng-container *ngFor="let _ of qnapDeviceControls.controls; let i = index" [formGroupName]="i">
+
+        <div class="mf-cl-rpt">
+          <div class="mf-cl-rpt-hdr">
+            <div class="mf-cl-rpt-dot"></div>
+            <span class="mf-cl-rpt-label">{{ infrastructure.nas[i].name }}</span>
+            <span class="mono mf-host-ip">{{ infrastructure.nas[i].ip ?? '—' }}</span>
+          </div>
+          <div class="mf-qnap-row">
+            <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-metric-ff"
+                            [ngClass]="metricClass(qnapDeviceControls.at(i).get('spaceUsed')?.value, 70, 85)">
+              <mat-label>Espacio utilizado</mat-label>
+              <input matInput formControlName="spaceUsed" type="number" min="0" max="100" placeholder="0" />
+              <span matTextSuffix>%</span>
+            </mat-form-field>
+            <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field"
+                            [ngClass]="selectClass(qnapDeviceControls.at(i).get('raidStatus')?.value)">
+              <mat-label>Estado RAID</mat-label>
+              <mat-select formControlName="raidStatus">
+                <mat-option value="ok">OK — saludable</mat-option>
+                <mat-option value="degraded">Degradado</mat-option>
+                <mat-option value="failed">Error</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <div class="mf-cl-rpt">
-      <div class="mf-cl-rpt-hdr">
-        <div class="mf-cl-rpt-dot"></div>
-        <span class="mf-cl-rpt-label">Estado de discos (RAID)</span>
-      </div>
-      <div class="mf-inp-row">
-        <span class="mf-inp-lbl">Estado</span>
-        <select formControlName="qnapRaid" class="mf-sel"
-                [ngClass]="selectClass(form.get('qnapRaid')?.value)">
-          <option value="ok">OK — RAID saludable</option>
-          <option value="Degradado — disco con advertencia">Degradado — disco con advertencia</option>
-          <option value="Error — disco fallando">Error — disco fallando</option>
-          <option value="Reconstruyendo">Reconstruyendo</option>
-        </select>
-      </div>
-    </div>
+        <mat-checkbox formControlName="firmwareUpdated" class="mf-cl-mat mf-qnap-fw-check">
+          Aplicar actualizaciones de firmware QNAP si hay disponibles
+        </mat-checkbox>
 
-    <label class="mf-cl-item">
-      <input formControlName="qnapFirmware" type="checkbox" class="mf-cl-chk-native" />
-      <div class="mf-cl-chk">
-        <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="var(--ok)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <span class="mf-cl-text">Aplicar actualizaciones de firmware QNAP si hay disponibles</span>
-    </label>
+      </ng-container>
+    </ng-container>
 
   </ng-container>
 
-  <!-- ── Veeam ─────────────────────────────────────────── -->
+  <!-- ── Veeam Backup ──────────────────────────────────── -->
   <ng-container *ngIf="hasVeeam">
 
-    <div class="mf-section-lbl">Veeam / Backup</div>
+    <div class="mf-section-lbl">Veeam Backup</div>
 
     <div class="mf-cl-rpt">
       <div class="mf-cl-rpt-hdr">
         <div class="mf-cl-rpt-dot"></div>
-        <span class="mf-cl-rpt-label">Estado general del backup</span>
+        <span class="mf-cl-rpt-label">Estado del backup</span>
+        <span class="mf-vm-count">{{ infrastructure.windowsVMs.length }} VMs en entorno</span>
       </div>
-      <div class="mf-inp-row">
-        <span class="mf-inp-lbl">Estado</span>
-        <select formControlName="veeamStatus" class="mf-sel"
-                [ngClass]="selectClass(form.get('veeamStatus')?.value)">
-          <option value="ok">Todas las VMs cubiertas</option>
-          <option value="partial">Hay VMs excluidas (intencional)</option>
-          <option value="missing">Hay VMs sin backup — falta agregar</option>
-        </select>
-      </div>
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field"
+                      [ngClass]="selectClass(form.get('veeamStatus')?.value)">
+        <mat-label>Estado</mat-label>
+        <mat-select formControlName="veeamStatus">
+          <mat-option value="ok">Todas las VMs cubiertas</mat-option>
+          <mat-option value="partial">Hay VMs excluidas (intencional)</mat-option>
+          <mat-option value="missing">Hay VMs sin backup — falta agregar</mat-option>
+        </mat-select>
+      </mat-form-field>
     </div>
 
-    <div *ngIf="form.get('veeamStatus')?.value === 'partial' || form.get('veeamStatus')?.value === 'missing'"
-         class="mf-cl-rpt mf-cl-rpt--warn">
+    <div *ngIf="form.get('veeamStatus')?.value !== 'ok'" class="mf-cl-rpt mf-cl-rpt--warn">
       <div class="mf-cl-rpt-hdr">
         <div class="mf-cl-rpt-dot" style="background:var(--warn)"></div>
         <span class="mf-cl-rpt-label">
-          {{ form.get('veeamStatus')?.value === 'missing' ? 'VMs sin backup — falta agregar' : 'VMs excluidas del backup' }}
+          {{ form.get('veeamStatus')?.value === 'missing' ? 'VMs sin backup' : 'VMs excluidas del backup' }}
         </span>
       </div>
-      <div class="mf-inp-row">
-        <span class="mf-inp-lbl">VMs afectadas</span>
-        <input formControlName="veeamAffected" class="mf-input"
-               placeholder="Ej: VM-TEST01, VM-DEV02" />
-      </div>
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+        <mat-label>VMs</mat-label>
+        <mat-select formControlName="veeamMissing" multiple>
+          <mat-option *ngFor="let vm of infrastructure.windowsVMs" [value]="vm.name">
+            {{ vm.name }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
     </div>
 
   </ng-container>
@@ -264,33 +299,24 @@
 
     <div class="mf-section-lbl">Router / MikroTik</div>
 
-    <label class="mf-cl-item">
-      <input formControlName="routerFirmwareUpdated" type="checkbox" class="mf-cl-chk-native" />
-      <div class="mf-cl-chk">
-        <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="var(--ok)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <span class="mf-cl-text">Actualizar firmware a última versión estable</span>
-    </label>
+    <mat-checkbox formControlName="routerFirmwareUpdated" class="mf-cl-mat">
+      Actualizar firmware a última versión estable
+    </mat-checkbox>
 
     <div class="mf-cl-rpt">
       <div class="mf-cl-rpt-hdr">
         <div class="mf-cl-rpt-dot"></div>
         <span class="mf-cl-rpt-label">Versión firmware aplicada</span>
       </div>
-      <div class="mf-inp-row">
-        <span class="mf-inp-lbl">Versión</span>
-        <input formControlName="routerFirmwareVersion" class="mf-input"
-               placeholder="Ej: 7.14.2" />
-      </div>
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+        <mat-label>Versión</mat-label>
+        <input matInput formControlName="routerFirmwareVersion" placeholder="Ej: 7.14.2" />
+      </mat-form-field>
     </div>
 
-    <label class="mf-cl-item">
-      <input formControlName="routerBackupDone" type="checkbox" class="mf-cl-chk-native" />
-      <div class="mf-cl-chk">
-        <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="var(--ok)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <span class="mf-cl-text">Realizar backup de configuración</span>
-    </label>
+    <mat-checkbox formControlName="routerBackupDone" class="mf-cl-mat">
+      Realizar backup de configuración
+    </mat-checkbox>
 
   </ng-container>
 
@@ -299,90 +325,44 @@
 
     <div class="mf-section-lbl">Terminales Windows</div>
 
-    <label class="mf-cl-item">
-      <input formControlName="cleanedTemp" type="checkbox" class="mf-cl-chk-native" />
-      <div class="mf-cl-chk">
-        <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="var(--ok)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <span class="mf-cl-text">Limpieza de temporales y caché del sistema</span>
-    </label>
-
-    <label class="mf-cl-item">
-      <input formControlName="windowsUpdates" type="checkbox" class="mf-cl-chk-native" />
-      <div class="mf-cl-chk">
-        <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="var(--ok)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <span class="mf-cl-text">Revisar y aplicar Windows Updates en equipos con pendientes</span>
-    </label>
-
-    <label class="mf-cl-item">
-      <input formControlName="antivirusOk" type="checkbox" class="mf-cl-chk-native" />
-      <div class="mf-cl-chk">
-        <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="var(--ok)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <span class="mf-cl-text">Verificar estado del antivirus en cada equipo</span>
-    </label>
-
-    <label class="mf-cl-item">
-      <input formControlName="diskSpace" type="checkbox" class="mf-cl-chk-native" />
-      <div class="mf-cl-chk">
-        <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="var(--ok)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <span class="mf-cl-text">Liberar espacio en disco C: donde sea necesario</span>
-    </label>
-
-    <label class="mf-cl-item">
-      <input formControlName="licenses" type="checkbox" class="mf-cl-chk-native" />
-      <div class="mf-cl-chk">
-        <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="var(--ok)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <span class="mf-cl-text">Revisar licencias AV (Kaspersky / Trend)</span>
-    </label>
+    <mat-checkbox formControlName="cleanedTemp"    class="mf-cl-mat">Limpieza de temporales y caché del sistema</mat-checkbox>
+    <mat-checkbox formControlName="windowsUpdates" class="mf-cl-mat">Revisar y aplicar Windows Updates en equipos con pendientes</mat-checkbox>
+    <mat-checkbox formControlName="antivirusOk"    class="mf-cl-mat">Verificar estado del antivirus en cada equipo</mat-checkbox>
+    <mat-checkbox formControlName="diskSpace"      class="mf-cl-mat">Liberar espacio en disco C: donde sea necesario</mat-checkbox>
+    <mat-checkbox formControlName="licenses"       class="mf-cl-mat">Revisar licencias AV (Kaspersky / Trend)</mat-checkbox>
 
     <div class="mf-cl-rpt">
       <div class="mf-cl-rpt-hdr">
         <div class="mf-cl-rpt-dot"></div>
         <span class="mf-cl-rpt-label">Observaciones generales</span>
       </div>
-      <textarea formControlName="observations" class="mf-textarea"
-                placeholder="Estado general de los equipos, problemas encontrados..."></textarea>
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+        <textarea matInput formControlName="observations" rows="3"
+                  placeholder="Estado general de los equipos, problemas encontrados..."></textarea>
+      </mat-form-field>
     </div>
 
     <div class="mf-section-lbl" style="margin-top:4px">Red local</div>
 
-    <label class="mf-cl-item">
-      <input formControlName="connectivity" type="checkbox" class="mf-cl-chk-native" />
-      <div class="mf-cl-chk">
-        <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="var(--ok)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <span class="mf-cl-text">Verificar conectividad general</span>
-    </label>
-
-    <label class="mf-cl-item">
-      <input formControlName="switches" type="checkbox" class="mf-cl-chk-native" />
-      <div class="mf-cl-chk">
-        <svg viewBox="0 0 12 12"><path d="M2 6l3 3 5-5" stroke="var(--ok)" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <span class="mf-cl-text">Revisar switches si corresponde</span>
-    </label>
+    <mat-checkbox formControlName="connectivity" class="mf-cl-mat">Verificar conectividad general</mat-checkbox>
+    <mat-checkbox formControlName="switches"     class="mf-cl-mat">Revisar switches si corresponde</mat-checkbox>
 
   </ng-container>
 
-  <!-- ── Sin formulario (tipos no soportados) ─────────── -->
+  <!-- ── Sin formulario ────────────────────────────────── -->
   <ng-container *ngIf="isUnsupported">
-    <div class="mf-empty">
-      Formulario no disponible para este tipo de tarea.
-    </div>
+    <div class="mf-empty">Formulario no disponible para este tipo de tarea.</div>
   </ng-container>
 
-  <!-- ── Sin infraestructura registrada ───────────────── -->
   <div *ngIf="!hasServers && !isTerminalType && !isUnsupported" class="mf-empty">
     No hay activos registrados para controlar.
   </div>
 
-  <!-- ── Notas adicionales (siempre visible) ──────────── -->
+  <!-- ── Notas adicionales ─────────────────────────────── -->
   <div class="mf-section-lbl">Notas adicionales</div>
-  <textarea formControlName="notes" class="mf-textarea"
-            placeholder="Observaciones adicionales..."></textarea>
+  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+    <textarea matInput formControlName="notes" rows="3"
+              placeholder="Observaciones adicionales..."></textarea>
+  </mat-form-field>
 
 </form>
