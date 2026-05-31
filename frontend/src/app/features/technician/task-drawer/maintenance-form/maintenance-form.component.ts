@@ -37,8 +37,10 @@ export class MaintenanceFormComponent implements OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['infrastructure'] && this.infrastructure) {
       this.buildForm();
-    }
-    if (changes['savedPayload'] && this.savedPayload && this.form) {
+      if (this.savedPayload) {
+        this.patchFormFromPayload(this.savedPayload);
+      }
+    } else if (changes['savedPayload'] && this.savedPayload && this.form) {
       this.patchFormFromPayload(this.savedPayload);
     }
   }
@@ -353,16 +355,16 @@ export class MaintenanceFormComponent implements OnChanges {
           }
         });
       }
-    } else {
+    } else if (payload.type === 'TERMINAL_MAINTENANCE') {
       const t = payload as TerminalPayload;
       this.form.patchValue({
-        cleanedTemp:    t.checks.cleanedTemp,
-        windowsUpdates: t.checks.windowsUpdates,
-        antivirusOk:    t.checks.antivirusOk,
-        diskSpace:      t.checks.diskSpace,
-        licenses:       t.checks.licenses,
-        connectivity:   t.network.connectivity,
-        switches:       t.network.switches,
+        cleanedTemp:    t.checks?.cleanedTemp    ?? false,
+        windowsUpdates: t.checks?.windowsUpdates ?? false,
+        antivirusOk:    t.checks?.antivirusOk    ?? false,
+        diskSpace:      t.checks?.diskSpace      ?? false,
+        licenses:       t.checks?.licenses       ?? false,
+        connectivity:   t.network?.connectivity  ?? false,
+        switches:       t.network?.switches      ?? false,
         observations:   t.observations ?? '',
         notes:          t.notes ?? '',
       });
