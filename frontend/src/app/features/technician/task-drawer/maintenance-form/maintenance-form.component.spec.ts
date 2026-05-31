@@ -519,4 +519,150 @@ describe('MaintenanceFormComponent', () => {
       expect(component.selectClass('alerta')).toBe('mf-sel--crit');
     });
   });
+
+  // ── patchFormFromPayload ─────────────────────────────────────────────────────
+
+  describe('patchFormFromPayload via savedPayload input', () => {
+    function initWithSavedPayload(
+      task: Task,
+      infra: ClientInfrastructure,
+      savedPayload: ServerMaintenancePayload | TerminalPayload | null,
+    ): void {
+      fixture = TestBed.createComponent(MaintenanceFormComponent);
+      component = fixture.componentInstance;
+      component.task = task;
+      component.infrastructure = infra;
+      component.savedPayload = savedPayload;
+      const changes: { [k: string]: any } = {
+        infrastructure: new SimpleChange(undefined, infra, true),
+        task: new SimpleChange(undefined, task, true),
+      };
+      if (savedPayload !== null) {
+        changes['savedPayload'] = new SimpleChange(undefined, savedPayload, true);
+      }
+      component.ngOnChanges(changes);
+      fixture.detectChanges();
+    }
+
+    it('parchea dcdiag y dcdiagDetail desde el payload guardado', () => {
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], dcdiag: 'ERROR (DNS)', dcdiagDetail: 'lookup failed' },
+      };
+      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }), saved);
+
+      expect(component.form.get('dcdiag')?.value).toBe('ERROR (DNS)');
+      expect(component.form.get('dcdiagDetail')?.value).toBe('lookup failed');
+    });
+
+    it('parchea rebootScript y updates del servidor correcto usando serverId', () => {
+      // makeInfra tiene windowsVMs[0].assetId = 3
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: {
+          servers: [{ serverId: 3, serverName: '47DC', rebootScript: 'error', updates: 'pending' }],
+          dcdiag: 'OK',
+        },
+      };
+      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }), saved);
+
+      expect(component.serverControls.at(0).get('rebootScript')?.value).toBe('error');
+      expect(component.serverControls.at(0).get('updates')?.value).toBe('pending');
+    });
+
+    it('parchea métricas VMware usando hostId', () => {
+      // makeInfra tiene esxiHosts[0].assetId = 2
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], dcdiag: 'OK' },
+        vmware: [{ hostId: 2, hostName: 'host1.kemini', cpuUsage: 72, memUsage: 81, storageUsage: 65, snapshotsOk: false }],
+      };
+      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }), saved);
+
+      expect(component.vmwareHostControls.at(0).get('cpuUsage')?.value).toBe(72);
+      expect(component.vmwareHostControls.at(0).get('memUsage')?.value).toBe(81);
+      expect(component.vmwareHostControls.at(0).get('snapshotsOk')?.value).toBeFalse();
+    });
+
+    it('parchea sección QNAP usando deviceId', () => {
+      // makeInfra tiene nas[0].assetId = 10
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], dcdiag: 'OK' },
+        qnap: [{ deviceId: 10, deviceName: 'QNAP', spaceUsed: 78, raidStatus: 'ok', firmwareUpdated: true }],
+      };
+      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }), saved);
+
+      expect(component.qnapDeviceControls.at(0).get('spaceUsed')?.value).toBe(78);
+      expect(component.qnapDeviceControls.at(0).get('firmwareUpdated')?.value).toBeTrue();
+    });
+
+    it('parchea sección BMC usando hostId', () => {
+      // makeInfra tiene esxiHosts[0].assetId = 2
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], dcdiag: 'OK' },
+        bmc: [{ hostId: 2, hostName: 'host1.kemini', alertStatus: 'alerta', alertNote: 'Fan warning', firmwareVersion: '2.82' }],
+      };
+      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }), saved);
+
+      expect(component.bmcHostControls.at(0).get('alertStatus')?.value).toBe('alerta');
+      expect(component.bmcHostControls.at(0).get('alertNote')?.value).toBe('Fan warning');
+      expect(component.bmcHostControls.at(0).get('firmwareVersion')?.value).toBe('2.82');
+    });
+
+    it('parchea veeamStatus y veeamMissing', () => {
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], dcdiag: 'OK' },
+        veeam: { status: 'partial', missingVMs: ['VM-DB01'] },
+      };
+      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }), saved);
+
+      expect(component.form.get('veeamStatus')?.value).toBe('partial');
+    });
+
+    it('ignora entrada guardada si el serverId no está en la infra actual', () => {
+      // infra tiene assetId 3; payload tiene serverId 999 (no existe)
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: {
+          servers: [{ serverId: 999, serverName: 'OldServer', rebootScript: 'error', updates: 'ok' }],
+          dcdiag: 'OK',
+        },
+      };
+      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }), saved);
+
+      // el control en index 0 (assetId 3) mantiene el default
+      expect(component.serverControls.at(0).get('rebootScript')?.value).toBe('ok');
+    });
+
+    it('parchea TerminalPayload correctamente', () => {
+      const saved: TerminalPayload = {
+        type: 'TERMINAL_MAINTENANCE',
+        checks: { cleanedTemp: true, windowsUpdates: true, antivirusOk: false, diskSpace: true, licenses: false },
+        network: { connectivity: true, switches: false },
+        observations: 'pantalla rota en terminal 3',
+      };
+      initWithSavedPayload(makeTask('TERMINAL_MAINTENANCE'), makeInfra(), saved);
+
+      expect(component.form.get('cleanedTemp')?.value).toBeTrue();
+      expect(component.form.get('antivirusOk')?.value).toBeFalse();
+      expect(component.form.get('connectivity')?.value).toBeTrue();
+      expect(component.form.get('switches')?.value).toBeFalse();
+      expect(component.form.get('observations')?.value).toBe('pantalla rota en terminal 3');
+    });
+
+    it('no modifica el formulario cuando savedPayload es null', () => {
+      initWithSavedPayload(
+        makeTask('SERVER_MAINTENANCE'),
+        makeInfra({ esxiHosts: [], nas: [], routers: [] }),
+        null,
+      );
+
+      // defaults intactos
+      expect(component.form.get('dcdiag')?.value).toBe('OK');
+      expect(component.serverControls.at(0).get('rebootScript')?.value).toBe('ok');
+    });
+  });
 });

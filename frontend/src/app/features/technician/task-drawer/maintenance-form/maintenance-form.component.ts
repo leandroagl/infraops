@@ -38,6 +38,9 @@ export class MaintenanceFormComponent implements OnChanges {
     if (changes['infrastructure'] && this.infrastructure) {
       this.buildForm();
     }
+    if (changes['savedPayload'] && this.savedPayload && this.form) {
+      this.patchFormFromPayload(this.savedPayload);
+    }
   }
 
   // ── Getters condicionales ────────────────────────────────────────────────────
@@ -279,6 +282,91 @@ export class MaintenanceFormComponent implements OnChanges {
     }
 
     return payload;
+  }
+
+  private patchFormFromPayload(payload: MaintenancePayload): void {
+    if (payload.type === 'SERVER_MAINTENANCE') {
+      const srv = payload as ServerMaintenancePayload;
+
+      this.form.patchValue({
+        dcdiag:                srv.windows.dcdiag,
+        dcdiagDetail:          srv.windows.dcdiagDetail ?? '',
+        notes:                 srv.notes ?? '',
+        veeamStatus:           srv.veeam?.status ?? 'ok',
+        veeamMissing:          srv.veeam?.missingVMs ?? [],
+        routerFirmwareUpdated: srv.router?.firmwareUpdated ?? false,
+        routerFirmwareVersion: srv.router?.firmwareVersion ?? '',
+        routerBackupDone:      srv.router?.backupDone ?? false,
+      });
+
+      if (srv.windows.servers?.length) {
+        this.infrastructure.windowsVMs.forEach((vm, i) => {
+          const saved = srv.windows.servers.find(s => s.serverId === vm.assetId);
+          if (saved) {
+            this.serverControls.at(i).patchValue({
+              rebootScript: saved.rebootScript,
+              updates:      saved.updates,
+              notes:        saved.notes ?? '',
+            });
+          }
+        });
+      }
+
+      if (srv.vmware?.length) {
+        this.infrastructure.esxiHosts.forEach((host, i) => {
+          const saved = srv.vmware!.find(h => h.hostId === host.assetId);
+          if (saved) {
+            this.vmwareHostControls.at(i).patchValue({
+              cpuUsage:     saved.cpuUsage,
+              memUsage:     saved.memUsage,
+              storageUsage: saved.storageUsage,
+              highUsageVMs: saved.highUsageVMs ?? [],
+              snapshotsOk:  saved.snapshotsOk,
+            });
+          }
+        });
+      }
+
+      if (srv.qnap?.length) {
+        this.infrastructure.nas.forEach((nas, i) => {
+          const saved = srv.qnap!.find(d => d.deviceId === nas.assetId);
+          if (saved) {
+            this.qnapDeviceControls.at(i).patchValue({
+              spaceUsed:       saved.spaceUsed,
+              raidStatus:      saved.raidStatus,
+              firmwareUpdated: saved.firmwareUpdated,
+            });
+          }
+        });
+      }
+
+      if (srv.bmc?.length) {
+        this.infrastructure.esxiHosts.forEach((host, i) => {
+          const saved = srv.bmc!.find(b => b.hostId === host.assetId);
+          if (saved) {
+            this.bmcHostControls.at(i).patchValue({
+              firmwareVersion: saved.firmwareVersion ?? '',
+              biosVersion:     saved.biosVersion ?? '',
+              alertStatus:     saved.alertStatus,
+              alertNote:       saved.alertNote ?? '',
+            });
+          }
+        });
+      }
+    } else {
+      const t = payload as TerminalPayload;
+      this.form.patchValue({
+        cleanedTemp:    t.checks.cleanedTemp,
+        windowsUpdates: t.checks.windowsUpdates,
+        antivirusOk:    t.checks.antivirusOk,
+        diskSpace:      t.checks.diskSpace,
+        licenses:       t.checks.licenses,
+        connectivity:   t.network.connectivity,
+        switches:       t.network.switches,
+        observations:   t.observations ?? '',
+        notes:          t.notes ?? '',
+      });
+    }
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────────
