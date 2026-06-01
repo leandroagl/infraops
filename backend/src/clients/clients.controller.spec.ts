@@ -7,12 +7,14 @@ describe('ClientsController', () => {
   let controller: ClientsController;
   let clientsService: {
     findAll: jest.Mock;
+    findOne: jest.Mock;
     syncWithInfradoc: jest.Mock;
   };
 
   beforeEach(async () => {
     clientsService = {
       findAll: jest.fn(),
+      findOne: jest.fn(),
       syncWithInfradoc: jest.fn(),
     };
 
@@ -33,6 +35,18 @@ describe('ClientsController', () => {
 
       expect(clientsService.findAll).toHaveBeenCalled();
       expect(result).toEqual(mockList);
+    });
+  });
+
+  describe('findOne', () => {
+    it('llama a clientsService.findOne y devuelve el cliente', async () => {
+      const mockClient = { id: 'uuid-1', name: 'ACME Corp', isActive: true };
+      clientsService.findOne.mockResolvedValue(mockClient);
+
+      const result = await controller.findOne('uuid-1');
+
+      expect(clientsService.findOne).toHaveBeenCalledWith('uuid-1');
+      expect(result).toEqual(mockClient);
     });
   });
 

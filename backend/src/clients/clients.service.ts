@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cron } from '@nestjs/schedule';
 import { Repository } from 'typeorm';
@@ -29,6 +29,13 @@ export class ClientsService {
   async findAll(): Promise<ClientResponse[]> {
     const clients = await this.clientRepository.find({ order: { name: 'ASC' } });
     return clients.map(({ infradocId, lastSyncedAt, ...rest }) => rest);
+  }
+
+  async findOne(id: string): Promise<ClientResponse> {
+    const client = await this.clientRepository.findOne({ where: { id } });
+    if (!client) throw new NotFoundException(`Cliente ${id} no encontrado`);
+    const { infradocId, lastSyncedAt, ...rest } = client;
+    return rest;
   }
 
   async findInfradocId(id: string): Promise<number | null> {

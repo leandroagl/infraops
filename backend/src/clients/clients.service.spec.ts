@@ -225,6 +225,25 @@ describe('ClientsService', () => {
     });
   });
 
+  describe('findOne', () => {
+    it('devuelve el cliente sin campos internos cuando existe', async () => {
+      clientRepository.findOne.mockResolvedValue(makeLocal());
+
+      const result = await service.findOne('uuid-1');
+
+      expect(clientRepository.findOne).toHaveBeenCalledWith({ where: { id: 'uuid-1' } });
+      expect(result).not.toHaveProperty('infradocId');
+      expect(result).not.toHaveProperty('lastSyncedAt');
+      expect(result.name).toBe('ACME Corp');
+    });
+
+    it('lanza NotFoundException cuando el cliente no existe', async () => {
+      clientRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findOne('uuid-no-existe')).rejects.toThrow('Cliente uuid-no-existe no encontrado');
+    });
+  });
+
   describe('findInfradocId', () => {
     it('devuelve infradocId para un cliente existente', async () => {
       clientRepository.findOne.mockResolvedValue({ id: 'uuid-1', infradocId: 42 });
