@@ -7,9 +7,16 @@ import { AgGridModule } from 'ag-grid-angular';
 import { ClientsRoutingModule } from './clients-routing.module';
 import { ClientsListComponent } from './clients-list/clients-list.component';
 import { ClientDetailComponent } from './client-detail/client-detail.component';
+import { ClientOverviewComponent } from './client-overview/client-overview.component';
+import { ClientMantenimientosComponent } from './client-mantenimientos/client-mantenimientos.component';
 
 @NgModule({
-  declarations: [ClientsListComponent, ClientDetailComponent],
+  declarations: [
+    ClientsListComponent,
+    ClientDetailComponent,
+    ClientOverviewComponent,
+    ClientMantenimientosComponent,
+  ],
   imports: [
     CommonModule,
     FormsModule,
