@@ -1,14 +1,10 @@
-import { Type } from 'class-transformer';
-import { ArrayMinSize, IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
-import { LogItemDto } from './log-item.dto';
+import { IsObject, IsOptional, IsString } from 'class-validator';
+import type { MaintenancePayload } from '../log-item.interface';
 
 export class UpdateLogDto {
   @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => LogItemDto)
-  @ArrayMinSize(1)
-  payload?: LogItemDto[];
+  @IsObject()
+  payload?: MaintenancePayload;
 
   @IsOptional()
   @IsString()

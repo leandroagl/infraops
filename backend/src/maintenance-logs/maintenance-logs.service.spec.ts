@@ -15,6 +15,7 @@ import { UserRole } from '../users/user-role.enum';
 import { CreateLogDto } from './dto/create-log.dto';
 import { UpdateLogDto } from './dto/update-log.dto';
 import { MaintenanceLog } from './maintenance-log.entity';
+import { ServerMaintenancePayload } from './log-item.interface';
 import { MaintenanceLogsService } from './maintenance-logs.service';
 
 describe('MaintenanceLogsService', () => {
@@ -61,19 +62,27 @@ describe('MaintenanceLogsService', () => {
     createdAt: new Date('2026-01-01'),
   };
 
+  const mockPayload: ServerMaintenancePayload = {
+    type: 'SERVER_MAINTENANCE',
+    windows: {
+      servers: [{ serverId: 1, serverName: '47DC', rebootScript: 'ok', updates: 'ok' }],
+      dcdiag: 'OK',
+    },
+  };
+
   const mockLog: MaintenanceLog = {
     id: 'log-1',
     taskId: 'task-1',
     task: mockTask,
     technicianId: 'tech-1',
     technician: mockTechnician,
-    payload: [{ item: 'WinServer', result: 'ok' }],
+    payload: mockPayload,
     notes: null,
     registeredAt: new Date('2026-06-01'),
   };
 
   const createDto: CreateLogDto = {
-    payload: [{ item: 'WinServer', result: 'ok' }],
+    payload: mockPayload,
   };
 
   beforeEach(async () => {
@@ -194,18 +203,25 @@ describe('MaintenanceLogsService', () => {
 
   describe('update', () => {
     it('actualiza payload y devuelve el log actualizado', async () => {
-      const updatedLog = { ...mockLog, payload: [{ item: 'VMware', result: 'ok' as const }] };
+      const updatedPayload: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: {
+          servers: [{ serverId: 1, serverName: '47DC', rebootScript: 'error', updates: 'pending' }],
+          dcdiag: 'OK',
+        },
+      };
+      const updatedLog = { ...mockLog, payload: updatedPayload };
       taskRepository.findOne.mockResolvedValue(mockTask);
       logRepository.findOne
         .mockResolvedValueOnce(mockLog)     // buscar por taskId
         .mockResolvedValueOnce(updatedLog); // loadLog
       logRepository.update.mockResolvedValue({ affected: 1 });
 
-      const dto: UpdateLogDto = { payload: [{ item: 'VMware', result: 'ok' }] };
+      const dto: UpdateLogDto = { payload: updatedPayload };
       const result = await service.update('task-1', dto);
 
       expect(logRepository.update).toHaveBeenCalledWith('log-1', { payload: dto.payload });
-      expect(result.payload[0].item).toBe('VMware');
+      expect((result.payload as ServerMaintenancePayload).windows.servers[0].rebootScript).toBe('error');
     });
 
     it('lanza BadRequestException si el body está vacío', async () => {

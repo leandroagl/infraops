@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { Task } from '../tasks/task.entity';
 import { Technician } from '../technicians/technician.entity';
-import { LogItem } from './log-item.interface';
+import type { MaintenancePayload } from './log-item.interface';
 
 @Entity('maintenance_logs')
 export class MaintenanceLog {
@@ -30,7 +30,7 @@ export class MaintenanceLog {
   technician: Technician;
 
   @Column({ type: 'jsonb' })
-  payload: LogItem[];
+  payload: MaintenancePayload;
 
   @Column({ type: 'text', nullable: true, default: null })
   notes: string | null;
