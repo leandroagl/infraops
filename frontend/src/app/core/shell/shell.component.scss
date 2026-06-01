@@ -1,6 +1,7 @@
 // ── Shell container ────────────────────────────────────────────
 mat-sidenav-container.shell {
   height: 100vh;
+  background: var(--base);
 }
 
 // ── Sidenav ────────────────────────────────────────────────────
@@ -126,6 +127,7 @@ mat-toolbar.shell-toolbar {
 
 // ── Content area ───────────────────────────────────────────────
 .shell__content {
+  overflow-y: auto;
   padding: 24px;
 }
 
