@@ -4,8 +4,8 @@
       <h1 class="page-header__title">Técnicos</h1>
       <span class="page-header__count" *ngIf="!loading">{{ technicians.length }} perfiles técnicos</span>
     </div>
-    <button class="btn btn--primary" (click)="openAssignDialog()">
-      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">
+    <button mat-flat-button color="primary" (click)="openAssignDialog()">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-right:4px;vertical-align:middle">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
         <circle cx="9" cy="7" r="4"/>
         <line x1="19" y1="8" x2="19" y2="14"/>
@@ -17,7 +17,7 @@
 
   <div *ngIf="error" class="error-banner">
     {{ error }}
-    <button class="btn btn--secondary" style="padding:4px 10px;font-size:12px" (click)="load()">Reintentar</button>
+    <button mat-button (click)="load()">Reintentar</button>
   </div>
 
   <div class="surface-card">

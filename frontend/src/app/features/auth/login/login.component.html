@@ -31,7 +31,7 @@
 
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
 
-        <mat-form-field appearance="fill" class="field-full">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="field-full">
           <mat-label>Email</mat-label>
           <input matInput type="email" formControlName="email"
                  placeholder="usuario@ondra.com.ar" autocomplete="email" />
@@ -39,7 +39,7 @@
           <mat-error *ngIf="form.get('email')?.hasError('email')">Email inválido</mat-error>
         </mat-form-field>
 
-        <mat-form-field appearance="fill" class="field-full">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="field-full">
           <mat-label>Contraseña</mat-label>
           <input matInput type="password" formControlName="password"
                  placeholder="••••••••" autocomplete="current-password" />

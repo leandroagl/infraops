@@ -38,6 +38,10 @@ export class MaintenanceLogsService {
     return this.http.post<MaintenanceLog>(this.url(taskId), body);
   }
 
+  update(taskId: string, body: Partial<CreateLogPayload>): Observable<MaintenanceLog> {
+    return this.http.patch<MaintenanceLog>(this.url(taskId), body);
+  }
+
   get(taskId: string): Observable<MaintenanceLog> {
     return this.http.get<MaintenanceLog>(this.url(taskId));
   }

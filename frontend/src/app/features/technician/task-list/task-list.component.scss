@@ -131,6 +131,8 @@
 }
 
 .task {
+  --mdc-elevated-card-container-color: var(--card);
+  --mdc-elevated-card-container-elevation: none;
   background: var(--card);
   border: 1px solid var(--border-lo);
   border-radius: var(--radius);

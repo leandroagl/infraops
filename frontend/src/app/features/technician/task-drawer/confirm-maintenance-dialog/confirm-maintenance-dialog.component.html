@@ -1,0 +1,35 @@
+<div class="dialog-header">
+  <h2 class="dialog-title">Confirmar registro</h2>
+</div>
+
+<div class="dialog-body">
+
+  <div *ngIf="data.issuesSummary.dcdiagErrors.length > 0" class="alert-box alert-box--warn">
+    <strong>DCDIAG con errores:</strong>
+    <div *ngFor="let e of data.issuesSummary.dcdiagErrors">{{ e }}</div>
+    <div class="alert-box__note">Verificá que abriste ticket en Odoo antes de continuar.</div>
+  </div>
+
+  <div *ngIf="data.issuesSummary.veeamMissing" class="alert-box alert-box--warn">
+    <strong>Veeam: backups ausentes.</strong>
+    Verificá el estado de los jobs antes de confirmar.
+  </div>
+
+  <div *ngIf="data.issuesSummary.emptyFields.length > 0" class="alert-box alert-box--neutral">
+    Campos sin completar: {{ data.issuesSummary.emptyFields.join(', ') }}
+  </div>
+
+  <div
+    *ngIf="!data.hasAlerts && data.issuesSummary.emptyFields.length === 0"
+    class="confirm-ok">
+    Todo completo. El registro se guardará y la tarea pasará a DONE.
+  </div>
+
+</div>
+
+<div class="dialog-footer">
+  <button mat-stroked-button (click)="dialogRef.close(false)">Volver a revisar</button>
+  <button mat-flat-button color="primary" (click)="dialogRef.close(true)">
+    Confirmar{{ data.hasAlerts ? ' · enviar alerta' : '' }}
+  </button>
+</div>

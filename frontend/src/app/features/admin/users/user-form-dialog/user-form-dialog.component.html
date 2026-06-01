@@ -1,48 +1,40 @@
-<div class="dialog-header">
-  <h2 class="dialog-title">
-    {{ data.mode === 'create' ? 'Nuevo usuario' : 'Editar usuario' }}
-  </h2>
-  <button class="btn btn--secondary" style="padding:3px 8px" (click)="cancel()">
-    <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">
-      <line x1="18" y1="6" x2="6" y2="18"/>
-      <line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
-  </button>
-</div>
+<h2 mat-dialog-title>
+  {{ data.mode === 'create' ? 'Nuevo usuario' : 'Editar usuario' }}
+</h2>
 
-<div class="dialog-body">
-  <form [formGroup]="form" id="user-form">
-    <div class="field">
-      <label class="field__label">Nombre</label>
-      <input class="input" formControlName="name" type="text" placeholder="Nombre completo" />
-    </div>
-    <div class="field">
-      <label class="field__label">Email</label>
-      <input
-        class="input"
-        formControlName="email"
-        type="email"
-        placeholder="email@ondra.com.ar"
-      />
-    </div>
-    <div class="field">
-      <label class="field__label">Rol</label>
-      <select class="input" formControlName="role">
-        <option *ngFor="let r of roles" [value]="r.value">{{ r.label }}</option>
-      </select>
-    </div>
+<mat-dialog-content>
+  <form [formGroup]="form" class="dialog-form">
+
+    <mat-form-field appearance="fill">
+      <mat-label>Nombre</mat-label>
+      <input matInput formControlName="name" placeholder="Nombre completo" />
+      <mat-error *ngIf="form.get('name')?.hasError('required')">Requerido</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill">
+      <mat-label>Email</mat-label>
+      <input matInput formControlName="email" type="email" placeholder="email@ondra.com.ar" />
+      <mat-error *ngIf="form.get('email')?.hasError('email')">Email inválido</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill">
+      <mat-label>Rol</mat-label>
+      <mat-select formControlName="role">
+        <mat-option *ngFor="let r of roles" [value]="r.value">{{ r.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
     <div *ngIf="error" class="error-banner">{{ error }}</div>
-  </form>
-</div>
 
-<div class="dialog-footer">
-  <button type="button" class="btn btn--secondary" (click)="cancel()">Cancelar</button>
-  <button
-    type="button"
-    class="btn btn--primary"
-    [disabled]="form.invalid || loading"
-    (click)="submit()"
-  >
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancelar</button>
+  <button mat-flat-button color="primary"
+          [disabled]="form.invalid || loading"
+          (click)="submit()">
+    <mat-spinner *ngIf="loading" diameter="16" style="display:inline-block;margin-right:6px"></mat-spinner>
     {{ loading ? 'Guardando…' : data.mode === 'create' ? 'Crear usuario' : 'Guardar cambios' }}
   </button>
-</div>
+</mat-dialog-actions>

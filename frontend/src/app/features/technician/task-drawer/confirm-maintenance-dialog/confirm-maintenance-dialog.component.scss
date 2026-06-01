@@ -1,0 +1,29 @@
+.alert-box {
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12px;
+
+  &--warn {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-bd);
+    color: var(--warn);
+  }
+
+  &--neutral {
+    background: var(--elevated);
+    border: 1px solid var(--border);
+    color: var(--tx-md);
+    font-size: 11px;
+  }
+
+  &__note {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--warn);
+  }
+}
+
+.confirm-ok {
+  font-size: 12px;
+  color: var(--ok);
+}

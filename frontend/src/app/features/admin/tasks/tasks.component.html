@@ -5,12 +5,14 @@
       <span class="page-header__count" *ngIf="!loading">{{ tasks.length }} tareas</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <select class="input" style="width:160px;font-size:12px;padding:5px 10px"
-              [(ngModel)]="filterStatus" (change)="load()">
-        <option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</option>
-      </select>
-      <button class="btn btn--primary" (click)="openCreateDialog()">
-        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">
+      <mat-form-field appearance="fill" subscriptSizing="dynamic" style="width:180px">
+        <mat-label>Estado</mat-label>
+        <mat-select [(ngModel)]="filterStatus" (selectionChange)="load()">
+          <mat-option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <button mat-flat-button color="primary" (click)="openCreateDialog()">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-right:4px;vertical-align:middle">
           <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
         Nueva tarea
@@ -20,7 +22,7 @@
 
   <div *ngIf="error" class="error-banner">
     {{ error }}
-    <button class="btn btn--secondary" style="padding:4px 10px;font-size:12px" (click)="load()">Reintentar</button>
+    <button mat-button (click)="load()">Reintentar</button>
   </div>
 
   <div class="surface-card">

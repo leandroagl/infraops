@@ -1,49 +1,53 @@
-<h2 mat-dialog-title style="font-size:15px;font-weight:600;color:var(--tx-hi);margin:0 0 16px">
-  Nueva tarea
-</h2>
+<h2 mat-dialog-title>Nueva tarea</h2>
 
 <mat-dialog-content>
-  <div *ngIf="loading" style="color:var(--tx-lo);font-size:12px;padding:8px 0">Cargando...</div>
 
-  <form *ngIf="!loading" [formGroup]="form" style="display:flex;flex-direction:column;gap:14px">
+  <div *ngIf="loading" style="color:var(--tx-lo);font-size:12px;padding:8px 0">
+    Cargando...
+  </div>
 
-    <div class="field">
-      <label class="field__label">Cliente</label>
-      <select formControlName="clientId" class="input">
-        <option value="">Seleccioná un cliente...</option>
-        <option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</option>
-      </select>
-    </div>
+  <form *ngIf="!loading" [formGroup]="form" class="dialog-form">
 
-    <div class="field">
-      <label class="field__label">Técnico</label>
-      <select formControlName="technicianId" class="input">
-        <option value="">Seleccioná un técnico...</option>
-        <option *ngFor="let t of technicians" [value]="t.id">{{ t.user.name }}</option>
-      </select>
-    </div>
+    <mat-form-field appearance="fill">
+      <mat-label>Cliente</mat-label>
+      <mat-select formControlName="clientId">
+        <mat-option value="">Seleccioná un cliente...</mat-option>
+        <mat-option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
 
-    <div class="field">
-      <label class="field__label">Tipo de tarea</label>
-      <select formControlName="type" class="input">
-        <option *ngFor="let t of taskTypes" [value]="t.value">{{ t.label }}</option>
-      </select>
-    </div>
+    <mat-form-field appearance="fill">
+      <mat-label>Técnico</mat-label>
+      <mat-select formControlName="technicianId">
+        <mat-option value="">Seleccioná un técnico...</mat-option>
+        <mat-option *ngFor="let t of technicians" [value]="t.id">{{ t.user.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
 
-    <div class="field">
-      <label class="field__label">Fecha programada</label>
-      <input formControlName="scheduledDate" type="date" class="input" />
-    </div>
+    <mat-form-field appearance="fill">
+      <mat-label>Tipo de tarea</mat-label>
+      <mat-select formControlName="type">
+        <mat-option *ngFor="let t of taskTypes" [value]="t.value">{{ t.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill">
+      <mat-label>Fecha programada</mat-label>
+      <input matInput formControlName="scheduledDate" type="date" />
+    </mat-form-field>
 
   </form>
 
-  <div *ngIf="error" style="margin-top:12px;font-size:12px;color:var(--crit)">{{ error }}</div>
+  <div *ngIf="error" class="error-banner" style="margin-top:4px">{{ error }}</div>
+
 </mat-dialog-content>
 
-<mat-dialog-actions align="end" style="gap:8px;padding-top:16px">
-  <button class="btn btn--secondary" (click)="cancel()">Cancelar</button>
-  <button class="btn btn--primary" (click)="confirm()"
-          [disabled]="!form || form.invalid || saving">
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">Cancelar</button>
+  <button mat-flat-button color="primary"
+          [disabled]="!form || form.invalid || saving"
+          (click)="confirm()">
+    <mat-spinner *ngIf="saving" diameter="16" style="display:inline-block;margin-right:6px"></mat-spinner>
     {{ saving ? 'Creando...' : 'Crear tarea' }}
   </button>
 </mat-dialog-actions>

@@ -87,7 +87,7 @@ $infraops-theme: mat.define-dark-theme((
   }
 
   .mat-mdc-header-cell {
-    font-size: 11px;
+    font-size: 19px;
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -97,7 +97,7 @@ $infraops-theme: mat.define-dark-theme((
 
   .mat-mdc-cell {
     border-bottom-color: var(--border-lo) !important;
-    font-size: 13px;
+    font-size: 16px;
     color: var(--tx-hi);
   }
 }

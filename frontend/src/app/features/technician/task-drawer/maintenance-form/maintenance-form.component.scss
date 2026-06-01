@@ -4,126 +4,29 @@
   gap: 10px;
 }
 
-.mf-card {
-  background: var(--card);
-  border: 1px solid var(--border-lo);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-
-  &__title {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--tx-hi);
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border-lo);
-    margin-bottom: 2px;
-  }
-
-  &__icon {
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
-    background: var(--srv-bg);
-    border: 1px solid var(--srv-bd);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--srv);
-    flex-shrink: 0;
-  }
-}
-
+// ── Section label ────────────────────────────────────────────────────────────
 .mf-section-lbl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 9px;
   font-weight: 600;
   color: var(--tx-lo);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
   font-family: var(--font-mono);
   margin-top: 4px;
+  white-space: nowrap;
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-lo);
+  }
 }
 
-.mf-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  &--vm { padding: 4px 0; border-bottom: 1px solid var(--border-lo);
-    &:last-child { border-bottom: none; } }
-}
-
-.mf-lbl {
-  font-size: 10px;
-  color: var(--tx-md);
-  min-width: 68px;
-  flex-shrink: 0;
-}
-
-.mf-vm-name {
-  flex: 1;
-  font-size: 11px;
-  color: var(--tx-hi);
-  font-weight: 500;
-}
-
-.mf-sel {
-  flex: 1;
-  background: var(--elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: 11px;
-  color: var(--tx-hi);
-  outline: none;
-  cursor: pointer;
-  font-family: var(--font-ui);
-  transition: border-color var(--transition), background var(--transition);
-
-  &:focus { border-color: var(--accent-bd); }
-
-  &.sel--ok    { border-color: var(--ok-bd);   background: var(--ok-bg);   color: var(--ok);   }
-  &.sel--warn  { border-color: var(--warn-bd); background: var(--warn-bg); color: var(--warn); }
-  &.sel--error { border-color: var(--crit-bd); background: var(--crit-bg); color: var(--crit); }
-}
-
-.mf-input {
-  flex: 1;
-  background: var(--elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 4px 8px;
-  font-size: 11px;
-  color: var(--tx-hi);
-  outline: none;
-  font-family: var(--font-ui);
-
-  &:focus { border-color: var(--accent-bd); }
-  &::placeholder { color: var(--tx-lo); }
-}
-
-.mf-textarea {
-  background: var(--elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  font-size: 11px;
-  color: var(--tx-hi);
-  outline: none;
-  font-family: var(--font-ui);
-  resize: vertical;
-  min-height: 64px;
-  width: 100%;
-
-  &:focus { border-color: var(--accent-bd); }
-  &::placeholder { color: var(--tx-lo); }
-}
-
+// ── Alert / empty ────────────────────────────────────────────────────────────
 .mf-alert {
   display: flex;
   align-items: center;
@@ -136,91 +39,116 @@
   padding: 6px 10px;
 }
 
-.mf-success {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--ok);
-  background: var(--ok-bg);
-  border: 1px solid var(--ok-bd);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-}
-
-.mf-error {
-  font-size: 11px;
-  color: var(--crit);
-  background: var(--crit-bg);
-  border: 1px solid var(--crit-bd);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-}
-
 .mf-empty {
   font-size: 11px;
   color: var(--tx-lo);
   padding: 8px 0;
 }
 
-.mf-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding-top: 4px;
-  border-top: 1px solid var(--border-lo);
-  margin-top: 4px;
-}
-
-// ── Select semantic classes (from selectClass()) ────────────────────────────
-.mf-sel {
-  &.mf-sel--na   { }
-  &.mf-sel--ok   { border-color: var(--ok-bd);   background: var(--ok-bg);   color: var(--ok);   }
-  &.mf-sel--warn { border-color: var(--warn-bd); background: var(--warn-bg); color: var(--warn); }
-  &.mf-sel--crit { border-color: var(--crit-bd); background: var(--crit-bg); color: var(--crit); }
-}
-
-// ── Input metric classes (from metricClass()) ───────────────────────────────
-.mf-input {
-  &.mf-inp--ok   { border-color: var(--ok-bd);   background: var(--ok-bg);   }
-  &.mf-inp--warn { border-color: var(--warn-bd); background: var(--warn-bg); }
-  &.mf-inp--crit { border-color: var(--crit-bd); background: var(--crit-bg); }
-}
-
-// ── Input row layout ─────────────────────────────────────────────────────────
-.mf-inp-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 5px;
-  &:last-child { margin-bottom: 0; }
-}
-
-.mf-inp-lbl {
+// ── Shared label ─────────────────────────────────────────────────────────────
+.mf-lbl {
   font-size: 10px;
   color: var(--tx-md);
   flex-shrink: 0;
-  min-width: 72px;
+  min-width: 60px;
 }
 
-.mf-inp-wrap {
+// ── mat-form-field base (fill appearance) ────────────────────────────────────
+// CSS custom properties cascade into Material internals
+mat-form-field.mf-form-field {
+  width: 100%;
+
+  --mdc-filled-text-field-container-color:       var(--elevated);
+  --mdc-filled-text-field-hover-container-color: var(--elevated);
+  --mdc-filled-text-field-active-indicator-color:        var(--border);
+  --mdc-filled-text-field-hover-active-indicator-color:  var(--border-md);
+  --mdc-filled-text-field-focus-active-indicator-color:  var(--accent-bd);
+  --mdc-filled-text-field-label-text-color:              var(--tx-lo);
+  --mdc-filled-text-field-hover-label-text-color:        var(--tx-md);
+  --mdc-filled-text-field-focus-label-text-color:        var(--accent);
+  --mat-select-trigger-text-color:    var(--tx-hi);
+  --mat-select-placeholder-text-color: var(--tx-lo);
+  --mat-select-arrow-foreground-color: var(--tx-lo);
+  --mat-select-trigger-text-size:     11px;
+}
+
+// ── Compact form field for server table selects ──────────────────────────────
+mat-form-field.mf-srv-ff {
+  width: 100%;
+  // inherit mf-form-field colors via combined usage in HTML: class="mf-srv-ff" is separate
+  --mdc-filled-text-field-container-color:       var(--elevated);
+  --mdc-filled-text-field-hover-container-color: var(--elevated);
+  --mdc-filled-text-field-active-indicator-color:        var(--border);
+  --mdc-filled-text-field-hover-active-indicator-color:  var(--border-md);
+  --mdc-filled-text-field-focus-active-indicator-color:  var(--accent-bd);
+  --mdc-filled-text-field-label-text-color:              var(--tx-lo);
+  --mat-select-trigger-text-color:    var(--tx-hi);
+  --mat-select-trigger-text-size:     10px;
+}
+
+// ── Compact metric form field (number inputs with %) ─────────────────────────
+mat-form-field.mf-metric-ff {
+  width: 100%;
+
+  --mdc-filled-text-field-container-color:       var(--elevated);
+  --mdc-filled-text-field-hover-container-color: var(--elevated);
+  --mdc-filled-text-field-active-indicator-color:        var(--border);
+  --mdc-filled-text-field-hover-active-indicator-color:  var(--border-md);
+  --mdc-filled-text-field-focus-active-indicator-color:  var(--accent-bd);
+  --mdc-filled-text-field-label-text-color:              var(--tx-lo);
+  --mdc-filled-text-field-focus-label-text-color:        var(--accent);
+  --mat-select-trigger-text-size: 11px;
+}
+
+// ── DCDIAG detail field (crit coloring) ──────────────────────────────────────
+mat-form-field.mf-dcdiag-detail-ff {
   flex: 1;
-  position: relative;
-  display: flex;
-  align-items: center;
+
+  --mdc-filled-text-field-container-color:              var(--crit-bg);
+  --mdc-filled-text-field-hover-container-color:        var(--crit-bg);
+  --mdc-filled-text-field-active-indicator-color:       var(--crit-bd);
+  --mdc-filled-text-field-hover-active-indicator-color: var(--crit-bd);
+  --mdc-filled-text-field-focus-active-indicator-color: var(--crit);
+  --mdc-filled-text-field-label-text-color:             var(--crit);
+  --mdc-filled-text-field-focus-label-text-color:       var(--crit);
+  --mdc-filled-text-field-input-text-color:             var(--crit);
 }
 
-.mf-inp-suffix {
-  position: absolute;
-  right: 8px;
-  font-size: 10px;
-  color: var(--tx-lo);
-  pointer-events: none;
-}
-
-.mf-input--mini {
-  max-width: 80px;
-  padding-right: 28px;
+// ── Semantic coloring — applied to ANY mat-form-field via [ngClass] ──────────
+mat-form-field {
+  &.mf-sel--ok {
+    --mdc-filled-text-field-container-color:        var(--ok-bg);
+    --mdc-filled-text-field-hover-container-color:  var(--ok-bg);
+    --mdc-filled-text-field-active-indicator-color: var(--ok-bd);
+    --mat-select-trigger-text-color: var(--ok);
+  }
+  &.mf-sel--warn {
+    --mdc-filled-text-field-container-color:        var(--warn-bg);
+    --mdc-filled-text-field-hover-container-color:  var(--warn-bg);
+    --mdc-filled-text-field-active-indicator-color: var(--warn-bd);
+    --mat-select-trigger-text-color: var(--warn);
+  }
+  &.mf-sel--crit {
+    --mdc-filled-text-field-container-color:        var(--crit-bg);
+    --mdc-filled-text-field-hover-container-color:  var(--crit-bg);
+    --mdc-filled-text-field-active-indicator-color: var(--crit-bd);
+    --mat-select-trigger-text-color: var(--crit);
+  }
+  &.mf-inp--ok {
+    --mdc-filled-text-field-container-color:        var(--ok-bg);
+    --mdc-filled-text-field-hover-container-color:  var(--ok-bg);
+    --mdc-filled-text-field-active-indicator-color: var(--ok-bd);
+  }
+  &.mf-inp--warn {
+    --mdc-filled-text-field-container-color:        var(--warn-bg);
+    --mdc-filled-text-field-hover-container-color:  var(--warn-bg);
+    --mdc-filled-text-field-active-indicator-color: var(--warn-bd);
+  }
+  &.mf-inp--crit {
+    --mdc-filled-text-field-container-color:        var(--crit-bg);
+    --mdc-filled-text-field-hover-container-color:  var(--crit-bg);
+    --mdc-filled-text-field-active-indicator-color: var(--crit-bd);
+  }
 }
 
 // ── Server table ─────────────────────────────────────────────────────────────
@@ -233,9 +161,10 @@
 
 .mf-srv-head {
   display: grid;
-  grid-template-columns: 16px 1fr 52px 130px 130px 28px;
+  grid-template-columns: 14px 1fr 1fr 1fr 32px;
   align-items: center;
   padding: 5px 10px;
+  gap: 6px;
   background: var(--elevated);
   border-bottom: 1px solid var(--border);
 }
@@ -250,12 +179,13 @@
 
 .mf-srv-row {
   display: grid;
-  grid-template-columns: 16px 1fr 52px 130px 130px 28px;
+  grid-template-columns: 14px 1fr 1fr 1fr 32px;
   align-items: center;
-  padding: 7px 10px;
+  padding: 6px 10px;
+  gap: 6px;
   border-bottom: 1px solid var(--border-lo);
-  cursor: pointer;
   transition: background 0.1s;
+
   &:last-of-type { border-bottom: none; }
   &:hover { background: var(--elevated); }
   &.mf-srv-row--expanded { background: var(--elevated); border-bottom: none; }
@@ -274,7 +204,7 @@
 }
 
 .mf-srv-name-cell {
-  padding: 0 8px;
+  padding: 0 4px;
   min-width: 0;
 }
 
@@ -289,63 +219,51 @@
 
 .mf-srv-access {
   font-size: 9px;
-  color: var(--tx-lo);
-}
-
-.mf-srv-role-badge {
-  font-size: 9px;
-  font-weight: 500;
-  padding: 1px 6px;
-  border-radius: 5px;
-  background: var(--elevated);
-  border: 1px solid var(--border);
   color: var(--tx-md);
-  text-align: center;
-  white-space: nowrap;
+  font-family: var(--font-mono);
 }
 
-.mf-srv-sel {
-  background: var(--elevated);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 3px 6px;
-  font-size: 10px;
-  color: var(--tx-hi);
-  outline: none;
-  cursor: pointer;
-  font-family: var(--font-ui);
-  width: 100%;
-  &:focus { border-color: var(--srv-bd); }
-
-  &.mf-sel--na   { }
-  &.mf-sel--ok   { border-color: var(--ok-bd);   background: var(--ok-bg);   color: var(--ok);   }
-  &.mf-sel--warn { border-color: var(--warn-bd); background: var(--warn-bg); color: var(--warn); }
-  &.mf-sel--crit { border-color: var(--crit-bd); background: var(--crit-bg); color: var(--crit); }
-}
-
-.mf-expand-btn {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+// mat-icon-button for expand
+button.mf-expand-btn[mat-icon-button] {
+  --mdc-icon-button-state-layer-size: 32px;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
   color: var(--tx-lo);
-  font-size: 10px;
-  transition: color 0.1s, background 0.1s;
-  margin-left: auto;
-  &:hover { background: var(--border); color: var(--tx-md); }
+
+  &:hover { color: var(--tx-md); }
 }
 
 .mf-expand-panel {
   background: var(--elevated);
   border-bottom: 1px solid var(--border-lo);
-  padding: 8px 10px 10px 36px;
+  padding: 8px 10px 10px 34px;
   display: none;
   &.mf-expand-panel--open { display: block; }
+}
+
+.mf-expand-detail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--tx-hi);
+}
+
+.mf-expand-os {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--tx-md);
+}
+
+// ── DCDIAG row ───────────────────────────────────────────────────────────────
+.mf-dcdiag-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+
+  mat-form-field:first-child { flex: 0 0 180px; }
+  mat-form-field:last-child  { flex: 1; }
 }
 
 // ── Report card ──────────────────────────────────────────────────────────────
@@ -354,9 +272,8 @@
   border: 1px solid var(--border-lo);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
-  margin-bottom: 4px;
-  &:last-of-type { margin-bottom: 0; }
-  &.mf-cl-rpt--warn { border-color: var(--warn-bd); }
+  box-shadow: var(--shadow-card);
+  &.mf-cl-rpt--warn { border-color: var(--warn-bd); background: rgba(255, 179, 0, 0.03); }
 }
 
 .mf-cl-rpt-hdr {
@@ -381,78 +298,77 @@
   flex: 1;
 }
 
-// ── Checklist item ───────────────────────────────────────────────────────────
-.mf-cl-item {
+// ── VMware grid ──────────────────────────────────────────────────────────────
+.mf-vmware-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.mf-vmware-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mf-host-ip {
+  font-size: 9px;
+  color: var(--tx-lo);
+  font-family: var(--font-mono);
+  margin-left: auto;
+}
+
+// ── QNAP 2 columnas ──────────────────────────────────────────────────────────
+.mf-qnap-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+// ── Veeam VM count badge ─────────────────────────────────────────────────────
+.mf-vm-count {
+  font-size: 9px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--tx-lo);
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+// ── mat-checkbox como card ───────────────────────────────────────────────────
+mat-checkbox.mf-cl-mat {
+  --mdc-checkbox-unselected-outline-color:        var(--border);
+  --mdc-checkbox-unselected-hover-outline-color:  var(--accent);
+  --mdc-checkbox-unselected-focus-outline-color:  var(--accent-bd);
+  --mdc-checkbox-selected-icon-color:             var(--ok-bg);
+  --mdc-checkbox-selected-checkmark-color:        var(--ok);
+  --mdc-checkbox-selected-focus-icon-color:       var(--ok-bg);
+  --mdc-checkbox-selected-hover-icon-color:       var(--ok-bg);
+  --mdc-checkbox-selected-pressed-icon-color:     var(--ok-bg);
+  --mdc-form-field-label-text-size:  11px;
+  --mdc-form-field-label-text-color: var(--tx-hi);
+
   background: var(--card);
   border: 1px solid var(--border-lo);
   border-radius: var(--radius-sm);
-  padding: 9px 12px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  padding: 6px 12px;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background var(--transition);
   cursor: pointer;
-  transition: background 0.1s;
-  margin-bottom: 4px;
-  &:last-of-type { margin-bottom: 0; }
+
   &:hover { background: var(--elevated); }
 }
 
-.mf-cl-chk-native {
-  display: none;
-}
-
-.mf-cl-chk {
-  width: 18px;
-  height: 18px;
-  border-radius: 5px;
-  flex-shrink: 0;
-  border: 1.5px solid var(--border);
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.12s;
-  margin-top: 1px;
-
-  svg { opacity: 0; }
-
-  input:checked + & {
-    background: var(--ok-bg);
-    border-color: var(--ok-bd);
-    svg { opacity: 1; }
-  }
-}
-
-// Since :has is not always reliable, use label-based approach
-.mf-cl-item input[type="checkbox"]:checked ~ .mf-cl-chk {
-  background: var(--ok-bg);
-  border-color: var(--ok-bd);
-  svg { opacity: 1; }
-}
-
-.mf-cl-text {
-  flex: 1;
-  font-size: 11px;
-  color: var(--tx-hi);
-  line-height: 1.4;
-}
-
-// ── DCDIAG specific ──────────────────────────────────────────────────────────
-.mf-dcdiag-wrap {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.mf-dcdiag-detail {
-  flex: 1;
-  background: var(--crit-bg);
-  border: 1px solid var(--crit-bd);
-  border-radius: 6px;
-  padding: 5px 10px;
-  font-size: 11px;
-  color: var(--crit);
-  outline: none;
-  font-family: var(--font-ui);
-  &::placeholder { color: var(--crit); opacity: 0.6; }
+mat-checkbox.mf-snapshot-check,
+mat-checkbox.mf-qnap-fw-check {
+  background: transparent !important;
+  border-color: transparent !important;
+  &:hover { background: transparent !important; }
 }
