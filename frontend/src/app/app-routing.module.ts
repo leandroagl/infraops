@@ -21,6 +21,11 @@ const routes: Routes = [
           import('./features/dashboard/dashboard.module').then(m => m.DashboardModule),
       },
       {
+        path: 'clients',
+        loadChildren: () =>
+          import('./features/clients/clients.module').then(m => m.ClientsModule),
+      },
+      {
         path: 'tasks',
         loadChildren: () =>
           import('./features/technician/technician.module').then(m => m.TechnicianModule),
