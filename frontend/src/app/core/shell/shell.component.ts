@@ -6,7 +6,7 @@ import { AuthUser } from '../models/auth.models';
 interface NavItem {
   route: string;
   label: string;
-  icon: 'dashboard' | 'admin' | 'tasks';
+  icon: 'dashboard' | 'clients' | 'tasks' | 'admin';
 }
 
 @Component({
@@ -16,9 +16,10 @@ interface NavItem {
 })
 export class ShellComponent {
   readonly navItems: NavItem[] = [
-    { route: '/dashboard', label: 'Dashboard',    icon: 'dashboard' },
-    { route: '/tasks',     label: 'Mis tareas',   icon: 'tasks'     },
-    { route: '/admin',     label: 'Admin',         icon: 'admin'     },
+    { route: '/dashboard', label: 'Dashboard',  icon: 'dashboard' },
+    { route: '/clients',   label: 'Clientes',   icon: 'clients'   },
+    { route: '/tasks',     label: 'Mis tareas', icon: 'tasks'     },
+    { route: '/admin',     label: 'Admin',      icon: 'admin'     },
   ];
 
   readonly currentUser: AuthUser | null;
