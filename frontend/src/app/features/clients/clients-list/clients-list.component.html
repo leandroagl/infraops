@@ -1,0 +1,18 @@
+<div class="clients-page">
+  <div class="clients-page__header">
+    <span class="section-label">Clientes</span>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
+      <mat-label>Buscar</mat-label>
+      <input matInput [(ngModel)]="quickFilter" placeholder="Nombre o dirección...">
+    </mat-form-field>
+  </div>
+
+  <div class="clients-page__grid ag-theme-alpine-dark">
+    <ag-grid-angular
+      [rowData]="clients"
+      [columnDefs]="columnDefs"
+      [quickFilterText]="quickFilter"
+      (cellClicked)="onCellClicked($event)">
+    </ag-grid-angular>
+  </div>
+</div>
