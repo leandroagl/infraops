@@ -19,7 +19,8 @@ export class ClientDetailComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id')!;
+    const id = this.route.snapshot.paramMap.get('id');
+    if (!id) return;
     this.clientsService.getById(id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

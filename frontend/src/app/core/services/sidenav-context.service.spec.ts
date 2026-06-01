@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { SidenavContextService } from './sidenav-context.service';
+import { SidenavContextService, ClientSidenavContext } from './sidenav-context.service';
 
 describe('SidenavContextService', () => {
   let service: SidenavContextService;
@@ -9,27 +9,24 @@ describe('SidenavContextService', () => {
     service = TestBed.inject(SidenavContextService);
   });
 
-  it('emite null inicialmente', (done) => {
-    service.client$.subscribe(val => {
-      expect(val).toBeNull();
-      done();
-    });
+  it('emite null inicialmente', () => {
+    let emitted: ClientSidenavContext | null | undefined;
+    service.client$.subscribe(v => (emitted = v));
+    expect(emitted).toBeNull();
   });
 
-  it('emite el cliente tras llamar setClient', (done) => {
+  it('emite el cliente tras llamar setClient', () => {
     service.setClient({ id: '1', name: 'ACME Corp' });
-    service.client$.subscribe(val => {
-      expect(val).toEqual({ id: '1', name: 'ACME Corp' });
-      done();
-    });
+    let emitted: ClientSidenavContext | null | undefined;
+    service.client$.subscribe(v => (emitted = v));
+    expect(emitted).toEqual({ id: '1', name: 'ACME Corp' });
   });
 
-  it('emite null tras llamar clearClient', (done) => {
+  it('emite null tras llamar clearClient', () => {
     service.setClient({ id: '1', name: 'ACME Corp' });
     service.clearClient();
-    service.client$.subscribe(val => {
-      expect(val).toBeNull();
-      done();
-    });
+    let emitted: ClientSidenavContext | null | undefined;
+    service.client$.subscribe(v => (emitted = v));
+    expect(emitted).toBeNull();
   });
 });

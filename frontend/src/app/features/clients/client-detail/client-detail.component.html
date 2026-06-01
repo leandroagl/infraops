@@ -1,1 +1,4 @@
-<router-outlet></router-outlet>
+<p *ngIf="loadError" class="tx-md" style="padding:24px;color:var(--crit)">
+  No se pudo cargar el cliente.
+</p>
+<router-outlet *ngIf="!loadError"></router-outlet>

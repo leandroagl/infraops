@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import { ShellComponent } from './shell.component';
@@ -15,6 +16,7 @@ describe('ShellComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [ShellComponent],
+      imports: [NoopAnimationsModule],
       providers: [
         {
           provide: Router,
@@ -33,7 +35,7 @@ describe('ShellComponent', () => {
     }).compileComponents();
 
     fixture = TestBed.createComponent(ShellComponent);
-    fixture.detectChanges(); // dispara ngOnInit
+    fixture.detectChanges();
   });
 
   it('muestra el nav global cuando no hay cliente activo', () => {
