@@ -108,16 +108,16 @@ describe('InfradocService', () => {
     await expect(service.getClients()).rejects.toThrow(ServiceUnavailableException);
   });
 
-  const makeRawLocation = (override: Record<string, unknown> = {}) => ({
-    location_id: '1',
-    location_client_id: '10',
-    location_address: 'Av. Corrientes 1234',
-    location_city: 'Buenos Aires',
-    location_primary: '1',
-    ...override,
-  });
-
   describe('getLocations', () => {
+    const makeRawLocation = (override: Record<string, unknown> = {}) => ({
+      location_id: '1',
+      location_client_id: '10',
+      location_address: 'Av. Corrientes 1234',
+      location_city: 'Buenos Aires',
+      location_primary: '1',
+      ...override,
+    });
+
     it('mapea los campos de InfraDoc al formato InfradocLocation', async () => {
       httpService.get.mockReturnValue(
         of(axiosRes({ success: 'True', count: 1, data: [makeRawLocation()] })),
