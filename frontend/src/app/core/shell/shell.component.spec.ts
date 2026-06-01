@@ -61,4 +61,21 @@ describe('ShellComponent', () => {
     const globalNav = fixture.nativeElement.querySelector('.sidebar__nav--global');
     expect(globalNav).toBeFalsy();
   });
+
+  it('usa mat-sidenav-container como contenedor principal', () => {
+    const container = fixture.nativeElement.querySelector('mat-sidenav-container');
+    expect(container).toBeTruthy();
+  });
+
+  it('usa mat-toolbar como topbar', () => {
+    const toolbar = fixture.nativeElement.querySelector('mat-toolbar');
+    expect(toolbar).toBeTruthy();
+  });
+
+  it('aplica sidenav--wide en mat-sidenav cuando hay cliente activo', () => {
+    clientSubject.next({ id: '1', name: 'ACME Corp' });
+    fixture.detectChanges();
+    const sidenav = fixture.nativeElement.querySelector('mat-sidenav');
+    expect(sidenav?.classList.contains('sidenav--wide')).toBeTrue();
+  });
 });

@@ -1,7 +1,7 @@
-<div class="shell">
+<mat-sidenav-container class="shell">
 
-  <!-- ── Sidebar ─────────────────────────────────────────── -->
-  <aside class="sidebar" [class.sidebar--client]="clientContext">
+  <!-- ── Sidenav ───────────────────────────────────────────── -->
+  <mat-sidenav [class.sidenav--wide]="clientContext" mode="side" opened>
 
     <div class="sidebar__logo">
       <svg viewBox="0 0 24 24"
@@ -105,21 +105,23 @@
         </svg>
       </button>
     </div>
-  </aside>
 
-  <!-- ── Main ───────────────────────────────────────────── -->
-  <div class="shell__body">
-    <header class="topbar">
-      <span class="topbar__title">InfraOps</span>
-      <div class="topbar__user">
-        <span class="topbar__role">{{ currentUser?.role }}</span>
-        <span class="topbar__email">{{ currentUser?.email }}</span>
+  </mat-sidenav>
+
+  <!-- ── Content ───────────────────────────────────────────── -->
+  <mat-sidenav-content>
+    <mat-toolbar class="shell-toolbar">
+      <span class="toolbar__title">InfraOps</span>
+      <span class="toolbar__spacer"></span>
+      <div class="toolbar__user">
+        <span class="toolbar__role">{{ currentUser?.role }}</span>
+        <span class="toolbar__email">{{ currentUser?.email }}</span>
       </div>
-    </header>
+    </mat-toolbar>
 
     <main class="shell__content">
       <router-outlet></router-outlet>
     </main>
-  </div>
+  </mat-sidenav-content>
 
-</div>
+</mat-sidenav-container>
