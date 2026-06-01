@@ -107,4 +107,49 @@ describe('InfradocService', () => {
 
     await expect(service.getClients()).rejects.toThrow(ServiceUnavailableException);
   });
+
+  const makeRawLocation = (override: Record<string, unknown> = {}) => ({
+    location_id: '1',
+    location_client_id: '10',
+    location_address: 'Av. Corrientes 1234',
+    location_city: 'Buenos Aires',
+    location_primary: '1',
+    ...override,
+  });
+
+  describe('getLocations', () => {
+    it('mapea los campos de InfraDoc al formato InfradocLocation', async () => {
+      httpService.get.mockReturnValue(
+        of(axiosRes({ success: 'True', count: 1, data: [makeRawLocation()] })),
+      );
+
+      const result = await service.getLocations();
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        infradocClientId: 10,
+        address: 'Av. Corrientes 1234',
+        city: 'Buenos Aires',
+        isPrimary: true,
+      });
+    });
+
+    it('mapea location_primary "0" a isPrimary false', async () => {
+      httpService.get.mockReturnValue(
+        of(axiosRes({ success: 'True', count: 1, data: [makeRawLocation({ location_primary: '0' })] })),
+      );
+
+      const result = await service.getLocations();
+
+      expect(result[0].isPrimary).toBe(false);
+    });
+
+    it('lanza ServiceUnavailableException cuando InfraDoc devuelve success False', async () => {
+      httpService.get.mockReturnValue(
+        of(axiosRes({ success: 'False', message: 'Auth failed' })),
+      );
+
+      await expect(service.getLocations()).rejects.toThrow(ServiceUnavailableException);
+    });
+  });
 });

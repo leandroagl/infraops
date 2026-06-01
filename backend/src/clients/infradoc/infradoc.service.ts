@@ -18,6 +18,13 @@ export interface InfradocClient {
   isActive: boolean;
 }
 
+export interface InfradocLocation {
+  infradocClientId: number;
+  address: string | null;
+  city: string | null;
+  isPrimary: boolean;
+}
+
 @Injectable()
 export class InfradocService {
   constructor(private readonly httpService: HttpService) {}
@@ -37,6 +44,34 @@ export class InfradocService {
     }
 
     return (response.data.data as Record<string, unknown>[]).map((raw) => this.mapClient(raw));
+  }
+
+  async getLocations(): Promise<InfradocLocation[]> {
+    const url = `${process.env.INFRADOC_URL}/api/v1/locations/read.php`;
+    const response = await firstValueFrom(
+      this.httpService.get(url, {
+        params: { api_key: process.env.INFRADOC_API_KEY, limit: 200 },
+      }),
+    );
+
+    if (response.data.success !== 'True') {
+      throw new ServiceUnavailableException(
+        `InfraDoc API error: ${response.data.message}`,
+      );
+    }
+
+    return (response.data.data as Record<string, unknown>[]).map((raw) =>
+      this.mapLocation(raw),
+    );
+  }
+
+  private mapLocation(raw: Record<string, unknown>): InfradocLocation {
+    return {
+      infradocClientId: Number(raw.location_client_id),
+      address: (raw.location_address as string) ?? null,
+      city: (raw.location_city as string) ?? null,
+      isPrimary: raw.location_primary === '1' || raw.location_primary === 1,
+    };
   }
 
   private mapClient(raw: Record<string, unknown>): InfradocClient {
