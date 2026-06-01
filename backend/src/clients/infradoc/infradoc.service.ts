@@ -31,6 +31,7 @@ export class InfradocService {
 
   async getClients(): Promise<InfradocClient[]> {
     const url = `${process.env.INFRADOC_URL}/api/v1/clients/read.php`;
+    // limit: 200 asume que ONDRA no superará ese número de clientes. Si lo hace, la sync truncará silenciosamente.
     const response = await firstValueFrom(
       this.httpService.get(url, {
         params: { api_key: process.env.INFRADOC_API_KEY, limit: 200 },
@@ -48,6 +49,7 @@ export class InfradocService {
 
   async getLocations(): Promise<InfradocLocation[]> {
     const url = `${process.env.INFRADOC_URL}/api/v1/locations/read.php`;
+    // limit: 200 asume que ONDRA no superará ese número de locations. Si lo hace, la sync truncará silenciosamente.
     const response = await firstValueFrom(
       this.httpService.get(url, {
         params: { api_key: process.env.INFRADOC_API_KEY, limit: 200 },

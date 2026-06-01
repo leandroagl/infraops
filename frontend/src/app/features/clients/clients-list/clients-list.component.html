@@ -7,6 +7,10 @@
     </mat-form-field>
   </div>
 
+  <p *ngIf="loadError" class="tx-md" style="color: var(--crit); padding: 8px 0;">
+    Error al cargar los clientes. Intentá recargar la página.
+  </p>
+
   <div class="clients-page__grid ag-theme-alpine-dark">
     <ag-grid-angular
       [rowData]="clients"

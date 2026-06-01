@@ -9,6 +9,7 @@ describe('ClientsService', () => {
   let service: ClientsService;
   let clientRepository: {
     find: jest.Mock;
+    findOne: jest.Mock;
     create: jest.Mock;
     save: jest.Mock;
     update: jest.Mock;
