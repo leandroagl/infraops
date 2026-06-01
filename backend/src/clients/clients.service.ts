@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Cron } from '@nestjs/schedule';
 import { Repository } from 'typeorm';
 import { Client } from './client.entity';
-import { InfradocClient, InfradocService } from './infradoc/infradoc.service';
+import { InfradocClient, InfradocLocation, InfradocService } from './infradoc/infradoc.service';
 
 export interface SyncResult {
   created: number;
@@ -50,10 +50,19 @@ export class ClientsService {
       }
     }
 
-    const [infradocClients, localClients] = await Promise.all([
+    const [infradocClients, localClients, infradocLocations] = await Promise.all([
       this.infradocService.getClients(),
       this.clientRepository.find(),
+      this.infradocService.getLocations(),
     ]);
+
+    const primaryAddressMap = new Map<number, string>();
+    for (const loc of infradocLocations) {
+      if (loc.isPrimary) {
+        const parts = [loc.address, loc.city].filter(Boolean) as string[];
+        primaryAddressMap.set(loc.infradocClientId, parts.join(', '));
+      }
+    }
 
     const localByInfradocId = new Map(localClients.map((c) => [c.infradocId, c]));
     const infradocIds = new Set(infradocClients.map((c) => c.infradocId));
@@ -64,15 +73,24 @@ export class ClientsService {
 
     for (const remote of infradocClients) {
       const local = localByInfradocId.get(remote.infradocId);
+      const newPrimaryAddress = primaryAddressMap.get(remote.infradocId) ?? null;
 
       if (!local) {
         await this.clientRepository.save(
-          this.clientRepository.create({ ...remote, lastSyncedAt: new Date() }),
+          this.clientRepository.create({
+            ...remote,
+            lastSyncedAt: new Date(),
+            primaryAddress: newPrimaryAddress,
+          }),
         );
         created++;
-      } else if (this.hasChanged(local, remote)) {
+      } else if (this.hasChanged(local, remote, newPrimaryAddress)) {
         const { infradocId, ...fields } = remote;
-        await this.clientRepository.update(local.id, { ...fields, lastSyncedAt: new Date() });
+        await this.clientRepository.update(local.id, {
+          ...fields,
+          lastSyncedAt: new Date(),
+          primaryAddress: newPrimaryAddress,
+        });
         updated++;
       } else {
         unchanged++;
@@ -105,7 +123,11 @@ export class ClientsService {
     }
   }
 
-  private hasChanged(local: Client, remote: InfradocClient): boolean {
+  private hasChanged(
+    local: Client,
+    remote: InfradocClient,
+    newPrimaryAddress: string | null,
+  ): boolean {
     return (
       local.name !== remote.name ||
       local.abbreviation !== remote.abbreviation ||
@@ -118,7 +140,8 @@ export class ClientsService {
       local.taxIdNumber !== remote.taxIdNumber ||
       local.isLead !== remote.isLead ||
       local.notes !== remote.notes ||
-      local.isActive !== remote.isActive
+      local.isActive !== remote.isActive ||
+      local.primaryAddress !== newPrimaryAddress
     );
   }
 }

@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Client } from './client.entity';
 import { ClientsService } from './clients.service';
-import { InfradocClient, InfradocService } from './infradoc/infradoc.service';
+import { InfradocClient, InfradocLocation, InfradocService } from './infradoc/infradoc.service';
 
 describe('ClientsService', () => {
   let service: ClientsService;
@@ -13,7 +13,7 @@ describe('ClientsService', () => {
     save: jest.Mock;
     update: jest.Mock;
   };
-  let infradocService: { getClients: jest.Mock };
+  let infradocService: { getClients: jest.Mock; getLocations: jest.Mock };
 
   const makeLocal = (override: Partial<Client> = {}): Client => ({
     id: 'uuid-1',
@@ -62,7 +62,10 @@ describe('ClientsService', () => {
       update: jest.fn().mockResolvedValue(undefined),
     };
 
-    infradocService = { getClients: jest.fn() };
+    infradocService = {
+      getClients: jest.fn(),
+      getLocations: jest.fn().mockResolvedValue([]),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -161,6 +164,63 @@ describe('ClientsService', () => {
       await service.syncWithInfradoc();
 
       await expect(service.syncWithInfradoc(true)).resolves.toBeDefined();
+    });
+
+    it('guarda primaryAddress cuando existe primary location para el cliente', async () => {
+      const location: InfradocLocation = {
+        infradocClientId: 1,
+        address: 'Av. Corrientes 1234',
+        city: 'Buenos Aires',
+        isPrimary: true,
+      };
+      infradocService.getClients.mockResolvedValue([makeRemote()]);
+      infradocService.getLocations.mockResolvedValue([location]);
+      clientRepository.find.mockResolvedValue([]);
+
+      await service.syncWithInfradoc();
+
+      expect(clientRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ primaryAddress: 'Av. Corrientes 1234, Buenos Aires' }),
+      );
+    });
+
+    it('guarda primaryAddress null cuando no hay primary location para el cliente', async () => {
+      const location: InfradocLocation = {
+        infradocClientId: 99, // otro cliente
+        address: 'Otra calle',
+        city: 'Rosario',
+        isPrimary: true,
+      };
+      infradocService.getClients.mockResolvedValue([makeRemote()]);
+      infradocService.getLocations.mockResolvedValue([location]);
+      clientRepository.find.mockResolvedValue([]);
+
+      await service.syncWithInfradoc();
+
+      expect(clientRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ primaryAddress: null }),
+      );
+    });
+
+    it('detecta cambio de primaryAddress y actualiza el cliente', async () => {
+      const location: InfradocLocation = {
+        infradocClientId: 1,
+        address: 'Av. Nueva 999',
+        city: 'Córdoba',
+        isPrimary: true,
+      };
+      // Cliente local sin dirección
+      clientRepository.find.mockResolvedValue([makeLocal({ primaryAddress: null })]);
+      infradocService.getClients.mockResolvedValue([makeRemote()]);
+      infradocService.getLocations.mockResolvedValue([location]);
+
+      const result = await service.syncWithInfradoc();
+
+      expect(clientRepository.update).toHaveBeenCalledWith(
+        'uuid-1',
+        expect.objectContaining({ primaryAddress: 'Av. Nueva 999, Córdoba' }),
+      );
+      expect(result.updated).toBe(1);
     });
   });
 
