@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { ColDef, CellClickedEvent, ValueFormatterParams } from 'ag-grid-community';
 import { ClientsService } from '../../../core/services/clients.service';
@@ -12,6 +13,8 @@ import { Client } from '../../../core/models/client.models';
 export class ClientsListComponent implements OnInit {
   clients: Client[] = [];
   quickFilter = '';
+  loadError = false;
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly columnDefs: ColDef[] = [
     {
@@ -35,11 +38,16 @@ export class ClientsListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.clientsService.getAll().subscribe({
-      next: (data) => {
-        this.clients = data.filter((c) => c.isActive);
-      },
-    });
+    this.clientsService.getAll()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => {
+          this.clients = data.filter((c) => c.isActive);
+        },
+        error: () => {
+          this.loadError = true;
+        },
+      });
   }
 
   onCellClicked(event: CellClickedEvent): void {

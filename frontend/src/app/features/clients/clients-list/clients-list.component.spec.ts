@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
 import { CellClickedEvent } from 'ag-grid-community';
@@ -72,5 +72,27 @@ describe('ClientsListComponent', () => {
     const fields = component.columnDefs.map(c => c.field);
     expect(fields).toContain('name');
     expect(fields).toContain('primaryAddress');
+  });
+
+  it('muestra loadError true cuando falla la carga', async () => {
+    const errorSpy = jasmine.createSpyObj('ClientsService', ['getAll']);
+    errorSpy.getAll.and.returnValue(throwError(() => new Error('Network error')));
+    const routerSpyLocal = jasmine.createSpyObj('Router', ['navigate']);
+
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      declarations: [ClientsListComponent],
+      providers: [
+        { provide: ClientsService, useValue: errorSpy },
+        { provide: Router, useValue: routerSpyLocal },
+      ],
+      schemas: [NO_ERRORS_SCHEMA],
+    }).compileComponents();
+
+    const f = TestBed.createComponent(ClientsListComponent);
+    f.detectChanges();
+
+    expect(f.componentInstance.loadError).toBe(true);
+    expect(f.componentInstance.clients.length).toBe(0);
   });
 });
