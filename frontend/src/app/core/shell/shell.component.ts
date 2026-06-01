@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { AuthUser } from '../models/auth.models';
@@ -23,6 +24,8 @@ export class ShellComponent implements OnInit {
     { route: '/admin',     label: 'Admin',      icon: 'admin'     },
   ];
 
+  private readonly destroyRef = inject(DestroyRef);
+
   readonly currentUser: AuthUser | null;
   clientContext: ClientSidenavContext | null = null;
 
@@ -35,9 +38,11 @@ export class ShellComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.sidenavCtx.client$.subscribe(ctx => {
-      this.clientContext = ctx;
-    });
+    this.sidenavCtx.client$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(ctx => {
+        this.clientContext = ctx;
+      });
   }
 
   isActive(route: string): boolean {
