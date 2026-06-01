@@ -136,3 +136,68 @@
   overflow-y: auto;
   padding: 24px;
 }
+
+// ── Client sidebar mode ────────────────────────────────────────
+.sidebar--client {
+  width: 180px;
+}
+
+.sidebar__divider {
+  height: 1px;
+  background: var(--border-lo);
+  margin: 4px 8px;
+  flex-shrink: 0;
+}
+
+.sidebar__nav--client {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0;
+  flex: 1;
+}
+
+.client-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  height: 34px;
+  margin: 0 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  color: var(--tx-md);
+  font-size: 12px;
+  font-family: var(--font-ui);
+  transition: color var(--transition), background var(--transition);
+  flex-shrink: 0;
+
+  &__label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: var(--hover);
+    color: var(--tx-hi);
+  }
+
+  &.active {
+    background: var(--accent-bg);
+    border-color: var(--accent-bd);
+    color: var(--accent);
+  }
+
+  &--back {
+    margin-top: 8px;
+    color: var(--tx-lo);
+    font-size: 11px;
+    font-family: var(--font-mono);
+  }
+}

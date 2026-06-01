@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { AuthUser } from '../models/auth.models';
+import { SidenavContextService, ClientSidenavContext } from '../services/sidenav-context.service';
 
 interface NavItem {
   route: string;
@@ -14,7 +15,7 @@ interface NavItem {
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss',
 })
-export class ShellComponent {
+export class ShellComponent implements OnInit {
   readonly navItems: NavItem[] = [
     { route: '/dashboard', label: 'Dashboard',  icon: 'dashboard' },
     { route: '/clients',   label: 'Clientes',   icon: 'clients'   },
@@ -23,9 +24,20 @@ export class ShellComponent {
   ];
 
   readonly currentUser: AuthUser | null;
+  clientContext: ClientSidenavContext | null = null;
 
-  constructor(private router: Router, private auth: AuthService) {
+  constructor(
+    private readonly router: Router,
+    private readonly auth: AuthService,
+    private readonly sidenavCtx: SidenavContextService,
+  ) {
     this.currentUser = this.auth.getCurrentUser();
+  }
+
+  ngOnInit(): void {
+    this.sidenavCtx.client$.subscribe(ctx => {
+      this.clientContext = ctx;
+    });
   }
 
   isActive(route: string): boolean {
