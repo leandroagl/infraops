@@ -28,6 +28,7 @@ describe('ClientsService', () => {
     netTerms: null,
     taxIdNumber: null,
     isLead: false,
+    primaryAddress: null,
     notes: null,
     isActive: true,
     lastSyncedAt: null,

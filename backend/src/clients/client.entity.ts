@@ -50,6 +50,9 @@ export class Client {
   @Column({ default: false })
   isLead: boolean;
 
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  primaryAddress: string | null;
+
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
