@@ -1,23 +1,16 @@
 .clients-page {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
   padding: 20px;
-  gap: 14px;
 
   &__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    margin-bottom: 14px;
   }
 
   &__grid {
-    flex: 1;
-    min-height: 0;
-
     ag-grid-angular {
       width: 100%;
-      height: 100%;
     }
   }
 }

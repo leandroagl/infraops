@@ -1,3 +1,6 @@
+@import 'ag-grid-community/styles/ag-grid.css';
+@import 'ag-grid-community/styles/ag-theme-alpine.css';
+
 .ag-theme-alpine-dark {
   --ag-background-color:         var(--surface);
   --ag-odd-row-background-color: var(--card);

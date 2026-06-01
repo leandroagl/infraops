@@ -13,6 +13,7 @@
 
   <div class="clients-page__grid ag-theme-alpine-dark">
     <ag-grid-angular
+      [domLayout]="'autoHeight'"
       [rowData]="clients"
       [columnDefs]="columnDefs"
       [quickFilterText]="quickFilter"
