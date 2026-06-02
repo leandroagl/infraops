@@ -8,6 +8,7 @@ export interface TaskFilters {
   status?: string;
   clientId?: string;
   technicianId?: string;
+  type?: string;
 }
 
 export interface CreateTaskPayload {
@@ -28,6 +29,7 @@ export class TasksService {
     if (filters.status)      params = params.set('status',      filters.status);
     if (filters.clientId)    params = params.set('clientId',    filters.clientId);
     if (filters.technicianId) params = params.set('technicianId', filters.technicianId);
+    if (filters.type)         params = params.set('type',         filters.type);
     return this.http.get<Task[]>(this.base, { params });
   }
 

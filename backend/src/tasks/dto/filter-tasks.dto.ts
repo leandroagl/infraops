@@ -1,5 +1,6 @@
 import { IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { TaskStatus } from '../task-status.enum';
+import { TaskType } from '../task-type.enum';
 
 export class FilterTasksDto {
   @IsOptional()
@@ -13,4 +14,8 @@ export class FilterTasksDto {
   @IsOptional()
   @IsUUID()
   technicianId?: string;
+
+  @IsOptional()
+  @IsEnum(TaskType)
+  type?: TaskType;
 }

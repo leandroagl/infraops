@@ -38,7 +38,7 @@ export class User {
   @Column({ name: 'technician_id', type: 'uuid', nullable: true, default: null })
   technicianId: string | null;
 
-  @OneToOne(() => Technician)
+  @OneToOne(() => Technician, (technician) => technician.user)
   @JoinColumn({ name: 'technician_id' })
   technician: Technician | null;
 

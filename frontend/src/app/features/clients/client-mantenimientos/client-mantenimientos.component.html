@@ -1,0 +1,18 @@
+<mat-tab-group>
+  <mat-tab label="Servidores">
+    <div *ngIf="error" style="padding:16px;color:var(--crit);font-size:13px">
+      {{ error }}
+    </div>
+
+    <div *ngIf="!error" class="ag-theme-alpine-dark" style="width:100%;margin-top:8px">
+      <ag-grid-angular
+        [domLayout]="'autoHeight'"
+        [rowData]="loading ? null : tasks"
+        [columnDefs]="columnDefs"
+        [overlayLoadingTemplate]="'<span></span>'"
+        [overlayNoRowsTemplate]="'<span style=\'color:var(--tx-lo);font-size:12px\'>Sin tareas de servidores</span>'"
+        [loading]="loading">
+      </ag-grid-angular>
+    </div>
+  </mat-tab>
+</mat-tab-group>

@@ -95,7 +95,7 @@ describe('TasksService', () => {
 
       expect(taskRepository.find).toHaveBeenCalledWith({
         where: {},
-        relations: ['client', 'technician'],
+        relations: ['client', 'technician', 'technician.user'],
         order: { scheduledDate: 'ASC' },
       });
       expect(result).toHaveLength(1);
@@ -109,7 +109,7 @@ describe('TasksService', () => {
 
       expect(taskRepository.find).toHaveBeenCalledWith({
         where: { status: TaskStatus.PENDING },
-        relations: ['client', 'technician'],
+        relations: ['client', 'technician', 'technician.user'],
         order: { scheduledDate: 'ASC' },
       });
     });
@@ -121,7 +121,7 @@ describe('TasksService', () => {
 
       expect(taskRepository.find).toHaveBeenCalledWith({
         where: { clientId: 'client-1' },
-        relations: ['client', 'technician'],
+        relations: ['client', 'technician', 'technician.user'],
         order: { scheduledDate: 'ASC' },
       });
     });
@@ -133,7 +133,19 @@ describe('TasksService', () => {
 
       expect(taskRepository.find).toHaveBeenCalledWith({
         where: { technicianId: 'tech-1' },
-        relations: ['client', 'technician'],
+        relations: ['client', 'technician', 'technician.user'],
+        order: { scheduledDate: 'ASC' },
+      });
+    });
+
+    it('aplica filtro por type cuando se provee', async () => {
+      taskRepository.find.mockResolvedValue([mockTask]);
+
+      await service.findAll({ type: TaskType.SERVER_MAINTENANCE } as FilterTasksDto);
+
+      expect(taskRepository.find).toHaveBeenCalledWith({
+        where: { type: TaskType.SERVER_MAINTENANCE },
+        relations: ['client', 'technician', 'technician.user'],
         order: { scheduledDate: 'ASC' },
       });
     });

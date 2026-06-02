@@ -34,13 +34,14 @@ export class TasksService {
 
   async findAll(filters: FilterTasksDto): Promise<Task[]> {
     const where: Record<string, unknown> = {};
-    if (filters.status) where['status'] = filters.status;
-    if (filters.clientId) where['clientId'] = filters.clientId;
+    if (filters.status)      where['status']      = filters.status;
+    if (filters.clientId)    where['clientId']    = filters.clientId;
     if (filters.technicianId) where['technicianId'] = filters.technicianId;
+    if (filters.type)        where['type']        = filters.type;
 
     return this.taskRepository.find({
       where,
-      relations: ['client', 'technician'],
+      relations: ['client', 'technician', 'technician.user'],
       order: { scheduledDate: 'ASC' },
     });
   }
@@ -106,7 +107,7 @@ export class TasksService {
   private async loadTask(id: string): Promise<Task> {
     const task = await this.taskRepository.findOne({
       where: { id },
-      relations: ['client', 'technician'],
+      relations: ['client', 'technician', 'technician.user'],
     });
     if (!task) throw new NotFoundException('Tarea no encontrada');
     return task;
