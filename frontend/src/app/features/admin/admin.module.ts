@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { AgGridModule } from 'ag-grid-angular';
 import { AdminRoutingModule } from './admin-routing.module';
 import { AdminLayoutComponent } from './admin-layout/admin-layout.component';
 import { UsersComponent } from './users/users.component';
@@ -42,6 +43,7 @@ import { TaskCreateDialogComponent } from './tasks/task-create-dialog/task-creat
     MatSelectModule,
     MatButtonModule,
     MatProgressSpinnerModule,
+    AgGridModule,
     AdminRoutingModule,
   ],
 })

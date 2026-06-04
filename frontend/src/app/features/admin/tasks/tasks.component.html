@@ -5,7 +5,7 @@
       <span class="page-header__count" *ngIf="!loading">{{ tasks.length }} tareas</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <mat-form-field appearance="fill" subscriptSizing="dynamic" style="width:180px">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:180px">
         <mat-label>Estado</mat-label>
         <mat-select [(ngModel)]="filterStatus" (selectionChange)="load()">
           <mat-option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</mat-option>
@@ -25,45 +25,14 @@
     <button mat-button (click)="load()">Reintentar</button>
   </div>
 
-  <div class="surface-card">
-    <ng-container *ngIf="loading">
-      <div style="padding:16px;display:flex;flex-direction:column;gap:8px">
-        <div class="skeleton" style="height:42px;border-radius:var(--radius-sm)"></div>
-        <div class="skeleton" style="height:42px;border-radius:var(--radius-sm)"></div>
-        <div class="skeleton" style="height:42px;border-radius:var(--radius-sm)"></div>
-      </div>
-    </ng-container>
-
-    <table *ngIf="!loading" class="data-table">
-      <thead>
-        <tr>
-          <th>CLIENTE</th>
-          <th>TIPO</th>
-          <th>TÉCNICO</th>
-          <th>FECHA</th>
-          <th>ESTADO</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let task of tasks">
-          <td class="td-main">{{ task.client?.name ?? '—' }}</td>
-          <td>
-            <span class="badge" [ngClass]="typeBadge(task.type)">{{ typeLabel(task.type) }}</span>
-          </td>
-          <td class="td-secondary">{{ task.technician?.user?.name ?? '—' }}</td>
-          <td class="td-secondary mono">{{ formatDate(task.scheduledDate) }}</td>
-          <td>
-            <span class="badge" [ngClass]="statusBadge(task.status)">
-              <span class="dot"></span>{{ statusLabel(task.status) }}
-            </span>
-          </td>
-        </tr>
-        <tr *ngIf="tasks.length === 0">
-          <td colspan="5" style="text-align:center;color:var(--tx-lo);font-size:12px;padding:32px">
-            No hay tareas{{ filterStatus ? ' con ese estado' : '' }}.
-          </td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="surface-card tasks-grid ag-theme-alpine-dark">
+    <ag-grid-angular
+      [domLayout]="'autoHeight'"
+      [rowData]="loading ? null : tasks"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [loading]="loading"
+      [overlayNoRowsTemplate]="noRowsTemplate">
+    </ag-grid-angular>
   </div>
 </div>

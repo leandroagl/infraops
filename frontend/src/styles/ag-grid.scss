@@ -15,4 +15,10 @@
   --ag-header-height:            36px;
   --ag-cell-horizontal-padding:  14px;
   --ag-selected-row-background-color: var(--accent-bg);
+
+  .ag-cell .badge {
+    border-radius: var(--radius-sm);
+    padding: 2px 6px;
+    line-height: 1;
+  }
 }
