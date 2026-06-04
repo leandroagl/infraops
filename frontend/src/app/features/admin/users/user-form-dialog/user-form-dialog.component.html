@@ -5,19 +5,19 @@
 <mat-dialog-content>
   <form [formGroup]="form" class="dialog-form">
 
-    <mat-form-field appearance="fill">
+    <mat-form-field appearance="outline">
       <mat-label>Nombre</mat-label>
       <input matInput formControlName="name" placeholder="Nombre completo" />
       <mat-error *ngIf="form.get('name')?.hasError('required')">Requerido</mat-error>
     </mat-form-field>
 
-    <mat-form-field appearance="fill">
+    <mat-form-field appearance="outline">
       <mat-label>Email</mat-label>
       <input matInput formControlName="email" type="email" placeholder="email@ondra.com.ar" />
       <mat-error *ngIf="form.get('email')?.hasError('email')">Email inválido</mat-error>
     </mat-form-field>
 
-    <mat-form-field appearance="fill">
+    <mat-form-field appearance="outline">
       <mat-label>Rol</mat-label>
       <mat-select formControlName="role">
         <mat-option *ngFor="let r of roles" [value]="r.value">{{ r.label }}</mat-option>
