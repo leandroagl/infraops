@@ -77,7 +77,11 @@ export class TaskDrawerComponent implements OnChanges {
       switchMap(infra =>
         this.logsService.get(this.task.id).pipe(
           map(log => ({ infra, savedPayload: log.payload })),
-          catchError(() => of({ infra, savedPayload: null }))
+          catchError((err: HttpErrorResponse) =>
+            err.status === 404
+              ? of({ infra, savedPayload: null })
+              : throwError(() => err)
+          )
         )
       )
     ).subscribe({
