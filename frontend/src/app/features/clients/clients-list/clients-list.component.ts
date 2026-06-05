@@ -1,7 +1,8 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { ColDef, CellClickedEvent, ValueFormatterParams } from 'ag-grid-community';
+import { MatTableDataSource } from '@angular/material/table';
+import { MatSort } from '@angular/material/sort';
 import { ClientsService } from '../../../core/services/clients.service';
 import { Client } from '../../../core/models/client.models';
 
@@ -10,27 +11,15 @@ import { Client } from '../../../core/models/client.models';
   templateUrl: './clients-list.component.html',
   styleUrls: ['./clients-list.component.scss'],
 })
-export class ClientsListComponent implements OnInit {
-  clients: Client[] = [];
+export class ClientsListComponent implements OnInit, AfterViewInit {
+  readonly dataSource = new MatTableDataSource<Client>([]);
+  readonly displayedColumns = ['name', 'primaryAddress'];
   quickFilter = '';
   loadError = false;
-  private readonly destroyRef = inject(DestroyRef);
 
-  readonly columnDefs: ColDef[] = [
-    {
-      field: 'name',
-      headerName: 'Cliente',
-      flex: 1,
-      sort: 'asc',
-      cellStyle: { color: 'var(--accent)', cursor: 'pointer' },
-    },
-    {
-      field: 'primaryAddress',
-      headerName: 'Dirección primaria',
-      flex: 2,
-      valueFormatter: (p: ValueFormatterParams) => p.value ?? '—',
-    },
-  ];
+  @ViewChild(MatSort) sort!: MatSort;
+
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private readonly clientsService: ClientsService,
@@ -42,7 +31,7 @@ export class ClientsListComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
-          this.clients = data.filter((c) => c.isActive);
+          this.dataSource.data = data.filter((c) => c.isActive);
         },
         error: () => {
           this.loadError = true;
@@ -50,9 +39,15 @@ export class ClientsListComponent implements OnInit {
       });
   }
 
-  onCellClicked(event: CellClickedEvent): void {
-    if (event.colDef.field === 'name') {
-      this.router.navigate(['/clients', event.data.id]);
-    }
+  ngAfterViewInit(): void {
+    this.dataSource.sort = this.sort;
+  }
+
+  applyFilter(): void {
+    this.dataSource.filter = this.quickFilter.trim().toLowerCase();
+  }
+
+  navigateToClient(id: string): void {
+    this.router.navigate(['/clients', id]);
   }
 }

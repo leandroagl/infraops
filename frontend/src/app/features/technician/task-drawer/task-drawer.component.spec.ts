@@ -384,13 +384,13 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(loadComponent.infraError).toBe('');
     });
 
-    it('asigna savedPayload null y no muestra error cuando el log falla con 500', () => {
+    it('muestra infraError y pone loadingInfra en false cuando el log falla con 500', () => {
       getLogSpy.and.returnValue(throwError(() => ({ status: 500 })));
 
       loadComponent.loadInfrastructure();
 
-      expect(loadComponent.savedPayload).toBeNull();
-      expect(loadComponent.infraError).toBe('');
+      expect(loadComponent.loadingInfra).toBeFalse();
+      expect(loadComponent.infraError).toBeTruthy();
     });
 
     it('pone loadingInfra en false sólo después de que el log también resuelve', () => {

@@ -92,147 +92,6 @@
   margin-bottom: 4px;
 }
 
-// ── Servers table ─────────────────────────────────────────
-.srv-table {
-  background: var(--card);
-  border: 1px solid var(--border-lo);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.srv-table-head {
-  display: grid;
-  grid-template-columns: 16px 1fr 80px 1fr 1fr 20px;
-  align-items: center;
-  padding: 5px 10px;
-  background: var(--elevated);
-  border-bottom: 1px solid var(--border-lo);
-  gap: 8px;
-}
-
-.srv-th {
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--tx-lo);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-
-.srv-row {
-  display: grid;
-  grid-template-columns: 16px 1fr 80px 1fr 1fr 20px;
-  align-items: center;
-  padding: 7px 10px;
-  border-bottom: 1px solid var(--border-lo);
-  cursor: pointer;
-  transition: background var(--transition);
-  gap: 8px;
-
-  &:last-child { border-bottom: none; }
-  &:hover, &.expanded { background: var(--elevated); }
-}
-
-.srv-row-icon {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  background: var(--srv-bg);
-  border: 1px solid var(--srv-bd);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--srv);
-  flex-shrink: 0;
-}
-
-.srv-name-cell { min-width: 0; }
-.srv-name {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--tx-hi);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.srv-cell {
-  font-size: 10px;
-  color: var(--tx-md);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.srv-expand-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--tx-lo);
-  font-size: 8px;
-  padding: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color var(--transition);
-
-  &:hover { color: var(--tx-md); }
-}
-
-.srv-expand-panel {
-  display: none;
-  background: var(--elevated);
-  border-bottom: 1px solid var(--border-lo);
-  padding: 8px 10px 10px 36px;
-
-  &.open { display: flex; flex-direction: column; gap: 4px; }
-}
-
-.expand-detail {
-  display: flex;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--tx-hi);
-
-  .ctx-lbl { min-width: 120px; }
-}
-
-// ── VM / NAS / Router list ────────────────────────────────
-.vm-list {
-  display: flex;
-  flex-direction: column;
-  background: var(--card);
-  border: 1px solid var(--border-lo);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.vm-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  padding: 7px 10px;
-  border-bottom: 1px solid var(--border-lo);
-
-  &:last-child { border-bottom: none; }
-}
-
-.vm-icon {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  background: var(--elevated);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--tx-md);
-  flex-shrink: 0;
-}
-
-.vm-name { flex: 1; color: var(--tx-hi); font-weight: 500; }
-.vm-ip   { color: var(--tx-lo); font-family: var(--font-mono); font-size: 10px; }
-
 // ── Header ────────────────────────────────────────────────
 .d-hdr {
   display: flex;
@@ -253,7 +112,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .d-client {
@@ -316,7 +175,7 @@
   border-top: 1px solid var(--border-lo);
   background: var(--surface);
   flex-shrink: 0;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
 
   &__actions {
     display: flex;

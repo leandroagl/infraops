@@ -3,21 +3,32 @@
     <span class="section-label">Clientes</span>
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
       <mat-label>Buscar</mat-label>
-      <input matInput [(ngModel)]="quickFilter" placeholder="Nombre o dirección...">
+      <input matInput [(ngModel)]="quickFilter" (ngModelChange)="applyFilter()" placeholder="Nombre o dirección...">
     </mat-form-field>
   </div>
 
-  <p *ngIf="loadError" class="tx-md" style="color: var(--crit); padding: 8px 0;">
+  <p *ngIf="loadError" style="color: var(--crit); padding: 8px 0; font-size: 12px;">
     Error al cargar los clientes. Intentá recargar la página.
   </p>
 
-  <div class="clients-page__grid ag-theme-alpine-dark">
-    <ag-grid-angular
-      [domLayout]="'autoHeight'"
-      [rowData]="clients"
-      [columnDefs]="columnDefs"
-      [quickFilterText]="quickFilter"
-      (cellClicked)="onCellClicked($event)">
-    </ag-grid-angular>
-  </div>
+  <table mat-table [dataSource]="dataSource" matSort matSortActive="name" matSortDirection="asc" style="width:100%">
+
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
+      <td mat-cell *matCellDef="let row" class="client-name" (click)="navigateToClient(row.id)">
+        {{ row.name }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="primaryAddress">
+      <th mat-header-cell *matHeaderCellDef>Dirección primaria</th>
+      <td mat-cell *matCellDef="let row">{{ row.primaryAddress ?? '—' }}</td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    <tr class="mat-mdc-no-data-row" *matNoDataRow>
+      <td [attr.colspan]="displayedColumns.length">Sin clientes</td>
+    </tr>
+  </table>
 </div>

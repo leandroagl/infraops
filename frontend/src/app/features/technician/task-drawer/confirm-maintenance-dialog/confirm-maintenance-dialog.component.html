@@ -1,8 +1,6 @@
-<div class="dialog-header">
-  <h2 class="dialog-title">Confirmar registro</h2>
-</div>
+<h2 mat-dialog-title>Confirmar registro</h2>
 
-<div class="dialog-body">
+<mat-dialog-content>
 
   <div *ngIf="data.issuesSummary.dcdiagErrors.length > 0" class="alert-box alert-box--warn">
     <strong>DCDIAG con errores:</strong>
@@ -25,11 +23,11 @@
     Todo completo. El registro se guardará y la tarea pasará a DONE.
   </div>
 
-</div>
+</mat-dialog-content>
 
-<div class="dialog-footer">
+<mat-dialog-actions align="end">
   <button mat-stroked-button (click)="dialogRef.close(false)">Volver a revisar</button>
   <button mat-flat-button color="primary" (click)="dialogRef.close(true)">
     Confirmar{{ data.hasAlerts ? ' · enviar alerta' : '' }}
   </button>
-</div>
+</mat-dialog-actions>

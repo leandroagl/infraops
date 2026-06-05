@@ -1,18 +1,35 @@
 <mat-tab-group>
   <mat-tab label="Servidores">
-    <div *ngIf="error" style="padding:16px;color:var(--crit);font-size:13px">
+    <div *ngIf="error" class="mant-error">
       {{ error }}
     </div>
 
-    <div *ngIf="!error" class="ag-theme-alpine-dark" style="width:100%;margin-top:8px">
-      <ag-grid-angular
-        [domLayout]="'autoHeight'"
-        [rowData]="loading ? null : tasks"
-        [columnDefs]="columnDefs"
-        [overlayLoadingTemplate]="'<span></span>'"
-        [overlayNoRowsTemplate]="'<span style=\'color:var(--tx-lo);font-size:12px\'>Sin tareas de servidores</span>'"
-        [loading]="loading">
-      </ag-grid-angular>
+    <div *ngIf="!error" class="mant-table-wrapper">
+      <table mat-table [dataSource]="tasks">
+
+        <ng-container matColumnDef="technician">
+          <th mat-header-cell *matHeaderCellDef>Técnico</th>
+          <td mat-cell *matCellDef="let row">{{ row.technician?.user?.name ?? '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="scheduledDate">
+          <th mat-header-cell *matHeaderCellDef>Fecha</th>
+          <td mat-cell *matCellDef="let row">{{ row.scheduledDate | localDate }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let row">{{ statusLabel(row.status) }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        <tr class="mat-mdc-no-data-row" *matNoDataRow>
+          <td [attr.colspan]="displayedColumns.length">
+            {{ loading ? 'Cargando…' : 'Sin tareas de servidores' }}
+          </td>
+        </tr>
+      </table>
     </div>
   </mat-tab>
 </mat-tab-group>

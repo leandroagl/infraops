@@ -9,10 +9,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--tx-lo);
-  letter-spacing: 0.6px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
   font-family: var(--font-mono);
   margin-top: 4px;
@@ -264,7 +264,7 @@ button.mf-expand-btn[mat-icon-button] {
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   box-shadow: var(--shadow-card);
-  &.mf-cl-rpt--warn { border-color: var(--warn-bd); background: rgba(255, 179, 0, 0.03); }
+  &.mf-cl-rpt--warn { border-color: var(--warn-bd); background: color-mix(in srgb, var(--warn) 3%, transparent); }
 }
 
 .mf-cl-rpt-hdr {

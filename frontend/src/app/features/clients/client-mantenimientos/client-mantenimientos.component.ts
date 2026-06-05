@@ -1,41 +1,23 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-import { ColDef, ValueFormatterParams, ValueGetterParams } from 'ag-grid-community';
 import { Task, TaskStatus } from '../../../core/models/task.models';
 import { TasksService } from '../../../core/services/tasks.service';
+import { statusLabel } from '../../../shared/utils/task-labels';
 
 @Component({
   selector: 'app-client-mantenimientos',
   templateUrl: './client-mantenimientos.component.html',
+  styleUrl: './client-mantenimientos.component.scss',
 })
-export class ClientMantenimientosComponent implements OnInit, OnDestroy {
+export class ClientMantenimientosComponent implements OnInit {
   tasks: Task[] = [];
   loading = false;
   error = '';
 
-  private readonly destroy$ = new Subject<void>();
+  readonly displayedColumns = ['technician', 'scheduledDate', 'status'];
 
-  readonly columnDefs: ColDef[] = [
-    {
-      headerName: 'Técnico',
-      valueGetter: (p: ValueGetterParams) => p.data?.technician?.user?.name ?? '—',
-      flex: 1,
-    },
-    {
-      field: 'scheduledDate',
-      headerName: 'Fecha',
-      valueFormatter: (p: ValueFormatterParams) => this.formatDate(p.value),
-      flex: 1,
-    },
-    {
-      field: 'status',
-      headerName: 'Estado',
-      valueFormatter: (p: ValueFormatterParams) => this.statusLabel(p.value),
-      flex: 1,
-    },
-  ];
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -48,34 +30,12 @@ export class ClientMantenimientosComponent implements OnInit, OnDestroy {
     this.error = '';
     this.tasksService
       .getAll({ clientId, type: 'SERVER_MAINTENANCE' })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (tasks) => { this.tasks = tasks; this.loading = false; },
         error: () => { this.error = 'No se pudieron cargar las tareas.'; this.loading = false; },
       });
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
-  private statusLabel(status: TaskStatus): string {
-    const labels: Record<TaskStatus, string> = {
-      PENDING:     'Pendiente',
-      IN_PROGRESS: 'En curso',
-      DONE:        'Listo',
-      ESCALATED:   'Escalado',
-      NOT_DONE:    'No realizado',
-    };
-    return labels[status] ?? status;
-  }
-
-  private formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  }
+  statusLabel(status: TaskStatus): string { return statusLabel(status); }
 }
