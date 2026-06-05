@@ -1,8 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { FormsModule } from '@angular/forms';
 import { of, throwError } from 'rxjs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { Router } from '@angular/router';
-import { CellClickedEvent } from 'ag-grid-community';
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
 import { ClientsListComponent } from './clients-list.component';
 import { ClientsService } from '../../../core/services/clients.service';
 import { Client } from '../../../core/models/client.models';
@@ -33,6 +36,7 @@ describe('ClientsListComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [ClientsListComponent],
+      imports: [NoopAnimationsModule, FormsModule, MatTableModule, MatSortModule],
       providers: [
         { provide: ClientsService, useValue: clientsServiceSpy },
         { provide: Router, useValue: routerSpy },
@@ -46,32 +50,18 @@ describe('ClientsListComponent', () => {
   });
 
   it('carga solo clientes activos en ngOnInit', () => {
-    expect(component.clients.length).toBe(1);
-    expect(component.clients[0].name).toBe('ACME Corp');
+    expect(component.dataSource.data.length).toBe(1);
+    expect(component.dataSource.data[0].name).toBe('ACME Corp');
   });
 
-  it('navega a /clients/:id al hacer click en la columna nombre', () => {
-    component.onCellClicked({
-      colDef: { field: 'name' },
-      data: { id: '1' },
-    } as CellClickedEvent);
-
+  it('navega a /clients/:id al llamar navigateToClient', () => {
+    component.navigateToClient('1');
     expect(routerSpy.navigate).toHaveBeenCalledWith(['/clients', '1']);
   });
 
-  it('no navega al hacer click en la columna dirección', () => {
-    component.onCellClicked({
-      colDef: { field: 'primaryAddress' },
-      data: { id: '1' },
-    } as CellClickedEvent);
-
-    expect(routerSpy.navigate).not.toHaveBeenCalled();
-  });
-
-  it('expone columnDefs con los campos name y primaryAddress', () => {
-    const fields = component.columnDefs.map(c => c.field);
-    expect(fields).toContain('name');
-    expect(fields).toContain('primaryAddress');
+  it('expone displayedColumns con los campos name y primaryAddress', () => {
+    expect(component.displayedColumns).toContain('name');
+    expect(component.displayedColumns).toContain('primaryAddress');
   });
 
   it('muestra loadError true cuando falla la carga', async () => {
@@ -82,6 +72,7 @@ describe('ClientsListComponent', () => {
     TestBed.resetTestingModule();
     await TestBed.configureTestingModule({
       declarations: [ClientsListComponent],
+      imports: [NoopAnimationsModule, FormsModule, MatTableModule, MatSortModule],
       providers: [
         { provide: ClientsService, useValue: errorSpy },
         { provide: Router, useValue: routerSpyLocal },
@@ -93,6 +84,12 @@ describe('ClientsListComponent', () => {
     f.detectChanges();
 
     expect(f.componentInstance.loadError).toBe(true);
-    expect(f.componentInstance.clients.length).toBe(0);
+    expect(f.componentInstance.dataSource.data.length).toBe(0);
+  });
+
+  it('aplica filtro al dataSource al llamar applyFilter', () => {
+    component.quickFilter = 'acme';
+    component.applyFilter();
+    expect(component.dataSource.filter).toBe('acme');
   });
 });

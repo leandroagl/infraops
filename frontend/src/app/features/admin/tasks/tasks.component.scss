@@ -24,6 +24,38 @@
   }
 }
 
-.tasks-grid {
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--crit-bg);
+  border: 1px solid var(--crit-bd);
+  border-radius: var(--radius-sm);
+  color: var(--crit);
+  font-size: 12px;
+}
+
+.tasks-table {
   overflow: hidden;
+}
+
+.cell-secondary {
+  color: var(--tx-md);
+  font-size: 12px;
+}
+
+.cell-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 5px;
+  vertical-align: middle;
 }

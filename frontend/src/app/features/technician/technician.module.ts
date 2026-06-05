@@ -8,11 +8,13 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { TechnicianRoutingModule } from './technician-routing.module';
 import { TaskListComponent } from './task-list/task-list.component';
 import { TaskDrawerComponent } from './task-drawer/task-drawer.component';
 import { MaintenanceFormComponent } from './task-drawer/maintenance-form/maintenance-form.component';
 import { ConfirmMaintenanceDialogComponent } from './task-drawer/confirm-maintenance-dialog/confirm-maintenance-dialog.component';
+import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
   declarations: [TaskListComponent, TaskDrawerComponent, MaintenanceFormComponent, ConfirmMaintenanceDialogComponent],
@@ -26,7 +28,9 @@ import { ConfirmMaintenanceDialogComponent } from './task-drawer/confirm-mainten
     MatButtonModule,
     MatCardModule,
     MatDialogModule,
+    MatSnackBarModule,
     TechnicianRoutingModule,
+    SharedModule,
   ],
 })
 export class TechnicianModule {}

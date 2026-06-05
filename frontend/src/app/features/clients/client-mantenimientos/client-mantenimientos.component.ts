@@ -2,9 +2,9 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { ColDef, ValueFormatterParams, ValueGetterParams } from 'ag-grid-community';
 import { Task, TaskStatus } from '../../../core/models/task.models';
 import { TasksService } from '../../../core/services/tasks.service';
+import { statusLabel } from '../../../shared/utils/task-labels';
 
 @Component({
   selector: 'app-client-mantenimientos',
@@ -15,27 +15,9 @@ export class ClientMantenimientosComponent implements OnInit, OnDestroy {
   loading = false;
   error = '';
 
-  private readonly destroy$ = new Subject<void>();
+  readonly displayedColumns = ['technician', 'scheduledDate', 'status'];
 
-  readonly columnDefs: ColDef[] = [
-    {
-      headerName: 'Técnico',
-      valueGetter: (p: ValueGetterParams) => p.data?.technician?.user?.name ?? '—',
-      flex: 1,
-    },
-    {
-      field: 'scheduledDate',
-      headerName: 'Fecha',
-      valueFormatter: (p: ValueFormatterParams) => this.formatDate(p.value),
-      flex: 1,
-    },
-    {
-      field: 'status',
-      headerName: 'Estado',
-      valueFormatter: (p: ValueFormatterParams) => this.statusLabel(p.value),
-      flex: 1,
-    },
-  ];
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -60,22 +42,5 @@ export class ClientMantenimientosComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private statusLabel(status: TaskStatus): string {
-    const labels: Record<TaskStatus, string> = {
-      PENDING:     'Pendiente',
-      IN_PROGRESS: 'En curso',
-      DONE:        'Listo',
-      ESCALATED:   'Escalado',
-      NOT_DONE:    'No realizado',
-    };
-    return labels[status] ?? status;
-  }
-
-  private formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('es-AR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  }
+  statusLabel(status: TaskStatus): string { return statusLabel(status); }
 }

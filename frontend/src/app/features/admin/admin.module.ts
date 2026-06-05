@@ -9,7 +9,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { AgGridModule } from 'ag-grid-angular';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTableModule } from '@angular/material/table';
+import { MatSortModule } from '@angular/material/sort';
 import { AdminRoutingModule } from './admin-routing.module';
 import { AdminLayoutComponent } from './admin-layout/admin-layout.component';
 import { UsersComponent } from './users/users.component';
@@ -19,6 +21,7 @@ import { TechniciansComponent } from './technicians/technicians.component';
 import { AssignTechnicianDialogComponent } from './technicians/assign-technician-dialog/assign-technician-dialog.component';
 import { TasksComponent } from './tasks/tasks.component';
 import { TaskCreateDialogComponent } from './tasks/task-create-dialog/task-create-dialog.component';
+import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
   declarations: [
@@ -43,8 +46,11 @@ import { TaskCreateDialogComponent } from './tasks/task-create-dialog/task-creat
     MatSelectModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    AgGridModule,
+    MatProgressBarModule,
+    MatTableModule,
+    MatSortModule,
     AdminRoutingModule,
+    SharedModule,
   ],
 })
 export class AdminModule {}

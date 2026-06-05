@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
-import { AgGridModule } from 'ag-grid-angular';
+import { MatTableModule } from '@angular/material/table';
 import { of, throwError } from 'rxjs';
 import { ClientMantenimientosComponent } from './client-mantenimientos.component';
 import { TasksService } from '../../../core/services/tasks.service';
@@ -36,7 +36,7 @@ describe('ClientMantenimientosComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [ClientMantenimientosComponent],
-      imports: [NoopAnimationsModule, MatTabsModule, AgGridModule],
+      imports: [NoopAnimationsModule, MatTabsModule, MatTableModule],
       providers: [
         { provide: ActivatedRoute, useValue: mockRoute },
         { provide: TasksService, useValue: tasksServiceSpy },

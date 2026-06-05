@@ -9,10 +9,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--tx-lo);
-  letter-spacing: 0.6px;
+  letter-spacing: 0.8px;
   text-transform: uppercase;
   font-family: var(--font-mono);
   margin-top: 4px;
@@ -53,101 +53,91 @@
   min-width: 60px;
 }
 
-// ── mat-form-field base (fill appearance) ────────────────────────────────────
+// ── mat-form-field base (outline appearance) ─────────────────────────────────
 // CSS custom properties cascade into Material internals
 mat-form-field.mf-form-field {
   width: 100%;
 
-  --mdc-filled-text-field-container-color:       var(--elevated);
-  --mdc-filled-text-field-hover-container-color: var(--elevated);
-  --mdc-filled-text-field-active-indicator-color:        var(--border);
-  --mdc-filled-text-field-hover-active-indicator-color:  var(--border-md);
-  --mdc-filled-text-field-focus-active-indicator-color:  var(--accent-bd);
-  --mdc-filled-text-field-label-text-color:              var(--tx-lo);
-  --mdc-filled-text-field-hover-label-text-color:        var(--tx-md);
-  --mdc-filled-text-field-focus-label-text-color:        var(--accent);
-  --mat-select-trigger-text-color:    var(--tx-hi);
-  --mat-select-placeholder-text-color: var(--tx-lo);
-  --mat-select-arrow-foreground-color: var(--tx-lo);
-  --mat-select-trigger-text-size:     11px;
+  --mdc-outlined-text-field-container-color:        var(--elevated);
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mdc-outlined-text-field-label-text-color:       var(--tx-lo);
+  --mdc-outlined-text-field-hover-label-text-color: var(--tx-md);
+  --mdc-outlined-text-field-focus-label-text-color: var(--accent);
+  --mat-select-trigger-text-color:                  var(--tx-hi);
+  --mat-select-placeholder-text-color:              var(--tx-lo);
+  --mat-select-arrow-foreground-color:              var(--tx-lo);
+  --mat-select-trigger-text-size:                   11px;
 }
 
 // ── Compact form field for server table selects ──────────────────────────────
 mat-form-field.mf-srv-ff {
   width: 100%;
-  // inherit mf-form-field colors via combined usage in HTML: class="mf-srv-ff" is separate
-  --mdc-filled-text-field-container-color:       var(--elevated);
-  --mdc-filled-text-field-hover-container-color: var(--elevated);
-  --mdc-filled-text-field-active-indicator-color:        var(--border);
-  --mdc-filled-text-field-hover-active-indicator-color:  var(--border-md);
-  --mdc-filled-text-field-focus-active-indicator-color:  var(--accent-bd);
-  --mdc-filled-text-field-label-text-color:              var(--tx-lo);
-  --mat-select-trigger-text-color:    var(--tx-hi);
-  --mat-select-trigger-text-size:     10px;
+
+  --mdc-outlined-text-field-container-color:        var(--elevated);
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mdc-outlined-text-field-label-text-color:       var(--tx-lo);
+  --mat-select-trigger-text-color:                  var(--tx-hi);
+  --mat-select-trigger-text-size:                   10px;
 }
 
 // ── Compact metric form field (number inputs with %) ─────────────────────────
 mat-form-field.mf-metric-ff {
   width: 100%;
 
-  --mdc-filled-text-field-container-color:       var(--elevated);
-  --mdc-filled-text-field-hover-container-color: var(--elevated);
-  --mdc-filled-text-field-active-indicator-color:        var(--border);
-  --mdc-filled-text-field-hover-active-indicator-color:  var(--border-md);
-  --mdc-filled-text-field-focus-active-indicator-color:  var(--accent-bd);
-  --mdc-filled-text-field-label-text-color:              var(--tx-lo);
-  --mdc-filled-text-field-focus-label-text-color:        var(--accent);
-  --mat-select-trigger-text-size: 11px;
+  --mdc-outlined-text-field-container-color:        var(--elevated);
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mdc-outlined-text-field-label-text-color:       var(--tx-lo);
+  --mdc-outlined-text-field-focus-label-text-color: var(--accent);
+  --mat-select-trigger-text-size:                   11px;
 }
 
 // ── DCDIAG detail field (crit coloring) ──────────────────────────────────────
 mat-form-field.mf-dcdiag-detail-ff {
   flex: 1;
 
-  --mdc-filled-text-field-container-color:              var(--crit-bg);
-  --mdc-filled-text-field-hover-container-color:        var(--crit-bg);
-  --mdc-filled-text-field-active-indicator-color:       var(--crit-bd);
-  --mdc-filled-text-field-hover-active-indicator-color: var(--crit-bd);
-  --mdc-filled-text-field-focus-active-indicator-color: var(--crit);
-  --mdc-filled-text-field-label-text-color:             var(--crit);
-  --mdc-filled-text-field-focus-label-text-color:       var(--crit);
-  --mdc-filled-text-field-input-text-color:             var(--crit);
+  --mdc-outlined-text-field-container-color:        var(--crit-bg);
+  --mdc-outlined-text-field-outline-color:          var(--crit-bd);
+  --mdc-outlined-text-field-hover-outline-color:    var(--crit-bd);
+  --mdc-outlined-text-field-focus-outline-color:    var(--crit);
+  --mdc-outlined-text-field-label-text-color:       var(--crit);
+  --mdc-outlined-text-field-focus-label-text-color: var(--crit);
+  --mdc-outlined-text-field-input-text-color:       var(--crit);
 }
 
 // ── Semantic coloring — applied to ANY mat-form-field via [ngClass] ──────────
 mat-form-field {
   &.mf-sel--ok {
-    --mdc-filled-text-field-container-color:        var(--ok-bg);
-    --mdc-filled-text-field-hover-container-color:  var(--ok-bg);
-    --mdc-filled-text-field-active-indicator-color: var(--ok-bd);
-    --mat-select-trigger-text-color: var(--ok);
+    --mdc-outlined-text-field-container-color: var(--ok-bg);
+    --mdc-outlined-text-field-outline-color:   var(--ok-bd);
+    --mat-select-trigger-text-color:           var(--ok);
   }
   &.mf-sel--warn {
-    --mdc-filled-text-field-container-color:        var(--warn-bg);
-    --mdc-filled-text-field-hover-container-color:  var(--warn-bg);
-    --mdc-filled-text-field-active-indicator-color: var(--warn-bd);
-    --mat-select-trigger-text-color: var(--warn);
+    --mdc-outlined-text-field-container-color: var(--warn-bg);
+    --mdc-outlined-text-field-outline-color:   var(--warn-bd);
+    --mat-select-trigger-text-color:           var(--warn);
   }
   &.mf-sel--crit {
-    --mdc-filled-text-field-container-color:        var(--crit-bg);
-    --mdc-filled-text-field-hover-container-color:  var(--crit-bg);
-    --mdc-filled-text-field-active-indicator-color: var(--crit-bd);
-    --mat-select-trigger-text-color: var(--crit);
+    --mdc-outlined-text-field-container-color: var(--crit-bg);
+    --mdc-outlined-text-field-outline-color:   var(--crit-bd);
+    --mat-select-trigger-text-color:           var(--crit);
   }
   &.mf-inp--ok {
-    --mdc-filled-text-field-container-color:        var(--ok-bg);
-    --mdc-filled-text-field-hover-container-color:  var(--ok-bg);
-    --mdc-filled-text-field-active-indicator-color: var(--ok-bd);
+    --mdc-outlined-text-field-container-color: var(--ok-bg);
+    --mdc-outlined-text-field-outline-color:   var(--ok-bd);
   }
   &.mf-inp--warn {
-    --mdc-filled-text-field-container-color:        var(--warn-bg);
-    --mdc-filled-text-field-hover-container-color:  var(--warn-bg);
-    --mdc-filled-text-field-active-indicator-color: var(--warn-bd);
+    --mdc-outlined-text-field-container-color: var(--warn-bg);
+    --mdc-outlined-text-field-outline-color:   var(--warn-bd);
   }
   &.mf-inp--crit {
-    --mdc-filled-text-field-container-color:        var(--crit-bg);
-    --mdc-filled-text-field-hover-container-color:  var(--crit-bg);
-    --mdc-filled-text-field-active-indicator-color: var(--crit-bd);
+    --mdc-outlined-text-field-container-color: var(--crit-bg);
+    --mdc-outlined-text-field-outline-color:   var(--crit-bd);
   }
 }
 

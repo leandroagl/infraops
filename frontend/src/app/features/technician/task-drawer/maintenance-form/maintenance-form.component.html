@@ -31,7 +31,7 @@
               <div class="mf-srv-access">{{ infrastructure.windowsVMs[i].ip ?? '—' }}</div>
             </div>
 
-            <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-srv-ff"
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-srv-ff"
                             [ngClass]="selectClass(getServerGroup(i).get('rebootScript')?.value)">
               <mat-select formControlName="rebootScript">
                 <mat-option value="ok">OK</mat-option>
@@ -40,7 +40,7 @@
               </mat-select>
             </mat-form-field>
 
-            <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-srv-ff"
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-srv-ff"
                             [ngClass]="selectClass(getServerGroup(i).get('updates')?.value)">
               <mat-select formControlName="updates">
                 <mat-option value="ok">Al día</mat-option>
@@ -63,7 +63,7 @@
               <span class="mf-lbl">S.O.</span>
               <span class="mf-expand-os">{{ infrastructure.windowsVMs[i].os ?? '—' }}</span>
             </div>
-            <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field" style="margin-top:6px">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field" style="margin-top:6px">
               <mat-label>Nota</mat-label>
               <input matInput formControlName="notes" placeholder="Detalles, error puntual, acción tomada..." />
             </mat-form-field>
@@ -80,7 +80,7 @@
         <span class="mf-cl-rpt-label">DCDIAG — análisis del dominio Active Directory</span>
       </div>
       <div class="mf-dcdiag-row">
-        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field"
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
                         [ngClass]="selectClass(form.get('dcdiag')?.value)">
           <mat-select formControlName="dcdiag">
             <mat-option value="OK">OK</mat-option>
@@ -89,7 +89,7 @@
           </mat-select>
         </mat-form-field>
         <mat-form-field *ngIf="dcdiagHasError()"
-                        appearance="fill" subscriptSizing="dynamic" class="mf-form-field mf-dcdiag-detail-ff">
+                        appearance="outline" subscriptSizing="dynamic" class="mf-form-field mf-dcdiag-detail-ff">
           <mat-label>Detalle</mat-label>
           <input matInput formControlName="dcdiagDetail" placeholder="Describí el error..." />
         </mat-form-field>
@@ -121,21 +121,21 @@
           <span class="mono mf-host-ip">{{ infrastructure.esxiHosts[i].ip ?? '—' }}</span>
         </div>
 
-        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-metric-ff"
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff"
                         [ngClass]="metricClass(vmwareHostControls.at(i).get('cpuUsage')?.value, 60, 80)">
           <mat-label>CPU</mat-label>
           <input matInput formControlName="cpuUsage" type="number" min="0" max="100" placeholder="0" />
           <span matTextSuffix>%</span>
         </mat-form-field>
 
-        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-metric-ff"
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff"
                         [ngClass]="metricClass(vmwareHostControls.at(i).get('memUsage')?.value, 70, 85)">
           <mat-label>Memoria</mat-label>
           <input matInput formControlName="memUsage" type="number" min="0" max="100" placeholder="0" />
           <span matTextSuffix>%</span>
         </mat-form-field>
 
-        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-metric-ff"
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff"
                         [ngClass]="metricClass(vmwareHostControls.at(i).get('storageUsage')?.value, 70, 85)">
           <mat-label>Storage</mat-label>
           <input matInput formControlName="storageUsage" type="number" min="0" max="100" placeholder="0" />
@@ -143,7 +143,7 @@
         </mat-form-field>
 
         <mat-form-field *ngIf="showHighVMsForHost(i)"
-                        appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+                        appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
           <mat-label>VMs afectadas</mat-label>
           <mat-select formControlName="highUsageVMs" multiple>
             <mat-option *ngFor="let vm of infrastructure.windowsVMs" [value]="vm.name">
@@ -179,17 +179,17 @@
           <span class="mono mf-host-ip">{{ infrastructure.esxiHosts[i].bmcIp ?? '—' }}</span>
         </div>
 
-        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
           <mat-label>Versión firmware</mat-label>
           <input matInput formControlName="firmwareVersion" placeholder="Ej: 2.82" />
         </mat-form-field>
 
-        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
           <mat-label>Versión BIOS</mat-label>
           <input matInput formControlName="biosVersion" placeholder="Ej: U30 v2.86" />
         </mat-form-field>
 
-        <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field"
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
                         [ngClass]="selectClass(getBmcGroup(i).get('alertStatus')?.value)">
           <mat-label>Alertas detectadas</mat-label>
           <mat-select formControlName="alertStatus">
@@ -199,7 +199,7 @@
         </mat-form-field>
 
         <mat-form-field *ngIf="bmcHasAlert(i)"
-                        appearance="fill" subscriptSizing="dynamic"
+                        appearance="outline" subscriptSizing="dynamic"
                         class="mf-form-field mf-dcdiag-detail-ff">
           <mat-label>Nota de alerta</mat-label>
           <input matInput formControlName="alertNote"
@@ -226,13 +226,13 @@
             <span class="mono mf-host-ip">{{ infrastructure.nas[i].ip ?? '—' }}</span>
           </div>
           <div class="mf-qnap-row">
-            <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-metric-ff"
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff"
                             [ngClass]="metricClass(qnapDeviceControls.at(i).get('spaceUsed')?.value, 70, 85)">
               <mat-label>Espacio utilizado</mat-label>
               <input matInput formControlName="spaceUsed" type="number" min="0" max="100" placeholder="0" />
               <span matTextSuffix>%</span>
             </mat-form-field>
-            <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field"
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
                             [ngClass]="selectClass(qnapDeviceControls.at(i).get('raidStatus')?.value)">
               <mat-label>Estado RAID</mat-label>
               <mat-select formControlName="raidStatus">
@@ -264,7 +264,7 @@
         <span class="mf-cl-rpt-label">Estado del backup</span>
         <span class="mf-vm-count">{{ infrastructure.windowsVMs.length }} VMs en entorno</span>
       </div>
-      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field"
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
                       [ngClass]="selectClass(form.get('veeamStatus')?.value)">
         <mat-label>Estado</mat-label>
         <mat-select formControlName="veeamStatus">
@@ -282,7 +282,7 @@
           {{ form.get('veeamStatus')?.value === 'missing' ? 'VMs sin backup' : 'VMs excluidas del backup' }}
         </span>
       </div>
-      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
         <mat-label>VMs</mat-label>
         <mat-select formControlName="veeamMissing" multiple>
           <mat-option *ngFor="let vm of infrastructure.windowsVMs" [value]="vm.name">
@@ -308,7 +308,7 @@
         <div class="mf-cl-rpt-dot"></div>
         <span class="mf-cl-rpt-label">Versión firmware aplicada</span>
       </div>
-      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
         <mat-label>Versión</mat-label>
         <input matInput formControlName="routerFirmwareVersion" placeholder="Ej: 7.14.2" />
       </mat-form-field>
@@ -336,7 +336,7 @@
         <div class="mf-cl-rpt-dot"></div>
         <span class="mf-cl-rpt-label">Observaciones generales</span>
       </div>
-      <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
         <textarea matInput formControlName="observations" rows="3"
                   placeholder="Estado general de los equipos, problemas encontrados..."></textarea>
       </mat-form-field>
@@ -360,7 +360,7 @@
 
   <!-- ── Notas adicionales ─────────────────────────────── -->
   <div class="mf-section-lbl">Notas adicionales</div>
-  <mat-form-field appearance="fill" subscriptSizing="dynamic" class="mf-form-field">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
     <textarea matInput formControlName="notes" rows="3"
               placeholder="Observaciones adicionales..."></textarea>
   </mat-form-field>

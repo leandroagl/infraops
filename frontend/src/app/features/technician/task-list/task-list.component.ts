@@ -4,6 +4,8 @@ import { takeUntil } from 'rxjs/operators';
 import { Task, TaskType, TaskStatus } from '../../../core/models/task.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { TasksService } from '../../../core/services/tasks.service';
+import { typeLabelLong } from '../../../shared/utils/task-labels';
+import { daysFromToday, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
 
 @Component({
   selector: 'app-task-list',
@@ -27,30 +29,12 @@ export class TaskListComponent implements OnInit, OnDestroy {
 
   // ── Helpers de urgencia ───────────────────────────────────────────────────
 
-  /** Días enteros entre hoy (medianoche local) y la fecha dada. Positivo = futuro, negativo = pasado. */
-  daysFromToday(date: string): number {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    // Parse YYYY-MM-DD as local time to avoid UTC-offset shifting the day boundary
-    const [year, month, day] = date.split('T')[0].split('-').map(Number);
-    const target = new Date(year, month - 1, day, 0, 0, 0, 0);
-    return Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  }
-
-  urgencyLabel(days: number): string {
-    if (days < 0) return `+${Math.abs(days)}d vencido`;
-    if (days <= 7) return `vence en ${days}d`;
-    return `${days}d restantes`;
-  }
-
-  urgencyClass(days: number): string {
-    if (days < 0) return 'urg-crit';
-    if (days <= 7) return 'urg-warn';
-    return 'urg-ok';
-  }
+  daysFromToday(date: string): number { return daysFromToday(date); }
+  urgencyLabel(days: number): string  { return urgencyLabel(days); }
+  urgencyClass(days: number): string  { return urgencyClass(days); }
 
   statusDotColor(task: Task): string {
-    const days = this.daysFromToday(task.scheduledDate);
+    const days = daysFromToday(task.scheduledDate);
     if (days < 0) return 'var(--crit)';
     if (days <= 7) return 'var(--warn)';
     return 'var(--ok)';
@@ -65,18 +49,18 @@ export class TaskListComponent implements OnInit, OnDestroy {
   }
 
   get overdueCount(): number {
-    return this.activeTasks.filter(t => this.daysFromToday(t.scheduledDate) < 0).length;
+    return this.activeTasks.filter(t => daysFromToday(t.scheduledDate) < 0).length;
   }
 
   get thisWeekCount(): number {
     return this.activeTasks.filter(t => {
-      const d = this.daysFromToday(t.scheduledDate);
+      const d = daysFromToday(t.scheduledDate);
       return d >= 0 && d <= 7;
     }).length;
   }
 
   get onTimeCount(): number {
-    return this.activeTasks.filter(t => this.daysFromToday(t.scheduledDate) > 7).length;
+    return this.activeTasks.filter(t => daysFromToday(t.scheduledDate) > 7).length;
   }
 
   get technicianName(): string {
@@ -88,11 +72,11 @@ export class TaskListComponent implements OnInit, OnDestroy {
   // ── Secciones de la lista ─────────────────────────────────────────────────
 
   get overdueTasks(): Task[] {
-    return this.activeTasks.filter(t => this.daysFromToday(t.scheduledDate) < 0);
+    return this.activeTasks.filter(t => daysFromToday(t.scheduledDate) < 0);
   }
 
   get pendingTasks(): Task[] {
-    return this.activeTasks.filter(t => this.daysFromToday(t.scheduledDate) >= 0);
+    return this.activeTasks.filter(t => daysFromToday(t.scheduledDate) >= 0);
   }
 
   get doneTasks(): Task[] {
@@ -150,23 +134,9 @@ export class TaskListComponent implements OnInit, OnDestroy {
     }
   }
 
-  typeLabel(type: TaskType): string {
-    const labels: Record<TaskType, string> = {
-      SERVER_MAINTENANCE:   'Mantenimiento de servidores',
-      TERMINAL_MAINTENANCE: 'Visita de terminales',
-      SITE_VISIT:           'Visita presencial',
-      AV_CONTROL:           'Control antivirus',
-      UPS_CONTROL:          'Control UPS',
-      ENDPOINT_INVENTORY:   'Inventario',
-    };
-    return labels[type];
-  }
+  typeLabel(type: TaskType): string { return typeLabelLong(type); }
 
   typeIconClass(type: TaskType): string {
     return type === 'TERMINAL_MAINTENANCE' || type === 'SITE_VISIT' ? 'ti-visit' : 'ti-srv';
-  }
-
-  formatDate(date: string): string {
-    return new Date(date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
   }
 }

@@ -17,6 +17,7 @@ export class TechniciansComponent implements OnInit, OnDestroy {
   technicians: Technician[] = [];
   loading = false;
   error = '';
+  readonly displayedColumns = ['technician', 'role', 'status', 'actions'];
 
   private destroy$ = new Subject<void>();
 

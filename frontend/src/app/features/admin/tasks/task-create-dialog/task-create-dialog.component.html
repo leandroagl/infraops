@@ -8,7 +8,7 @@
 
   <form *ngIf="!loading" [formGroup]="form" class="dialog-form">
 
-    <mat-form-field appearance="fill">
+    <mat-form-field appearance="outline">
       <mat-label>Cliente</mat-label>
       <mat-select formControlName="clientId">
         <mat-option value="">Seleccioná un cliente...</mat-option>
@@ -16,7 +16,7 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field appearance="fill">
+    <mat-form-field appearance="outline">
       <mat-label>Técnico</mat-label>
       <mat-select formControlName="technicianId">
         <mat-option value="">Seleccioná un técnico...</mat-option>
@@ -24,14 +24,14 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field appearance="fill">
+    <mat-form-field appearance="outline">
       <mat-label>Tipo de tarea</mat-label>
       <mat-select formControlName="type">
         <mat-option *ngFor="let t of taskTypes" [value]="t.value">{{ t.label }}</mat-option>
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field appearance="fill">
+    <mat-form-field appearance="outline">
       <mat-label>Fecha programada</mat-label>
       <input matInput formControlName="scheduledDate" type="date" />
     </mat-form-field>

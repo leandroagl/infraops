@@ -2,7 +2,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-header__title">Tareas</h1>
-      <span class="page-header__count" *ngIf="!loading">{{ tasks.length }} tareas</span>
+      <span class="page-header__count" *ngIf="!loading">{{ dataSource.data.length }} tareas</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:180px">
@@ -25,14 +25,47 @@
     <button mat-button (click)="load()">Reintentar</button>
   </div>
 
-  <div class="surface-card tasks-grid ag-theme-alpine-dark">
-    <ag-grid-angular
-      [domLayout]="'autoHeight'"
-      [rowData]="loading ? null : tasks"
-      [columnDefs]="columnDefs"
-      [defaultColDef]="defaultColDef"
-      [loading]="loading"
-      [overlayNoRowsTemplate]="noRowsTemplate">
-    </ag-grid-angular>
+  <div class="surface-card tasks-table">
+    <table mat-table [dataSource]="dataSource" matSort matSortActive="client" matSortDirection="asc" style="width:100%">
+
+      <ng-container matColumnDef="client">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
+        <td mat-cell *matCellDef="let row">{{ row.client?.name ?? '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="type">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="badge" [ngClass]="typeBadge(row.type)">{{ typeLabel(row.type) }}</span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="technician">
+        <th mat-header-cell *matHeaderCellDef>Técnico</th>
+        <td mat-cell *matCellDef="let row" class="cell-secondary">{{ row.technician?.user?.name ?? '—' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="scheduledDate">
+        <th mat-header-cell *matHeaderCellDef>Fecha</th>
+        <td mat-cell *matCellDef="let row" class="cell-mono">{{ row.scheduledDate | localDate }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="badge" [ngClass]="statusBadge(row.status)">
+            <span class="dot"></span>{{ statusLabel(row.status) }}
+          </span>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr class="mat-mdc-no-data-row" *matNoDataRow>
+        <td [attr.colspan]="displayedColumns.length">
+          {{ loading ? 'Cargando…' : 'No hay tareas.' }}
+        </td>
+      </tr>
+    </table>
   </div>
 </div>

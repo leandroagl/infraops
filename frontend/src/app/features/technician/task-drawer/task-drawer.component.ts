@@ -27,6 +27,8 @@ import {
   ConfirmMaintenanceDialogComponent,
   ConfirmMaintenanceDialogData,
 } from './confirm-maintenance-dialog/confirm-maintenance-dialog.component';
+import { statusLabel, statusBadge, typeLabelLong } from '../../../shared/utils/task-labels';
+import { daysFromToday, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
 
 @Component({
   selector: 'app-task-drawer',
@@ -93,31 +95,14 @@ export class TaskDrawerComponent implements OnChanges {
 
   // ── Urgency helpers ─────────────────────────────────────────────────────────
 
-  /** Días enteros entre hoy (medianoche local) y la fecha dada. Positivo = futuro, negativo = pasado. */
-  daysFromToday(date: string): number {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const [year, month, day] = date.split('T')[0].split('-').map(Number);
-    const target = new Date(year, month - 1, day, 0, 0, 0, 0);
-    return Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  }
-
-  urgencyLabel(days: number): string {
-    if (days < 0) return `+${Math.abs(days)}d vencido`;
-    if (days <= 7) return `vence en ${days}d`;
-    return `${days}d restantes`;
-  }
-
-  urgencyClass(days: number): string {
-    if (days < 0) return 'urg-crit';
-    if (days <= 7) return 'urg-warn';
-    return 'urg-ok';
-  }
+  daysFromToday(date: string): number { return daysFromToday(date); }
+  urgencyLabel(days: number): string  { return urgencyLabel(days); }
+  urgencyClass(days: number): string  { return urgencyClass(days); }
 
   // ── Icon style ──────────────────────────────────────────────────────────────
 
   drawerIconStyle(): { background: string; borderColor: string; color: string } {
-    if (this.daysFromToday(this.task.scheduledDate) < 0) {
+    if (daysFromToday(this.task.scheduledDate) < 0) {
       return { background: 'var(--crit-bg)', borderColor: 'var(--crit-bd)', color: 'var(--crit)' };
     }
     if (this.task.type === 'TERMINAL_MAINTENANCE' || this.task.type === 'SITE_VISIT') {
@@ -259,33 +244,9 @@ export class TaskDrawerComponent implements OnChanges {
     return this.tasksService.updateStatus(this.task.id, { status: 'DONE' });
   }
 
-  // ── Labels ──────────────────────────────────────────────────────────────────
+  // ── Labels ──────────────────────────────────────────────────name───────────
 
-  typeLabel(type: TaskType): string {
-    const labels: Record<TaskType, string> = {
-      SERVER_MAINTENANCE:   'Mantenimiento de servidores',
-      TERMINAL_MAINTENANCE: 'Visita de terminales',
-      SITE_VISIT:           'Visita presencial',
-      AV_CONTROL:           'Control antivirus',
-      UPS_CONTROL:          'Control UPS',
-      ENDPOINT_INVENTORY:   'Inventario',
-    };
-    return labels[type];
-  }
-
-  statusLabel(status: string): string {
-    const labels: Record<string, string> = {
-      PENDING: 'Pendiente', IN_PROGRESS: 'En curso',
-      DONE: 'Listo', ESCALATED: 'Escalado', NOT_DONE: 'No realizado',
-    };
-    return labels[status] ?? status;
-  }
-
-  statusBadge(status: string): string {
-    const map: Record<string, string> = {
-      PENDING: 'badge--neutral', IN_PROGRESS: 'badge--accent',
-      DONE: 'badge--ok', ESCALATED: 'badge--warn', NOT_DONE: 'badge--crit',
-    };
-    return map[status] ?? 'badge--neutral';
-  }
+  typeLabel(type: TaskType): string   { return typeLabelLong(type); }
+  statusLabel(status: string): string { return statusLabel(status as Parameters<typeof statusLabel>[0]); }
+  statusBadge(status: string): string { return statusBadge(status as Parameters<typeof statusBadge>[0]); }
 }

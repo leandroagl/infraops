@@ -7,12 +7,6 @@
     justify-content: space-between;
     margin-bottom: 14px;
   }
-
-  &__grid {
-    ag-grid-angular {
-      width: 100%;
-    }
-  }
 }
 
 .section-label {
@@ -26,4 +20,9 @@
 
 .search-field {
   width: 280px;
+}
+
+.client-name {
+  color: var(--accent);
+  cursor: pointer;
 }

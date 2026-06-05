@@ -3,6 +3,8 @@ import { of, throwError } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTableModule } from '@angular/material/table';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { UsersComponent } from './users.component';
 import { UsersService } from '../../../core/services/users.service';
@@ -50,7 +52,14 @@ describe('UsersComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [UsersComponent],
-      imports: [MatDialogModule, MatMenuModule, MatSnackBarModule, NoopAnimationsModule],
+      imports: [
+        MatDialogModule,
+        MatMenuModule,
+        MatSnackBarModule,
+        MatTableModule,
+        MatProgressBarModule,
+        NoopAnimationsModule,
+      ],
       providers: [
         { provide: UsersService, useValue: usersServiceSpy },
         { provide: AuthService, useValue: authServiceSpy },

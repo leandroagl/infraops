@@ -21,6 +21,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   users: User[] = [];
   loading = false;
   error = '';
+  readonly displayedColumns = ['user', 'role', 'status', 'actions'];
 
   private readonly currentUserId: string;
   private destroy$ = new Subject<void>();
