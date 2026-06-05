@@ -22,6 +22,12 @@
     color: var(--tx-lo);
     font-family: var(--font-mono);
   }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
 }
 
 .error-banner {

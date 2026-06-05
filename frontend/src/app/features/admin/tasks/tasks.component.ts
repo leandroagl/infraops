@@ -1,9 +1,8 @@
-import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 import { Task, TaskStatus, TaskType } from '../../../core/models/task.models';
 import { TasksService } from '../../../core/services/tasks.service';
 import { TaskCreateDialogComponent } from './task-create-dialog/task-create-dialog.component';
@@ -14,7 +13,7 @@ import { statusLabel, statusBadge, typeLabel, typeBadge } from '../../../shared/
   templateUrl: './tasks.component.html',
   styleUrl: './tasks.component.scss',
 })
-export class TasksComponent implements OnInit, AfterViewInit, OnDestroy {
+export class TasksComponent implements OnInit, AfterViewInit {
   readonly dataSource = new MatTableDataSource<Task>([]);
   readonly displayedColumns = ['client', 'type', 'technician', 'scheduledDate', 'status'];
   loading = false;
@@ -23,7 +22,7 @@ export class TasksComponent implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild(MatSort) sort!: MatSort;
 
-  private destroy$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly statusOptions: { value: string; label: string }[] = [
     { value: '',            label: 'Todos'        },
@@ -49,13 +48,11 @@ export class TasksComponent implements OnInit, AfterViewInit, OnDestroy {
     };
   }
 
-  ngOnDestroy(): void { this.destroy$.next(); this.destroy$.complete(); }
-
   load(): void {
     this.loading = true;
     this.error = '';
     const filters = this.filterStatus ? { status: this.filterStatus } : {};
-    this.tasksService.getAll(filters).pipe(takeUntil(this.destroy$)).subscribe({
+    this.tasksService.getAll(filters).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: tasks => { this.dataSource.data = tasks; this.loading = false; },
       error: () => { this.error = 'No se pudieron cargar las tareas.'; this.loading = false; },
     });
@@ -63,7 +60,7 @@ export class TasksComponent implements OnInit, AfterViewInit, OnDestroy {
 
   openCreateDialog(): void {
     this.dialog.open(TaskCreateDialogComponent, { width: '480px' })
-      .afterClosed().pipe(takeUntil(this.destroy$))
+      .afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(task => {
         if (task) this.dataSource.data = [...this.dataSource.data, task];
       });

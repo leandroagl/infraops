@@ -1,7 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 import { Task, TaskStatus } from '../../../core/models/task.models';
 import { TasksService } from '../../../core/services/tasks.service';
 import { statusLabel } from '../../../shared/utils/task-labels';
@@ -9,15 +8,16 @@ import { statusLabel } from '../../../shared/utils/task-labels';
 @Component({
   selector: 'app-client-mantenimientos',
   templateUrl: './client-mantenimientos.component.html',
+  styleUrl: './client-mantenimientos.component.scss',
 })
-export class ClientMantenimientosComponent implements OnInit, OnDestroy {
+export class ClientMantenimientosComponent implements OnInit {
   tasks: Task[] = [];
   loading = false;
   error = '';
 
   readonly displayedColumns = ['technician', 'scheduledDate', 'status'];
 
-  private readonly destroy$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -30,16 +30,11 @@ export class ClientMantenimientosComponent implements OnInit, OnDestroy {
     this.error = '';
     this.tasksService
       .getAll({ clientId, type: 'SERVER_MAINTENANCE' })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (tasks) => { this.tasks = tasks; this.loading = false; },
         error: () => { this.error = 'No se pudieron cargar las tareas.'; this.loading = false; },
       });
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   statusLabel(status: TaskStatus): string { return statusLabel(status); }

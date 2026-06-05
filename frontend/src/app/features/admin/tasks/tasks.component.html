@@ -4,7 +4,7 @@
       <h1 class="page-header__title">Tareas</h1>
       <span class="page-header__count" *ngIf="!loading">{{ dataSource.data.length }} tareas</span>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
+    <div class="page-header__actions">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:180px">
         <mat-label>Estado</mat-label>
         <mat-select [(ngModel)]="filterStatus" (selectionChange)="load()">

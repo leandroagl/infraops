@@ -1,8 +1,7 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 import { Technician } from '../../../core/models/technician.models';
 import { UserRole } from '../../../core/models/auth.models';
 import { TechniciansService } from '../../../core/services/technicians.service';
@@ -13,13 +12,13 @@ import { AssignTechnicianDialogComponent } from './assign-technician-dialog/assi
   templateUrl: './technicians.component.html',
   styleUrl: './technicians.component.scss',
 })
-export class TechniciansComponent implements OnInit, OnDestroy {
+export class TechniciansComponent implements OnInit {
   technicians: Technician[] = [];
   loading = false;
   error = '';
   readonly displayedColumns = ['technician', 'role', 'status', 'actions'];
 
-  private destroy$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private techniciansService: TechniciansService,
@@ -31,15 +30,10 @@ export class TechniciansComponent implements OnInit, OnDestroy {
     this.load();
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
   load(): void {
     this.loading = true;
     this.error = '';
-    this.techniciansService.getAll().pipe(takeUntil(this.destroy$)).subscribe({
+    this.techniciansService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: data => { this.technicians = data; this.loading = false; },
       error: () => { this.error = 'No se pudieron cargar los técnicos.'; this.loading = false; },
     });
@@ -49,12 +43,12 @@ export class TechniciansComponent implements OnInit, OnDestroy {
     this.dialog
       .open(AssignTechnicianDialogComponent, { width: '440px' })
       .afterClosed()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(assigned => { if (assigned) this.load(); });
   }
 
   remove(tech: Technician): void {
-    this.techniciansService.remove(tech.id).pipe(takeUntil(this.destroy$)).subscribe({
+    this.techniciansService.remove(tech.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => this.load(),
       error: () =>
         this.snackBar.open('No se pudo eliminar el perfil técnico.', '', {

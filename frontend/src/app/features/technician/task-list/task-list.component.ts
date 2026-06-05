@@ -1,6 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Task, TaskType, TaskStatus } from '../../../core/models/task.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { TasksService } from '../../../core/services/tasks.service';
@@ -12,13 +11,13 @@ import { daysFromToday, urgencyLabel, urgencyClass } from '../../../shared/utils
   templateUrl: './task-list.component.html',
   styleUrl: './task-list.component.scss',
 })
-export class TaskListComponent implements OnInit, OnDestroy {
+export class TaskListComponent implements OnInit {
   tasks: Task[] = [];
   selectedTask: Task | null = null;
   loading = false;
   error = '';
 
-  private destroy$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private authService: AuthService,
@@ -89,11 +88,6 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.load();
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
   load(): void {
     const user = this.currentUser;
     if (!user?.technicianId) return;
@@ -101,7 +95,7 @@ export class TaskListComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
     this.tasksService.getAll({ technicianId: user.technicianId })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: tasks => { this.tasks = tasks; this.loading = false; },
         error: () => { this.error = 'No se pudieron cargar las tareas.'; this.loading = false; },

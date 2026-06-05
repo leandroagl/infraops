@@ -1,11 +1,11 @@
 <mat-tab-group>
   <mat-tab label="Servidores">
-    <div *ngIf="error" style="padding:16px;color:var(--crit);font-size:13px">
+    <div *ngIf="error" class="mant-error">
       {{ error }}
     </div>
 
-    <div *ngIf="!error" style="margin-top:8px">
-      <table mat-table [dataSource]="tasks" style="width:100%">
+    <div *ngIf="!error" class="mant-table-wrapper">
+      <table mat-table [dataSource]="tasks">
 
         <ng-container matColumnDef="technician">
           <th mat-header-cell *matHeaderCellDef>Técnico</th>

@@ -1,8 +1,7 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 import { User } from '../../../core/models/user.models';
 import { UserRole } from '../../../core/models/auth.models';
 import { UsersService } from '../../../core/services/users.service';
@@ -17,14 +16,14 @@ const SEED_ADMIN_EMAIL = 'admininfraops@ondra.com.ar';
   templateUrl: './users.component.html',
   styleUrl: './users.component.scss',
 })
-export class UsersComponent implements OnInit, OnDestroy {
+export class UsersComponent implements OnInit {
   users: User[] = [];
   loading = false;
   error = '';
   readonly displayedColumns = ['user', 'role', 'status', 'actions'];
 
   private readonly currentUserId: string;
-  private destroy$ = new Subject<void>();
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private usersService: UsersService,
@@ -37,11 +36,6 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadUsers();
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
   }
 
   loadUsers(): void {
@@ -92,7 +86,7 @@ export class UsersComponent implements OnInit, OnDestroy {
       data: { mode: 'create' },
       width: '480px',
     });
-    ref.afterClosed().pipe(takeUntil(this.destroy$)).subscribe(result => {
+    ref.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
       if (!result) return;
       this.loadUsers();
       if (result.plainPassword) {
@@ -108,12 +102,12 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.dialog
       .open(UserFormDialogComponent, { data: { mode: 'edit', user }, width: '480px' })
       .afterClosed()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(updated => { if (updated) this.loadUsers(); });
   }
 
   toggleStatus(user: User): void {
-    this.usersService.updateStatus(user.id, !user.isActive).pipe(takeUntil(this.destroy$)).subscribe({
+    this.usersService.updateStatus(user.id, !user.isActive).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => this.loadUsers(),
       error: () =>
         this.snackBar.open('No se pudo actualizar el estado.', '', {
@@ -124,7 +118,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   resetPassword(user: User): void {
-    this.usersService.resetPassword(user.id).pipe(takeUntil(this.destroy$)).subscribe({
+    this.usersService.resetPassword(user.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: res =>
         this.dialog.open(PasswordDisplayDialogComponent, {
           data: { name: user.name, plainPassword: res.plainPassword },

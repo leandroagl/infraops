@@ -112,7 +112,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .d-client {
@@ -175,7 +175,7 @@
   border-top: 1px solid var(--border-lo);
   background: var(--surface);
   flex-shrink: 0;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
 
   &__actions {
     display: flex;
