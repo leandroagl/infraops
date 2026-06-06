@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -34,7 +36,7 @@ describe('TasksComponent', () => {
   let dialog: MatDialog;
 
   beforeEach(async () => {
-    tasksServiceSpy = jasmine.createSpyObj('TasksService', ['getAll', 'create']);
+    tasksServiceSpy = jasmine.createSpyObj('TasksService', ['getAll', 'create', 'delete']);
     tasksServiceSpy.getAll.and.returnValue(of([mockTask('task-1'), mockTask('task-2')]));
 
     await TestBed.configureTestingModule({
@@ -42,6 +44,8 @@ describe('TasksComponent', () => {
       imports: [
         NoopAnimationsModule,
         MatDialogModule,
+        MatMenuModule,
+        MatSnackBarModule,
         MatTableModule,
         MatSortModule,
         MatFormFieldModule,
@@ -110,6 +114,48 @@ describe('TasksComponent', () => {
       component.openCreateDialog();
 
       expect(component.dataSource.data.length).toBe(initialCount);
+    });
+  });
+
+  describe('deleteTask()', () => {
+    it('elimina la tarea del dataSource cuando el usuario confirma', () => {
+      tasksServiceSpy.delete.and.returnValue(of(void 0));
+      const mockRef = { afterClosed: () => of(true) } as MatDialogRef<unknown>;
+      spyOn(dialog, 'open').and.returnValue(mockRef);
+
+      component.deleteTask(mockTask('task-1'));
+
+      expect(tasksServiceSpy.delete).toHaveBeenCalledWith('task-1');
+      expect(component.dataSource.data.find(t => t.id === 'task-1')).toBeUndefined();
+      expect(component.dataSource.data.length).toBe(1);
+    });
+
+    it('no modifica dataSource cuando el usuario cancela', () => {
+      const mockRef = { afterClosed: () => of(undefined) } as MatDialogRef<unknown>;
+      spyOn(dialog, 'open').and.returnValue(mockRef);
+
+      const initialCount = component.dataSource.data.length;
+      component.deleteTask(mockTask('task-1'));
+
+      expect(tasksServiceSpy.delete).not.toHaveBeenCalled();
+      expect(component.dataSource.data.length).toBe(initialCount);
+    });
+
+    it('muestra snackbar de error cuando el servicio falla y no modifica el dataSource', () => {
+      tasksServiceSpy.delete.and.returnValue(throwError(() => new Error('Error')));
+      const mockRef = { afterClosed: () => of(true) } as MatDialogRef<unknown>;
+      spyOn(dialog, 'open').and.returnValue(mockRef);
+      const snackBar = TestBed.inject(MatSnackBar);
+      spyOn(snackBar, 'open');
+
+      component.deleteTask(mockTask('task-1'));
+
+      expect(snackBar.open).toHaveBeenCalledWith(
+        'No se pudo eliminar la tarea',
+        'Cerrar',
+        jasmine.any(Object),
+      );
+      expect(component.dataSource.data.length).toBe(2);
     });
   });
 });
