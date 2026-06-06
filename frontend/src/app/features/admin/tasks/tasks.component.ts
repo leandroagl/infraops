@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject, OnInit, ViewChild, AfterViewInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, switchMap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableDataSource } from '@angular/material/table';
@@ -79,9 +80,12 @@ export class TasksComponent implements OnInit, AfterViewInit {
         title: 'Eliminar tarea',
         message: `¿Eliminar la tarea de ${clientName}? Esta acción no se puede deshacer.`,
       },
-    }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(confirmed => {
-      if (!confirmed) return;
-      this.tasksService.delete(task.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    }).afterClosed()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap(confirmed => confirmed ? this.tasksService.delete(task.id) : EMPTY),
+      )
+      .subscribe({
         next: () => {
           this.dataSource.data = this.dataSource.data.filter(t => t.id !== task.id);
           this.snackBar.open('Tarea eliminada', 'Cerrar', { duration: 3000 });
@@ -90,7 +94,6 @@ export class TasksComponent implements OnInit, AfterViewInit {
           this.snackBar.open('No se pudo eliminar la tarea', 'Cerrar', { duration: 4000 });
         },
       });
-    });
   }
 
   typeLabel(type: TaskType): string   { return typeLabel(type); }
