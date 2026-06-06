@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Client } from '../clients/client.entity';
+import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
@@ -30,6 +31,8 @@ export class TasksService {
     private readonly clientRepository: Repository<Client>,
     @InjectRepository(Technician)
     private readonly technicianRepository: Repository<Technician>,
+    @InjectRepository(MaintenanceLog)
+    private readonly logRepository: Repository<MaintenanceLog>,
   ) {}
 
   async findAll(filters: FilterTasksDto): Promise<Task[]> {
@@ -102,6 +105,14 @@ export class TasksService {
     const completedDate = isTerminal ? new Date() : null;
     await this.taskRepository.update(id, { status: newStatus, completedDate });
     return this.loadTask(id);
+  }
+
+  async remove(id: string): Promise<void> {
+    const task = await this.taskRepository.findOne({ where: { id } });
+    if (!task) throw new NotFoundException('Tarea no encontrada');
+
+    await this.logRepository.delete({ taskId: id });
+    await this.taskRepository.delete(id);
   }
 
   private async loadTask(id: string): Promise<Task> {

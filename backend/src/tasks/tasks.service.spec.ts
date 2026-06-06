@@ -5,6 +5,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Client } from '../clients/client.entity';
+import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
 import { TaskStatus } from './task-status.enum';
@@ -20,9 +21,11 @@ describe('TasksService', () => {
     create: jest.Mock;
     save: jest.Mock;
     update: jest.Mock;
+    delete: jest.Mock;
   };
   let clientRepository: { findOne: jest.Mock };
   let technicianRepository: { findOne: jest.Mock };
+  let logRepository: { delete: jest.Mock };
 
   const mockClient: Client = {
     id: 'client-1',
@@ -70,9 +73,11 @@ describe('TasksService', () => {
       create: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     };
     clientRepository = { findOne: jest.fn() };
     technicianRepository = { findOne: jest.fn() };
+    logRepository = { delete: jest.fn() };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -80,6 +85,7 @@ describe('TasksService', () => {
         { provide: getRepositoryToken(Task), useValue: taskRepository },
         { provide: getRepositoryToken(Client), useValue: clientRepository },
         { provide: getRepositoryToken(Technician), useValue: technicianRepository },
+        { provide: getRepositoryToken(MaintenanceLog), useValue: logRepository },
       ],
     }).compile();
 
@@ -336,6 +342,40 @@ describe('TasksService', () => {
       await expect(service.updateStatus('nonexistent', TaskStatus.IN_PROGRESS)).rejects.toThrow(
         'Tarea no encontrada',
       );
+    });
+  });
+
+  describe('remove', () => {
+    it('elimina el log asociado y la tarea cuando la tarea existe', async () => {
+      taskRepository.findOne.mockResolvedValue(mockTask);
+      logRepository.delete.mockResolvedValue({ affected: 1 });
+      taskRepository.delete.mockResolvedValue({ affected: 1 });
+
+      await service.remove('task-1');
+
+      expect(taskRepository.findOne).toHaveBeenCalledWith({ where: { id: 'task-1' } });
+      expect(logRepository.delete).toHaveBeenCalledWith({ taskId: 'task-1' });
+      expect(taskRepository.delete).toHaveBeenCalledWith('task-1');
+    });
+
+    it('elimina la tarea aunque no haya log asociado (delete es no-op)', async () => {
+      taskRepository.findOne.mockResolvedValue(mockTask);
+      logRepository.delete.mockResolvedValue({ affected: 0 });
+      taskRepository.delete.mockResolvedValue({ affected: 1 });
+
+      await service.remove('task-1');
+
+      expect(logRepository.delete).toHaveBeenCalledWith({ taskId: 'task-1' });
+      expect(taskRepository.delete).toHaveBeenCalledWith('task-1');
+    });
+
+    it('lanza NotFoundException si la tarea no existe', async () => {
+      taskRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.remove('nonexistent')).rejects.toThrow('Tarea no encontrada');
+
+      expect(logRepository.delete).not.toHaveBeenCalled();
+      expect(taskRepository.delete).not.toHaveBeenCalled();
     });
   });
 });
