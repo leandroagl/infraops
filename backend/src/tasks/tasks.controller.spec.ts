@@ -22,6 +22,7 @@ describe('TasksController', () => {
     create: jest.Mock;
     update: jest.Mock;
     updateStatus: jest.Mock;
+    remove: jest.Mock;
   };
 
   const mockClient: Client = {
@@ -69,6 +70,7 @@ describe('TasksController', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatus: jest.fn(),
+      remove: jest.fn(),
     };
 
     const module = await Test.createTestingModule({
@@ -172,6 +174,23 @@ describe('TasksController', () => {
       tasksService.updateStatus.mockRejectedValue(new BadRequestException());
 
       await expect(controller.updateStatus('task-1', dto)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('remove', () => {
+    it('llama a tasksService.remove con el id y devuelve undefined', async () => {
+      tasksService.remove.mockResolvedValue(undefined);
+
+      const result = await controller.remove('task-1');
+
+      expect(tasksService.remove).toHaveBeenCalledWith('task-1');
+      expect(result).toBeUndefined();
+    });
+
+    it('propaga NotFoundException si la tarea no existe', async () => {
+      tasksService.remove.mockRejectedValue(new NotFoundException());
+
+      await expect(controller.remove('nonexistent')).rejects.toThrow(NotFoundException);
     });
   });
 });

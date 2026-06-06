@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -52,5 +54,12 @@ export class TasksController {
     @Body() dto: UpdateTaskStatusDto,
   ): Promise<Task> {
     return this.tasksService.updateStatus(id, dto.status);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(204)
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    return this.tasksService.remove(id);
   }
 }
