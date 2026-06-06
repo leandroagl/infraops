@@ -40,4 +40,8 @@ export class TasksService {
   updateStatus(id: string, payload: UpdateTaskStatusPayload): Observable<Task> {
     return this.http.patch<Task>(`${this.base}/${id}/status`, payload);
   }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${id}`);
+  }
 }
