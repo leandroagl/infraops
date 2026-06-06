@@ -33,12 +33,16 @@
 
   <div *ngIf="infraError" class="infra-error">{{ infraError }}</div>
 
+  <!-- Banner solo-lectura -->
+  <div *ngIf="!isActiveTask" class="d-readonly">Solo lectura — tarea completada</div>
+
   <!-- Formulario de mantenimiento -->
   <app-maintenance-form
-    *ngIf="infrastructure && isActiveTask"
+    *ngIf="infrastructure"
     [task]="task"
     [infrastructure]="infrastructure"
     [savedPayload]="savedPayload"
+    [readOnly]="!isActiveTask"
     (requestComplete)="onRequestComplete($event)"
     (requestSave)="onRequestSave($event)"
     (requestNotDone)="onRequestNotDone()">
@@ -46,7 +50,14 @@
 
 </div>
 
-<!-- ── Footer ─────────────────────────────────────────────── -->
+<!-- ── Footer solo-lectura ────────────────────────────────── -->
+<div class="d-footer" *ngIf="!isActiveTask">
+  <div class="d-footer__actions">
+    <button mat-stroked-button (click)="drawerClosed.emit()">Cerrar</button>
+  </div>
+</div>
+
+<!-- ── Footer activo ──────────────────────────────────────── -->
 <div class="d-footer" *ngIf="isActiveTask">
 
   <div class="d-footer__actions">

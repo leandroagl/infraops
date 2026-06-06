@@ -511,6 +511,96 @@ describe('MaintenanceFormComponent', () => {
     });
   });
 
+  // ── readOnly input ───────────────────────────────────────────────────────────
+
+  describe('readOnly input', () => {
+    function initWithReadOnly(
+      task: Task,
+      infra: ClientInfrastructure,
+      readOnly: boolean,
+    ): void {
+      fixture = TestBed.createComponent(MaintenanceFormComponent);
+      component = fixture.componentInstance;
+      component.task = task;
+      component.infrastructure = infra;
+      component.readOnly = readOnly;
+      component.ngOnChanges({
+        infrastructure: new SimpleChange(undefined, infra, true),
+        task: new SimpleChange(undefined, task, true),
+      });
+      fixture.detectChanges();
+    }
+
+    it('should disable the FormGroup when readOnly is true on init', () => {
+      initWithReadOnly(
+        makeTask('SERVER_MAINTENANCE'),
+        makeInfra({ esxiHosts: [], nas: [], routers: [] }),
+        true,
+      );
+      expect(component.form.disabled).toBeTrue();
+    });
+
+    it('should keep the FormGroup enabled when readOnly is false on init', () => {
+      initWithReadOnly(
+        makeTask('SERVER_MAINTENANCE'),
+        makeInfra({ esxiHosts: [], nas: [], routers: [] }),
+        false,
+      );
+      expect(component.form.disabled).toBeFalse();
+    });
+
+    it('should disable the FormGroup when readOnly changes to true after init', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      expect(component.form.disabled).toBeFalse();
+
+      component.readOnly = true;
+      component.ngOnChanges({
+        readOnly: new SimpleChange(false, true, false),
+      });
+
+      expect(component.form.disabled).toBeTrue();
+    });
+
+    it('should enable the FormGroup when readOnly changes to false after being true', () => {
+      initWithReadOnly(
+        makeTask('SERVER_MAINTENANCE'),
+        makeInfra({ esxiHosts: [], nas: [], routers: [] }),
+        true,
+      );
+      expect(component.form.disabled).toBeTrue();
+
+      component.readOnly = false;
+      component.ngOnChanges({
+        readOnly: new SimpleChange(true, false, false),
+      });
+
+      expect(component.form.disabled).toBeFalse();
+    });
+
+    it('should patch savedPayload values and still disable form when readOnly is true', () => {
+      fixture = TestBed.createComponent(MaintenanceFormComponent);
+      component = fixture.componentInstance;
+      const task = makeTask('SERVER_MAINTENANCE');
+      const infra = makeInfra({ esxiHosts: [], nas: [], routers: [] });
+      const savedPayload: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], dcdiag: 'ERROR (DNS)', dcdiagDetail: 'lookup failed' },
+      };
+      component.task = task;
+      component.infrastructure = infra;
+      component.savedPayload = savedPayload;
+      component.readOnly = true;
+      component.ngOnChanges({
+        infrastructure: new SimpleChange(undefined, infra, true),
+        savedPayload: new SimpleChange(undefined, savedPayload, true),
+      });
+      fixture.detectChanges();
+
+      expect(component.form.get('dcdiag')?.value).toBe('ERROR (DNS)');
+      expect(component.form.disabled).toBeTrue();
+    });
+  });
+
   // ── selectClass — alerta ─────────────────────────────────────────────────────
 
   describe('selectClass — alerta', () => {

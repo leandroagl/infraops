@@ -25,6 +25,7 @@ export class MaintenanceFormComponent implements OnChanges {
   @Input() task!: Task;
   @Input() infrastructure!: ClientInfrastructure;
   @Input() savedPayload: MaintenancePayload | null = null;
+  @Input() readOnly = false;
 
   @Output() requestComplete = new EventEmitter<ServerMaintenancePayload | TerminalPayload>();
   @Output() requestSave = new EventEmitter<ServerMaintenancePayload | TerminalPayload>();
@@ -40,8 +41,12 @@ export class MaintenanceFormComponent implements OnChanges {
       if (this.savedPayload) {
         this.patchFormFromPayload(this.savedPayload);
       }
+      this.applyReadOnlyState();
     } else if (changes['savedPayload'] && this.savedPayload && this.form) {
       this.patchFormFromPayload(this.savedPayload);
+      this.applyReadOnlyState();
+    } else if (changes['readOnly'] && this.form) {
+      this.applyReadOnlyState();
     }
   }
 
@@ -81,6 +86,17 @@ export class MaintenanceFormComponent implements OnChanges {
     return this.task?.type === 'AV_CONTROL'
       || this.task?.type === 'UPS_CONTROL'
       || this.task?.type === 'ENDPOINT_INVENTORY';
+  }
+
+  // ── Read-only state ─────────────────────────────────────────────────────────
+
+  private applyReadOnlyState(): void {
+    if (!this.form) return;
+    if (this.readOnly) {
+      this.form.disable({ emitEvent: false });
+    } else {
+      this.form.enable({ emitEvent: false });
+    }
   }
 
   // ── Form construction ───────────────────────────────────────────────────────

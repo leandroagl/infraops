@@ -503,10 +503,51 @@ describe('TaskDrawerComponent — template tests', () => {
       expect(btn!.disabled).toBe(true);
     });
 
-    it('should NOT render footer when task is DONE', () => {
+    it('should render read-only footer with "Cerrar" only when task is DONE', () => {
       setupWithType('SERVER_MAINTENANCE', 'DONE');
       const footer = fixture.nativeElement.querySelector('.d-footer');
-      expect(footer).toBeFalsy();
+      expect(footer).toBeTruthy();
+      expect(findButton('Cerrar')).toBeTruthy();
+    });
+
+    it('should NOT render edit buttons when task is DONE', () => {
+      setupWithType('SERVER_MAINTENANCE', 'DONE');
+      expect(findButton('Completar mantenimiento')).toBeFalsy();
+      expect(findButton('Guardar progreso')).toBeFalsy();
+    });
+  });
+
+  // ── Read-only mode ─────────────────────────────────────────────────────────
+
+  describe('read-only mode', () => {
+    it('should show .d-readonly banner when task is DONE', () => {
+      setupWithType('SERVER_MAINTENANCE', 'DONE');
+      const banner = fixture.nativeElement.querySelector('.d-readonly');
+      expect(banner).toBeTruthy();
+    });
+
+    it('should show .d-readonly banner when task is ESCALATED', () => {
+      setupWithType('SERVER_MAINTENANCE', 'ESCALATED');
+      const banner = fixture.nativeElement.querySelector('.d-readonly');
+      expect(banner).toBeTruthy();
+    });
+
+    it('should show .d-readonly banner when task is NOT_DONE', () => {
+      setupWithType('SERVER_MAINTENANCE', 'NOT_DONE');
+      const banner = fixture.nativeElement.querySelector('.d-readonly');
+      expect(banner).toBeTruthy();
+    });
+
+    it('should NOT show .d-readonly banner for PENDING task', () => {
+      setupWithType('SERVER_MAINTENANCE', 'PENDING');
+      const banner = fixture.nativeElement.querySelector('.d-readonly');
+      expect(banner).toBeFalsy();
+    });
+
+    it('should NOT show .d-readonly banner for IN_PROGRESS task', () => {
+      setupWithType('SERVER_MAINTENANCE', 'IN_PROGRESS');
+      const banner = fixture.nativeElement.querySelector('.d-readonly');
+      expect(banner).toBeFalsy();
     });
   });
 

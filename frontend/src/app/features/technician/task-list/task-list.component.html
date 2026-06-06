@@ -129,7 +129,11 @@
         <div class="sec-line"></div>
       </div>
       <div class="task-list">
-        <mat-card *ngFor="let task of doneTasks" class="task task--done">
+        <mat-card
+          *ngFor="let task of doneTasks"
+          class="task task--done"
+          [class.active]="selectedTask?.id === task.id"
+          (click)="selectTask(task)">
           <div class="task__icon" [ngClass]="typeIconClass(task.type)">
             <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round">
               <rect x="2" y="3" width="20" height="14" rx="2"/>

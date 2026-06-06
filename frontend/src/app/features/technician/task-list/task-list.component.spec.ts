@@ -366,6 +366,47 @@ describe('TaskListComponent', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Completed tasks — click to open drawer (solo-lectura)
+  // ---------------------------------------------------------------------------
+  describe('completed tasks interaction', () => {
+    it('should set selectedTask when clicking a DONE task card', () => {
+      const doneTask = makeTask({ id: 'done-1', status: 'DONE', scheduledDate: dateOffsetDays(-5) });
+      component.tasks = [doneTask];
+      fixture.detectChanges();
+
+      const card = fixture.nativeElement.querySelector('.task--done');
+      card.click();
+      fixture.detectChanges();
+
+      expect(component.selectedTask).toBe(doneTask);
+    });
+
+    it('should add class "active" to the clicked DONE task card', () => {
+      const doneTask = makeTask({ id: 'done-2', status: 'DONE', scheduledDate: dateOffsetDays(-5) });
+      component.tasks = [doneTask];
+      component.selectTask(doneTask);
+      fixture.detectChanges();
+
+      const card = fixture.nativeElement.querySelector('.task--done');
+      expect(card.classList.contains('active')).toBe(true);
+    });
+
+    it('should set selectedTask for ESCALATED tasks', () => {
+      const escalated = makeTask({ id: 'esc-1', status: 'ESCALATED', scheduledDate: dateOffsetDays(-2) });
+      component.tasks = [escalated];
+      component.selectTask(escalated);
+      expect(component.selectedTask?.status).toBe('ESCALATED');
+    });
+
+    it('should set selectedTask for NOT_DONE tasks', () => {
+      const notDone = makeTask({ id: 'nd-1', status: 'NOT_DONE', scheduledDate: dateOffsetDays(3) });
+      component.tasks = [notDone];
+      component.selectTask(notDone);
+      expect(component.selectedTask?.status).toBe('NOT_DONE');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Template tests
   // ---------------------------------------------------------------------------
   describe('template', () => {
