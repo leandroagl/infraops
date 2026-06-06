@@ -1,11 +1,11 @@
-.users-page {
+.page {
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.users-header {
+.page-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -15,7 +15,6 @@
     font-weight: 600;
     color: var(--tx-hi);
     margin: 0 0 2px;
-    font-family: var(--font-ui);
   }
 
   &__count {
@@ -23,32 +22,28 @@
     color: var(--tx-lo);
     font-family: var(--font-mono);
   }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--crit-bg);
+  border: 1px solid var(--crit-bd);
+  border-radius: var(--radius-sm);
+  color: var(--crit);
+  font-size: 12px;
 }
 
 .users-table {
-  width: 100%;
-  border-collapse: collapse;
-
-  th {
-    padding: 10px 16px;
-    text-align: left;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--tx-lo);
-    font-family: var(--font-mono);
-    border-bottom: 1px solid var(--border-lo);
-  }
-
-  td {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-lo);
-    vertical-align: middle;
-  }
-
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover td { background: var(--hover); }
+  overflow: hidden;
 }
 
 .user-info {
@@ -75,19 +70,12 @@
   text-align: right;
 }
 
-.actions-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--tx-lo);
-  padding: 4px 6px;
-  border-radius: var(--radius-sm);
-  display: inline-flex;
-  align-items: center;
-  transition: background var(--transition), color var(--transition);
-
-  &:hover {
-    background: var(--elevated);
-    color: var(--tx-md);
-  }
+.dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 5px;
+  vertical-align: middle;
 }

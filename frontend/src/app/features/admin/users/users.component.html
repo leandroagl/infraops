@@ -1,18 +1,20 @@
-<div class="users-page">
-  <div class="users-header">
+<div class="page">
+  <div class="page-header">
     <div>
-      <h1 class="users-header__title">Usuarios</h1>
-      <span class="users-header__count" *ngIf="!loading">{{ users.length }} usuarios registrados</span>
+      <h1 class="page-header__title">Usuarios</h1>
+      <span class="page-header__count" *ngIf="!loading">{{ users.length }} usuarios registrados</span>
     </div>
-    <button mat-flat-button color="primary" (click)="openCreateDialog()">
-      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-right:4px;vertical-align:middle">
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <line x1="19" y1="8" x2="19" y2="14"/>
-        <line x1="22" y1="11" x2="16" y2="11"/>
-      </svg>
-      Nuevo usuario
-    </button>
+    <div class="page-header__actions">
+      <button mat-flat-button color="primary" (click)="openCreateDialog()">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-right:4px;vertical-align:middle">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <line x1="19" y1="8" x2="19" y2="14"/>
+          <line x1="22" y1="11" x2="16" y2="11"/>
+        </svg>
+        Nuevo usuario
+      </button>
+    </div>
   </div>
 
   <div *ngIf="error" class="error-banner">
@@ -20,10 +22,8 @@
     <button mat-button (click)="loadUsers()">Reintentar</button>
   </div>
 
-  <div class="surface-card">
-    <mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
-
-    <mat-table *ngIf="!loading" [dataSource]="users">
+  <div class="surface-card users-table">
+    <table mat-table [dataSource]="users" style="width:100%">
 
       <ng-container matColumnDef="user">
         <th mat-header-cell *matHeaderCellDef>USUARIO</th>
@@ -95,8 +95,10 @@
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       <tr class="mat-mdc-no-data-row" *matNoDataRow>
-        <td [attr.colspan]="displayedColumns.length">No hay usuarios registrados.</td>
+        <td [attr.colspan]="displayedColumns.length">
+          {{ loading ? 'Cargando…' : 'No hay usuarios registrados.' }}
+        </td>
       </tr>
-    </mat-table>
+    </table>
   </div>
 </div>
