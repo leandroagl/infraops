@@ -9,7 +9,7 @@ describe('task-labels utils', () => {
       ['IN_PROGRESS', 'En curso'],
       ['DONE',        'Listo'],
       ['ESCALATED',   'Escalado'],
-      ['NOT_DONE',    'No realizado'],
+      ['NOT_DONE',    'No hecho'],
     ];
     cases.forEach(([status, expected]) => {
       it(`${status} → "${expected}"`, () => {

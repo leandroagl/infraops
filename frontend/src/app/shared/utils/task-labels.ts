@@ -7,7 +7,7 @@ export function statusLabel(status: TaskStatus): string {
     IN_PROGRESS: 'En curso',
     DONE:        'Listo',
     ESCALATED:   'Escalado',
-    NOT_DONE:    'No realizado',
+    NOT_DONE:    'No hecho',
   };
   return labels[status] ?? status;
 }

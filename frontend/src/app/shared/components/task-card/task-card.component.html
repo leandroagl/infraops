@@ -1,0 +1,31 @@
+<!-- frontend/src/app/shared/components/task-card/task-card.component.html -->
+<mat-card
+  class="task-card"
+  [class.active]="active"
+  [ngClass]="borderClass"
+  role="button"
+  tabindex="0"
+  (click)="selected.emit(task)"
+  (keydown.enter)="selected.emit(task)"
+  (keydown.space)="$event.preventDefault(); selected.emit(task)">
+
+  <div class="tc-top">
+    <div class="tc-client">{{ task.client?.name ?? task.clientId }}</div>
+    <div class="tc-type">{{ typeLabel }}</div>
+  </div>
+
+  <div class="tc-bottom">
+    <ng-container *ngIf="isActive">
+      <span class="urg" [ngClass]="urgencyClassStr">{{ urgencyLabelText }}</span>
+      <div class="tc-status">
+        <span class="sdot" [style.background]="statusDotColor"></span>
+        {{ statusLabel }}
+      </div>
+    </ng-container>
+    <ng-container *ngIf="!isActive">
+      <span class="badge" [ngClass]="task.status === 'DONE' ? 'badge--ok' : 'badge--muted'">
+        {{ statusLabel }}
+      </span>
+    </ng-container>
+  </div>
+</mat-card>
