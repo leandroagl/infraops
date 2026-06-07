@@ -1,6 +1,7 @@
-import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, ViewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
+import { MatSidenavContainer } from '@angular/material/sidenav';
 import { AuthService } from '../services/auth.service';
 import { AuthUser } from '../models/auth.models';
 import { SidenavContextService, ClientSidenavContext } from '../services/sidenav-context.service';
@@ -24,6 +25,8 @@ export class ShellComponent implements OnInit {
     { route: '/admin',     label: 'Admin',      icon: 'admin'     },
   ];
 
+  @ViewChild(MatSidenavContainer) private readonly sidenavContainer!: MatSidenavContainer;
+
   private readonly destroyRef = inject(DestroyRef);
 
   readonly currentUser: AuthUser | null;
@@ -42,6 +45,9 @@ export class ShellComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(ctx => {
         this.clientContext = ctx;
+        // mat-sidenav width cambia via CSS class; Angular Material no detecta
+        // el cambio automáticamente en v17, forzamos el recálculo del margen.
+        setTimeout(() => this.sidenavContainer?.updateContentMargins());
       });
   }
 
