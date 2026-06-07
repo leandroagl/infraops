@@ -218,40 +218,42 @@
 
     <div class="mf-section-lbl">QNAP / NAS</div>
 
-    <ng-container formArrayName="qnapDevices">
-      <ng-container *ngFor="let _ of qnapDeviceControls.controls; let i = index" [formGroupName]="i">
+    <div class="mf-vmware-grid" formArrayName="qnapDevices">
+      <div *ngFor="let _ of qnapDeviceControls.controls; let i = index"
+           [formGroupName]="i"
+           class="mf-cl-rpt mf-vmware-card">
 
-        <div class="mf-cl-rpt">
-          <div class="mf-cl-rpt-hdr">
-            <div class="mf-cl-rpt-dot"></div>
+        <div class="mf-cl-rpt-hdr">
+          <div class="mf-cl-rpt-dot"></div>
+          <div class="mf-vmware-name-block">
             <span class="mf-cl-rpt-label">{{ infrastructure.nas[i].name }}</span>
             <span class="mono mf-host-ip">{{ infrastructure.nas[i].ip ?? '—' }}</span>
           </div>
-          <div class="mf-qnap-row">
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff"
-                            [ngClass]="metricClass(qnapDeviceControls.at(i).get('spaceUsed')?.value, 70, 85)">
-              <mat-label>Espacio utilizado</mat-label>
-              <input matInput formControlName="spaceUsed" type="number" min="0" max="100" placeholder="0" />
-              <span matTextSuffix>%</span>
-            </mat-form-field>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
-                            [ngClass]="selectClass(qnapDeviceControls.at(i).get('raidStatus')?.value)">
-              <mat-label>Estado RAID</mat-label>
-              <mat-select formControlName="raidStatus">
-                <mat-option value="ok">OK — saludable</mat-option>
-                <mat-option value="degraded">Degradado</mat-option>
-                <mat-option value="failed">Error</mat-option>
-              </mat-select>
-            </mat-form-field>
-          </div>
         </div>
 
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff"
+                        [ngClass]="metricClass(qnapDeviceControls.at(i).get('spaceUsed')?.value, 70, 85)">
+          <mat-label>Espacio utilizado</mat-label>
+          <input matInput formControlName="spaceUsed" type="number" min="0" max="100" placeholder="0" />
+          <span matTextSuffix>%</span>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
+                        [ngClass]="selectClass(qnapDeviceControls.at(i).get('raidStatus')?.value)">
+          <mat-label>Estado RAID</mat-label>
+          <mat-select formControlName="raidStatus">
+            <mat-option value="ok">OK — saludable</mat-option>
+            <mat-option value="degraded">Degradado</mat-option>
+            <mat-option value="failed">Error</mat-option>
+          </mat-select>
+        </mat-form-field>
+
         <mat-checkbox formControlName="firmwareUpdated" class="mf-cl-mat mf-qnap-fw-check">
-          Aplicar actualizaciones de firmware QNAP si hay disponibles
+          Actualizar firmware si disponible
         </mat-checkbox>
 
-      </ng-container>
-    </ng-container>
+      </div>
+    </div>
 
   </ng-container>
 
