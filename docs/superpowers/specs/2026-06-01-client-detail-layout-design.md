@@ -60,7 +60,7 @@ Suscribe a `SidenavContextService.client$`. Cuando el valor es `null`, renderiza
 - Links de navegación: Overview (`/clients/:id/overview`), Mantenimientos (`/clients/:id/mantenimientos`)
 - El ítem activo se detecta con `routerLinkActive`
 
-El sidebar expande su ancho a ~180px en modo cliente.
+El sidebar expande su ancho a 180px en modo cliente.
 
 ### ClientDetailComponent (refactorizado)
 
@@ -109,7 +109,7 @@ Ambos se declaran en `ClientsModule`. El contenido real es trabajo futuro.
 
 `ClientsModule` debe importar `RouterModule` (para `routerLinkActive` en los stubs y el `<router-outlet>` del detail).
 
-`ShellModule` ya tiene `RouterModule`; necesita importar `MatButtonModule` si se usa `mat-icon-button` para el Back.
+`ShellModule` ya tiene `RouterModule`. El botón "Back" es un `<a>` con la clase `nav-item` (mismo patrón que el sidebar actual), sin necesidad de `MatButtonModule`.
 
 ---
 
