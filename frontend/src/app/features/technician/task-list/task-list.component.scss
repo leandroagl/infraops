@@ -13,6 +13,7 @@ mat-card.greeting {
   --mdc-outlined-card-outline-color: var(--border-lo);
   border-radius: var(--radius-lg);
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 14px;
   padding: 14px 18px;
