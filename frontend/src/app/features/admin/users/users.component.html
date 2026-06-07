@@ -1,10 +1,6 @@
 <div class="page">
   <div class="page-header">
-    <div>
-      <h1 class="page-header__title">Usuarios</h1>
-      <span class="page-header__count" *ngIf="!loading">{{ users.length }} usuarios registrados</span>
-    </div>
-    <div class="page-header__actions">
+    <div class="page-header__left">
       <button mat-flat-button color="primary" (click)="openCreateDialog()">
         <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-right:4px;vertical-align:middle">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -14,6 +10,7 @@
         </svg>
         Nuevo usuario
       </button>
+      <span class="page-header__count" *ngIf="!loading">{{ users.length }} usuarios registrados</span>
     </div>
   </div>
 

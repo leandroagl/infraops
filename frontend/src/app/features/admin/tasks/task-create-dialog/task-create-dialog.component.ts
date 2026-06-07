@@ -12,6 +12,7 @@ import { TasksService } from '../../../../core/services/tasks.service';
 @Component({
   selector: 'app-task-create-dialog',
   templateUrl: './task-create-dialog.component.html',
+  styleUrls: ['./task-create-dialog.component.scss'],
 })
 export class TaskCreateDialogComponent implements OnInit {
   form!: FormGroup;
@@ -66,8 +67,11 @@ export class TaskCreateDialogComponent implements OnInit {
     this.error = '';
 
     const { clientId, technicianId, type, scheduledDate } = this.form.value;
+    const dateStr = scheduledDate instanceof Date
+      ? scheduledDate.toISOString().split('T')[0]
+      : scheduledDate;
 
-    this.tasksService.create({ clientId, technicianId, type, scheduledDate }).subscribe({
+    this.tasksService.create({ clientId, technicianId, type, scheduledDate: dateStr }).subscribe({
       next: task => this.dialogRef.close(task),
       error: () => { this.error = 'No se pudo crear la tarea.'; this.saving = false; },
     });

@@ -58,6 +58,8 @@
 mat-form-field.mf-form-field {
   width: 100%;
 
+  --mat-form-field-container-height:           32px;
+  --mat-form-field-container-vertical-padding: 6px;
   --mdc-outlined-text-field-container-color:        var(--elevated);
   --mdc-outlined-text-field-outline-color:          var(--border);
   --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
@@ -89,6 +91,8 @@ mat-form-field.mf-srv-ff {
 mat-form-field.mf-metric-ff {
   width: 100%;
 
+  --mat-form-field-container-height:           32px;
+  --mat-form-field-container-vertical-padding: 6px;
   --mdc-outlined-text-field-container-color:        var(--elevated);
   --mdc-outlined-text-field-outline-color:          var(--border);
   --mdc-outlined-text-field-hover-outline-color:    var(--border-md);

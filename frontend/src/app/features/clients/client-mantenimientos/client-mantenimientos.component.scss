@@ -1,13 +1,4 @@
-.mant-error {
-  padding: 16px;
-  color: var(--crit);
-  font-size: 13px;
-}
-
-.mant-table-wrapper {
+.mant-table {
   margin-top: 8px;
-
-  table {
-    width: 100%;
-  }
+  overflow: hidden;
 }

@@ -1,7 +1,12 @@
 <div class="page">
   <div class="page-header">
-    <div>
-      <h1 class="page-header__title">Tareas</h1>
+    <div class="page-header__left">
+      <button mat-flat-button color="primary" (click)="openCreateDialog()">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-right:4px;vertical-align:middle">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nueva tarea
+      </button>
       <span class="page-header__count" *ngIf="!loading">{{ dataSource.data.length }} tareas</span>
     </div>
     <div class="page-header__actions">
@@ -11,12 +16,6 @@
           <mat-option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label }}</mat-option>
         </mat-select>
       </mat-form-field>
-      <button mat-flat-button color="primary" (click)="openCreateDialog()">
-        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-right:4px;vertical-align:middle">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        Nueva tarea
-      </button>
     </div>
   </div>
 
