@@ -97,7 +97,7 @@
 </div>
 
 <!-- ── Drawer ─────────────────────────────────────────────── -->
-<div class="drawer" [class.open]="selectedTask">
+<div class="drawer" [class.open]="selectedTask !== null">
   <app-task-drawer
     *ngIf="selectedTask"
     [task]="selectedTask"

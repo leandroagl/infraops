@@ -276,7 +276,7 @@ describe('TaskListComponent', () => {
       expect(text).toContain('Cerradas');
     });
 
-    it('renderiza un app-task-card por tarea activa', () => {
+    it('renderiza un app-task-card por tarea (todas las columnas)', () => {
       component.tasks = [
         makeTask({ id: 't1', status: 'PENDING'     }),
         makeTask({ id: 't2', status: 'IN_PROGRESS' }),
