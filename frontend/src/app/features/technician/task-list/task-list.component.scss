@@ -1,61 +1,47 @@
-:host {
-  display: block;
-}
+:host { display: block; }
 
 .tl-page {
   padding: 20px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 720px;
 }
 
-// ── Greeting ────────────────────────────────────────────────
-.greeting {
+// ── Greeting (mat-card) ──────────────────────────────────────
+mat-card.greeting {
+  --mdc-elevated-card-container-color: var(--surface);
+  --mdc-elevated-card-container-elevation: none;
+  border: 1px solid var(--border-lo);
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   gap: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border-lo);
-  border-radius: var(--radius-lg);
   padding: 14px 18px;
+  flex-shrink: 0;
+}
 
-  &__avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--srv-bg);
-    border: 2px solid var(--srv-bd);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--srv);
-    flex-shrink: 0;
-    font-family: var(--font-mono);
-  }
+.greeting__avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--srv-bg);
+  border: 2px solid var(--srv-bd);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 600; color: var(--srv);
+  flex-shrink: 0;
+}
 
-  &__name {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--tx-hi);
-  }
+.greeting__name {
+  font-size: 14px; font-weight: 500; color: var(--tx-hi);
+}
 
-  &__sub {
-    font-size: 10px;
-    color: var(--tx-lo);
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    font-family: var(--font-mono);
-    margin-top: 2px;
-  }
+.greeting__sub {
+  font-size: 11px; color: var(--tx-lo);
+  letter-spacing: .3px; margin-top: 2px;
+}
 
-  &__kpis {
-    margin-left: auto;
-    display: flex;
-    gap: 8px;
-  }
+.greeting__kpis {
+  margin-left: auto;
+  display: flex; gap: 8px;
 }
 
 // ── KPI ─────────────────────────────────────────────────────
@@ -63,282 +49,109 @@
   background: var(--card);
   border: 1px solid var(--border-lo);
   border-radius: var(--radius-sm);
-  padding: 8px 14px;
+  padding: 10px 18px;
   text-align: center;
-  min-width: 60px;
+  min-width: 68px;
+}
 
-  &__value {
-    font-size: 20px;
-    font-weight: 500;
-    line-height: 1.1;
-    font-family: var(--font-mono);
-    color: var(--tx-hi);
-  }
+.kpi__value {
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  color: var(--tx-hi);
+}
 
-  &__label {
-    font-size: 9px;
-    color: var(--tx-lo);
-    margin-top: 2px;
-    letter-spacing: 0.3px;
-    text-transform: uppercase;
-    font-family: var(--font-mono);
-  }
+.kpi__label {
+  font-size: 10px; color: var(--tx-lo);
+  margin-top: 3px; letter-spacing: .4px; text-transform: uppercase;
 }
 
 .kv-crit { color: var(--crit); }
 .kv-warn { color: var(--warn); }
 .kv-ok   { color: var(--ok);   }
 
-// ── Section header ───────────────────────────────────────────
-.sec-hdr {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+// ── Kanban board ─────────────────────────────────────────────
+.kanban {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+
+  &--loading { align-items: stretch; }
 }
 
-.sec-lbl {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--tx-lo);
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  font-family: var(--font-mono);
-  white-space: nowrap;
-}
-
-.sec-cnt {
-  font-size: 10px;
-  font-weight: 500;
-  padding: 1px 6px;
-  border-radius: 8px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  color: var(--tx-md);
-}
-
-.sec-line {
-  flex: 1;
-  height: 1px;
-  background: var(--border-lo);
-}
-
-// ── Task list ────────────────────────────────────────────────
-.task-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.task {
-  --mdc-elevated-card-container-color: var(--card);
-  --mdc-elevated-card-container-elevation: none;
-  background: var(--card);
+.kanban__col {
+  background: var(--surface);
   border: 1px solid var(--border-lo);
   border-radius: var(--radius);
-  padding: 12px 14px;
+  overflow: hidden;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  cursor: pointer;
-  transition: background var(--transition), border-color var(--transition);
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 8px;
-    bottom: 8px;
-    width: 3px;
-    border-radius: 0 2px 2px 0;
-  }
-
-  &.t-srv::before    { background: var(--srv);    }
-  &.t-visit::before  { background: var(--purple);  }
-  &.t-crit::before   { background: var(--crit);    }
-
-  &:hover  { background: var(--hover); }
-  &.active { background: var(--hover); border-color: var(--srv-bd); }
-
-  &--done {
-    opacity: 0.4;
-    pointer-events: none;
-  }
-
-  &__icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  &__body {
-    flex: 1;
-    min-width: 0;
-  }
-
-  &__client {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--tx-hi);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &__sub {
-    font-size: 11px;
-    color: var(--tx-md);
-    margin-top: 2px;
-  }
-
-  &__right {
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-  }
+  flex-direction: column;
 }
 
-.ti-srv {
-  background: var(--srv-bg);
-  border: 1px solid var(--srv-bd);
-  color: var(--srv);
-}
-
-.ti-visit {
-  background: var(--purple-bg);
-  border: 1px solid var(--purple-bd);
-  color: var(--purple);
-}
-
-// ── Status dot + text ────────────────────────────────────────
-.task-st {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  color: var(--tx-lo);
-}
-
-.sdot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
+.kanban__col-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-lo);
+  background: var(--card);
   flex-shrink: 0;
 }
 
-// ── Section header variants ──────────────────────────────────
-.sec-lbl--crit {
-  color: var(--crit);
+.col-label {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: .8px; text-transform: uppercase;
+  color: var(--tx-lo); flex: 1;
+
+  &--active { color: var(--srv); }
 }
 
-.sec-cnt--crit {
-  background: var(--crit-bg);
-  border-color: var(--crit-bd);
-  color: var(--crit);
-}
-
-.sec-line--crit {
-  background: var(--crit-bd);
-}
-
-// ── Urgency badge ────────────────────────────────────────────
-.urg {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 9px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  font-family: var(--font-mono);
-  white-space: nowrap;
-  border: 1px solid;
-}
-
-.urg-crit { background: var(--crit-bg); color: var(--crit); border-color: var(--crit-bd); }
-.urg-warn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-bd); }
-.urg-ok   { background: var(--ok-bg);   color: var(--ok);   border-color: var(--ok-bd);   }
-
-// ── Empty state ──────────────────────────────────────────────
-.empty-state {
-  text-align: center;
+.col-cnt {
+  font-size: 10px; font-weight: 500;
+  padding: 2px 7px; border-radius: 10px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border-lo);
   color: var(--tx-lo);
-  font-size: 12px;
-  padding: 48px 0;
+
+  &--active {
+    background: var(--srv-bg);
+    border-color: var(--srv-bd);
+    color: var(--srv);
+  }
+}
+
+.kanban__col-body {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px;
+  min-height: 80px;
+}
+
+.col-empty {
+  text-align: center; color: var(--tx-lo);
+  font-size: 11px; padding: 20px 0;
+}
+
+// ── Error banner ─────────────────────────────────────────────
+.error-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px;
+  background: var(--crit-bg);
+  border: 1px solid var(--crit-bd);
+  border-radius: var(--radius);
+  color: var(--crit); font-size: 12px;
 }
 
 // ── Drawer ───────────────────────────────────────────────────
 .drawer {
   position: fixed;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 520px;
+  right: 0; top: 0; bottom: 0;
+  width: 780px;
   background: var(--surface);
   border-left: 1px solid var(--border-lo);
   z-index: 50;
   transform: translateX(100%);
   transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  display: flex; flex-direction: column; overflow: hidden;
 
   &.open { transform: translateX(0); }
-}
-
-.d-hdr {
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--border-lo);
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.d-client {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--tx-hi);
-}
-
-.d-sub {
-  font-size: 11px;
-  color: var(--tx-md);
-  margin-top: 3px;
-}
-
-.d-close {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  margin-left: auto;
-  color: var(--tx-md);
-  transition: background var(--transition), color var(--transition);
-
-  &:hover { background: var(--elevated); color: var(--tx-hi); }
-}
-
-.d-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-
-  &::-webkit-scrollbar       { width: 4px; }
-  &::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 }

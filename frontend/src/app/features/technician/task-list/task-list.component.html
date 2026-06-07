@@ -1,7 +1,7 @@
 <div class="tl-page">
 
-  <!-- ── Greeting ───────────────────────────────────────── -->
-  <div class="greeting">
+  <!-- ── Greeting ─────────────────────────────────────────── -->
+  <mat-card class="greeting">
     <div class="greeting__avatar">{{ technicianName[0]?.toUpperCase() }}</div>
     <div class="greeting__info">
       <div class="greeting__name">Buenas, {{ technicianName }}</div>
@@ -21,144 +21,82 @@
         <div class="kpi__label">En plazo</div>
       </div>
     </div>
-  </div>
+  </mat-card>
 
-  <!-- ── Error ───────────────────────────────────────────── -->
+  <!-- ── Error ─────────────────────────────────────────────── -->
   <div *ngIf="error" class="error-banner">
     {{ error }}
     <button mat-button (click)="load()">Reintentar</button>
   </div>
 
-  <!-- ── Loading ─────────────────────────────────────────── -->
+  <!-- ── Loading ───────────────────────────────────────────── -->
   <ng-container *ngIf="loading">
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <div class="skeleton" style="height:72px;border-radius:var(--radius)"></div>
-      <div class="skeleton" style="height:72px;border-radius:var(--radius)"></div>
-      <div class="skeleton" style="height:72px;border-radius:var(--radius)"></div>
+    <div class="kanban kanban--loading">
+      <div class="skeleton" style="height:200px;border-radius:var(--radius)"></div>
+      <div class="skeleton" style="height:200px;border-radius:var(--radius)"></div>
+      <div class="skeleton" style="height:200px;border-radius:var(--radius)"></div>
     </div>
   </ng-container>
 
-  <!-- ── Tareas ──────────────────────────────────────────── -->
-  <ng-container *ngIf="!loading">
+  <!-- ── Kanban ─────────────────────────────────────────────── -->
+  <div class="kanban" *ngIf="!loading">
 
-    <!-- Requieren atención (vencidas) -->
-    <div *ngIf="overdueTasks.length > 0">
-      <div class="sec-hdr">
-        <span class="sec-lbl sec-lbl--crit">Requieren atención</span>
-        <span class="sec-cnt sec-cnt--crit">{{ overdueTasks.length }}</span>
-        <div class="sec-line sec-line--crit"></div>
+    <!-- Pendientes (PENDING + IN_PROGRESS), ordenadas por urgencia -->
+    <div class="kanban__col">
+      <div class="kanban__col-header">
+        <span class="col-label col-label--active">Pendientes</span>
+        <span class="col-cnt col-cnt--active">{{ kanbanPending.length }}</span>
       </div>
-      <div class="task-list">
-        <mat-card
-          *ngFor="let task of overdueTasks"
-          class="task t-crit"
-          [class.active]="selectedTask?.id === task.id"
-          (click)="selectTask(task)">
-
-          <div class="task__icon" [ngClass]="typeIconClass(task.type)">
-            <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8M12 17v4"/>
-            </svg>
-          </div>
-
-          <div class="task__body">
-            <div class="task__client">{{ task.client?.name ?? task.clientId }}</div>
-            <div class="task__sub">{{ typeLabel(task.type) }}</div>
-          </div>
-
-          <div class="task__right">
-            <span class="urg" [ngClass]="urgencyClass(daysFromToday(task.scheduledDate))">
-              {{ urgencyLabel(daysFromToday(task.scheduledDate)) }}
-            </span>
-            <div class="task-st">
-              <div class="sdot" [style.background]="statusDotColor(task)"></div>
-              {{ task.status === 'IN_PROGRESS' ? 'En curso' : 'Pendiente' }}
-            </div>
-          </div>
-        </mat-card>
+      <div class="kanban__col-body">
+        <app-task-card
+          *ngFor="let task of kanbanPending"
+          [task]="task"
+          [active]="selectedTask?.id === task.id"
+          (selected)="selectTask($event)">
+        </app-task-card>
+        <div *ngIf="kanbanPending.length === 0" class="col-empty">Sin tareas pendientes</div>
       </div>
     </div>
 
-    <!-- Pendientes (activas, no vencidas) -->
-    <div *ngIf="pendingTasks.length > 0">
-      <div class="sec-hdr">
-        <span class="sec-lbl">Pendientes</span>
-        <span class="sec-cnt">{{ pendingTasks.length }}</span>
-        <div class="sec-line"></div>
+    <!-- Completadas (DONE) -->
+    <div class="kanban__col">
+      <div class="kanban__col-header">
+        <span class="col-label">Completadas</span>
+        <span class="col-cnt">{{ kanbanDone.length }}</span>
       </div>
-      <div class="task-list">
-        <mat-card
-          *ngFor="let task of pendingTasks"
-          class="task"
-          [class.active]="selectedTask?.id === task.id"
-          [class.t-visit]="task.type === 'TERMINAL_MAINTENANCE' || task.type === 'SITE_VISIT'"
-          [class.t-srv]="task.type !== 'TERMINAL_MAINTENANCE' && task.type !== 'SITE_VISIT'"
-          (click)="selectTask(task)">
-
-          <div class="task__icon" [ngClass]="typeIconClass(task.type)">
-            <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8M12 17v4"/>
-            </svg>
-          </div>
-
-          <div class="task__body">
-            <div class="task__client">{{ task.client?.name ?? task.clientId }}</div>
-            <div class="task__sub">{{ typeLabel(task.type) }}</div>
-          </div>
-
-          <div class="task__right">
-            <span class="urg" [ngClass]="urgencyClass(daysFromToday(task.scheduledDate))">
-              {{ urgencyLabel(daysFromToday(task.scheduledDate)) }}
-            </span>
-            <div class="task-st">
-              <div class="sdot" [style.background]="statusDotColor(task)"></div>
-              {{ task.status === 'IN_PROGRESS' ? 'En curso' : 'Pendiente' }}
-            </div>
-          </div>
-        </mat-card>
+      <div class="kanban__col-body">
+        <app-task-card
+          *ngFor="let task of kanbanDone"
+          [task]="task"
+          [active]="selectedTask?.id === task.id"
+          (selected)="selectTask($event)">
+        </app-task-card>
+        <div *ngIf="kanbanDone.length === 0" class="col-empty">Sin completadas este mes</div>
       </div>
     </div>
 
-    <!-- Completadas -->
-    <div *ngIf="doneTasks.length > 0">
-      <div class="sec-hdr">
-        <span class="sec-lbl">Completadas</span>
-        <span class="sec-cnt">{{ doneTasks.length }}</span>
-        <div class="sec-line"></div>
+    <!-- Cerradas (ESCALATED + NOT_DONE) -->
+    <div class="kanban__col">
+      <div class="kanban__col-header">
+        <span class="col-label">Cerradas</span>
+        <span class="col-cnt">{{ kanbanClosed.length }}</span>
       </div>
-      <div class="task-list">
-        <mat-card
-          *ngFor="let task of doneTasks"
-          class="task task--done"
-          [class.active]="selectedTask?.id === task.id"
-          (click)="selectTask(task)">
-          <div class="task__icon" [ngClass]="typeIconClass(task.type)">
-            <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8M12 17v4"/>
-            </svg>
-          </div>
-          <div class="task__body">
-            <div class="task__client">{{ task.client?.name ?? task.clientId }}</div>
-            <div class="task__sub">{{ typeLabel(task.type) }}</div>
-          </div>
-          <div class="task__right">
-            <span class="badge badge--ok">{{ task.status === 'DONE' ? 'Listo' : task.status === 'ESCALATED' ? 'Escalado' : 'No hecho' }}</span>
-          </div>
-        </mat-card>
+      <div class="kanban__col-body">
+        <app-task-card
+          *ngFor="let task of kanbanClosed"
+          [task]="task"
+          [active]="selectedTask?.id === task.id"
+          (selected)="selectTask($event)">
+        </app-task-card>
+        <div *ngIf="kanbanClosed.length === 0" class="col-empty">Sin cerradas este mes</div>
       </div>
     </div>
 
-    <div *ngIf="tasks.length === 0 && !error" class="empty-state">
-      No tenés tareas asignadas este mes.
-    </div>
+  </div>
 
-  </ng-container>
 </div>
 
-<!-- ── Overlay + Drawer ────────────────────────────────── -->
+<!-- ── Drawer ─────────────────────────────────────────────── -->
 <div class="drawer" [class.open]="selectedTask">
   <app-task-drawer
     *ngIf="selectedTask"
