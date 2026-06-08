@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cron } from '@nestjs/schedule';
 import { Repository } from 'typeorm';
@@ -16,7 +16,8 @@ export interface SyncResult {
 export type ClientResponse = Omit<Client, 'infradocId' | 'lastSyncedAt'>;
 
 @Injectable()
-export class ClientsService {
+export class ClientsService implements OnModuleInit {
+  private readonly logger = new Logger(ClientsService.name);
   private lastSyncAt: Date | null = null;
   private readonly COOLDOWN_MS = 60_000;
 
@@ -25,6 +26,15 @@ export class ClientsService {
     private readonly clientRepository: Repository<Client>,
     private readonly infradocService: InfradocService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    const count = await this.clientRepository.count();
+    if (count === 0) {
+      this.logger.log('BD de clientes vacía — iniciando sync con InfraDoc...');
+      await this.syncWithInfradoc(true);
+      this.logger.log('Sync inicial completado.');
+    }
+  }
 
   async findAll(): Promise<ClientResponse[]> {
     const clients = await this.clientRepository.find({ order: { name: 'ASC' } });
@@ -124,9 +134,10 @@ export class ClientsService {
   @Cron('0 */4 * * *')
   async scheduledSync(): Promise<void> {
     try {
-      await this.syncWithInfradoc(true);
-    } catch {
-      // InfraDoc puede no estar disponible temporalmente
+      const result = await this.syncWithInfradoc(true);
+      this.logger.log(`Sync periódico completado: ${JSON.stringify(result)}`);
+    } catch (err: unknown) {
+      this.logger.error('Sync periódico fallido — InfraDoc puede no estar disponible', err);
     }
   }
 
