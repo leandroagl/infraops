@@ -39,7 +39,9 @@ export interface VeeamSection {
   missingVMs?: string[];
 }
 
-export interface RouterSection {
+export interface RouterEntry {
+  routerId: number;
+  routerName: string;
   firmwareUpdated: boolean;
   firmwareVersion?: string;
   backupDone: boolean;
@@ -60,7 +62,7 @@ export interface ServerMaintenancePayload {
   vmware?: VMwareHostEntry[];
   qnap?: QNAPSection[];
   veeam?: VeeamSection;
-  router?: RouterSection;
+  router?: RouterEntry[];
   bmc?: BmcEntry[];
   notes?: string;
 }

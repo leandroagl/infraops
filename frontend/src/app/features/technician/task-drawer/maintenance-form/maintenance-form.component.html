@@ -5,6 +5,36 @@
 
     <div class="mf-section-lbl">Servidores</div>
 
+    <!-- DCDIAG -->
+    <div class="mf-cl-rpt">
+      <div class="mf-cl-rpt-hdr">
+        <div class="mf-cl-rpt-dot"></div>
+        <span class="mf-cl-rpt-label">DCDIAG — análisis del dominio Active Directory</span>
+      </div>
+      <div class="mf-dcdiag-row">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
+                        [ngClass]="selectClass(form.get('dcdiag')?.value)">
+          <mat-select formControlName="dcdiag">
+            <mat-option value="OK">OK</mat-option>
+            <mat-option value="ERROR">ERROR</mat-option>
+            <mat-option value="ERROR Systemlog">ERROR Systemlog</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field *ngIf="dcdiagHasError()"
+                        appearance="outline" subscriptSizing="dynamic" class="mf-form-field mf-dcdiag-detail-ff">
+          <mat-label>Detalle</mat-label>
+          <input matInput formControlName="dcdiagDetail" placeholder="Describí el error..." />
+        </mat-form-field>
+      </div>
+      <div *ngIf="dcdiagHasError()" class="mf-alert" style="margin-top:8px">
+        <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Se generará una alerta al completar. Verificá que abriste ticket en Odoo.
+      </div>
+    </div>
+
     <div class="mf-srv-table">
       <div class="mf-srv-head">
         <span></span>
@@ -18,7 +48,9 @@
         <ng-container *ngFor="let _ of serverControls.controls; let i = index"
                       [formGroupName]="i">
 
-          <div class="mf-srv-row" [class.mf-srv-row--expanded]="getServerGroup(i).get('expanded')?.value">
+          <div class="mf-srv-row"
+               [class.mf-srv-row--expanded]="getServerGroup(i).get('expanded')?.value"
+               [ngClass]="serverRowClass(i)">
 
             <div class="mf-srv-icon">
               <svg viewBox="0 0 24 24" style="width:8px;height:8px;stroke:var(--srv);fill:none;stroke-width:1.8;stroke-linecap:round">
@@ -71,36 +103,6 @@
 
         </ng-container>
       </ng-container>
-    </div>
-
-    <!-- DCDIAG -->
-    <div class="mf-cl-rpt">
-      <div class="mf-cl-rpt-hdr">
-        <div class="mf-cl-rpt-dot"></div>
-        <span class="mf-cl-rpt-label">DCDIAG — análisis del dominio Active Directory</span>
-      </div>
-      <div class="mf-dcdiag-row">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
-                        [ngClass]="selectClass(form.get('dcdiag')?.value)">
-          <mat-select formControlName="dcdiag">
-            <mat-option value="OK">OK</mat-option>
-            <mat-option value="ERROR">ERROR</mat-option>
-            <mat-option value="ERROR Systemlog">ERROR Systemlog</mat-option>
-          </mat-select>
-        </mat-form-field>
-        <mat-form-field *ngIf="dcdiagHasError()"
-                        appearance="outline" subscriptSizing="dynamic" class="mf-form-field mf-dcdiag-detail-ff">
-          <mat-label>Detalle</mat-label>
-          <input matInput formControlName="dcdiagDetail" placeholder="Describí el error..." />
-        </mat-form-field>
-      </div>
-      <div *ngIf="dcdiagHasError()" class="mf-alert" style="margin-top:8px">
-        <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0">
-          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-          <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-        Se generará una alerta al completar. Verificá que abriste ticket en Odoo.
-      </div>
     </div>
 
   </ng-container>
@@ -298,29 +300,44 @@
 
   </ng-container>
 
-  <!-- ── Router ────────────────────────────────────────── -->
+  <!-- ── Router / Firewall ─────────────────────────────── -->
   <ng-container *ngIf="hasRouter">
 
-    <div class="mf-section-lbl">Router / MikroTik</div>
+    <div class="mf-section-lbl">Router / Firewall</div>
 
-    <mat-checkbox formControlName="routerFirmwareUpdated" class="mf-cl-mat">
-      Actualizar firmware a última versión estable
-    </mat-checkbox>
+    <div class="mf-vmware-grid" formArrayName="routerDevices">
+      <div *ngFor="let _ of routerDeviceControls.controls; let i = index"
+           [formGroupName]="i"
+           class="mf-cl-rpt mf-vmware-card">
 
-    <div class="mf-cl-rpt">
-      <div class="mf-cl-rpt-hdr">
-        <div class="mf-cl-rpt-dot"></div>
-        <span class="mf-cl-rpt-label">Versión firmware aplicada</span>
+        <div class="mf-cl-rpt-hdr">
+          <div class="mf-cl-rpt-dot"></div>
+          <div class="mf-vmware-name-block">
+            <span class="mf-cl-rpt-label">{{ infrastructure.routers[i].name }}</span>
+            <span class="mono mf-host-ip">{{ infrastructure.routers[i].ip ?? '—' }}</span>
+          </div>
+        </div>
+
+        <mat-checkbox formControlName="firmwareUpdated" class="mf-cl-mat">
+          Actualizar firmware a última versión estable
+        </mat-checkbox>
+
+        <div class="mf-cl-rpt">
+          <div class="mf-cl-rpt-hdr">
+            <span class="mf-cl-rpt-label">Versión firmware aplicada</span>
+          </div>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
+            <mat-label>Versión</mat-label>
+            <input matInput formControlName="firmwareVersion" placeholder="Ej: 7.14.2" />
+          </mat-form-field>
+        </div>
+
+        <mat-checkbox formControlName="backupDone" class="mf-cl-mat">
+          Realizar backup de configuración
+        </mat-checkbox>
+
       </div>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
-        <mat-label>Versión</mat-label>
-        <input matInput formControlName="routerFirmwareVersion" placeholder="Ej: 7.14.2" />
-      </mat-form-field>
     </div>
-
-    <mat-checkbox formControlName="routerBackupDone" class="mf-cl-mat">
-      Realizar backup de configuración
-    </mat-checkbox>
 
   </ng-container>
 

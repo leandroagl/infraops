@@ -218,13 +218,39 @@ describe('MaintenanceFormComponent', () => {
       expect(payload.veeam!.missingVMs).toBeUndefined();
     });
 
-    it('should include router section only when hasRouter is true', () => {
+    it('should include router section as array when hasRouter is true', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }));
-      component.form.patchValue({ routerFirmwareUpdated: true, routerFirmwareVersion: '7.14', routerBackupDone: true });
+      component.routerDeviceControls.at(0).patchValue({ firmwareUpdated: true, firmwareVersion: '7.14', backupDone: true });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.router).toBeDefined();
-      expect(payload.router!.firmwareUpdated).toBeTrue();
-      expect(payload.router!.firmwareVersion).toBe('7.14');
+      expect(Array.isArray(payload.router)).toBeTrue();
+      expect(payload.router![0].routerId).toBe(1);
+      expect(payload.router![0].routerName).toBe('MikroTik');
+      expect(payload.router![0].firmwareUpdated).toBeTrue();
+      expect(payload.router![0].firmwareVersion).toBe('7.14');
+      expect(payload.router![0].backupDone).toBeTrue();
+    });
+
+    it('should support multiple routers for HA architecture', () => {
+      const infra = makeInfra({
+        esxiHosts: [], nas: [],
+        routers: [
+          { assetId: 1, name: 'MikroTik-Primary', ip: '192.168.99.1', bmcIp: null, bmcType: null, os: 'RouterOS', model: 'CCR2004' },
+          { assetId: 2, name: 'MikroTik-Secondary', ip: '192.168.99.2', bmcIp: null, bmcType: null, os: 'RouterOS', model: 'CCR2004' },
+        ],
+      });
+      init(makeTask('SERVER_MAINTENANCE'), infra);
+      expect(component.routerDeviceControls.length).toBe(2);
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.router!.length).toBe(2);
+      expect(payload.router![0].routerName).toBe('MikroTik-Primary');
+      expect(payload.router![1].routerName).toBe('MikroTik-Secondary');
+    });
+
+    it('should NOT include router section when hasRouter is false', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.router).toBeUndefined();
     });
   });
 
@@ -601,12 +627,83 @@ describe('MaintenanceFormComponent', () => {
     });
   });
 
+  // ── Router controls ─────────────────────────────────────────────────────────
+
+  describe('Router controls', () => {
+    it('routerDeviceControls should have one entry per router', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }));
+      expect(component.routerDeviceControls.length).toBe(1);
+    });
+
+    it('routerDeviceControls should be empty when routers is empty', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      expect(component.routerDeviceControls.length).toBe(0);
+    });
+
+    it('should rebuild routerDeviceControls when infrastructure changes', () => {
+      const infra1 = makeInfra({ esxiHosts: [], nas: [], routers: [{ assetId: 1, name: 'R1', ip: null, bmcIp: null, bmcType: null, os: null, model: null }] });
+      init(makeTask('SERVER_MAINTENANCE'), infra1);
+      expect(component.routerDeviceControls.length).toBe(1);
+
+      const infra2: ClientInfrastructure = {
+        ...infra1,
+        routers: [
+          { assetId: 1, name: 'R1', ip: null, bmcIp: null, bmcType: null, os: null, model: null },
+          { assetId: 2, name: 'R2', ip: null, bmcIp: null, bmcType: null, os: null, model: null },
+        ],
+      };
+      component.infrastructure = infra2;
+      component.ngOnChanges({ infrastructure: { currentValue: infra2, previousValue: infra1, firstChange: false, isFirstChange: () => false } });
+      expect(component.routerDeviceControls.length).toBe(2);
+    });
+  });
+
   // ── selectClass — alerta ─────────────────────────────────────────────────────
 
   describe('selectClass — alerta', () => {
     it('should return mf-sel--crit for "alerta"', () => {
       init(makeTask(), makeInfra());
       expect(component.selectClass('alerta')).toBe('mf-sel--crit');
+    });
+  });
+
+  // ── serverRowClass ───────────────────────────────────────────────────────────
+
+  describe('serverRowClass', () => {
+    it('should return empty string when both fields are ok', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      component.serverControls.at(0).patchValue({ rebootScript: 'ok', updates: 'ok' });
+      expect(component.serverRowClass(0)).toBe('');
+    });
+
+    it('should return mf-srv-row--crit when rebootScript is error', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      component.serverControls.at(0).patchValue({ rebootScript: 'error', updates: 'ok' });
+      expect(component.serverRowClass(0)).toBe('mf-srv-row--crit');
+    });
+
+    it('should return mf-srv-row--crit when updates is failed', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      component.serverControls.at(0).patchValue({ rebootScript: 'ok', updates: 'failed' });
+      expect(component.serverRowClass(0)).toBe('mf-srv-row--crit');
+    });
+
+    it('should return mf-srv-row--warn when rebootScript is falta_configurar', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      component.serverControls.at(0).patchValue({ rebootScript: 'falta_configurar', updates: 'ok' });
+      expect(component.serverRowClass(0)).toBe('mf-srv-row--warn');
+    });
+
+    it('should return mf-srv-row--warn when updates is pending', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      component.serverControls.at(0).patchValue({ rebootScript: 'ok', updates: 'pending' });
+      expect(component.serverRowClass(0)).toBe('mf-srv-row--warn');
+    });
+
+    it('should return mf-srv-row--crit when one field is crit and other is warn', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      component.serverControls.at(0).patchValue({ rebootScript: 'error', updates: 'pending' });
+      expect(component.serverRowClass(0)).toBe('mf-srv-row--crit');
     });
   });
 
@@ -741,6 +838,18 @@ describe('MaintenanceFormComponent', () => {
       expect(component.form.get('connectivity')?.value).toBeTrue();
       expect(component.form.get('switches')?.value).toBeFalse();
       expect(component.form.get('observations')?.value).toBe('pantalla rota en terminal 3');
+    });
+
+    it('parchea sección router usando routerId', () => {
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], dcdiag: 'OK' },
+        router: [{ routerId: 1, routerName: 'MikroTik', firmwareUpdated: true, firmwareVersion: '7.14', backupDone: true }],
+      };
+      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }), saved);
+      expect(component.routerDeviceControls.at(0).get('firmwareUpdated')?.value).toBeTrue();
+      expect(component.routerDeviceControls.at(0).get('firmwareVersion')?.value).toBe('7.14');
+      expect(component.routerDeviceControls.at(0).get('backupDone')?.value).toBeTrue();
     });
 
     it('no modifica el formulario cuando savedPayload es null', () => {

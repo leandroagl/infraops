@@ -83,13 +83,14 @@ describe('maintenance-log.models', () => {
       expect(p.veeam?.missingVMs).toEqual(['VM-WEB01', 'VM-SQL01']);
     });
 
-    it('should accept optional router section', () => {
+    it('should accept optional router section as array of RouterEntry', () => {
       const p: ServerMaintenancePayload = {
         type: 'SERVER_MAINTENANCE',
         windows: { servers: [], dcdiag: 'OK' },
-        router: { firmwareUpdated: true, firmwareVersion: '7.14.2', backupDone: true },
+        router: [{ routerId: 1, routerName: 'MikroTik', firmwareUpdated: true, firmwareVersion: '7.14.2', backupDone: true }],
       };
-      expect(p.router?.firmwareUpdated).toBe(true);
+      expect(p.router![0].firmwareUpdated).toBe(true);
+      expect(p.router![0].routerName).toBe('MikroTik');
     });
 
     it('should accept optional bmc section as array of BmcEntry', () => {

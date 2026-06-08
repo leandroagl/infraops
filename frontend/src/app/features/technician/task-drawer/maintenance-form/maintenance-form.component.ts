@@ -12,6 +12,7 @@ import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
 import {
   BmcEntry,
   MaintenancePayload,
+  RouterEntry,
   ServerMaintenancePayload,
   TerminalPayload,
 } from '../../../../core/models/maintenance-log.models';
@@ -72,6 +73,10 @@ export class MaintenanceFormComponent implements OnChanges {
 
   get bmcHostControls(): FormArray {
     return this.form.get('bmcHosts') as FormArray;
+  }
+
+  get routerDeviceControls(): FormArray {
+    return this.form.get('routerDevices') as FormArray;
   }
 
   get isTerminalType(): boolean {
@@ -139,9 +144,13 @@ export class MaintenanceFormComponent implements OnChanges {
       ),
       veeamStatus:  ['ok'],
       veeamMissing: [[] as string[]],
-      routerFirmwareUpdated: [false],
-      routerFirmwareVersion: [''],
-      routerBackupDone:      [false],
+      routerDevices: this.fb.array(
+        this.infrastructure.routers.map(() => this.fb.group({
+          firmwareUpdated: [false],
+          firmwareVersion: [''],
+          backupDone:      [false],
+        }))
+      ),
       cleanedTemp:    [false],
       windowsUpdates: [false],
       antivirusOk:    [false],
@@ -166,6 +175,15 @@ export class MaintenanceFormComponent implements OnChanges {
     if (value === 'pending' || value === 'degraded' || value === 'falta_configurar' || value === 'ERROR Systemlog') return 'mf-sel--warn';
     if (value === 'error' || value === 'failed' || value === 'ERROR' || value === 'alerta') return 'mf-sel--crit';
     return 'mf-sel--na';
+  }
+
+  serverRowClass(i: number): string {
+    const group = this.getServerGroup(i);
+    const sc1 = this.selectClass(group.get('rebootScript')?.value);
+    const sc2 = this.selectClass(group.get('updates')?.value);
+    if ([sc1, sc2].includes('mf-sel--crit')) return 'mf-srv-row--crit';
+    if ([sc1, sc2].includes('mf-sel--warn')) return 'mf-srv-row--warn';
+    return '';
   }
 
   metricClass(value: number | null, warnThreshold: number, critThreshold: number): string {
@@ -292,11 +310,16 @@ export class MaintenanceFormComponent implements OnChanges {
     }
 
     if (this.hasRouter) {
-      payload.router = {
-        firmwareUpdated: v.routerFirmwareUpdated,
-        firmwareVersion: v.routerFirmwareVersion || undefined,
-        backupDone:      v.routerBackupDone,
-      };
+      payload.router = this.infrastructure.routers.map((router, i): RouterEntry => {
+        const ctrl = this.routerDeviceControls.at(i).value;
+        return {
+          routerId:        router.assetId,
+          routerName:      router.name,
+          firmwareUpdated: ctrl.firmwareUpdated,
+          firmwareVersion: ctrl.firmwareVersion || undefined,
+          backupDone:      ctrl.backupDone,
+        };
+      });
     }
 
     return payload;
@@ -307,15 +330,25 @@ export class MaintenanceFormComponent implements OnChanges {
       const srv = payload as ServerMaintenancePayload;
 
       this.form.patchValue({
-        dcdiag:                srv.windows.dcdiag,
-        dcdiagDetail:          srv.windows.dcdiagDetail ?? '',
-        notes:                 srv.notes ?? '',
-        veeamStatus:           srv.veeam?.status ?? 'ok',
-        veeamMissing:          srv.veeam?.missingVMs ?? [],
-        routerFirmwareUpdated: srv.router?.firmwareUpdated ?? false,
-        routerFirmwareVersion: srv.router?.firmwareVersion ?? '',
-        routerBackupDone:      srv.router?.backupDone ?? false,
+        dcdiag:       srv.windows.dcdiag,
+        dcdiagDetail: srv.windows.dcdiagDetail ?? '',
+        notes:        srv.notes ?? '',
+        veeamStatus:  srv.veeam?.status ?? 'ok',
+        veeamMissing: srv.veeam?.missingVMs ?? [],
       });
+
+      if (srv.router?.length) {
+        this.infrastructure.routers.forEach((router, i) => {
+          const saved = srv.router!.find(r => r.routerId === router.assetId);
+          if (saved) {
+            this.routerDeviceControls.at(i).patchValue({
+              firmwareUpdated: saved.firmwareUpdated,
+              firmwareVersion: saved.firmwareVersion ?? '',
+              backupDone:      saved.backupDone,
+            });
+          }
+        });
+      }
 
       if (srv.windows.servers?.length) {
         this.infrastructure.windowsVMs.forEach((vm, i) => {

@@ -39,4 +39,16 @@ describe('LocalDatePipe', () => {
   it('retorna string vacío para string vacío', () => {
     expect(pipe.transform('')).toBe('');
   });
+
+  describe('formato "month"', () => {
+    it('muestra solo mes y año capitalizado', () => {
+      const result = pipe.transform('2026-06-15', 'month');
+      expect(result).toContain('2026');
+      expect(result).not.toContain('15');
+    });
+
+    it('retorna string vacío para null en formato month', () => {
+      expect(pipe.transform(null as unknown as string, 'month')).toBe('');
+    });
+  });
 });

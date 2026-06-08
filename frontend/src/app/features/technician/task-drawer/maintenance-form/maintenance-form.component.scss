@@ -184,6 +184,15 @@ mat-form-field {
   &:last-of-type { border-bottom: none; }
   &:hover { background: var(--elevated); }
   &.mf-srv-row--expanded { background: var(--elevated); border-bottom: none; }
+
+  &.mf-srv-row--warn {
+    background: color-mix(in srgb, var(--warn) 5%, transparent);
+    box-shadow: inset 2px 0 0 var(--warn-bd);
+  }
+  &.mf-srv-row--crit {
+    background: color-mix(in srgb, var(--crit) 5%, transparent);
+    box-shadow: inset 2px 0 0 var(--crit-bd);
+  }
 }
 
 .mf-srv-icon {
@@ -296,7 +305,7 @@ button.mf-expand-btn[mat-icon-button] {
 // ── VMware grid ──────────────────────────────────────────────────────────────
 .mf-vmware-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 8px;
   align-items: start;
 }
@@ -305,6 +314,7 @@ button.mf-expand-btn[mat-icon-button] {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .mf-vmware-name-block {
