@@ -1,43 +1,57 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
+import * as xmlrpc from 'xmlrpc';
 
 @Injectable()
 export class OdooRpcService {
   private uid: number | null = null;
 
-  constructor(
-    private readonly httpService: HttpService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly configService: ConfigService) {}
+
+  private buildClient(path: string): xmlrpc.Client {
+    const baseUrl = this.configService.getOrThrow<string>('ODOO_URL');
+    const parsed = new URL(baseUrl);
+    const opts: xmlrpc.ClientOptions = {
+      host: parsed.hostname,
+      port: parsed.port ? parseInt(parsed.port, 10) : undefined,
+      path,
+    };
+    return parsed.protocol === 'https:'
+      ? xmlrpc.createSecureClient(opts)
+      : xmlrpc.createClient(opts);
+  }
+
+  private call<T>(client: xmlrpc.Client, method: string, params: unknown[]): Promise<T> {
+    return new Promise((resolve, reject) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      client.methodCall(method, params as any[], (err: Error | null, value: unknown) => {
+        if (err) reject(err);
+        else resolve(value as T);
+      });
+    });
+  }
 
   async authenticate(): Promise<number> {
-    const url = this.configService.getOrThrow<string>('ODOO_URL');
     const db = this.configService.getOrThrow<string>('ODOO_DB');
     const username = this.configService.getOrThrow<string>('ODOO_USERNAME');
     const apiKey = this.configService.getOrThrow<string>('ODOO_API_KEY');
 
-    const response = await firstValueFrom(
-      this.httpService.post(`${url}/web/dataset/call_kw`, {
-        jsonrpc: '2.0',
-        method: 'call',
-        params: {
-          model: 'res.users',
-          method: 'authenticate',
-          args: [db, username, apiKey, {}],
-          kwargs: {},
-        },
-      }),
-    );
+    const client = this.buildClient('/xmlrpc/2/common');
+    let uid: number;
 
-    if (response.data.error || !response.data.result) {
+    try {
+      uid = await this.call<number>(client, 'authenticate', [db, username, apiKey, {}]);
+    } catch (err) {
       throw new ServiceUnavailableException(
-        `Odoo authentication failed: ${response.data.error?.message ?? 'uid no recibido'}`,
+        `Odoo authentication failed: ${(err as Error).message}`,
       );
     }
 
-    this.uid = response.data.result as number;
+    if (!uid) {
+      throw new ServiceUnavailableException('Odoo authentication failed: uid no recibido');
+    }
+
+    this.uid = uid;
     return this.uid;
   }
 
@@ -51,29 +65,18 @@ export class OdooRpcService {
       this.uid = await this.authenticate();
     }
 
-    const url = this.configService.getOrThrow<string>('ODOO_URL');
     const db = this.configService.getOrThrow<string>('ODOO_DB');
     const apiKey = this.configService.getOrThrow<string>('ODOO_API_KEY');
 
-    const response = await firstValueFrom(
-      this.httpService.post(`${url}/web/dataset/call_kw`, {
-        jsonrpc: '2.0',
-        method: 'call',
-        params: {
-          model,
-          method,
-          args,
-          kwargs: { ...kwargs, uid: this.uid, password: apiKey, db },
-        },
-      }),
-    );
-
-    if (response.data.error) {
+    const client = this.buildClient('/xmlrpc/2/object');
+    try {
+      return await this.call<T>(client, 'execute_kw', [
+        db, this.uid, apiKey, model, method, args, kwargs,
+      ]);
+    } catch (err) {
       throw new ServiceUnavailableException(
-        `Odoo RPC error en ${model}.${method}: ${response.data.error.message ?? 'desconocido'}`,
+        `Odoo RPC error en ${model}.${method}: ${(err as Error).message}`,
       );
     }
-
-    return response.data.result as T;
   }
 }

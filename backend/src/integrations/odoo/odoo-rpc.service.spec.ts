@@ -1,26 +1,24 @@
+jest.mock('xmlrpc');
+import * as xmlrpc from 'xmlrpc';
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { ServiceUnavailableException } from '@nestjs/common';
-import { AxiosHeaders, AxiosResponse } from 'axios';
-import { of } from 'rxjs';
 import { OdooRpcService } from './odoo-rpc.service';
 
 describe('OdooRpcService', () => {
   let service: OdooRpcService;
-  let httpService: { post: jest.Mock };
   let configService: { getOrThrow: jest.Mock };
-
-  const axiosRes = (data: object): AxiosResponse => ({
-    data,
-    status: 200,
-    statusText: 'OK',
-    headers: {},
-    config: { headers: new AxiosHeaders() },
-  });
+  let mockMethodCall: jest.Mock;
+  let mockClient: { methodCall: jest.Mock };
 
   beforeEach(async () => {
-    httpService = { post: jest.fn() };
+    jest.clearAllMocks();
+
+    mockMethodCall = jest.fn();
+    mockClient = { methodCall: mockMethodCall };
+    (xmlrpc.createClient as jest.Mock).mockReturnValue(mockClient);
+    (xmlrpc.createSecureClient as jest.Mock).mockReturnValue(mockClient);
+
     configService = {
       getOrThrow: jest.fn((key: string) => {
         const cfg: Record<string, string> = {
@@ -37,7 +35,6 @@ describe('OdooRpcService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OdooRpcService,
-        { provide: HttpService, useValue: httpService },
         { provide: ConfigService, useValue: configService },
       ],
     }).compile();
@@ -46,36 +43,45 @@ describe('OdooRpcService', () => {
   });
 
   describe('authenticate', () => {
-    it('POST al endpoint de autenticación con credenciales y devuelve uid', async () => {
-      httpService.post.mockReturnValue(of(axiosRes({ result: 7 })));
+    it('llama a /xmlrpc/2/common con authenticate y devuelve uid', async () => {
+      mockMethodCall.mockImplementation((_method, _params, cb) => cb(null, 7));
 
       const uid = await service.authenticate();
 
       expect(uid).toBe(7);
-      expect(httpService.post).toHaveBeenCalledWith(
-        'http://odoo.test/web/dataset/call_kw',
-        expect.objectContaining({
-          jsonrpc: '2.0',
-          method: 'call',
-          params: expect.objectContaining({
-            model: 'res.users',
-            method: 'authenticate',
-            args: ['testdb', 'admin', 'test-key', {}],
-            kwargs: {},
-          }),
-        }),
+      expect(xmlrpc.createClient).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/xmlrpc/2/common' }),
+      );
+      expect(mockMethodCall).toHaveBeenCalledWith(
+        'authenticate',
+        ['testdb', 'admin', 'test-key', {}],
+        expect.any(Function),
       );
     });
 
-    it('lanza ServiceUnavailableException cuando la respuesta devuelve result false', async () => {
-      httpService.post.mockReturnValue(of(axiosRes({ result: false })));
+    it('usa createSecureClient cuando la URL es HTTPS', async () => {
+      configService.getOrThrow.mockImplementation((key: string) => {
+        if (key === 'ODOO_URL') return 'https://odoo.test';
+        const cfg: Record<string, string> = { ODOO_DB: 'testdb', ODOO_USERNAME: 'admin', ODOO_API_KEY: 'test-key' };
+        return cfg[key];
+      });
+      mockMethodCall.mockImplementation((_method, _params, cb) => cb(null, 5));
+
+      await service.authenticate();
+
+      expect(xmlrpc.createSecureClient).toHaveBeenCalled();
+      expect(xmlrpc.createClient).not.toHaveBeenCalled();
+    });
+
+    it('lanza ServiceUnavailableException cuando uid es falsy', async () => {
+      mockMethodCall.mockImplementation((_method, _params, cb) => cb(null, false));
 
       await expect(service.authenticate()).rejects.toThrow(ServiceUnavailableException);
     });
 
-    it('lanza ServiceUnavailableException cuando la respuesta tiene error', async () => {
-      httpService.post.mockReturnValue(
-        of(axiosRes({ error: { message: 'Access Denied' } })),
+    it('lanza ServiceUnavailableException cuando xmlrpc devuelve error', async () => {
+      mockMethodCall.mockImplementation((_method, _params, cb) =>
+        cb(new Error('Access Denied'), null),
       );
 
       await expect(service.authenticate()).rejects.toThrow(ServiceUnavailableException);
@@ -83,10 +89,10 @@ describe('OdooRpcService', () => {
   });
 
   describe('callKw', () => {
-    it('autentica antes de la primera llamada y devuelve result', async () => {
-      httpService.post
-        .mockReturnValueOnce(of(axiosRes({ result: 7 })))
-        .mockReturnValueOnce(of(axiosRes({ result: [{ id: 1, name: 'ACME' }] })));
+    it('autentica antes de la primera llamada y devuelve el resultado', async () => {
+      mockMethodCall
+        .mockImplementationOnce((_m, _p, cb) => cb(null, 7))
+        .mockImplementationOnce((_m, _p, cb) => cb(null, [{ id: 1, name: 'ACME' }]));
 
       const result = await service.callKw<{ id: number; name: string }[]>(
         'res.partner',
@@ -95,36 +101,25 @@ describe('OdooRpcService', () => {
         { fields: ['id', 'name'] },
       );
 
-      expect(httpService.post).toHaveBeenCalledTimes(2);
+      expect(mockMethodCall).toHaveBeenCalledTimes(2);
       expect(result).toEqual([{ id: 1, name: 'ACME' }]);
     });
 
     it('reutiliza el uid cacheado sin re-autenticar en llamadas subsiguientes', async () => {
-      httpService.post
-        .mockReturnValueOnce(of(axiosRes({ result: 7 })))
-        .mockReturnValue(of(axiosRes({ result: [] })));
+      mockMethodCall
+        .mockImplementationOnce((_m, _p, cb) => cb(null, 7))
+        .mockImplementation((_m, _p, cb) => cb(null, []));
 
       await service.callKw('res.partner', 'search_read', [[]], {});
       await service.callKw('res.partner', 'search_read', [[]], {});
 
-      // 1 auth + 2 data calls
-      expect(httpService.post).toHaveBeenCalledTimes(3);
+      expect(mockMethodCall).toHaveBeenCalledTimes(3); // 1 auth + 2 data
     });
 
-    it('lanza ServiceUnavailableException cuando la respuesta tiene campo error', async () => {
-      httpService.post
-        .mockReturnValueOnce(of(axiosRes({ result: 7 })))
-        .mockReturnValueOnce(of(axiosRes({ error: { message: 'Model not found' } })));
-
-      await expect(
-        service.callKw('res.partner', 'search_read', [[]], {}),
-      ).rejects.toThrow(ServiceUnavailableException);
-    });
-
-    it('POST al endpoint con model, method, args, kwargs y uid en el body', async () => {
-      httpService.post
-        .mockReturnValueOnce(of(axiosRes({ result: 7 })))
-        .mockReturnValueOnce(of(axiosRes({ result: [] })));
+    it('llama a /xmlrpc/2/object con execute_kw y parámetros correctos', async () => {
+      mockMethodCall
+        .mockImplementationOnce((_m, _p, cb) => cb(null, 7))
+        .mockImplementationOnce((_m, _p, cb) => cb(null, []));
 
       await service.callKw(
         'res.partner',
@@ -133,13 +128,27 @@ describe('OdooRpcService', () => {
         { fields: ['id', 'vat'] },
       );
 
-      const dataCall = httpService.post.mock.calls[1];
-      expect(dataCall[0]).toBe('http://odoo.test/web/dataset/call_kw');
-      expect(dataCall[1].params.model).toBe('res.partner');
-      expect(dataCall[1].params.method).toBe('search_read');
-      expect(dataCall[1].params.kwargs.uid).toBe(7);
-      expect(dataCall[1].params.kwargs.password).toBe('test-key');
-      expect(dataCall[1].params.kwargs.db).toBe('testdb');
+      expect(xmlrpc.createClient).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/xmlrpc/2/object' }),
+      );
+      const dataCall = mockMethodCall.mock.calls[1];
+      expect(dataCall[0]).toBe('execute_kw');
+      expect(dataCall[1]).toEqual([
+        'testdb', 7, 'test-key',
+        'res.partner', 'search_read',
+        [[['is_company', '=', true]]],
+        { fields: ['id', 'vat'] },
+      ]);
+    });
+
+    it('lanza ServiceUnavailableException cuando xmlrpc devuelve error', async () => {
+      mockMethodCall
+        .mockImplementationOnce((_m, _p, cb) => cb(null, 7))
+        .mockImplementationOnce((_m, _p, cb) => cb(new Error('Model not found'), null));
+
+      await expect(
+        service.callKw('res.partner', 'search_read', [[]], {}),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
   });
 });
