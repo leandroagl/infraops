@@ -9,6 +9,7 @@ import { TechniciansModule } from './technicians/technicians.module';
 import { TasksModule } from './tasks/tasks.module';
 import { MaintenanceLogsModule } from './maintenance-logs/maintenance-logs.module';
 import { InfradocIntegrationModule } from './integrations/infradoc/infradoc-integration.module';
+import { OdooIntegrationModule } from './integrations/odoo/odoo-integration.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { InfradocIntegrationModule } from './integrations/infradoc/infradoc-inte
     TasksModule,
     MaintenanceLogsModule,
     InfradocIntegrationModule,
+    OdooIntegrationModule,
   ],
 })
 export class AppModule {}
