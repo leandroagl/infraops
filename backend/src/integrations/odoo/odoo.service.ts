@@ -172,6 +172,9 @@ export class OdooService {
       this.configService.getOrThrow<string>('ODOO_HELPDESK_TEAM_ID'),
       10,
     );
+    if (isNaN(teamId)) {
+      throw new Error('ODOO_HELPDESK_TEAM_ID must be a valid integer');
+    }
 
     return this.odooRpc.callKw<number>(
       'helpdesk.ticket',
