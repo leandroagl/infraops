@@ -31,6 +31,8 @@ describe('ClientsService', () => {
     isLead: false,
     primaryAddress: null,
     notes: null,
+    odooPartnerId: null,
+    odooSyncedAt: null,
     isActive: true,
     lastSyncedAt: null,
     createdAt: new Date('2026-01-01'),

@@ -56,6 +56,12 @@ export class Client {
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
+  @Column({ type: 'int', nullable: true, default: null })
+  odooPartnerId: number | null;
+
+  @Column({ type: 'timestamptz', nullable: true, default: null })
+  odooSyncedAt: Date | null;
+
   @Column({ default: true })
   isActive: boolean;
 
