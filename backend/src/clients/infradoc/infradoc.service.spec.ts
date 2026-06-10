@@ -19,7 +19,7 @@ describe('InfradocService', () => {
     client_rate: null,
     client_currency_code: null,
     client_net_terms: null,
-    client_tax_id_number: null,
+    client_industry: null,
     client_is_lead: '0',
     client_notes: null,
     client_archived_at: null,
@@ -84,6 +84,20 @@ describe('InfradocService', () => {
     const result = await service.getClients();
 
     expect(result[0].isActive).toBe(false);
+  });
+
+  it('mapea client_industry a taxIdNumber', async () => {
+    httpService.get.mockReturnValue(
+      of(axiosRes({
+        success: 'True',
+        count: 1,
+        data: [makeRaw({ client_industry: '20123456780' })],
+      })),
+    );
+
+    const result = await service.getClients();
+
+    expect(result[0].taxIdNumber).toBe('20123456780');
   });
 
   it('convierte client_is_lead "1" a true', async () => {

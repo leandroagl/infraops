@@ -87,7 +87,7 @@ export class InfradocService {
       rate: raw.client_rate ? Number(raw.client_rate) : null,
       currencyCode: (raw.client_currency_code as string) ?? null,
       netTerms: raw.client_net_terms ? Number(raw.client_net_terms) : null,
-      taxIdNumber: (raw.client_tax_id_number as string) ?? null,
+      taxIdNumber: (raw.client_industry as string) ?? null,
       isLead: raw.client_is_lead === 1 || raw.client_is_lead === '1',
       notes: (raw.client_notes as string) ?? null,
       isActive:
