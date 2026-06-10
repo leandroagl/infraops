@@ -9,25 +9,23 @@ import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 
 @Controller('admin/odoo')
 @UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
 export class OdooController {
   constructor(private readonly odooService: OdooService) {}
 
   @Post('sync/partners')
   @HttpCode(200)
-  @Roles(UserRole.ADMIN)
   syncPartners(): Promise<OdooSyncResult> {
     return this.odooService.syncPartners();
   }
 
   @Post('sync/users')
   @HttpCode(200)
-  @Roles(UserRole.ADMIN)
   syncUsers(): Promise<OdooSyncResult> {
     return this.odooService.syncUsers();
   }
 
   @Get('sync/status')
-  @Roles(UserRole.ADMIN)
   getSyncStatus(): Promise<OdooSyncStatusDto> {
     return this.odooService.getSyncStatus();
   }

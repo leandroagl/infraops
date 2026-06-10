@@ -47,7 +47,7 @@ export class OdooRpcService {
     args: unknown[],
     kwargs: Record<string, unknown>,
   ): Promise<T> {
-    if (!this.uid) {
+    if (this.uid === null) {
       this.uid = await this.authenticate();
     }
 

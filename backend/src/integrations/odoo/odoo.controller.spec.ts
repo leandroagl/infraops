@@ -68,18 +68,8 @@ describe('OdooController', () => {
       expect(guards.length).toBeGreaterThan(0);
     });
 
-    it('POST /sync/partners requiere rol ADMIN', () => {
-      const roles = Reflect.getMetadata('roles', controller.syncPartners);
-      expect(roles).toContain('ADMIN');
-    });
-
-    it('POST /sync/users requiere rol ADMIN', () => {
-      const roles = Reflect.getMetadata('roles', controller.syncUsers);
-      expect(roles).toContain('ADMIN');
-    });
-
-    it('GET /sync/status requiere rol ADMIN', () => {
-      const roles = Reflect.getMetadata('roles', controller.getSyncStatus);
+    it('requiere rol ADMIN a nivel de clase — cubre todos los endpoints', () => {
+      const roles = Reflect.getMetadata('roles', OdooController);
       expect(roles).toContain('ADMIN');
     });
   });
