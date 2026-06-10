@@ -14,6 +14,12 @@
         {{ urgencyLabel(daysFromToday(task.scheduledDate)) }}
       </span>
       <span class="badge" [ngClass]="statusBadge(task.status)">{{ statusLabel(task.status) }}</span>
+      <a
+        *ngIf="odooLink"
+        [href]="odooLink"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="d-odoo-link">{{ odooLabel }}</a>
     </div>
   </div>
   <button mat-icon-button class="d-close" (click)="drawerClosed.emit()">

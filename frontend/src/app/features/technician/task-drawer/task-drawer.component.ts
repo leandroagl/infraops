@@ -29,6 +29,7 @@ import {
 } from './confirm-maintenance-dialog/confirm-maintenance-dialog.component';
 import { statusLabel, statusBadge, typeLabelLong } from '../../../shared/utils/task-labels';
 import { daysFromToday, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
+import { formatOdooTicketId, odooTicketUrl } from '../../../shared/utils/odoo';
 
 @Component({
   selector: 'app-task-drawer',
@@ -53,6 +54,7 @@ export class TaskDrawerComponent implements OnChanges {
   saveProgressError = '';
 
   private pendingPayload: MaintenancePayload | null = null;
+  private _currentStatus = '';
 
   constructor(
     private infradocService: InfradocService,
@@ -63,8 +65,13 @@ export class TaskDrawerComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['task'] && this.task) {
+      this._currentStatus = this.task.status;
       this.loadInfrastructure();
     }
+  }
+
+  private get effectiveStatus(): string {
+    return this._currentStatus || this.task.status;
   }
 
   loadInfrastructure(): void {
@@ -177,8 +184,10 @@ export class TaskDrawerComponent implements OnChanges {
 
     this.upsertLog(payload).pipe(
       switchMap(() => {
-        if (this.task.status === 'PENDING') {
-          return this.tasksService.updateStatus(this.task.id, { status: 'IN_PROGRESS' });
+        if (this.effectiveStatus === 'PENDING') {
+          return this.tasksService.updateStatus(this.task.id, { status: 'IN_PROGRESS' }).pipe(
+            tap(() => { this._currentStatus = 'IN_PROGRESS'; }),
+          );
         }
         return of(null as unknown as Task);
       })
@@ -240,12 +249,21 @@ export class TaskDrawerComponent implements OnChanges {
   }
 
   private transitionToDone(): Observable<Task> {
-    if (this.task.status === 'PENDING') {
+    if (this.effectiveStatus === 'PENDING') {
       return this.tasksService.updateStatus(this.task.id, { status: 'IN_PROGRESS' }).pipe(
+        tap(() => { this._currentStatus = 'IN_PROGRESS'; }),
         switchMap(() => this.tasksService.updateStatus(this.task.id, { status: 'DONE' }))
       );
     }
     return this.tasksService.updateStatus(this.task.id, { status: 'DONE' });
+  }
+
+  get odooLabel(): string | null {
+    return this.task.odooTicketId != null ? formatOdooTicketId(this.task.odooTicketId) : null;
+  }
+
+  get odooLink(): string | null {
+    return this.task.odooTicketId != null ? odooTicketUrl(this.task.odooTicketId) : null;
   }
 
   // ── Labels ──────────────────────────────────────────────────name───────────

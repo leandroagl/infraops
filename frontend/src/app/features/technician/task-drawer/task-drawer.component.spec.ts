@@ -340,6 +340,42 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(updateSpy).toHaveBeenCalled();
       expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE' });
     });
+
+    it('al completar después de guardar progreso, sólo transiciona a DONE sin reintentar IN_PROGRESS', () => {
+      completeComponent.task = makeTask({ status: 'PENDING' });
+
+      completeComponent.onRequestSave(makeServerPayload());
+      updateStatusSpy.calls.reset();
+
+      completeComponent.onRequestComplete(makeServerPayload());
+
+      expect(updateStatusSpy.calls.count()).toBe(1);
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE' });
+    });
+  });
+
+  // ── odoo ticket getters ───────────────────────────────────────────────────
+
+  describe('odooLabel / odooLink', () => {
+    it('odooLabel retorna el ID formateado cuando odooTicketId está definido', () => {
+      component.task = makeTask({ odooTicketId: 5137 });
+      expect(component.odooLabel).toBe('#05137');
+    });
+
+    it('odooLabel retorna null cuando odooTicketId es null', () => {
+      component.task = makeTask({ odooTicketId: null });
+      expect(component.odooLabel).toBeNull();
+    });
+
+    it('odooLink retorna null cuando odooTicketId es null', () => {
+      component.task = makeTask({ odooTicketId: null });
+      expect(component.odooLink).toBeNull();
+    });
+
+    it('odooLink contiene el id cuando odooTicketId está definido', () => {
+      component.task = makeTask({ odooTicketId: 5174 });
+      expect(component.odooLink).toContain('5174');
+    });
   });
 
   // ── loadInfrastructure — log loading ────────────────────────────────────────
@@ -572,6 +608,21 @@ describe('TaskDrawerComponent — template tests', () => {
       setupWithType('SERVER_MAINTENANCE');
       const el = fixture.nativeElement.querySelector('.d-icon');
       expect(el).toBeTruthy();
+    });
+
+    it('renderiza el link del ticket en el header cuando odooTicketId está definido', () => {
+      component.task = makeTask({ odooTicketId: 5137, scheduledDate: futureDate(10) });
+      fixture.detectChanges();
+      const link = fixture.nativeElement.querySelector('.d-odoo-link');
+      expect(link).toBeTruthy();
+      expect(link.textContent.trim()).toBe('#05137');
+    });
+
+    it('no renderiza el link del ticket cuando odooTicketId es null', () => {
+      component.task = makeTask({ odooTicketId: null, scheduledDate: futureDate(10) });
+      fixture.detectChanges();
+      const link = fixture.nativeElement.querySelector('.d-odoo-link');
+      expect(link).toBeNull();
     });
   });
 
