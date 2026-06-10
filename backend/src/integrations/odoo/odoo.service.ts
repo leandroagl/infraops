@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
@@ -13,6 +13,8 @@ import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 
 @Injectable()
 export class OdooService {
+  private doneStageId: number | null = null;
+
   constructor(
     private readonly odooRpc: OdooRpcService,
     private readonly configService: ConfigService,
@@ -147,6 +149,41 @@ export class OdooService {
       odooSyncedAt: new Date(),
     });
     return odooUsers[0].id;
+  }
+
+  private async resolveDoneStageId(): Promise<number> {
+    if (this.doneStageId !== null) return this.doneStageId;
+
+    const teamId = parseInt(
+      this.configService.getOrThrow<string>('ODOO_HELPDESK_TEAM_ID'),
+      10,
+    );
+
+    const stages = await this.odooRpc.callKw<Array<{ id: number }>>(
+      'helpdesk.stage',
+      'search_read',
+      [[['team_ids', 'in', [teamId]], ['fold', '=', true]]],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (stages.length === 0) {
+      throw new ServiceUnavailableException(
+        'No se encontró stage de cierre en Odoo para el equipo configurado',
+      );
+    }
+
+    this.doneStageId = stages[0].id;
+    return this.doneStageId;
+  }
+
+  async closeTicket(odooTicketId: number): Promise<void> {
+    const stageId = await this.resolveDoneStageId();
+    await this.odooRpc.callKw<boolean>(
+      'helpdesk.ticket',
+      'write',
+      [[odooTicketId], { stage_id: stageId }],
+      {},
+    );
   }
 
   async createTicket(clientId: string, technicianId: string): Promise<number> {

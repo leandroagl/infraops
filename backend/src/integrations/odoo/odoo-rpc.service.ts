@@ -11,7 +11,7 @@ export class OdooRpcService {
   private buildClient(path: string): xmlrpc.Client {
     const baseUrl = this.configService.getOrThrow<string>('ODOO_URL');
     const parsed = new URL(baseUrl);
-    const opts: xmlrpc.ClientOptions = {
+    const opts: Parameters<typeof xmlrpc.createClient>[0] = {
       host: parsed.hostname,
       port: parsed.port ? parseInt(parsed.port, 10) : undefined,
       path,
@@ -24,7 +24,7 @@ export class OdooRpcService {
   private call<T>(client: xmlrpc.Client, method: string, params: unknown[]): Promise<T> {
     return new Promise((resolve, reject) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      client.methodCall(method, params as any[], (err: Error | null, value: unknown) => {
+      client.methodCall(method, params as any[], (err: any, value: unknown) => {
         if (err) reject(err);
         else resolve(value as T);
       });

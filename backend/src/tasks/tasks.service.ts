@@ -108,6 +108,14 @@ export class TasksService {
 
     const isTerminal = VALID_TRANSITIONS[newStatus].length === 0;
     const completedDate = isTerminal ? new Date() : null;
+
+    const shouldCloseTicket =
+      (newStatus === TaskStatus.DONE || newStatus === TaskStatus.NOT_DONE) &&
+      task.odooTicketId !== null;
+    if (shouldCloseTicket) {
+      await this.odooService.closeTicket(task.odooTicketId!);
+    }
+
     await this.taskRepository.update(id, { status: newStatus, completedDate });
     return this.loadTask(id);
   }

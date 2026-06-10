@@ -399,4 +399,61 @@ describe('OdooService', () => {
       expect(odooRpc.callKw).not.toHaveBeenCalled();
     });
   });
+
+  describe('closeTicket', () => {
+    it('consulta el stage de cierre del equipo y hace write con stage_id en el ticket', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage search_read
+        .mockResolvedValueOnce(true);          // helpdesk.ticket write
+
+      await service.closeTicket(42);
+
+      expect(odooRpc.callKw).toHaveBeenNthCalledWith(
+        1,
+        'helpdesk.stage',
+        'search_read',
+        [[['team_ids', 'in', [5]], ['fold', '=', true]]],
+        expect.objectContaining({ fields: ['id'], limit: 1 }),
+      );
+      expect(odooRpc.callKw).toHaveBeenNthCalledWith(
+        2,
+        'helpdesk.ticket',
+        'write',
+        [[42], { stage_id: 99 }],
+        {},
+      );
+    });
+
+    it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }]) // primera llamada: resuelve stage
+        .mockResolvedValue(true);             // writes subsiguientes
+
+      await service.closeTicket(42);
+      await service.closeTicket(43);
+
+      const stageCalls = odooRpc.callKw.mock.calls.filter(
+        (args: unknown[]) => args[0] === 'helpdesk.stage',
+      );
+      expect(stageCalls).toHaveLength(1);
+    });
+
+    it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage de cierre', async () => {
+      odooRpc.callKw.mockResolvedValueOnce([]); // sin stages
+
+      await expect(service.closeTicket(42)).rejects.toThrow(ServiceUnavailableException);
+      const writeCalls = odooRpc.callKw.mock.calls.filter(
+        (args: unknown[]) => args[0] === 'helpdesk.ticket',
+      );
+      expect(writeCalls).toHaveLength(0);
+    });
+
+    it('propaga ServiceUnavailableException cuando Odoo falla al ejecutar write sobre el ticket', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }])
+        .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
+
+      await expect(service.closeTicket(42)).rejects.toThrow(ServiceUnavailableException);
+    });
+  });
 });
