@@ -29,7 +29,7 @@ export class OdooService {
       this.odooRpc.callKw<OdooPartner[]>(
         'res.partner',
         'search_read',
-        [[['is_company', '=', true], ['vat', '!=', false]]],
+        [[['is_company', '=', true], ['vat', '!=', false], ['email', '!=', false]]],
         { fields: ['id', 'name', 'vat'] },
       ),
       this.clientRepo.find(),

@@ -19,7 +19,6 @@ describe('InfradocService', () => {
     client_rate: null,
     client_currency_code: null,
     client_net_terms: null,
-    client_industry: null,
     client_is_lead: '0',
     client_notes: null,
     client_archived_at: null,
@@ -86,18 +85,32 @@ describe('InfradocService', () => {
     expect(result[0].isActive).toBe(false);
   });
 
-  it('mapea client_industry a taxIdNumber', async () => {
+  it('mapea client_type a taxIdNumber cuando tiene formato CUIT', async () => {
     httpService.get.mockReturnValue(
       of(axiosRes({
         success: 'True',
         count: 1,
-        data: [makeRaw({ client_industry: '20123456780' })],
+        data: [makeRaw({ client_type: '30-50438253-9' })],
       })),
     );
 
     const result = await service.getClients();
 
-    expect(result[0].taxIdNumber).toBe('20123456780');
+    expect(result[0].taxIdNumber).toBe('30-50438253-9');
+  });
+
+  it('retorna taxIdNumber null cuando client_type no tiene formato CUIT', async () => {
+    httpService.get.mockReturnValue(
+      of(axiosRes({
+        success: 'True',
+        count: 1,
+        data: [makeRaw({ client_type: 'Empresa' })],
+      })),
+    );
+
+    const result = await service.getClients();
+
+    expect(result[0].taxIdNumber).toBeNull();
   });
 
   it('convierte client_is_lead "1" a true', async () => {
