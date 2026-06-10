@@ -1,10 +1,12 @@
 import {
   BadRequestException,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Client } from '../clients/client.entity';
+import { OdooService } from '../integrations/odoo/odoo.service';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
@@ -26,6 +28,7 @@ describe('TasksService', () => {
   let clientRepository: { findOne: jest.Mock };
   let technicianRepository: { findOne: jest.Mock };
   let logRepository: { delete: jest.Mock };
+  let odooService: { createTicket: jest.Mock };
 
   const mockClient: Client = {
     id: 'client-1',
@@ -78,6 +81,7 @@ describe('TasksService', () => {
     clientRepository = { findOne: jest.fn() };
     technicianRepository = { findOne: jest.fn() };
     logRepository = { delete: jest.fn() };
+    odooService = { createTicket: jest.fn() };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -86,6 +90,7 @@ describe('TasksService', () => {
         { provide: getRepositoryToken(Client), useValue: clientRepository },
         { provide: getRepositoryToken(Technician), useValue: technicianRepository },
         { provide: getRepositoryToken(MaintenanceLog), useValue: logRepository },
+        { provide: OdooService, useValue: odooService },
       ],
     }).compile();
 
@@ -168,22 +173,35 @@ describe('TasksService', () => {
     it('crea y devuelve la tarea con cliente y técnico cargados', async () => {
       clientRepository.findOne.mockResolvedValue(mockClient);
       technicianRepository.findOne.mockResolvedValue(mockTechnician);
-      taskRepository.create.mockReturnValue(mockTask);
-      taskRepository.save.mockResolvedValue(mockTask);
-      taskRepository.findOne.mockResolvedValue(mockTask);
+      odooService.createTicket.mockResolvedValue(42);
+      taskRepository.create.mockReturnValue({ ...mockTask, odooTicketId: 42 });
+      taskRepository.save.mockResolvedValue({ ...mockTask, odooTicketId: 42 });
+      taskRepository.findOne.mockResolvedValue({ ...mockTask, odooTicketId: 42 });
 
       const result = await service.create(createDto);
 
-      expect(clientRepository.findOne).toHaveBeenCalledWith({ where: { id: 'client-1' } });
-      expect(technicianRepository.findOne).toHaveBeenCalledWith({ where: { id: 'tech-1' } });
+      expect(odooService.createTicket).toHaveBeenCalledWith('client-1', 'tech-1');
       expect(taskRepository.create).toHaveBeenCalledWith({
         clientId: 'client-1',
         technicianId: 'tech-1',
         type: TaskType.SERVER_MAINTENANCE,
         scheduledDate: '2026-06-01',
+        odooTicketId: 42,
       });
-      expect(taskRepository.save).toHaveBeenCalledWith(mockTask);
-      expect(result.id).toBe('task-1');
+      expect(taskRepository.save).toHaveBeenCalled();
+      expect(result.odooTicketId).toBe(42);
+    });
+
+    it('no guarda la tarea si Odoo falla al crear el ticket', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      odooService.createTicket.mockRejectedValue(
+        new ServiceUnavailableException('Odoo no disponible'),
+      );
+
+      await expect(service.create(createDto)).rejects.toThrow(ServiceUnavailableException);
+
+      expect(taskRepository.save).not.toHaveBeenCalled();
     });
 
     it('lanza NotFoundException con mensaje si el cliente no existe', async () => {
