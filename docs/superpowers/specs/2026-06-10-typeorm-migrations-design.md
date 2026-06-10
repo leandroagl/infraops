@@ -42,7 +42,6 @@ Exporta un `DataSource` con las mismas entidades que `AppModule`.
 ```typescript
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
-import * as path from 'path';
 
 export default new DataSource({
   type: 'postgres',
@@ -51,12 +50,12 @@ export default new DataSource({
   username: process.env.DB_USER ?? 'postgres',
   password: process.env.DB_PASSWORD ?? '',
   database: process.env.DB_NAME ?? 'infraops',
-  entities: [path.join(__dirname, '../**/*.entity{.ts,.js}')],
-  migrations: [path.join(__dirname, '../migrations/*{.ts,.js}')],
+  entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+  migrations: [__dirname + '/../migrations/*{.ts,.js}'],
 });
 ```
 
-Con `__dirname`, cuando ts-node lo corre desde `src/database/` apunta a `src/`; cuando corre el compilado desde `dist/database/` apunta a `dist/`. El glob `{.ts,.js}` resuelve lo que exista en cada contexto.
+Concatenación directa en lugar de `path.join` para evitar que en Windows los separadores `\` rompan los glob patterns que TypeORM procesa internamente. Con `__dirname + '/../'`, cuando ts-node corre desde `src/database/` apunta a `src/`; cuando corre el compilado desde `dist/database/` apunta a `dist/`.
 
 ## tsconfig.migrations.json
 
