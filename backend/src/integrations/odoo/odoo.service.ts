@@ -173,7 +173,7 @@ export class OdooService {
       10,
     );
     if (isNaN(teamId)) {
-      throw new Error('ODOO_HELPDESK_TEAM_ID must be a valid integer');
+      throw new BadRequestException('ODOO_HELPDESK_TEAM_ID must be a valid integer');
     }
 
     return this.odooRpc.callKw<number>(

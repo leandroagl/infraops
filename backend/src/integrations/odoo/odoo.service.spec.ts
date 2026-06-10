@@ -371,5 +371,17 @@ describe('OdooService', () => {
         ServiceUnavailableException,
       );
     });
+
+    it('lanza error cuando ODOO_HELPDESK_TEAM_ID no es un entero válido', async () => {
+      configService.getOrThrow.mockReturnValue('not-a-number');
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101 }));
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+
+      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
+        'ODOO_HELPDESK_TEAM_ID must be a valid integer',
+      );
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+    });
   });
 });
