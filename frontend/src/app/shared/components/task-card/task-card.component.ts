@@ -43,10 +43,10 @@ export class TaskCardComponent {
   }
 
   get odooLabel(): string | null {
-    return this.task.odooTicketId !== null ? formatOdooTicketId(this.task.odooTicketId) : null;
+    return this.task.odooTicketId != null ? formatOdooTicketId(this.task.odooTicketId) : null;
   }
 
   get odooLink(): string | null {
-    return this.task.odooTicketId !== null ? odooTicketUrl(this.task.odooTicketId) : null;
+    return this.task.odooTicketId != null ? odooTicketUrl(this.task.odooTicketId) : null;
   }
 }

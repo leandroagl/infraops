@@ -186,7 +186,7 @@ describe('TaskCardComponent', () => {
       const emitted: Task[] = [];
       component.selected.subscribe(t => emitted.push(t));
       const link: HTMLElement = fixture.nativeElement.querySelector('.tc-odoo-link');
-      link.click();
+      link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
       expect(emitted.length).toBe(0);
     });
   });
