@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
-import { Technician } from '../../technicians/technician.entity';
 import { OdooRpcService } from './odoo-rpc.service';
 import { OdooService } from './odoo.service';
 import { OdooPartner } from './dto/odoo-partner.dto';
@@ -12,8 +11,7 @@ describe('OdooService', () => {
   let service: OdooService;
   let odooRpc: { callKw: jest.Mock };
   let clientRepo: { find: jest.Mock; findOne: jest.Mock; update: jest.Mock; count: jest.Mock };
-  let userRepo: { find: jest.Mock; findOne: jest.Mock };
-  let technicianRepo: { update: jest.Mock; findOne: jest.Mock; count: jest.Mock };
+  let userRepo: { find: jest.Mock; findOne: jest.Mock; update: jest.Mock; count: jest.Mock };
 
   const makeClient = (override: Partial<Client> = {}): Client =>
     ({
@@ -40,6 +38,8 @@ describe('OdooService', () => {
       email: 'tecnico@ondra.com',
       technicianId: 'tech-uuid-1',
       isActive: true,
+      odooUserId: null,
+      odooSyncedAt: null,
       ...override,
     }) as User;
 
@@ -58,10 +58,10 @@ describe('OdooService', () => {
       update: jest.fn().mockResolvedValue(undefined),
       count: jest.fn(),
     };
-    userRepo = { find: jest.fn(), findOne: jest.fn() };
-    technicianRepo = {
-      update: jest.fn().mockResolvedValue(undefined),
+    userRepo = {
+      find: jest.fn(),
       findOne: jest.fn(),
+      update: jest.fn().mockResolvedValue(undefined),
       count: jest.fn(),
     };
 
@@ -71,7 +71,6 @@ describe('OdooService', () => {
         { provide: OdooRpcService, useValue: odooRpc },
         { provide: getRepositoryToken(Client), useValue: clientRepo },
         { provide: getRepositoryToken(User), useValue: userRepo },
-        { provide: getRepositoryToken(Technician), useValue: technicianRepo },
       ],
     }).compile();
 
@@ -145,14 +144,14 @@ describe('OdooService', () => {
   });
 
   describe('syncUsers', () => {
-    it('actualiza odooUserId del técnico cuando email coincide', async () => {
+    it('actualiza odooUserId del usuario cuando email coincide', async () => {
       userRepo.find.mockResolvedValue([makeUser()]);
       odooRpc.callKw.mockResolvedValue([makeOdooUser()]);
 
       const result = await service.syncUsers();
 
-      expect(technicianRepo.update).toHaveBeenCalledWith(
-        'tech-uuid-1',
+      expect(userRepo.update).toHaveBeenCalledWith(
+        'user-uuid-1',
         expect.objectContaining({ odooUserId: 201, odooSyncedAt: expect.any(Date) }),
       );
       expect(result.matched).toBe(1);
@@ -160,28 +159,26 @@ describe('OdooService', () => {
       expect(result.total).toBe(1);
     });
 
-    it('registra en unmatched el login del usuario de Odoo que no matchea ningún técnico', async () => {
+    it('registra en unmatched el login del usuario de Odoo que no matchea ningún usuario local', async () => {
       userRepo.find.mockResolvedValue([]);
       odooRpc.callKw.mockResolvedValue([makeOdooUser()]);
 
       const result = await service.syncUsers();
 
-      expect(technicianRepo.update).not.toHaveBeenCalled();
+      expect(userRepo.update).not.toHaveBeenCalled();
       expect(result.matched).toBe(0);
       expect(result.unmatched).toEqual(['tecnico@ondra.com']);
       expect(result.total).toBe(1);
     });
 
-    it('consulta solo usuarios con technicianId para construir el mapa de email', async () => {
+    it('consulta todos los usuarios activos para construir el mapa de email', async () => {
       userRepo.find.mockResolvedValue([makeUser()]);
       odooRpc.callKw.mockResolvedValue([]);
 
       await service.syncUsers();
 
       expect(userRepo.find).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ technicianId: expect.anything() }),
-        }),
+        expect.objectContaining({ where: expect.objectContaining({ isActive: true }) }),
       );
     });
 
@@ -191,19 +188,19 @@ describe('OdooService', () => {
 
       const result = await service.syncUsers();
 
-      expect(technicianRepo.update).not.toHaveBeenCalled();
+      expect(userRepo.update).not.toHaveBeenCalled();
       expect(result.matched).toBe(0);
     });
   });
 
   describe('getSyncStatus', () => {
-    it('devuelve conteo de clientes y técnicos sin odoo id', async () => {
+    it('devuelve conteo de clientes y usuarios sin odoo id', async () => {
       clientRepo.count.mockResolvedValue(5);
-      technicianRepo.count.mockResolvedValue(2);
+      userRepo.count.mockResolvedValue(2);
 
       const result = await service.getSyncStatus();
 
-      expect(result).toEqual({ clientsWithoutOdooId: 5, techniciansWithoutOdooId: 2 });
+      expect(result).toEqual({ clientsWithoutOdooId: 5, usersWithoutOdooId: 2 });
     });
   });
 
@@ -260,30 +257,29 @@ describe('OdooService', () => {
 
   describe('resolveUserId', () => {
     it('devuelve odooUserId existente sin llamar a Odoo', async () => {
-      technicianRepo.findOne.mockResolvedValue({ id: 'tech-uuid-1', odooUserId: 201, odooSyncedAt: new Date() });
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
 
-      const result = await service.resolveUserId('tech-uuid-1');
+      const result = await service.resolveUserId('user-uuid-1');
 
       expect(result).toBe(201);
       expect(odooRpc.callKw).not.toHaveBeenCalled();
     });
 
     it('intenta sync puntual por email cuando odooUserId es null y retorna el id encontrado', async () => {
-      technicianRepo.findOne.mockResolvedValue({ id: 'tech-uuid-1', odooUserId: null });
-      userRepo.findOne = jest.fn().mockResolvedValue(makeUser());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: null }));
       odooRpc.callKw.mockResolvedValue([{ id: 201, login: 'tecnico@ondra.com' }]);
 
-      const result = await service.resolveUserId('tech-uuid-1');
+      const result = await service.resolveUserId('user-uuid-1');
 
       expect(result).toBe(201);
-      expect(technicianRepo.update).toHaveBeenCalledWith(
-        'tech-uuid-1',
+      expect(userRepo.update).toHaveBeenCalledWith(
+        'user-uuid-1',
         expect.objectContaining({ odooUserId: 201 }),
       );
     });
 
-    it('devuelve null cuando el técnico no existe', async () => {
-      technicianRepo.findOne.mockResolvedValue(null);
+    it('devuelve null cuando el usuario no existe', async () => {
+      userRepo.findOne.mockResolvedValue(null);
 
       const result = await service.resolveUserId('uuid-no-existe');
 
@@ -291,14 +287,13 @@ describe('OdooService', () => {
     });
 
     it('devuelve null cuando Odoo no encuentra usuario por email', async () => {
-      technicianRepo.findOne.mockResolvedValue({ id: 'tech-uuid-1', odooUserId: null });
-      userRepo.findOne = jest.fn().mockResolvedValue(makeUser());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: null }));
       odooRpc.callKw.mockResolvedValue([]);
 
-      const result = await service.resolveUserId('tech-uuid-1');
+      const result = await service.resolveUserId('user-uuid-1');
 
       expect(result).toBeNull();
-      expect(technicianRepo.update).not.toHaveBeenCalled();
+      expect(userRepo.update).not.toHaveBeenCalled();
     });
   });
 });

@@ -15,12 +15,6 @@ export class Technician {
   @OneToOne(() => User, (user) => user.technician)
   user: User;
 
-  @Column({ type: 'int', nullable: true, default: null })
-  odooUserId: number | null;
-
-  @Column({ type: 'timestamptz', nullable: true, default: null })
-  odooSyncedAt: Date | null;
-
   @CreateDateColumn()
   createdAt: Date;
 }

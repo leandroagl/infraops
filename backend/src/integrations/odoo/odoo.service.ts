@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, IsNull, Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
-import { Technician } from '../../technicians/technician.entity';
 import { OdooRpcService } from './odoo-rpc.service';
 import { OdooPartner } from './dto/odoo-partner.dto';
 import { OdooUser } from './dto/odoo-user.dto';
@@ -18,8 +17,6 @@ export class OdooService {
     private readonly clientRepo: Repository<Client>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-    @InjectRepository(Technician)
-    private readonly technicianRepo: Repository<Technician>,
   ) {}
 
   async syncPartners(): Promise<OdooSyncResult> {
@@ -70,7 +67,7 @@ export class OdooService {
         [[['active', '=', true]]],
         { fields: ['id', 'login', 'name'] },
       ),
-      this.userRepo.find({ where: { technicianId: Not(IsNull()) } }),
+      this.userRepo.find({ where: { isActive: true } }),
     ]);
 
     const userByEmail = new Map(localUsers.map((u) => [u.email, u]));
@@ -82,8 +79,8 @@ export class OdooService {
       if (!odooUser.login) continue;
       const login = odooUser.login as string;
       const user = userByEmail.get(login);
-      if (user && user.technicianId) {
-        await this.technicianRepo.update(user.technicianId, {
+      if (user) {
+        await this.userRepo.update(user.id, {
           odooUserId: odooUser.id,
           odooSyncedAt: new Date(),
         });
@@ -97,11 +94,11 @@ export class OdooService {
   }
 
   async getSyncStatus(): Promise<OdooSyncStatusDto> {
-    const [clientsWithoutOdooId, techniciansWithoutOdooId] = await Promise.all([
+    const [clientsWithoutOdooId, usersWithoutOdooId] = await Promise.all([
       this.clientRepo.count({ where: { odooPartnerId: IsNull() } }),
-      this.technicianRepo.count({ where: { odooUserId: IsNull() } }),
+      this.userRepo.count({ where: { odooUserId: IsNull() } }),
     ]);
-    return { clientsWithoutOdooId, techniciansWithoutOdooId };
+    return { clientsWithoutOdooId, usersWithoutOdooId };
   }
 
   async resolvePartnerId(clientId: string): Promise<number | null> {
@@ -126,13 +123,10 @@ export class OdooService {
     return partners[0].id;
   }
 
-  async resolveUserId(technicianId: string): Promise<number | null> {
-    const technician = await this.technicianRepo.findOne({ where: { id: technicianId } });
-    if (!technician) return null;
-    if (technician.odooUserId !== null) return technician.odooUserId;
-
-    const user = await this.userRepo.findOne({ where: { technicianId } });
+  async resolveUserId(userId: string): Promise<number | null> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) return null;
+    if (user.odooUserId !== null) return user.odooUserId;
 
     const odooUsers = await this.odooRpc.callKw<OdooUser[]>(
       'res.users',
@@ -143,7 +137,7 @@ export class OdooService {
 
     if (odooUsers.length === 0) return null;
 
-    await this.technicianRepo.update(technicianId, {
+    await this.userRepo.update(userId, {
       odooUserId: odooUsers[0].id,
       odooSyncedAt: new Date(),
     });
