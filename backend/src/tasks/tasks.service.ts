@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { Client } from '../clients/client.entity';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
+import { OdooService } from '../integrations/odoo/odoo.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -33,6 +34,7 @@ export class TasksService {
     private readonly technicianRepository: Repository<Technician>,
     @InjectRepository(MaintenanceLog)
     private readonly logRepository: Repository<MaintenanceLog>,
+    private readonly odooService: OdooService,
   ) {}
 
   async findAll(filters: FilterTasksDto): Promise<Task[]> {
@@ -56,11 +58,14 @@ export class TasksService {
     const technician = await this.technicianRepository.findOne({ where: { id: dto.technicianId } });
     if (!technician) throw new NotFoundException('Técnico no encontrado');
 
+    const odooTicketId = await this.odooService.createTicket(dto.clientId, dto.technicianId);
+
     const task = this.taskRepository.create({
       clientId: dto.clientId,
       technicianId: dto.technicianId,
       type: dto.type,
       scheduledDate: dto.scheduledDate,
+      odooTicketId,
     });
     const saved = await this.taskRepository.save(task);
     return this.loadTask(saved.id);
