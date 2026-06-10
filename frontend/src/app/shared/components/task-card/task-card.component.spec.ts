@@ -155,4 +155,39 @@ describe('TaskCardComponent', () => {
       expect(fixture.nativeElement.textContent).toContain('No hecho');
     });
   });
+
+  // ── odoo ticket link ───────────────────────────────────────
+  describe('odoo ticket link', () => {
+    it('muestra el link del ticket cuando odooTicketId está definido', () => {
+      component.task = makeTask({ odooTicketId: 5137 });
+      fixture.detectChanges();
+      const link = fixture.nativeElement.querySelector('.tc-odoo-link');
+      expect(link).toBeTruthy();
+      expect(link.textContent.trim()).toBe('#05137');
+    });
+
+    it('el href del link contiene el id del ticket', () => {
+      component.task = makeTask({ odooTicketId: 5137 });
+      fixture.detectChanges();
+      const link: HTMLAnchorElement = fixture.nativeElement.querySelector('.tc-odoo-link');
+      expect(link.getAttribute('href')).toContain('5137');
+    });
+
+    it('no renderiza el link cuando odooTicketId es null', () => {
+      component.task = makeTask({ odooTicketId: null });
+      fixture.detectChanges();
+      const link = fixture.nativeElement.querySelector('.tc-odoo-link');
+      expect(link).toBeNull();
+    });
+
+    it('el click en el link no emite el evento selected', () => {
+      component.task = makeTask({ odooTicketId: 5137 });
+      fixture.detectChanges();
+      const emitted: Task[] = [];
+      component.selected.subscribe(t => emitted.push(t));
+      const link: HTMLElement = fixture.nativeElement.querySelector('.tc-odoo-link');
+      link.click();
+      expect(emitted.length).toBe(0);
+    });
+  });
 });
