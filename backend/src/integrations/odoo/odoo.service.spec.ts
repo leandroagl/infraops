@@ -1,7 +1,10 @@
+import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
+import { Technician } from '../../technicians/technician.entity';
 import { OdooRpcService } from './odoo-rpc.service';
 import { OdooService } from './odoo.service';
 import { OdooPartner } from './dto/odoo-partner.dto';
@@ -12,6 +15,8 @@ describe('OdooService', () => {
   let odooRpc: { callKw: jest.Mock };
   let clientRepo: { find: jest.Mock; findOne: jest.Mock; update: jest.Mock; count: jest.Mock };
   let userRepo: { find: jest.Mock; findOne: jest.Mock; update: jest.Mock; count: jest.Mock };
+  let technicianRepo: { findOne: jest.Mock };
+  let configService: { getOrThrow: jest.Mock };
 
   const makeClient = (override: Partial<Client> = {}): Client =>
     ({
@@ -50,6 +55,13 @@ describe('OdooService', () => {
     ...override,
   });
 
+  const makeTechnician = (userId = 'user-uuid-1'): Technician =>
+    ({
+      id: 'tech-uuid-1',
+      user: makeUser({ id: userId, odooUserId: 201 }),
+      createdAt: new Date('2026-01-01'),
+    }) as unknown as Technician;
+
   beforeEach(async () => {
     odooRpc = { callKw: jest.fn() };
     clientRepo = {
@@ -64,6 +76,10 @@ describe('OdooService', () => {
       update: jest.fn().mockResolvedValue(undefined),
       count: jest.fn(),
     };
+    technicianRepo = { findOne: jest.fn() };
+    configService = {
+      getOrThrow: jest.fn().mockReturnValue('5'),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -71,6 +87,8 @@ describe('OdooService', () => {
         { provide: OdooRpcService, useValue: odooRpc },
         { provide: getRepositoryToken(Client), useValue: clientRepo },
         { provide: getRepositoryToken(User), useValue: userRepo },
+        { provide: ConfigService, useValue: configService },
+        { provide: getRepositoryToken(Technician), useValue: technicianRepo },
       ],
     }).compile();
 
@@ -294,6 +312,64 @@ describe('OdooService', () => {
 
       expect(result).toBeNull();
       expect(userRepo.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createTicket', () => {
+    it('crea un ticket en Odoo y retorna el ticket ID', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101 }));
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw.mockResolvedValue(42);
+
+      const ticketId = await service.createTicket('client-uuid-1', 'tech-uuid-1');
+
+      expect(ticketId).toBe(42);
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [
+          {
+            team_id: 5,
+            partner_id: 101,
+            user_id: 201,
+            name: 'Mantenimiento de infraestructura',
+            description: 'Mantenimiento mensual!',
+          },
+        ],
+        {},
+      );
+    });
+
+    it('lanza BadRequestException cuando el cliente no tiene ID de Odoo', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: null, taxIdNumber: null }));
+
+      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+    });
+
+    it('lanza BadRequestException cuando el técnico no tiene ID de Odoo', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101 }));
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: null }));
+      odooRpc.callKw.mockResolvedValue([]);
+
+      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('propaga ServiceUnavailableException cuando Odoo falla al crear el ticket', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101 }));
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw.mockRejectedValue(new ServiceUnavailableException('Odoo caído'));
+
+      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 });
