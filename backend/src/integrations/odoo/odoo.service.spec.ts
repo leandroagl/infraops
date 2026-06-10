@@ -383,5 +383,19 @@ describe('OdooService', () => {
       );
       expect(odooRpc.callKw).not.toHaveBeenCalled();
     });
+
+    it('lanza BadRequestException cuando el técnico no tiene usuario asociado', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101 }));
+      technicianRepo.findOne.mockResolvedValue({
+        id: 'tech-uuid-1',
+        user: null,
+        createdAt: new Date('2026-01-01'),
+      });
+
+      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+    });
   });
 });

@@ -162,6 +162,9 @@ export class OdooService {
     if (!technician) {
       throw new BadRequestException(`Técnico ${technicianId} no encontrado`);
     }
+    if (!technician.user) {
+      throw new BadRequestException(`Técnico ${technicianId} no tiene usuario asociado`);
+    }
 
     const odooUserId = await this.resolveUserId(technician.user.id);
     if (odooUserId === null) {
