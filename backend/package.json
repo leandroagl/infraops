@@ -19,7 +19,12 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:seed": "ts-node -r tsconfig-paths/register src/scripts/seed-admin.ts",
-    "db:seed:prod": "node dist/scripts/seed-admin.js"
+    "db:seed:prod": "node dist/scripts/seed-admin.js",
+    "migration:generate": "cross-env TS_NODE_PROJECT=tsconfig.migrations.json typeorm-ts-node-commonjs -d src/database/data-source.ts migration:generate",
+    "migration:run": "cross-env TS_NODE_PROJECT=tsconfig.migrations.json typeorm-ts-node-commonjs -d src/database/data-source.ts migration:run",
+    "migration:revert": "cross-env TS_NODE_PROJECT=tsconfig.migrations.json typeorm-ts-node-commonjs -d src/database/data-source.ts migration:revert",
+    "migration:show": "cross-env TS_NODE_PROJECT=tsconfig.migrations.json typeorm-ts-node-commonjs -d src/database/data-source.ts migration:show",
+    "migration:run:prod": "typeorm -d dist/database/data-source.js migration:run"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
