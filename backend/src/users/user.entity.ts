@@ -42,6 +42,12 @@ export class User {
   @JoinColumn({ name: 'technician_id' })
   technician: Technician | null;
 
+  @Column({ name: 'odoo_user_id', type: 'int', nullable: true, default: null })
+  odooUserId: number | null;
+
+  @Column({ name: 'odoo_synced_at', type: 'timestamptz', nullable: true, default: null })
+  odooSyncedAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

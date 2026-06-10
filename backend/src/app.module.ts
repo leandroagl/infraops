@@ -9,6 +9,7 @@ import { TechniciansModule } from './technicians/technicians.module';
 import { TasksModule } from './tasks/tasks.module';
 import { MaintenanceLogsModule } from './maintenance-logs/maintenance-logs.module';
 import { InfradocIntegrationModule } from './integrations/infradoc/infradoc-integration.module';
+import { OdooIntegrationModule } from './integrations/odoo/odoo-integration.module';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { InfradocIntegrationModule } from './integrations/infradoc/infradoc-inte
       password: process.env.DB_PASSWORD ?? '',
       database: process.env.DB_NAME ?? 'infraops',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: process.env.NODE_ENV !== 'production',
+      migrations: [__dirname + '/migrations/*{.ts,.js}'],
+      synchronize: false,
     }),
     ScheduleModule.forRoot(),
     AuthModule,
@@ -31,6 +33,7 @@ import { InfradocIntegrationModule } from './integrations/infradoc/infradoc-inte
     TasksModule,
     MaintenanceLogsModule,
     InfradocIntegrationModule,
+    OdooIntegrationModule,
   ],
 })
 export class AppModule {}

@@ -158,4 +158,39 @@ describe('TasksComponent', () => {
       expect(component.dataSource.data.length).toBe(2);
     });
   });
+
+  describe('odooTicket column', () => {
+    it('renderiza el link del ticket cuando odooTicketId está definido', () => {
+      tasksServiceSpy.getAll.and.returnValue(
+        of([{ ...mockTask('t1'), odooTicketId: 5137 }])
+      );
+      component.load();
+      fixture.detectChanges();
+
+      const link = fixture.nativeElement.querySelector('.odoo-ticket-link');
+      expect(link).toBeTruthy();
+      expect(link.textContent.trim()).toBe('#05137');
+    });
+
+    it('el href del link contiene el id del ticket', () => {
+      tasksServiceSpy.getAll.and.returnValue(
+        of([{ ...mockTask('t1'), odooTicketId: 5137 }])
+      );
+      component.load();
+      fixture.detectChanges();
+
+      const link: HTMLAnchorElement = fixture.nativeElement.querySelector('.odoo-ticket-link');
+      expect(link.getAttribute('href')).toContain('5137');
+    });
+
+    it('renderiza — cuando odooTicketId es null', () => {
+      // mockTask ya tiene odooTicketId: null
+      fixture.detectChanges();
+      const link = fixture.nativeElement.querySelector('.odoo-ticket-link');
+      expect(link).toBeNull();
+      const dash = Array.from(fixture.nativeElement.querySelectorAll('td'))
+        .find((td: any) => td.textContent?.trim() === '—');
+      expect(dash).toBeTruthy();
+    });
+  });
 });

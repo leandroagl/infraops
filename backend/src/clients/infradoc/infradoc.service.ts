@@ -67,6 +67,11 @@ export class InfradocService {
     );
   }
 
+  private extractCuit(value: string | null | undefined): string | null {
+    if (!value) return null;
+    return /^\d{2}-\d{8}-\d$/.test(value) ? value : null;
+  }
+
   private mapLocation(raw: Record<string, unknown>): InfradocLocation {
     return {
       infradocClientId: Number(raw.location_client_id),
@@ -87,7 +92,7 @@ export class InfradocService {
       rate: raw.client_rate ? Number(raw.client_rate) : null,
       currencyCode: (raw.client_currency_code as string) ?? null,
       netTerms: raw.client_net_terms ? Number(raw.client_net_terms) : null,
-      taxIdNumber: (raw.client_tax_id_number as string) ?? null,
+      taxIdNumber: this.extractCuit(raw.client_type as string | null | undefined),
       isLead: raw.client_is_lead === 1 || raw.client_is_lead === '1',
       notes: (raw.client_notes as string) ?? null,
       isActive:

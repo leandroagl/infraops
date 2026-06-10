@@ -3,6 +3,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Task } from '../../../core/models/task.models';
 import { daysFromToday, urgencyLabel, urgencyClass } from '../../utils/urgency';
 import { typeLabelLong, statusLabel as getStatusLabel } from '../../utils/task-labels';
+import { formatOdooTicketId, odooTicketUrl } from '../../utils/odoo';
 
 @Component({
   selector: 'app-task-card',
@@ -39,5 +40,13 @@ export class TaskCardComponent {
     if (this.days < 0) return 'var(--crit)';
     if (this.days <= 7) return 'var(--warn)';
     return 'var(--ok)';
+  }
+
+  get odooLabel(): string | null {
+    return this.task.odooTicketId != null ? formatOdooTicketId(this.task.odooTicketId) : null;
+  }
+
+  get odooLink(): string | null {
+    return this.task.odooTicketId != null ? odooTicketUrl(this.task.odooTicketId) : null;
   }
 }

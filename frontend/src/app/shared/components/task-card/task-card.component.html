@@ -27,5 +27,12 @@
         {{ statusLabel }}
       </span>
     </ng-container>
+    <a
+      *ngIf="odooLink"
+      [href]="odooLink"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="tc-odoo-link"
+      (click)="$event.stopPropagation()">{{ odooLabel }}</a>
   </div>
 </mat-card>

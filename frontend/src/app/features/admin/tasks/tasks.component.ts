@@ -10,6 +10,7 @@ import { TasksService } from '../../../core/services/tasks.service';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { TaskCreateDialogComponent } from './task-create-dialog/task-create-dialog.component';
 import { statusLabel, statusBadge, typeLabel, typeBadge } from '../../../shared/utils/task-labels';
+import { formatOdooTicketId, odooTicketUrl } from '../../../shared/utils/odoo';
 
 @Component({
   selector: 'app-tasks',
@@ -18,7 +19,7 @@ import { statusLabel, statusBadge, typeLabel, typeBadge } from '../../../shared/
 })
 export class TasksComponent implements OnInit, AfterViewInit {
   readonly dataSource = new MatTableDataSource<Task>([]);
-  readonly displayedColumns = ['client', 'type', 'technician', 'scheduledDate', 'status', 'actions'];
+  readonly displayedColumns = ['client', 'type', 'technician', 'scheduledDate', 'status', 'odooTicket', 'actions'];
   loading = false;
   error = '';
   filterStatus = '';
@@ -100,4 +101,7 @@ export class TasksComponent implements OnInit, AfterViewInit {
   typeBadge(type: TaskType): string   { return typeBadge(type); }
   statusBadge(status: TaskStatus): string { return statusBadge(status); }
   statusLabel(status: TaskStatus): string { return statusLabel(status); }
+
+  odooLabelFor(id: number): string { return formatOdooTicketId(id); }
+  odooLinkFor(id: number): string  { return odooTicketUrl(id); }
 }
