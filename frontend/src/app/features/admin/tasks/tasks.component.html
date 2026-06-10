@@ -58,6 +58,19 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="odooTicket">
+        <th mat-header-cell *matHeaderCellDef>Ticket</th>
+        <td mat-cell *matCellDef="let row" class="cell-mono">
+          <a
+            *ngIf="row.odooTicketId != null"
+            [href]="odooLinkFor(row.odooTicketId)"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="odoo-ticket-link">{{ odooLabelFor(row.odooTicketId) }}</a>
+          <span *ngIf="row.odooTicketId == null">—</span>
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let row" class="cell-actions">
