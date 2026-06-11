@@ -103,9 +103,7 @@ export class OdooService {
         { fields: ['id', 'user_id'] },
       );
       const employeeByOdooUserId = new Map(
-        employees
-          .filter((e) => Array.isArray(e.user_id))
-          .map((e) => [e.user_id[0], e.id]),
+        employees.map((e) => [e.user_id[0], e.id]),
       );
       for (const pair of matchedPairs) {
         const employeeId = employeeByOdooUserId.get(pair.odooUserId);

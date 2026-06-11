@@ -166,7 +166,9 @@ describe('OdooService', () => {
   describe('syncUsers', () => {
     it('actualiza odooUserId del usuario cuando email coincide', async () => {
       userRepo.find.mockResolvedValue([makeUser()]);
-      odooRpc.callKw.mockResolvedValue([makeOdooUser()]);
+      odooRpc.callKw
+        .mockResolvedValueOnce([makeOdooUser()])  // res.users call
+        .mockResolvedValueOnce([]);               // hr.employee call → no employees
 
       const result = await service.syncUsers();
 
