@@ -19,6 +19,7 @@ export class KanbanBoardComponent {
     );
   }
 
+  // "Pendientes" includes both PENDING and IN_PROGRESS (active work) — single active column by design
   get kanbanPending(): Task[] {
     return [...this.activeTasks].sort(
       (a, b) => daysFromToday(a.scheduledDate) - daysFromToday(b.scheduledDate),
