@@ -1,0 +1,54 @@
+<div class="kanban">
+
+  <div class="kanban__col">
+    <div class="kanban__col-header">
+      <span class="col-label col-label--active">Pendientes</span>
+      <span class="col-cnt col-cnt--active">{{ kanbanPending.length }}</span>
+    </div>
+    <div class="kanban__col-body">
+      <app-task-card
+        *ngFor="let task of kanbanPending"
+        [task]="task"
+        [active]="selectedTaskId === task.id"
+        [showTechnicianAvatar]="showTechnicianAvatar"
+        (selected)="onTaskSelected($event)">
+      </app-task-card>
+      <div *ngIf="kanbanPending.length === 0" class="col-empty">Sin tareas pendientes</div>
+    </div>
+  </div>
+
+  <div class="kanban__col">
+    <div class="kanban__col-header">
+      <span class="col-label">Completadas</span>
+      <span class="col-cnt">{{ kanbanDone.length }}</span>
+    </div>
+    <div class="kanban__col-body">
+      <app-task-card
+        *ngFor="let task of kanbanDone"
+        [task]="task"
+        [active]="selectedTaskId === task.id"
+        [showTechnicianAvatar]="showTechnicianAvatar"
+        (selected)="onTaskSelected($event)">
+      </app-task-card>
+      <div *ngIf="kanbanDone.length === 0" class="col-empty">Sin completadas este mes</div>
+    </div>
+  </div>
+
+  <div class="kanban__col">
+    <div class="kanban__col-header">
+      <span class="col-label">Cerradas</span>
+      <span class="col-cnt">{{ kanbanClosed.length }}</span>
+    </div>
+    <div class="kanban__col-body">
+      <app-task-card
+        *ngFor="let task of kanbanClosed"
+        [task]="task"
+        [active]="selectedTaskId === task.id"
+        [showTechnicianAvatar]="showTechnicianAvatar"
+        (selected)="onTaskSelected($event)">
+      </app-task-card>
+      <div *ngIf="kanbanClosed.length === 0" class="col-empty">Sin cerradas este mes</div>
+    </div>
+  </div>
+
+</div>
