@@ -95,8 +95,11 @@ export class TasksService {
     return this.loadTask(id);
   }
 
-  async updateStatus(id: string, newStatus: TaskStatus): Promise<Task> {
-    const task = await this.taskRepository.findOne({ where: { id } });
+  async updateStatus(id: string, newStatus: TaskStatus, timeSpentMinutes?: number): Promise<Task> {
+    const task = await this.taskRepository.findOne({
+      where: { id },
+      relations: ['technician', 'technician.user'],
+    });
     if (!task) throw new NotFoundException('Tarea no encontrada');
 
     const allowed = VALID_TRANSITIONS[task.status];
@@ -112,8 +115,18 @@ export class TasksService {
     const shouldCloseTicket =
       (newStatus === TaskStatus.DONE || newStatus === TaskStatus.NOT_DONE) &&
       task.odooTicketId !== null;
+
     if (shouldCloseTicket) {
-      await this.odooService.closeTicket(task.odooTicketId!);
+      const userId = task.technician?.user?.id;
+      if (!userId) throw new BadRequestException('La tarea no tiene técnico con usuario asociado');
+
+      const employeeId = await this.odooService.resolveEmployeeId(userId);
+      if (employeeId === null) {
+        throw new BadRequestException('El técnico no tiene odooEmployeeId sincronizado');
+      }
+
+      const unitAmount = (timeSpentMinutes ?? 0) / 60;
+      await this.odooService.closeTicket(task.odooTicketId!, employeeId, unitAmount);
     }
 
     await this.taskRepository.update(id, { status: newStatus, completedDate });

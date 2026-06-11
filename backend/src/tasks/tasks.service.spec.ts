@@ -9,6 +9,7 @@ import { Client } from '../clients/client.entity';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
+import { User } from '../users/user.entity';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
 import { TaskStatus } from './task-status.enum';
 import { TaskType } from './task-type.enum';
@@ -28,7 +29,7 @@ describe('TasksService', () => {
   let clientRepository: { findOne: jest.Mock };
   let technicianRepository: { findOne: jest.Mock };
   let logRepository: { delete: jest.Mock };
-  let odooService: { createTicket: jest.Mock; closeTicket: jest.Mock };
+  let odooService: { createTicket: jest.Mock; closeTicket: jest.Mock; resolveEmployeeId: jest.Mock };
 
   const mockClient: Client = {
     id: 'client-1',
@@ -47,11 +48,15 @@ describe('TasksService', () => {
     notes: null,
     isActive: true,
     lastSyncedAt: null,
+    odooPartnerId: null,
+    odooSyncedAt: null,
+    odooSaleLineId: null,
     createdAt: new Date('2026-01-01'),
   };
 
   const mockTechnician: Technician = {
     id: 'tech-1',
+    user: { id: 'user-1' } as User,
     createdAt: new Date('2026-01-01'),
   };
 
@@ -81,7 +86,7 @@ describe('TasksService', () => {
     clientRepository = { findOne: jest.fn() };
     technicianRepository = { findOne: jest.fn() };
     logRepository = { delete: jest.fn() };
-    odooService = { createTicket: jest.fn(), closeTicket: jest.fn() };
+    odooService = { createTicket: jest.fn(), closeTicket: jest.fn(), resolveEmployeeId: jest.fn() };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -363,29 +368,42 @@ describe('TasksService', () => {
     });
 
     it('llama closeTicket al transicionar a DONE cuando la tarea tiene odooTicketId', async () => {
-      const inProgressTask = { ...mockTask, status: TaskStatus.IN_PROGRESS, odooTicketId: 42 };
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+        technician: { user: { id: 'user-1' } },
+      };
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
         .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
+      odooService.resolveEmployeeId.mockResolvedValue(22);
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
 
-      await service.updateStatus('task-1', TaskStatus.DONE);
+      await service.updateStatus('task-1', TaskStatus.DONE, 90);
 
-      expect(odooService.closeTicket).toHaveBeenCalledWith(42);
+      expect(odooService.resolveEmployeeId).toHaveBeenCalledWith('user-1');
+      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5);
     });
 
     it('llama closeTicket al transicionar a NOT_DONE cuando la tarea tiene odooTicketId', async () => {
-      const taskWithTicket = { ...mockTask, status: TaskStatus.PENDING, odooTicketId: 55 };
+      const taskWithTicket = {
+        ...mockTask,
+        status: TaskStatus.PENDING,
+        odooTicketId: 55,
+        technician: { user: { id: 'user-1' } },
+      };
       taskRepository.findOne
         .mockResolvedValueOnce(taskWithTicket)
         .mockResolvedValueOnce({ ...taskWithTicket, status: TaskStatus.NOT_DONE });
+      odooService.resolveEmployeeId.mockResolvedValue(22);
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
 
-      await service.updateStatus('task-1', TaskStatus.NOT_DONE);
+      await service.updateStatus('task-1', TaskStatus.NOT_DONE, 60);
 
-      expect(odooService.closeTicket).toHaveBeenCalledWith(55);
+      expect(odooService.closeTicket).toHaveBeenCalledWith(55, 22, 1.0);
     });
 
     it('no llama closeTicket cuando odooTicketId es null', async () => {
@@ -395,9 +413,10 @@ describe('TasksService', () => {
         .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
       taskRepository.update.mockResolvedValue({ affected: 1 });
 
-      await service.updateStatus('task-1', TaskStatus.DONE);
+      await service.updateStatus('task-1', TaskStatus.DONE, 90);
 
       expect(odooService.closeTicket).not.toHaveBeenCalled();
+      expect(odooService.resolveEmployeeId).not.toHaveBeenCalled();
     });
 
     it('no llama closeTicket al transicionar a ESCALATED', async () => {
@@ -413,15 +432,57 @@ describe('TasksService', () => {
     });
 
     it('propaga el error de Odoo y no actualiza el status en DB cuando closeTicket falla', async () => {
-      const inProgressTask = { ...mockTask, status: TaskStatus.IN_PROGRESS, odooTicketId: 42 };
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+        technician: { user: { id: 'user-1' } },
+      };
       taskRepository.findOne.mockResolvedValueOnce(inProgressTask);
+      odooService.resolveEmployeeId.mockResolvedValue(22);
       odooService.closeTicket.mockRejectedValue(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.updateStatus('task-1', TaskStatus.DONE)).rejects.toThrow(
+      await expect(service.updateStatus('task-1', TaskStatus.DONE, 90)).rejects.toThrow(
         ServiceUnavailableException,
       );
       expect(taskRepository.update).not.toHaveBeenCalled();
     });
+
+    it('lanza BadRequestException si el técnico no tiene odooEmployeeId y hay ticket', async () => {
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+        technician: { user: { id: 'user-1' } },
+      };
+      taskRepository.findOne.mockResolvedValueOnce(inProgressTask);
+      odooService.resolveEmployeeId.mockResolvedValue(null);
+
+      await expect(service.updateStatus('task-1', TaskStatus.DONE, 90)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(taskRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('convierte timeSpentMinutes a unitAmount decimal correctamente (90 min → 1.5 h)', async () => {
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+        technician: { user: { id: 'user-1' } },
+      };
+      taskRepository.findOne
+        .mockResolvedValueOnce(inProgressTask)
+        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
+      odooService.resolveEmployeeId.mockResolvedValue(22);
+      odooService.closeTicket.mockResolvedValue(undefined);
+      taskRepository.update.mockResolvedValue({ affected: 1 });
+
+      await service.updateStatus('task-1', TaskStatus.DONE, 90);
+
+      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5);
+    });
+
   });
 
   describe('remove', () => {
