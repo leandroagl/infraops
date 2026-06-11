@@ -24,6 +24,7 @@ import { TechniciansComponent } from './technicians/technicians.component';
 import { AssignTechnicianDialogComponent } from './technicians/assign-technician-dialog/assign-technician-dialog.component';
 import { TasksComponent } from './tasks/tasks.component';
 import { TaskCreateDialogComponent } from './tasks/task-create-dialog/task-create-dialog.component';
+import { AdminTaskDrawerComponent } from './tasks/admin-task-drawer/admin-task-drawer.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
@@ -36,6 +37,7 @@ import { SharedModule } from '../../shared/shared.module';
     AssignTechnicianDialogComponent,
     TasksComponent,
     TaskCreateDialogComponent,
+    AdminTaskDrawerComponent,
   ],
   imports: [
     CommonModule,

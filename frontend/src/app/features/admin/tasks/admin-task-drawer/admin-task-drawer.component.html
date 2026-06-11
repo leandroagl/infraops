@@ -1,0 +1,36 @@
+<div class="adr-header">
+  <span class="adr-title">Detalle de tarea</span>
+  <button mat-icon-button class="adr-close" (click)="drawerClosed.emit()">
+    <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
+</div>
+
+<div class="adr-body">
+  <div class="adr-field">
+    <span class="adr-label">Cliente</span>
+    <span class="adr-value">{{ task.client?.name ?? '—' }}</span>
+  </div>
+  <div class="adr-field">
+    <span class="adr-label">Tipo</span>
+    <span class="adr-value">{{ typeLabel }}</span>
+  </div>
+  <div class="adr-field">
+    <span class="adr-label">Técnico</span>
+    <span class="adr-value">{{ task.technician?.user?.name ?? '—' }}</span>
+  </div>
+  <div class="adr-field">
+    <span class="adr-label">Período</span>
+    <span class="adr-value adr-value--mono">{{ task.scheduledDate | localDate:'month' }}</span>
+  </div>
+  <div class="adr-field">
+    <span class="adr-label">Estado</span>
+    <span class="badge" [ngClass]="statusBadge">{{ statusLabel }}</span>
+  </div>
+  <div class="adr-field">
+    <span class="adr-label">Ticket Odoo</span>
+    <a *ngIf="odooLink" [href]="odooLink" target="_blank" rel="noopener noreferrer" class="adr-odoo-link">{{ odooLabel }}</a>
+    <span *ngIf="!odooLink" class="adr-value">—</span>
+  </div>
+</div>
