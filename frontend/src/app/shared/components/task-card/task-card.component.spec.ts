@@ -190,4 +190,31 @@ describe('TaskCardComponent', () => {
       expect(emitted.length).toBe(0);
     });
   });
+
+  // ── showTechnicianAvatar ───────────────────────────────────
+  describe('showTechnicianAvatar', () => {
+    it('no renderiza .tc-tech-avatar cuando showTechnicianAvatar es false (default)', () => {
+      component.task = makeTask();
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.tc-tech-avatar')).toBeNull();
+    });
+
+    it('no renderiza .tc-tech-avatar cuando showTechnicianAvatar=true pero task sin técnico', () => {
+      component.showTechnicianAvatar = true;
+      component.task = makeTask({ technician: undefined });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.tc-tech-avatar')).toBeNull();
+    });
+
+    it('renderiza .tc-tech-avatar con la inicial cuando showTechnicianAvatar=true', () => {
+      component.showTechnicianAvatar = true;
+      component.task = makeTask({
+        technician: { id: 'tech-1', user: { id: 'u1', name: 'Valentina López', email: 'valen@ondra.com.ar' } },
+      });
+      fixture.detectChanges();
+      const avatar = fixture.nativeElement.querySelector('.tc-tech-avatar');
+      expect(avatar).toBeTruthy();
+      expect(avatar.textContent.trim()).toBe('V');
+    });
+  });
 });

@@ -13,6 +13,7 @@ import { formatOdooTicketId, odooTicketUrl } from '../../utils/odoo';
 export class TaskCardComponent {
   @Input() task!: Task;
   @Input() active = false;
+  @Input() showTechnicianAvatar = false;
   @Output() selected = new EventEmitter<Task>();
 
   get isActive(): boolean {
@@ -48,5 +49,9 @@ export class TaskCardComponent {
 
   get odooLink(): string | null {
     return this.task.odooTicketId != null ? odooTicketUrl(this.task.odooTicketId) : null;
+  }
+
+  get technicianInitial(): string {
+    return this.task.technician?.user?.name?.[0]?.toUpperCase() ?? '';
   }
 }

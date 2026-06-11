@@ -10,8 +10,13 @@
   (keydown.space)="$event.preventDefault(); selected.emit(task)">
 
   <div class="tc-top">
-    <div class="tc-client">{{ task.client?.name ?? task.clientId }}</div>
-    <div class="tc-type">{{ typeLabel }}</div>
+    <div class="tc-top__info">
+      <div class="tc-client">{{ task.client?.name ?? task.clientId }}</div>
+      <div class="tc-type">{{ typeLabel }}</div>
+    </div>
+    <div *ngIf="showTechnicianAvatar && technicianInitial" class="tc-tech-avatar">
+      {{ technicianInitial }}
+    </div>
   </div>
 
   <div class="tc-bottom">
