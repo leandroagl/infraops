@@ -211,6 +211,38 @@ describe('OdooService', () => {
       expect(userRepo.update).not.toHaveBeenCalled();
       expect(result.matched).toBe(0);
     });
+
+    it('resuelve odooEmployeeId en hr.employee para los usuarios matcheados', async () => {
+      const users = [makeUser({ id: 'user-1', email: 'a@ondra.com', odooUserId: null })];
+      const odooUsers = [{ id: 7, login: 'a@ondra.com', name: 'A' }];
+      const employees = [{ id: 22, user_id: [7, 'A'] }];
+
+      userRepo.find.mockResolvedValue(users);
+      odooRpc.callKw
+        .mockResolvedValueOnce(odooUsers)
+        .mockResolvedValueOnce(employees);
+
+      await service.syncUsers();
+
+      expect(odooRpc.callKw).toHaveBeenNthCalledWith(
+        2,
+        'hr.employee',
+        'search_read',
+        [[['user_id', 'in', [7]]]],
+        expect.objectContaining({ fields: ['id', 'user_id'] }),
+      );
+      const updateCalls = userRepo.update.mock.calls;
+      expect(updateCalls[1]).toEqual(['user-1', { odooEmployeeId: 22 }]);
+    });
+
+    it('no consulta hr.employee si no hubo matches', async () => {
+      userRepo.find.mockResolvedValue([]);
+      odooRpc.callKw.mockResolvedValue([]);
+
+      await service.syncUsers();
+
+      expect(odooRpc.callKw).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('getSyncStatus', () => {

@@ -78,22 +78,40 @@ export class OdooService {
     ]);
 
     const userByEmail = new Map(localUsers.map((u) => [u.email, u]));
-
     let matched = 0;
     const unmatched: string[] = [];
+    const matchedPairs: Array<{ userId: string; odooUserId: number }> = [];
 
     for (const odooUser of odooUsers) {
       if (!odooUser.login) continue;
       const login = odooUser.login as string;
       const user = userByEmail.get(login);
       if (user) {
-        await this.userRepo.update(user.id, {
-          odooUserId: odooUser.id,
-          odooSyncedAt: new Date(),
-        });
+        await this.userRepo.update(user.id, { odooUserId: odooUser.id, odooSyncedAt: new Date() });
+        matchedPairs.push({ userId: user.id, odooUserId: odooUser.id });
         matched++;
       } else {
         unmatched.push(login);
+      }
+    }
+
+    if (matchedPairs.length > 0) {
+      const employees = await this.odooRpc.callKw<Array<{ id: number; user_id: [number, string] }>>(
+        'hr.employee',
+        'search_read',
+        [[['user_id', 'in', matchedPairs.map((p) => p.odooUserId)]]],
+        { fields: ['id', 'user_id'] },
+      );
+      const employeeByOdooUserId = new Map(
+        employees
+          .filter((e) => Array.isArray(e.user_id))
+          .map((e) => [e.user_id[0], e.id]),
+      );
+      for (const pair of matchedPairs) {
+        const employeeId = employeeByOdooUserId.get(pair.odooUserId);
+        if (employeeId !== undefined) {
+          await this.userRepo.update(pair.userId, { odooEmployeeId: employeeId });
+        }
       }
     }
 
