@@ -38,61 +38,12 @@
     </div>
   </ng-container>
 
-  <!-- ── Kanban ─────────────────────────────────────────────── -->
-  <div class="kanban" *ngIf="!loading">
-
-    <!-- Pendientes (PENDING + IN_PROGRESS), ordenadas por urgencia -->
-    <div class="kanban__col">
-      <div class="kanban__col-header">
-        <span class="col-label col-label--active">Pendientes</span>
-        <span class="col-cnt col-cnt--active">{{ kanbanPending.length }}</span>
-      </div>
-      <div class="kanban__col-body">
-        <app-task-card
-          *ngFor="let task of kanbanPending"
-          [task]="task"
-          [active]="selectedTask?.id === task.id"
-          (selected)="selectTask($event)">
-        </app-task-card>
-        <div *ngIf="kanbanPending.length === 0" class="col-empty">Sin tareas pendientes</div>
-      </div>
-    </div>
-
-    <!-- Completadas (DONE) -->
-    <div class="kanban__col">
-      <div class="kanban__col-header">
-        <span class="col-label">Completadas</span>
-        <span class="col-cnt">{{ kanbanDone.length }}</span>
-      </div>
-      <div class="kanban__col-body">
-        <app-task-card
-          *ngFor="let task of kanbanDone"
-          [task]="task"
-          [active]="selectedTask?.id === task.id"
-          (selected)="selectTask($event)">
-        </app-task-card>
-        <div *ngIf="kanbanDone.length === 0" class="col-empty">Sin completadas este mes</div>
-      </div>
-    </div>
-
-    <!-- Cerradas (ESCALATED + NOT_DONE) -->
-    <div class="kanban__col">
-      <div class="kanban__col-header">
-        <span class="col-label">Cerradas</span>
-        <span class="col-cnt">{{ kanbanClosed.length }}</span>
-      </div>
-      <div class="kanban__col-body">
-        <app-task-card
-          *ngFor="let task of kanbanClosed"
-          [task]="task"
-          [active]="selectedTask?.id === task.id"
-          (selected)="selectTask($event)">
-        </app-task-card>
-        <div *ngIf="kanbanClosed.length === 0" class="col-empty">Sin cerradas este mes</div>
-      </div>
-    </div>
-
-  </div>
+  <app-kanban-board
+    *ngIf="!loading"
+    [tasks]="tasks"
+    [selectedTaskId]="selectedTask?.id ?? null"
+    (taskSelected)="selectTask($event)">
+  </app-kanban-board>
 
 </div>
 

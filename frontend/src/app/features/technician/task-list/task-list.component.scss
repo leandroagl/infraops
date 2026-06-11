@@ -82,56 +82,6 @@ mat-card.greeting {
   &--loading { align-items: stretch; }
 }
 
-.kanban__col {
-  background: var(--surface);
-  border: 1px solid var(--border-lo);
-  border-radius: var(--radius);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.kanban__col-header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-lo);
-  background: var(--card);
-  flex-shrink: 0;
-}
-
-.col-label {
-  font-size: 10px; font-weight: 600;
-  letter-spacing: .8px; text-transform: uppercase;
-  color: var(--tx-lo); flex: 1;
-
-  &--active { color: var(--srv); }
-}
-
-.col-cnt {
-  font-size: 10px; font-weight: 500;
-  padding: 2px 7px; border-radius: 10px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid var(--border-lo);
-  color: var(--tx-lo);
-
-  &--active {
-    background: var(--srv-bg);
-    border-color: var(--srv-bd);
-    color: var(--srv);
-  }
-}
-
-.kanban__col-body {
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 10px;
-  min-height: 80px;
-}
-
-.col-empty {
-  text-align: center; color: var(--tx-lo);
-  font-size: 11px; padding: 20px 0;
-}
-
 // ── Error banner ─────────────────────────────────────────────
 .error-banner {
   display: flex; align-items: center; gap: 8px;

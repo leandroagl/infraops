@@ -54,22 +54,6 @@ export class TaskListComponent implements OnInit {
     return this.currentUser?.email?.split('@')[0] ?? '';
   }
 
-  // ── Kanban columns ────────────────────────────────────────────────────────
-
-  get kanbanPending(): Task[] {
-    return [...this.activeTasks].sort(
-      (a, b) => daysFromToday(a.scheduledDate) - daysFromToday(b.scheduledDate),
-    );
-  }
-
-  get kanbanDone(): Task[] {
-    return this.tasks.filter(t => t.status === 'DONE');
-  }
-
-  get kanbanClosed(): Task[] {
-    return this.tasks.filter(t => t.status === 'ESCALATED' || t.status === 'NOT_DONE');
-  }
-
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   ngOnInit(): void { this.load(); }

@@ -101,67 +101,6 @@ describe('TaskListComponent', () => {
     });
   });
 
-  // ── kanbanPending ────────────────────────────────────────────
-  describe('kanbanPending', () => {
-    it('incluye tareas PENDING e IN_PROGRESS, excluye terminales', () => {
-      component.tasks = [
-        makeTask({ id: 't1', status: 'PENDING'     }),
-        makeTask({ id: 't2', status: 'IN_PROGRESS' }),
-        makeTask({ id: 't3', status: 'DONE'        }),
-        makeTask({ id: 't4', status: 'ESCALATED'   }),
-        makeTask({ id: 't5', status: 'NOT_DONE'    }),
-      ];
-      const ids = component.kanbanPending.map(t => t.id);
-      expect(ids).toContain('t1');
-      expect(ids).toContain('t2');
-      expect(ids).not.toContain('t3');
-      expect(ids).not.toContain('t4');
-      expect(ids).not.toContain('t5');
-    });
-
-    it('ordena overdue primero (días negativos antes que positivos)', () => {
-      component.tasks = [
-        makeTask({ id: 'future', status: 'PENDING', scheduledDate: dateOffsetDays(10) }),
-        makeTask({ id: 'past',   status: 'PENDING', scheduledDate: dateOffsetDays(-3) }),
-        makeTask({ id: 'week',   status: 'PENDING', scheduledDate: dateOffsetDays(3)  }),
-      ];
-      const ids = component.kanbanPending.map(t => t.id);
-      expect(ids[0]).toBe('past');
-      expect(ids[1]).toBe('week');
-      expect(ids[2]).toBe('future');
-    });
-  });
-
-  // ── kanbanDone ───────────────────────────────────────────────
-  describe('kanbanDone', () => {
-    it('incluye solo tareas DONE', () => {
-      component.tasks = [
-        makeTask({ id: 't1', status: 'DONE'      }),
-        makeTask({ id: 't2', status: 'ESCALATED' }),
-        makeTask({ id: 't3', status: 'PENDING'   }),
-      ];
-      expect(component.kanbanDone.length).toBe(1);
-      expect(component.kanbanDone[0].id).toBe('t1');
-    });
-  });
-
-  // ── kanbanClosed ─────────────────────────────────────────────
-  describe('kanbanClosed', () => {
-    it('incluye ESCALATED y NOT_DONE, excluye DONE y activas', () => {
-      component.tasks = [
-        makeTask({ id: 't1', status: 'ESCALATED' }),
-        makeTask({ id: 't2', status: 'NOT_DONE'  }),
-        makeTask({ id: 't3', status: 'DONE'      }),
-        makeTask({ id: 't4', status: 'PENDING'   }),
-      ];
-      const ids = component.kanbanClosed.map(t => t.id);
-      expect(ids).toContain('t1');
-      expect(ids).toContain('t2');
-      expect(ids).not.toContain('t3');
-      expect(ids).not.toContain('t4');
-    });
-  });
-
   // ── onTaskCompleted ──────────────────────────────────────────
   describe('onTaskCompleted()', () => {
     it('actualiza el status de la tarea seleccionada a DONE en el array', () => {
@@ -178,15 +117,6 @@ describe('TaskListComponent', () => {
       component.selectedTask = task;
       component.onTaskCompleted();
       expect(component.selectedTask).toBeNull();
-    });
-
-    it('mueve la tarea a kanbanDone', () => {
-      const task = makeTask({ id: 'task-1', status: 'IN_PROGRESS', scheduledDate: dateOffsetDays(5) });
-      component.tasks = [task];
-      component.selectedTask = task;
-      component.onTaskCompleted();
-      expect(component.kanbanDone.length).toBe(1);
-      expect(component.kanbanPending.length).toBe(0);
     });
 
     it('no hace nada si selectedTask es null', () => {
@@ -215,13 +145,6 @@ describe('TaskListComponent', () => {
       expect(component.selectedTask).toBeNull();
     });
 
-    it('mueve la tarea a kanbanClosed', () => {
-      const task = makeTask({ id: 'task-1', status: 'PENDING', scheduledDate: dateOffsetDays(5) });
-      component.tasks = [task];
-      component.selectedTask = task;
-      component.onTaskNotDone();
-      expect(component.kanbanClosed.length).toBe(1);
-    });
   });
 
   // ── Drawer ───────────────────────────────────────────────────
@@ -268,28 +191,10 @@ describe('TaskListComponent', () => {
       expect(fixture.nativeElement.textContent).toContain('Valentina López');
     });
 
-    it('renderiza los headers de las tres columnas kanban', () => {
+    it('renderiza app-kanban-board en el template', () => {
       fixture.detectChanges();
-      const text: string = fixture.nativeElement.textContent;
-      expect(text).toContain('Pendientes');
-      expect(text).toContain('Completadas');
-      expect(text).toContain('Cerradas');
+      expect(fixture.nativeElement.querySelector('app-kanban-board')).toBeTruthy();
     });
 
-    it('renderiza un app-task-card por tarea (todas las columnas)', () => {
-      component.tasks = [
-        makeTask({ id: 't1', status: 'PENDING'     }),
-        makeTask({ id: 't2', status: 'IN_PROGRESS' }),
-      ];
-      fixture.detectChanges();
-      const cards = fixture.nativeElement.querySelectorAll('app-task-card');
-      expect(cards.length).toBe(2);
-    });
-
-    it('muestra el empty state cuando no hay tareas pendientes', () => {
-      component.tasks = [];
-      fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain('Sin tareas pendientes');
-    });
   });
 });
