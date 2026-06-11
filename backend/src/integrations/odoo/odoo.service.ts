@@ -189,6 +189,29 @@ export class OdooService {
     return employees[0].id;
   }
 
+  async resolveSaleLineId(clientId: string): Promise<number | null> {
+    const client = await this.clientRepo.findOne({ where: { id: clientId } });
+    if (!client) return null;
+    if (client.odooSaleLineId !== null) return client.odooSaleLineId;
+    if (client.odooPartnerId === null) return null;
+
+    const lines = await this.odooRpc.callKw<Array<{ id: number }>>(
+      'sale.order.line',
+      'search_read',
+      [[
+        ['order_id.partner_id', '=', client.odooPartnerId],
+        ['product_id.name', '=', 'Hora Única'],
+        ['order_id.state', 'in', ['sale', 'done']],
+      ]],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (lines.length === 0) return null;
+
+    await this.clientRepo.update(clientId, { odooSaleLineId: lines[0].id });
+    return lines[0].id;
+  }
+
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 

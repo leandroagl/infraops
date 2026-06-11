@@ -26,6 +26,7 @@ describe('OdooService', () => {
       taxIdNumber: '20-12345678-0',
       odooPartnerId: null,
       odooSyncedAt: null,
+      odooSaleLineId: null,
       isActive: true,
       ...override,
     }) as Client;
@@ -544,6 +545,67 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(null);
 
       const result = await service.resolveEmployeeId('user-uuid-1');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('resolveSaleLineId', () => {
+    it('busca sale.order.line por partner_id y producto Hora Única, cachea y retorna', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: null }));
+      odooRpc.callKw.mockResolvedValue([{ id: 55 }]);
+
+      const result = await service.resolveSaleLineId('client-uuid-1');
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'sale.order.line',
+        'search_read',
+        [[
+          ['order_id.partner_id', '=', 101],
+          ['product_id.name', '=', 'Hora Única'],
+          ['order_id.state', 'in', ['sale', 'done']],
+        ]],
+        expect.objectContaining({ fields: ['id'], limit: 1 }),
+      );
+      expect(clientRepo.update).toHaveBeenCalledWith(
+        'client-uuid-1',
+        expect.objectContaining({ odooSaleLineId: 55 }),
+      );
+      expect(result).toBe(55);
+    });
+
+    it('retorna odooSaleLineId cacheado sin consultar Odoo', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: 55 }));
+
+      const result = await service.resolveSaleLineId('client-uuid-1');
+
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+      expect(result).toBe(55);
+    });
+
+    it('retorna null si el cliente no tiene odooPartnerId', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: null }));
+
+      const result = await service.resolveSaleLineId('client-uuid-1');
+
+      expect(result).toBeNull();
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+    });
+
+    it('retorna null si no se encuentra línea en Odoo', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101 }));
+      odooRpc.callKw.mockResolvedValue([]);
+
+      const result = await service.resolveSaleLineId('client-uuid-1');
+
+      expect(result).toBeNull();
+      expect(clientRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('retorna null si el cliente no existe', async () => {
+      clientRepo.findOne.mockResolvedValue(null);
+
+      const result = await service.resolveSaleLineId('client-uuid-1');
 
       expect(result).toBeNull();
     });
