@@ -255,8 +255,9 @@ export class OdooService {
     return this.doneStageId;
   }
 
-  async closeTicket(odooTicketId: number): Promise<void> {
+  async closeTicket(odooTicketId: number, employeeId: number, unitAmount: number): Promise<void> {
     const stageId = await this.resolveDoneStageId();
+    await this.logTimesheet(odooTicketId, employeeId, unitAmount);
     await this.odooRpc.callKw<boolean>(
       'helpdesk.ticket',
       'write',

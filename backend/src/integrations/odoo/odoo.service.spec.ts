@@ -473,36 +473,29 @@ describe('OdooService', () => {
   });
 
   describe('closeTicket', () => {
-    it('consulta el stage de cierre del equipo y hace write con stage_id en el ticket', async () => {
+    it('llama logTimesheet y luego escribe stage_id en el ticket', async () => {
       odooRpc.callKw
         .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage search_read
-        .mockResolvedValueOnce(true);          // helpdesk.ticket write
+        .mockResolvedValueOnce(88)            // account.analytic.line create
+        .mockResolvedValueOnce(true);         // helpdesk.ticket write
 
-      await service.closeTicket(42);
+      await service.closeTicket(42, 22, 1.5);
 
-      expect(odooRpc.callKw).toHaveBeenNthCalledWith(
-        1,
-        'helpdesk.stage',
-        'search_read',
-        [[['team_ids', 'in', [5]], ['fold', '=', true]]],
-        expect.objectContaining({ fields: ['id'], limit: 1 }),
-      );
-      expect(odooRpc.callKw).toHaveBeenNthCalledWith(
-        2,
-        'helpdesk.ticket',
-        'write',
-        [[42], { stage_id: 99 }],
-        {},
-      );
+      const calls = odooRpc.callKw.mock.calls;
+      expect(calls[1][0]).toBe('account.analytic.line');
+      expect(calls[1][1]).toBe('create');
+      expect(calls[2][0]).toBe('helpdesk.ticket');
+      expect(calls[2][1]).toBe('write');
+      expect(calls[2][2]).toEqual([[42], { stage_id: 99 }]);
     });
 
     it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
       odooRpc.callKw
         .mockResolvedValueOnce([{ id: 99 }]) // primera llamada: resuelve stage
-        .mockResolvedValue(true);             // writes subsiguientes
+        .mockResolvedValue(true);
 
-      await service.closeTicket(42);
-      await service.closeTicket(43);
+      await service.closeTicket(42, 22, 1.5);
+      await service.closeTicket(43, 22, 0.5);
 
       const stageCalls = odooRpc.callKw.mock.calls.filter(
         (args: unknown[]) => args[0] === 'helpdesk.stage',
@@ -511,21 +504,31 @@ describe('OdooService', () => {
     });
 
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage de cierre', async () => {
-      odooRpc.callKw.mockResolvedValueOnce([]); // sin stages
+      odooRpc.callKw.mockResolvedValueOnce([]);
 
-      await expect(service.closeTicket(42)).rejects.toThrow(ServiceUnavailableException);
-      const writeCalls = odooRpc.callKw.mock.calls.filter(
-        (args: unknown[]) => args[0] === 'helpdesk.ticket',
-      );
-      expect(writeCalls).toHaveLength(0);
+      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(ServiceUnavailableException);
     });
 
-    it('propaga ServiceUnavailableException cuando Odoo falla al ejecutar write sobre el ticket', async () => {
+    it('no escribe stage_id si logTimesheet falla', async () => {
       odooRpc.callKw
         .mockResolvedValueOnce([{ id: 99 }])
         .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.closeTicket(42)).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(ServiceUnavailableException);
+
+      const writeCalls = odooRpc.callKw.mock.calls.filter(
+        (args: unknown[]) => args[0] === 'helpdesk.ticket' && args[1] === 'write',
+      );
+      expect(writeCalls).toHaveLength(0);
+    });
+
+    it('propaga ServiceUnavailableException cuando Odoo falla al ejecutar write', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }])
+        .mockResolvedValueOnce(88)
+        .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
+
+      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(ServiceUnavailableException);
     });
   });
 
