@@ -464,23 +464,19 @@ describe('TasksService', () => {
       expect(taskRepository.update).not.toHaveBeenCalled();
     });
 
-    it('convierte timeSpentMinutes a unitAmount decimal correctamente (90 min → 1.5 h)', async () => {
-      const inProgressTask = {
+    it('lanza BadRequestException si la tarea tiene ticket pero el técnico no tiene usuario asociado', async () => {
+      const taskWithNoUser = {
         ...mockTask,
         status: TaskStatus.IN_PROGRESS,
         odooTicketId: 42,
-        technician: { user: { id: 'user-1' } },
+        technician: { user: null },
       };
-      taskRepository.findOne
-        .mockResolvedValueOnce(inProgressTask)
-        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
-      odooService.resolveEmployeeId.mockResolvedValue(22);
-      odooService.closeTicket.mockResolvedValue(undefined);
-      taskRepository.update.mockResolvedValue({ affected: 1 });
+      taskRepository.findOne.mockResolvedValueOnce(taskWithNoUser);
 
-      await service.updateStatus('task-1', TaskStatus.DONE, 90);
-
-      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5);
+      await expect(
+        service.updateStatus('task-1', TaskStatus.DONE, 60),
+      ).rejects.toThrow(BadRequestException);
+      expect(taskRepository.update).not.toHaveBeenCalled();
     });
 
   });

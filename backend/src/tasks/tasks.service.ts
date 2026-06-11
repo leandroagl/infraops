@@ -125,6 +125,9 @@ export class TasksService {
         throw new BadRequestException('El técnico no tiene odooEmployeeId sincronizado');
       }
 
+      if (newStatus === TaskStatus.DONE && !timeSpentMinutes) {
+        throw new BadRequestException('Se requiere timeSpentMinutes para marcar una tarea como DONE');
+      }
       const unitAmount = (timeSpentMinutes ?? 0) / 60;
       await this.odooService.closeTicket(task.odooTicketId!, employeeId, unitAmount);
     }
