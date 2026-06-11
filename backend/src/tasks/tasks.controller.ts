@@ -53,7 +53,7 @@ export class TasksController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTaskStatusDto,
   ): Promise<Task> {
-    return this.tasksService.updateStatus(id, dto.status);
+    return this.tasksService.updateStatus(id, dto.status, dto.timeSpentMinutes);
   }
 
   @Delete(':id')

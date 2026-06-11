@@ -154,14 +154,24 @@ describe('TasksController', () => {
   describe('updateStatus', () => {
     const dto: UpdateTaskStatusDto = { status: TaskStatus.IN_PROGRESS };
 
-    it('llama a tasksService.updateStatus con id y nuevo status, devuelve la tarea actualizada', async () => {
+    it('llama a tasksService.updateStatus con id, status y timeSpentMinutes', async () => {
       const updated = { ...mockTask, status: TaskStatus.IN_PROGRESS };
       tasksService.updateStatus.mockResolvedValue(updated);
 
       const result = await controller.updateStatus('task-1', dto);
 
-      expect(tasksService.updateStatus).toHaveBeenCalledWith('task-1', TaskStatus.IN_PROGRESS);
+      expect(tasksService.updateStatus).toHaveBeenCalledWith('task-1', TaskStatus.IN_PROGRESS, undefined);
       expect(result).toEqual(updated);
+    });
+
+    it('pasa timeSpentMinutes cuando está presente en el dto', async () => {
+      const dtoWithTime: UpdateTaskStatusDto = { status: TaskStatus.DONE, timeSpentMinutes: 90 };
+      const updated = { ...mockTask, status: TaskStatus.DONE };
+      tasksService.updateStatus.mockResolvedValue(updated);
+
+      await controller.updateStatus('task-1', dtoWithTime);
+
+      expect(tasksService.updateStatus).toHaveBeenCalledWith('task-1', TaskStatus.DONE, 90);
     });
 
     it('propaga NotFoundException si la tarea no existe', async () => {
