@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -25,6 +26,8 @@ const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
 
 @Injectable()
 export class TasksService {
+  private readonly logger = new Logger(TasksService.name);
+
   constructor(
     @InjectRepository(Task)
     private readonly taskRepository: Repository<Task>,
@@ -107,6 +110,15 @@ export class TasksService {
       throw new BadRequestException(
         `Transición inválida: ${task.status} → ${newStatus}`,
       );
+    }
+
+    if (newStatus === TaskStatus.IN_PROGRESS && task.odooTicketId !== null) {
+      this.odooService.markTicketInProgress(task.odooTicketId).catch((err: unknown) => {
+        this.logger.error(
+          `Error al marcar ticket ${task.odooTicketId} en curso en Odoo`,
+          err,
+        );
+      });
     }
 
     const isTerminal = VALID_TRANSITIONS[newStatus].length === 0;
