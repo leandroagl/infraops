@@ -295,19 +295,19 @@ export class OdooService {
       throw new BadRequestException('ODOO_HELPDESK_TEAM_ID must be a valid integer');
     }
 
-    return this.odooRpc.callKw<number>(
-      'helpdesk.ticket',
-      'create',
-      [
-        {
-          team_id: teamId,
-          partner_id: partnerId,
-          user_id: odooUserId,
-          name: 'Mantenimiento de infraestructura',
-          description: 'Mantenimiento mensual!',
-        },
-      ],
-      {},
-    );
+    const saleLineId = await this.resolveSaleLineId(clientId);
+
+    const payload: Record<string, unknown> = {
+      team_id: teamId,
+      partner_id: partnerId,
+      user_id: odooUserId,
+      name: 'Mantenimiento de infraestructura',
+      description: 'Mantenimiento mensual!',
+    };
+    if (saleLineId !== null) {
+      payload['sale_line_id'] = saleLineId;
+    }
+
+    return this.odooRpc.callKw<number>('helpdesk.ticket', 'create', [payload], {});
   }
 }

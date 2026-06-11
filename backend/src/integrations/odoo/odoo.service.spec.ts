@@ -354,10 +354,12 @@ describe('OdooService', () => {
 
   describe('createTicket', () => {
     it('crea un ticket en Odoo y retorna el ticket ID', async () => {
-      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101 }));
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: null }));
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
-      odooRpc.callKw.mockResolvedValue(42);
+      odooRpc.callKw
+        .mockResolvedValueOnce([])  // sale.order.line search → sin resultado
+        .mockResolvedValueOnce(42); // helpdesk.ticket create
 
       const ticketId = await service.createTicket('client-uuid-1', 'tech-uuid-1');
 
@@ -433,6 +435,40 @@ describe('OdooService', () => {
         BadRequestException,
       );
       expect(odooRpc.callKw).not.toHaveBeenCalled();
+    });
+
+    it('incluye sale_line_id en el payload cuando resolveSaleLineId retorna un id', async () => {
+      const technician = makeTechnician();
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: 55 }));
+      technicianRepo.findOne.mockResolvedValue(technician);
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw.mockResolvedValue(99);
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1');
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [expect.objectContaining({ sale_line_id: 55 })],
+        {},
+      );
+    });
+
+    it('crea el ticket sin sale_line_id cuando resolveSaleLineId retorna null', async () => {
+      const technician = makeTechnician();
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: null }));
+      technicianRepo.findOne.mockResolvedValue(technician);
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])   // sale.order.line search → sin resultado
+        .mockResolvedValueOnce(99);  // helpdesk.ticket create
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1');
+
+      const createCall = odooRpc.callKw.mock.calls.find(
+        (args: unknown[]) => args[0] === 'helpdesk.ticket',
+      );
+      expect(createCall![2][0]).not.toHaveProperty('sale_line_id');
     });
   });
 
