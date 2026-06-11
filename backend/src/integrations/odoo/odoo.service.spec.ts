@@ -45,6 +45,7 @@ describe('OdooService', () => {
       isActive: true,
       odooUserId: null,
       odooSyncedAt: null,
+      odooEmployeeId: null,
       ...override,
     }) as User;
 
@@ -454,6 +455,59 @@ describe('OdooService', () => {
         .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
       await expect(service.closeTicket(42)).rejects.toThrow(ServiceUnavailableException);
+    });
+  });
+
+  describe('resolveEmployeeId', () => {
+    it('busca en hr.employee por user_id, guarda odooEmployeeId y lo retorna', async () => {
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 7, odooEmployeeId: null }));
+      odooRpc.callKw.mockResolvedValue([{ id: 22 }]);
+
+      const result = await service.resolveEmployeeId('user-uuid-1');
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'hr.employee',
+        'search_read',
+        [[['user_id', '=', 7]]],
+        expect.objectContaining({ fields: ['id'], limit: 1 }),
+      );
+      expect(userRepo.update).toHaveBeenCalledWith('user-uuid-1', { odooEmployeeId: 22 });
+      expect(result).toBe(22);
+    });
+
+    it('retorna odooEmployeeId cacheado sin consultar Odoo', async () => {
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 7, odooEmployeeId: 22 }));
+
+      const result = await service.resolveEmployeeId('user-uuid-1');
+
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+      expect(result).toBe(22);
+    });
+
+    it('retorna null si el usuario no tiene odooUserId', async () => {
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: null }));
+
+      const result = await service.resolveEmployeeId('user-uuid-1');
+
+      expect(result).toBeNull();
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+    });
+
+    it('retorna null si no se encuentra empleado en Odoo', async () => {
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 7 }));
+      odooRpc.callKw.mockResolvedValue([]);
+
+      const result = await service.resolveEmployeeId('user-uuid-1');
+
+      expect(result).toBeNull();
+    });
+
+    it('retorna null si el usuario no existe en InfraOps', async () => {
+      userRepo.findOne.mockResolvedValue(null);
+
+      const result = await service.resolveEmployeeId('user-uuid-1');
+
+      expect(result).toBeNull();
     });
   });
 });

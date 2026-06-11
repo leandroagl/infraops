@@ -151,6 +151,25 @@ export class OdooService {
     return odooUsers[0].id;
   }
 
+  async resolveEmployeeId(userId: string): Promise<number | null> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) return null;
+    if (user.odooEmployeeId !== null) return user.odooEmployeeId;
+    if (user.odooUserId === null) return null;
+
+    const employees = await this.odooRpc.callKw<Array<{ id: number }>>(
+      'hr.employee',
+      'search_read',
+      [[['user_id', '=', user.odooUserId]]],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (employees.length === 0) return null;
+
+    await this.userRepo.update(userId, { odooEmployeeId: employees[0].id });
+    return employees[0].id;
+  }
+
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 
