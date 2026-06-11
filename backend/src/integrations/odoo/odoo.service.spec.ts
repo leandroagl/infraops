@@ -550,6 +550,33 @@ describe('OdooService', () => {
     });
   });
 
+  describe('logTimesheet', () => {
+    it('crea entrada en account.analytic.line con los campos correctos', async () => {
+      odooRpc.callKw.mockResolvedValue(88);
+
+      await service.logTimesheet(42, 22, 1.5);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'account.analytic.line',
+        'create',
+        [expect.objectContaining({
+          helpdesk_ticket_id: 42,
+          employee_id: 22,
+          name: 'Mantenimiento realizado',
+          unit_amount: 1.5,
+          date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        })],
+        {},
+      );
+    });
+
+    it('propaga ServiceUnavailableException cuando Odoo falla al crear el timesheet', async () => {
+      odooRpc.callKw.mockRejectedValue(new ServiceUnavailableException('Odoo caído'));
+
+      await expect(service.logTimesheet(42, 22, 1.5)).rejects.toThrow(ServiceUnavailableException);
+    });
+  });
+
   describe('resolveSaleLineId', () => {
     it('busca sale.order.line por partner_id y producto Hora Única, cachea y retorna', async () => {
       clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: null }));

@@ -215,6 +215,21 @@ export class OdooService {
     return lines[0].id;
   }
 
+  async logTimesheet(odooTicketId: number, employeeId: number, unitAmount: number): Promise<void> {
+    await this.odooRpc.callKw<number>(
+      'account.analytic.line',
+      'create',
+      [{
+        helpdesk_ticket_id: odooTicketId,
+        employee_id: employeeId,
+        name: 'Mantenimiento realizado',
+        unit_amount: unitAmount,
+        date: new Date().toISOString().split('T')[0],
+      }],
+      {},
+    );
+  }
+
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 
