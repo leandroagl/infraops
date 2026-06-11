@@ -48,6 +48,9 @@ export class User {
   @Column({ name: 'odoo_synced_at', type: 'timestamptz', nullable: true, default: null })
   odooSyncedAt: Date | null;
 
+  @Column({ name: 'odoo_employee_id', type: 'int', nullable: true, default: null })
+  odooEmployeeId: number | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

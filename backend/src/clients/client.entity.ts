@@ -62,6 +62,9 @@ export class Client {
   @Column({ type: 'timestamptz', nullable: true, default: null })
   odooSyncedAt: Date | null;
 
+  @Column({ name: 'odoo_sale_line_id', type: 'int', nullable: true, default: null })
+  odooSaleLineId: number | null;
+
   @Column({ default: true })
   isActive: boolean;
 
