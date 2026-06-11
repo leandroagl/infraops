@@ -27,6 +27,7 @@ import {
   ConfirmMaintenanceDialogComponent,
   ConfirmMaintenanceDialogData,
 } from './confirm-maintenance-dialog/confirm-maintenance-dialog.component';
+import { TimeSpentDialogComponent } from './time-spent-dialog/time-spent-dialog.component';
 import { statusLabel, statusBadge, typeLabelLong } from '../../../shared/utils/task-labels';
 import { daysFromToday, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
 import { formatOdooTicketId, odooTicketUrl } from '../../../shared/utils/odoo';
@@ -54,6 +55,7 @@ export class TaskDrawerComponent implements OnChanges {
   saveProgressError = '';
 
   private pendingPayload: MaintenancePayload | null = null;
+  private pendingTimeSpentMinutes: number | null = null;
   private _currentStatus = '';
 
   constructor(
@@ -199,25 +201,31 @@ export class TaskDrawerComponent implements OnChanges {
 
   onRequestComplete(payload: MaintenancePayload): void {
     this.pendingPayload = payload;
-    const issuesSummary = this.detectIssues(payload);
-    const hasAlerts = issuesSummary.dcdiagErrors.length > 0 || issuesSummary.veeamMissing;
 
-    const data: ConfirmMaintenanceDialogData = { issuesSummary, hasAlerts };
-    this.dialog.open(ConfirmMaintenanceDialogComponent, { data, width: '420px' })
+    this.dialog.open(TimeSpentDialogComponent, { width: '360px' })
       .afterClosed()
-      .subscribe((confirmed: boolean) => {
-        if (confirmed) this.saveAndComplete();
+      .subscribe((minutes: number | null) => {
+        if (minutes == null) return;
+        this.pendingTimeSpentMinutes = minutes;
+        const issuesSummary = this.detectIssues(payload);
+        const hasAlerts = issuesSummary.dcdiagErrors.length > 0 || issuesSummary.veeamMissing;
+        const data: ConfirmMaintenanceDialogData = { issuesSummary, hasAlerts };
+        this.dialog.open(ConfirmMaintenanceDialogComponent, { data, width: '420px' })
+          .afterClosed()
+          .subscribe((confirmed: boolean) => {
+            if (confirmed) this.saveAndComplete(this.pendingTimeSpentMinutes!);
+          });
       });
   }
 
-  private saveAndComplete(): void {
+  private saveAndComplete(timeSpentMinutes: number): void {
     if (!this.pendingPayload) return;
     this.confirmError = '';
 
     let logSaved = false;
     this.upsertLog(this.pendingPayload).pipe(
       tap(() => { logSaved = true; }),
-      switchMap(() => this.transitionToDone())
+      switchMap(() => this.transitionToDone(timeSpentMinutes))
     ).subscribe({
       next: () => { this.taskCompleted.emit(); },
       error: () => {
@@ -229,10 +237,16 @@ export class TaskDrawerComponent implements OnChanges {
   }
 
   onRequestNotDone(): void {
-    this.tasksService.updateStatus(this.task.id, { status: 'NOT_DONE' }).subscribe({
-      next: () => { this.taskNotDone.emit(); },
-      error: () => { this.confirmError = 'No se pudo actualizar el estado de la tarea.'; },
-    });
+    this.dialog.open(TimeSpentDialogComponent, { width: '360px' })
+      .afterClosed()
+      .subscribe((minutes: number | null) => {
+        if (minutes == null) return;
+        this.tasksService.updateStatus(this.task.id, { status: 'NOT_DONE', timeSpentMinutes: minutes })
+          .subscribe({
+            next: () => { this.taskNotDone.emit(); },
+            error: () => { this.confirmError = 'No se pudo actualizar el estado de la tarea.'; },
+          });
+      });
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────────
@@ -248,14 +262,16 @@ export class TaskDrawerComponent implements OnChanges {
     );
   }
 
-  private transitionToDone(): Observable<Task> {
+  private transitionToDone(timeSpentMinutes: number): Observable<Task> {
     if (this.effectiveStatus === 'PENDING') {
       return this.tasksService.updateStatus(this.task.id, { status: 'IN_PROGRESS' }).pipe(
         tap(() => { this._currentStatus = 'IN_PROGRESS'; }),
-        switchMap(() => this.tasksService.updateStatus(this.task.id, { status: 'DONE' }))
+        switchMap(() =>
+          this.tasksService.updateStatus(this.task.id, { status: 'DONE', timeSpentMinutes }),
+        ),
       );
     }
-    return this.tasksService.updateStatus(this.task.id, { status: 'DONE' });
+    return this.tasksService.updateStatus(this.task.id, { status: 'DONE', timeSpentMinutes });
   }
 
   get odooLabel(): string | null {

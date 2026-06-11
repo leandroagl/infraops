@@ -4,6 +4,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 
 import { TaskDrawerComponent } from './task-drawer.component';
+import { TimeSpentDialogComponent } from './time-spent-dialog/time-spent-dialog.component';
+import { ConfirmMaintenanceDialogComponent } from './confirm-maintenance-dialog/confirm-maintenance-dialog.component';
 import { InfradocService } from '../../../core/services/infradoc.service';
 import { MaintenanceLogsService } from '../../../core/services/maintenance-logs.service';
 import { TasksService } from '../../../core/services/tasks.service';
@@ -62,12 +64,19 @@ function makeTerminalPayload(overrides: Partial<TerminalPayload> = {}): Terminal
 }
 
 const mockDialog = {
-  open: () => ({ afterClosed: () => of(false) }),
+  open: () => ({ afterClosed: () => of(null) }),
 } as unknown as MatDialog;
 
-const mockDialogThatConfirms = {
-  open: () => ({ afterClosed: () => of(true) }),
-} as unknown as MatDialog;
+function makeDialogThatConfirms(timeMinutes = 90): MatDialog {
+  return {
+    open: (component: unknown) => ({
+      afterClosed: () =>
+        component === TimeSpentDialogComponent ? of(timeMinutes) : of(true),
+    }),
+  } as unknown as MatDialog;
+}
+
+const mockDialogThatConfirms = makeDialogThatConfirms();
 
 // ── Pure unit tests (no TestBed) ─────────────────────────────────────────────
 
@@ -319,7 +328,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
 
       expect(updateStatusSpy.calls.count()).toBe(2);
       expect(updateStatusSpy.calls.argsFor(0)).toEqual(['task-1', { status: 'IN_PROGRESS' }]);
-      expect(updateStatusSpy.calls.argsFor(1)).toEqual(['task-1', { status: 'DONE' }]);
+      expect(updateStatusSpy.calls.argsFor(1)).toEqual(['task-1', { status: 'DONE', timeSpentMinutes: 90 }]);
     });
 
     it('hace una sola transición IN_PROGRESS → DONE cuando tarea ya está en IN_PROGRESS', () => {
@@ -328,7 +337,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       completeComponent.onRequestComplete(makeServerPayload());
 
       expect(updateStatusSpy.calls.count()).toBe(1);
-      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE' });
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE', timeSpentMinutes: 90 });
     });
 
     it('usa update() si create() falla con 409 al completar', () => {
@@ -338,7 +347,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       completeComponent.onRequestComplete(makeServerPayload());
 
       expect(updateSpy).toHaveBeenCalled();
-      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE' });
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE', timeSpentMinutes: 90 });
     });
 
     it('al completar después de guardar progreso, sólo transiciona a DONE sin reintentar IN_PROGRESS', () => {
@@ -350,7 +359,50 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       completeComponent.onRequestComplete(makeServerPayload());
 
       expect(updateStatusSpy.calls.count()).toBe(1);
-      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE' });
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE', timeSpentMinutes: 90 });
+    });
+  });
+
+  // ── onRequestNotDone ─────────────────────────────────────────────────────
+
+  describe('onRequestNotDone()', () => {
+    let updateStatusSpy: jasmine.Spy;
+    let notDoneComponent: TaskDrawerComponent;
+
+    beforeEach(() => {
+      updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(of({}));
+      notDoneComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } as any,
+        { updateStatus: updateStatusSpy } as any,
+        makeDialogThatConfirms(45),
+      );
+      notDoneComponent.task = makeTask({ status: 'IN_PROGRESS' });
+    });
+
+    it('abre TimeSpentDialog y llama updateStatus con NOT_DONE y los minutos', () => {
+      notDoneComponent.onRequestNotDone();
+
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'NOT_DONE', timeSpentMinutes: 45 });
+    });
+
+    it('no llama updateStatus si el diálogo de tiempo es cancelado', () => {
+      const cancelDialog = {
+        open: (component: unknown) => ({
+          afterClosed: () => component === TimeSpentDialogComponent ? of(null) : of(true),
+        }),
+      } as unknown as MatDialog;
+      const cancelComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } as any,
+        { updateStatus: updateStatusSpy } as any,
+        cancelDialog,
+      );
+      cancelComponent.task = makeTask({ status: 'IN_PROGRESS' });
+
+      cancelComponent.onRequestNotDone();
+
+      expect(updateStatusSpy).not.toHaveBeenCalled();
     });
   });
 
