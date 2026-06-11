@@ -41,26 +41,29 @@
   font-size: 12px;
 }
 
-.tasks-table {
-  overflow: hidden;
-}
-
-.cell-secondary {
-  color: var(--tx-md);
+.loading-row {
+  color: var(--tx-lo);
   font-size: 12px;
+  padding: 40px;
+  text-align: center;
 }
 
-.cell-mono {
-  font-family: var(--font-mono);
-  font-size: 11px;
-}
+.drawer {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 780px;
+  background: var(--surface);
+  border-left: 1px solid var(--border-lo);
+  z-index: 50;
+  transform: translateX(100%);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
-.dot {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  margin-right: 5px;
-  vertical-align: middle;
+  &.open {
+    transform: translateX(0);
+  }
 }

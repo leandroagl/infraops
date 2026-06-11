@@ -1,30 +1,32 @@
-import { Component, DestroyRef, inject, OnInit, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { EMPTY, switchMap } from 'rxjs';
+import { forkJoin, EMPTY, switchMap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTableDataSource } from '@angular/material/table';
-import { MatSort } from '@angular/material/sort';
-import { Task, TaskStatus, TaskType } from '../../../core/models/task.models';
-import { TasksService } from '../../../core/services/tasks.service';
+import { Task } from '../../../core/models/task.models';
+import { Client } from '../../../core/models/client.models';
+import { Technician } from '../../../core/models/technician.models';
+import { TasksService, TaskFilters } from '../../../core/services/tasks.service';
+import { ClientsService } from '../../../core/services/clients.service';
+import { TechniciansService } from '../../../core/services/technicians.service';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import { TaskCreateDialogComponent } from './task-create-dialog/task-create-dialog.component';
-import { statusLabel, statusBadge, typeLabel, typeBadge } from '../../../shared/utils/task-labels';
-import { formatOdooTicketId, odooTicketUrl } from '../../../shared/utils/odoo';
 
 @Component({
   selector: 'app-tasks',
   templateUrl: './tasks.component.html',
   styleUrl: './tasks.component.scss',
 })
-export class TasksComponent implements OnInit, AfterViewInit {
-  readonly dataSource = new MatTableDataSource<Task>([]);
-  readonly displayedColumns = ['client', 'type', 'technician', 'scheduledDate', 'status', 'odooTicket', 'actions'];
+export class TasksComponent implements OnInit {
+  tasks: Task[] = [];
+  clients: Client[] = [];
+  technicians: Technician[] = [];
   loading = false;
   error = '';
   filterStatus = '';
-
-  @ViewChild(MatSort) sort!: MatSort;
+  filterClientId = '';
+  filterTechnicianId = '';
+  selectedTask: Task | null = null;
 
   private readonly destroyRef = inject(DestroyRef);
 
@@ -39,38 +41,46 @@ export class TasksComponent implements OnInit, AfterViewInit {
 
   constructor(
     private tasksService: TasksService,
+    private clientsService: ClientsService,
+    private techniciansService: TechniciansService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
   ) {}
 
-  ngOnInit(): void { this.load(); }
-
-  ngAfterViewInit(): void {
-    this.dataSource.sort = this.sort;
-    this.dataSource.sortingDataAccessor = (row: Task, column: string): string => {
-      switch (column) {
-        case 'client':     return row.client?.name ?? '';
-        case 'technician': return row.technician?.user?.name ?? '';
-        default:           return (row as unknown as Record<string, string>)[column] ?? '';
-      }
-    };
+  ngOnInit(): void {
+    forkJoin({
+      clients:     this.clientsService.getAll(),
+      technicians: this.techniciansService.getAll(),
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: ({ clients, technicians }) => {
+        this.clients     = clients;
+        this.technicians = technicians;
+      },
+    });
+    this.load();
   }
 
   load(): void {
     this.loading = true;
     this.error = '';
-    const filters = this.filterStatus ? { status: this.filterStatus } : {};
+    const filters: TaskFilters = {};
+    if (this.filterStatus)       filters.status       = this.filterStatus;
+    if (this.filterClientId)     filters.clientId     = this.filterClientId;
+    if (this.filterTechnicianId) filters.technicianId = this.filterTechnicianId;
     this.tasksService.getAll(filters).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: tasks => { this.dataSource.data = tasks; this.loading = false; },
+      next: tasks => { this.tasks = tasks; this.loading = false; },
       error: () => { this.error = 'No se pudieron cargar las tareas.'; this.loading = false; },
     });
   }
+
+  selectTask(task: Task): void { this.selectedTask = task; }
+  closeDrawer(): void          { this.selectedTask = null; }
 
   openCreateDialog(): void {
     this.dialog.open(TaskCreateDialogComponent, { width: '480px' })
       .afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(task => {
-        if (task) this.dataSource.data = [...this.dataSource.data, task];
+        if (task) this.tasks = [...this.tasks, task];
       });
   }
 
@@ -88,7 +98,7 @@ export class TasksComponent implements OnInit, AfterViewInit {
       )
       .subscribe({
         next: () => {
-          this.dataSource.data = this.dataSource.data.filter(t => t.id !== task.id);
+          this.tasks = this.tasks.filter(t => t.id !== task.id);
           this.snackBar.open('Tarea eliminada', 'Cerrar', { duration: 3000 });
         },
         error: () => {
@@ -96,12 +106,4 @@ export class TasksComponent implements OnInit, AfterViewInit {
         },
       });
   }
-
-  typeLabel(type: TaskType): string   { return typeLabel(type); }
-  typeBadge(type: TaskType): string   { return typeBadge(type); }
-  statusBadge(status: TaskStatus): string { return statusBadge(status); }
-  statusLabel(status: TaskStatus): string { return statusLabel(status); }
-
-  odooLabelFor(id: number): string { return formatOdooTicketId(id); }
-  odooLinkFor(id: number): string  { return odooTicketUrl(id); }
 }
