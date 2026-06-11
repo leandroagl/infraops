@@ -1,0 +1,23 @@
+<h2 mat-dialog-title>Tiempo empleado</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Duración (HH:MM)</mat-label>
+      <input matInput formControlName="timeSpent" placeholder="01:30" />
+      <mat-error *ngIf="form.controls.timeSpent.hasError('pattern')">
+        Formato inválido — usá HH:MM (ej: 01:30)
+      </mat-error>
+      <mat-error *ngIf="form.controls.timeSpent.hasError('required')">
+        El tiempo es obligatorio
+      </mat-error>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">Cancelar</button>
+  <button mat-flat-button color="primary" [disabled]="form.invalid" (click)="confirm()">
+    Confirmar
+  </button>
+</mat-dialog-actions>

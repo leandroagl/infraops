@@ -29,4 +29,5 @@ export interface Task {
 
 export interface UpdateTaskStatusPayload {
   status: TaskStatus;
+  timeSpentMinutes?: number;
 }

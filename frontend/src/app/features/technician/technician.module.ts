@@ -14,10 +14,11 @@ import { TaskListComponent } from './task-list/task-list.component';
 import { TaskDrawerComponent } from './task-drawer/task-drawer.component';
 import { MaintenanceFormComponent } from './task-drawer/maintenance-form/maintenance-form.component';
 import { ConfirmMaintenanceDialogComponent } from './task-drawer/confirm-maintenance-dialog/confirm-maintenance-dialog.component';
+import { TimeSpentDialogComponent } from './task-drawer/time-spent-dialog/time-spent-dialog.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
-  declarations: [TaskListComponent, TaskDrawerComponent, MaintenanceFormComponent, ConfirmMaintenanceDialogComponent],
+  declarations: [TaskListComponent, TaskDrawerComponent, MaintenanceFormComponent, ConfirmMaintenanceDialogComponent, TimeSpentDialogComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,
