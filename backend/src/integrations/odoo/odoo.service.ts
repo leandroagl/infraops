@@ -14,6 +14,7 @@ import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 @Injectable()
 export class OdooService {
   private doneStageId: number | null = null;
+  private inProgressStageId: number | null = null;
 
   constructor(
     private readonly odooRpc: OdooRpcService,
@@ -230,6 +231,41 @@ export class OdooService {
     );
   }
 
+  private async resolveInProgressStageId(): Promise<number> {
+    if (this.inProgressStageId !== null) return this.inProgressStageId;
+
+    const teamId = parseInt(
+      this.configService.getOrThrow<string>('ODOO_HELPDESK_TEAM_ID'),
+      10,
+    );
+
+    const stages = await this.odooRpc.callKw<Array<{ id: number }>>(
+      'helpdesk.stage',
+      'search_read',
+      [[['team_ids', 'in', [teamId]], ['name', '=', 'En Curso']]],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (stages.length === 0) {
+      throw new ServiceUnavailableException(
+        'No se encontró stage "En Curso" en Odoo para el equipo configurado',
+      );
+    }
+
+    this.inProgressStageId = stages[0].id;
+    return this.inProgressStageId;
+  }
+
+  async markTicketInProgress(odooTicketId: number): Promise<void> {
+    const stageId = await this.resolveInProgressStageId();
+    await this.odooRpc.callKw<boolean>(
+      'helpdesk.ticket',
+      'write',
+      [[odooTicketId], { stage_id: stageId }],
+      {},
+    );
+  }
+
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 
@@ -309,6 +345,12 @@ export class OdooService {
       payload['sale_line_id'] = saleLineId;
     }
 
-    return this.odooRpc.callKw<number>('helpdesk.ticket', 'create', [payload], {});
+    const ticketId = await this.odooRpc.callKw<number>('helpdesk.ticket', 'create', [payload], {});
+    if (!ticketId) {
+      throw new ServiceUnavailableException(
+        'Odoo devolvió false al crear el ticket — verificar sale_line_id y permisos del equipo',
+      );
+    }
+    return ticketId;
   }
 }

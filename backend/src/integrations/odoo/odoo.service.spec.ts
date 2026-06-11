@@ -411,6 +411,19 @@ describe('OdooService', () => {
       );
     });
 
+    it('lanza ServiceUnavailableException cuando Odoo devuelve false al crear el ticket', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: null }));
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])     // sale.order.line search → sin resultado
+        .mockResolvedValueOnce(false); // helpdesk.ticket create → false (Odoo constraint failure)
+
+      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
+        ServiceUnavailableException,
+      );
+    });
+
     it('lanza error cuando ODOO_HELPDESK_TEAM_ID no es un entero válido', async () => {
       configService.getOrThrow.mockReturnValue('not-a-number');
       clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101 }));
@@ -613,6 +626,58 @@ describe('OdooService', () => {
       odooRpc.callKw.mockRejectedValue(new ServiceUnavailableException('Odoo caído'));
 
       await expect(service.logTimesheet(42, 22, 1.5)).rejects.toThrow(ServiceUnavailableException);
+    });
+  });
+
+  describe('markTicketInProgress', () => {
+    it('resuelve stage "En Curso" por nombre y escribe stage_id en el ticket', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 77 }]) // helpdesk.stage search_read → "En Curso"
+        .mockResolvedValueOnce(true);         // helpdesk.ticket write
+
+      await service.markTicketInProgress(42);
+
+      const calls = odooRpc.callKw.mock.calls;
+      expect(calls[0]).toEqual([
+        'helpdesk.stage',
+        'search_read',
+        [[['team_ids', 'in', [5]], ['name', '=', 'En Curso']]],
+        { fields: ['id'], limit: 1 },
+      ]);
+      expect(calls[1]).toEqual([
+        'helpdesk.ticket',
+        'write',
+        [[42], { stage_id: 77 }],
+        {},
+      ]);
+    });
+
+    it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 77 }]) // primera llamada: resuelve stage
+        .mockResolvedValue(true);             // subsiguientes: write
+
+      await service.markTicketInProgress(42);
+      await service.markTicketInProgress(43);
+
+      const stageCalls = odooRpc.callKw.mock.calls.filter(
+        (args: unknown[]) => args[0] === 'helpdesk.stage',
+      );
+      expect(stageCalls).toHaveLength(1);
+    });
+
+    it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage "En Curso"', async () => {
+      odooRpc.callKw.mockResolvedValueOnce([]);
+
+      await expect(service.markTicketInProgress(42)).rejects.toThrow(ServiceUnavailableException);
+    });
+
+    it('propaga ServiceUnavailableException cuando Odoo falla al ejecutar write', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 77 }])
+        .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
+
+      await expect(service.markTicketInProgress(42)).rejects.toThrow(ServiceUnavailableException);
     });
   });
 
