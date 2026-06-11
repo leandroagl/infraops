@@ -569,7 +569,7 @@ describe('OdooService', () => {
       );
       expect(clientRepo.update).toHaveBeenCalledWith(
         'client-uuid-1',
-        expect.objectContaining({ odooSaleLineId: 55 }),
+        expect.objectContaining({ odooSaleLineId: 55, odooSyncedAt: expect.any(Date) }),
       );
       expect(result).toBe(55);
     });

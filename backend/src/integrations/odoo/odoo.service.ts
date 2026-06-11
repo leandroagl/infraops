@@ -208,7 +208,10 @@ export class OdooService {
 
     if (lines.length === 0) return null;
 
-    await this.clientRepo.update(clientId, { odooSaleLineId: lines[0].id });
+    await this.clientRepo.update(clientId, {
+      odooSaleLineId: lines[0].id,
+      odooSyncedAt: new Date(),
+    });
     return lines[0].id;
   }
 
