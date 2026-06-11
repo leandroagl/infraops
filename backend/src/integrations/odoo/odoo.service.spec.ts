@@ -641,7 +641,7 @@ describe('OdooService', () => {
       expect(calls[0]).toEqual([
         'helpdesk.stage',
         'search_read',
-        [[['team_ids', 'in', [5]], ['name', '=', 'En Curso']]],
+        [[['team_ids', 'in', [5]], ['name', '=', 'En curso']]],
         { fields: ['id'], limit: 1 },
       ]);
       expect(calls[1]).toEqual([

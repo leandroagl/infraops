@@ -242,13 +242,13 @@ export class OdooService {
     const stages = await this.odooRpc.callKw<Array<{ id: number }>>(
       'helpdesk.stage',
       'search_read',
-      [[['team_ids', 'in', [teamId]], ['name', '=', 'En Curso']]],
+      [[['team_ids', 'in', [teamId]], ['name', '=', 'En curso']]],
       { fields: ['id'], limit: 1 },
     );
 
     if (stages.length === 0) {
       throw new ServiceUnavailableException(
-        'No se encontró stage "En Curso" en Odoo para el equipo configurado',
+        'No se encontró stage "En curso" en Odoo para el equipo configurado',
       );
     }
 
