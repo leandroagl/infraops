@@ -166,7 +166,10 @@ export class OdooService {
 
     if (employees.length === 0) return null;
 
-    await this.userRepo.update(userId, { odooEmployeeId: employees[0].id });
+    await this.userRepo.update(userId, {
+      odooEmployeeId: employees[0].id,
+      odooSyncedAt: new Date(),
+    });
     return employees[0].id;
   }
 

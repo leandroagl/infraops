@@ -471,7 +471,10 @@ describe('OdooService', () => {
         [[['user_id', '=', 7]]],
         expect.objectContaining({ fields: ['id'], limit: 1 }),
       );
-      expect(userRepo.update).toHaveBeenCalledWith('user-uuid-1', { odooEmployeeId: 22 });
+      expect(userRepo.update).toHaveBeenCalledWith(
+        'user-uuid-1',
+        expect.objectContaining({ odooEmployeeId: 22, odooSyncedAt: expect.any(Date) }),
+      );
       expect(result).toBe(22);
     });
 
@@ -500,6 +503,7 @@ describe('OdooService', () => {
       const result = await service.resolveEmployeeId('user-uuid-1');
 
       expect(result).toBeNull();
+      expect(userRepo.update).not.toHaveBeenCalled();
     });
 
     it('retorna null si el usuario no existe en InfraOps', async () => {
