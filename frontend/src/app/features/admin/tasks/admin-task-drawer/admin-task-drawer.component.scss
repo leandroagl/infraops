@@ -20,7 +20,7 @@
 
 .adr-label {
   font-size: 10px; color: var(--tx-lo);
-  text-transform: uppercase; letter-spacing: .6px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .8px; font-weight: 600;
 }
 
 .adr-value {
@@ -31,11 +31,4 @@
 .adr-odoo-link {
   font-size: 12px; color: var(--accent); font-family: var(--font-mono); text-decoration: none;
   &:hover { text-decoration: underline; }
-}
-
-.badge {
-  display: inline-flex; align-items: center;
-  padding: 2px 8px; border-radius: 10px;
-  font-size: 10px; font-weight: 500; border: 1px solid;
-  align-self: flex-start;
 }
