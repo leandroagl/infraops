@@ -145,6 +145,13 @@ describe('TaskListComponent', () => {
       expect(component.selectedTask).toBeNull();
     });
 
+    it('no modifica tasks cuando selectedTask es null', () => {
+      component.tasks = [makeTask({ id: 't1' })];
+      component.selectedTask = null;
+      component.onTaskNotDone();
+      expect(component.tasks[0].status).toBe('PENDING'); // sin modificar
+    });
+
   });
 
   // ── Drawer ───────────────────────────────────────────────────
