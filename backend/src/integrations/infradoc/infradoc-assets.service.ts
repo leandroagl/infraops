@@ -9,6 +9,7 @@ export interface RawInfradocAsset {
   asset_make: string | null;
   asset_os: string | null;
   asset_model: string | null;
+  asset_description: string | null;
   interface_ip: string | null;
   interface_name: string | null;
 }
