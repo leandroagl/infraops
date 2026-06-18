@@ -137,9 +137,9 @@ export class TaskDrawerComponent implements OnChanges {
 
     const srv = payload as ServerMaintenancePayload;
 
-    const dcdiagErrors: string[] = srv.windows.dcdiag.toUpperCase().startsWith('ERROR')
-      ? [srv.windows.dcdiag]
-      : [];
+    const dcdiagErrors: string[] = srv.windows.domainControllers
+      .flatMap(dc => dc.warnings ?? [])
+      .filter(w => w.toUpperCase().startsWith('ERROR'));
 
     const veeamMissing = srv.veeam?.status === 'missing' || srv.veeam?.status === 'partial';
 

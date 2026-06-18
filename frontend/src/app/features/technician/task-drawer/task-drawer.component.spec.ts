@@ -49,7 +49,7 @@ function futureDate(daysAhead: number): string {
 function makeServerPayload(overrides: Partial<ServerMaintenancePayload> = {}): ServerMaintenancePayload {
   return {
     type: 'SERVER_MAINTENANCE',
-    windows: { servers: [], dcdiag: 'OK' },
+    windows: { servers: [], domainControllers: [] },
     ...overrides,
   };
 }
@@ -135,15 +135,26 @@ describe('TaskDrawerComponent — pure unit tests', () => {
   // ── detectIssues ──────────────────────────────────────────────────────────
 
   describe('detectIssues()', () => {
-    it('should return dcdiag error when payload.windows.dcdiag starts with ERROR', () => {
-      const payload = makeServerPayload({ windows: { servers: [], dcdiag: 'ERROR: LDAP timeout' } });
+    it('should return dcdiag error when a DC warning starts with ERROR', () => {
+      const payload = makeServerPayload({
+        windows: {
+          servers: [],
+          domainControllers: [{
+            is_dc: true, dc_name: 'DC01', domain: null, collected_at: '',
+            repl_healthy: null, repl_failures: null, repl_partners: null, repl_max_age_hours: null,
+            dns_test_pass: null, dns_service_ok: null, dns_srv_ok: null, dns_zone_count: null,
+            sysvol_state_ok: null, sysvol_backlog: null, sysvol_replication: null,
+            warnings: ['ERROR: LDAP timeout'],
+          }],
+        },
+      });
       const issues = component.detectIssues(payload);
       expect(issues.dcdiagErrors.length).toBe(1);
       expect(issues.dcdiagErrors[0]).toBe('ERROR: LDAP timeout');
     });
 
-    it('should not flag dcdiag when value is OK', () => {
-      const payload = makeServerPayload({ windows: { servers: [], dcdiag: 'OK' } });
+    it('should not flag dcdiag when DC has no error warnings', () => {
+      const payload = makeServerPayload({ windows: { servers: [], domainControllers: [] } });
       const issues = component.detectIssues(payload);
       expect(issues.dcdiagErrors.length).toBe(0);
     });
@@ -184,7 +195,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
 
     it('should return empty issues when all fields are complete and OK', () => {
       const payload = makeServerPayload({
-        windows: { servers: [], dcdiag: 'OK' },
+        windows: { servers: [], domainControllers: [] },
         vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: 40, memUsage: 50, storageUsage: 30, snapshotsOk: true }],
         veeam: { status: 'ok' },
       });
@@ -436,7 +447,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     const mockInfra = { esxiHosts: [], windowsVMs: [], nas: [], routers: [] };
     const mockLogPayload: ServerMaintenancePayload = {
       type: 'SERVER_MAINTENANCE',
-      windows: { servers: [], dcdiag: 'ERROR (DNS)' },
+      windows: { servers: [], domainControllers: [] },
     };
 
     let infradocSpy: jasmine.Spy;

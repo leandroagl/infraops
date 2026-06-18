@@ -1,0 +1,155 @@
+.dc-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: var(--surface-2, var(--surface));
+}
+
+.dc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.dc-card-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.dc-card-ip {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--tx-lo);
+}
+
+.dc-card-domain {
+  font-size: 12px;
+  color: var(--tx-lo);
+}
+
+.dc-card-timestamp {
+  font-size: 11px;
+  color: var(--tx-lo);
+  margin-left: auto;
+}
+
+.dc-edit-btn {
+  font-size: 12px;
+  height: 28px;
+  line-height: 28px;
+  padding: 0 10px;
+}
+
+.dc-json-field {
+  width: 100%;
+}
+
+.dc-json-textarea {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  resize: vertical;
+}
+
+.dc-parse-error {
+  color: var(--crit);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.dc-empty {
+  color: var(--tx-lo);
+  font-size: 12px;
+  padding: 8px 0;
+}
+
+.dc-display {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dc-section {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.dc-section-lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--tx-lo);
+  margin-bottom: 6px;
+}
+
+.dc-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.dc-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dc-metric-lbl {
+  font-size: 10px;
+  color: var(--tx-lo);
+}
+
+.dc-metric-val {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--tx);
+}
+
+.dc-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  width: fit-content;
+
+  &.dc-badge--ok {
+    background: var(--ok-bg);
+    color: var(--ok);
+  }
+
+  &.dc-badge--crit {
+    background: var(--crit-bg);
+    color: var(--crit);
+  }
+
+  &.dc-badge--na {
+    background: var(--surface-3, var(--surface-2, var(--surface)));
+    color: var(--tx-lo);
+  }
+}
+
+.dc-warnings {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.dc-warning-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dc-warning-item {
+  font-size: 12px;
+  color: var(--warn);
+  padding: 2px 0;
+
+  &::before {
+    content: '⚠ ';
+  }
+}

@@ -1,0 +1,99 @@
+<div class="dc-card">
+  <div class="dc-card-header">
+    <span class="dc-card-name">{{ dc.name }}</span>
+    <span class="dc-card-ip">{{ dc.ip ?? '—' }}</span>
+    <span *ngIf="parsed" class="dc-card-domain">{{ parsed.domain ?? '—' }}</span>
+    <span *ngIf="parsed" class="dc-card-timestamp">{{ parsed.collected_at | localDate }}</span>
+    <button *ngIf="parsed && !readOnly" mat-stroked-button (click)="edit()" class="dc-edit-btn">Editar</button>
+  </div>
+
+  <!-- Input area -->
+  <ng-container *ngIf="!parsed && !readOnly">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="dc-json-field" [formGroup]="formGroup">
+      <mat-label>Pegar JSON de Get-DCHealthSnapshot.ps1</mat-label>
+      <textarea matInput formControlName="rawJson" rows="6" class="dc-json-textarea"></textarea>
+    </mat-form-field>
+    <div *ngIf="parseError" class="dc-parse-error">{{ parseError }}</div>
+  </ng-container>
+
+  <!-- Read-only empty state -->
+  <div *ngIf="!parsed && readOnly" class="dc-empty">Sin datos</div>
+
+  <!-- Display -->
+  <div *ngIf="parsed" class="dc-display">
+
+    <!-- Replicación AD -->
+    <div class="dc-section">
+      <div class="dc-section-lbl">Replicación AD</div>
+      <div class="dc-metrics-grid">
+        <div class="dc-metric">
+          <span class="dc-metric-lbl">Estado</span>
+          <span class="dc-badge" [ngClass]="statusClass(parsed.repl_healthy)">{{ statusLabel(parsed.repl_healthy) }}</span>
+        </div>
+        <div class="dc-metric">
+          <span class="dc-metric-lbl">Fallos</span>
+          <span class="dc-metric-val">{{ parsed.repl_failures ?? 'N/A' }}</span>
+        </div>
+        <div class="dc-metric">
+          <span class="dc-metric-lbl">Partners</span>
+          <span class="dc-metric-val">{{ parsed.repl_partners ?? 'N/A' }}</span>
+        </div>
+        <div class="dc-metric">
+          <span class="dc-metric-lbl">Última replicación</span>
+          <span class="dc-metric-val">{{ parsed.repl_max_age_hours != null ? (parsed.repl_max_age_hours + 'h') : 'N/A' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DNS -->
+    <div class="dc-section">
+      <div class="dc-section-lbl">DNS</div>
+      <div class="dc-metrics-grid">
+        <div class="dc-metric">
+          <span class="dc-metric-lbl">Test DNS</span>
+          <span class="dc-badge" [ngClass]="statusClass(parsed.dns_test_pass)">{{ statusLabel(parsed.dns_test_pass) }}</span>
+        </div>
+        <div class="dc-metric">
+          <span class="dc-metric-lbl">Servicio</span>
+          <span class="dc-badge" [ngClass]="statusClass(parsed.dns_service_ok)">{{ statusLabel(parsed.dns_service_ok) }}</span>
+        </div>
+        <div class="dc-metric">
+          <span class="dc-metric-lbl">SRV records</span>
+          <span class="dc-badge" [ngClass]="statusClass(parsed.dns_srv_ok)">{{ statusLabel(parsed.dns_srv_ok) }}</span>
+        </div>
+        <div class="dc-metric">
+          <span class="dc-metric-lbl">Zonas DNS</span>
+          <span class="dc-metric-val">{{ parsed.dns_zone_count ?? 'N/A' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYSVOL / DFSR -->
+    <div class="dc-section">
+      <div class="dc-section-lbl">SYSVOL / DFSR</div>
+      <div class="dc-metrics-grid">
+        <div class="dc-metric">
+          <span class="dc-metric-lbl">Estado</span>
+          <span class="dc-badge" [ngClass]="statusClass(parsed.sysvol_state_ok)">{{ statusLabel(parsed.sysvol_state_ok) }}</span>
+        </div>
+        <div class="dc-metric">
+          <span class="dc-metric-lbl">Replicación</span>
+          <span class="dc-metric-val">{{ parsed.sysvol_replication ?? 'N/A' }}</span>
+        </div>
+        <div class="dc-metric">
+          <span class="dc-metric-lbl">Backlog</span>
+          <span class="dc-metric-val">{{ parsed.sysvol_backlog != null ? parsed.sysvol_backlog : 'N/A' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Warnings -->
+    <div *ngIf="parsed.warnings.length > 0" class="dc-warnings">
+      <div class="dc-section-lbl">Advertencias</div>
+      <ul class="dc-warning-list">
+        <li *ngFor="let w of parsed.warnings" class="dc-warning-item">{{ w }}</li>
+      </ul>
+    </div>
+
+  </div>
+</div>

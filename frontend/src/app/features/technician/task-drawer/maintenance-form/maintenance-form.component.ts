@@ -110,14 +110,11 @@ export class MaintenanceFormComponent implements OnChanges {
     this.form = this.fb.group({
       servers: this.fb.array(
         this.infrastructure.windowsVMs.map(() => this.fb.group({
-          rebootScript: ['ok'],
-          updates:      ['ok'],
-          notes:        [''],
-          expanded:     [false],
+          updates:  ['ok'],
+          notes:    [''],
+          expanded: [false],
         }))
       ),
-      dcdiag:       ['OK'],
-      dcdiagDetail: [''],
       vmwareHosts: this.fb.array(
         this.infrastructure.esxiHosts.map(() => this.fb.group({
           cpuUsage:     [null as number | null],
@@ -165,10 +162,6 @@ export class MaintenanceFormComponent implements OnChanges {
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
-  dcdiagHasError(): boolean {
-    return this.form.get('dcdiag')?.value?.startsWith('ERROR') ?? false;
-  }
-
   selectClass(value: string): string {
     if (!value) return 'mf-sel--na';
     if (value === 'ok' || value === 'OK') return 'mf-sel--ok';
@@ -179,10 +172,9 @@ export class MaintenanceFormComponent implements OnChanges {
 
   serverRowClass(i: number): string {
     const group = this.getServerGroup(i);
-    const sc1 = this.selectClass(group.get('rebootScript')?.value);
-    const sc2 = this.selectClass(group.get('updates')?.value);
-    if ([sc1, sc2].includes('mf-sel--crit')) return 'mf-srv-row--crit';
-    if ([sc1, sc2].includes('mf-sel--warn')) return 'mf-srv-row--warn';
+    const sc = this.selectClass(group.get('updates')?.value);
+    if (sc === 'mf-sel--crit') return 'mf-srv-row--crit';
+    if (sc === 'mf-sel--warn') return 'mf-srv-row--warn';
     return '';
   }
 
@@ -244,19 +236,17 @@ export class MaintenanceFormComponent implements OnChanges {
     }
 
     const servers = this.infrastructure.windowsVMs.map((vm, i) => ({
-      serverId:     vm.assetId,
-      serverName:   vm.name,
-      rebootScript: v.servers[i]?.rebootScript ?? 'ok',
-      updates:      v.servers[i]?.updates ?? 'ok',
-      notes:        v.servers[i]?.notes || undefined,
+      serverId:   vm.assetId,
+      serverName: vm.name,
+      updates:    v.servers[i]?.updates ?? 'ok',
+      notes:      v.servers[i]?.notes || undefined,
     }));
 
     const payload: ServerMaintenancePayload = {
       type: 'SERVER_MAINTENANCE',
       windows: {
         servers,
-        dcdiag:       v.dcdiag,
-        dcdiagDetail: this.dcdiagHasError() ? (v.dcdiagDetail || undefined) : undefined,
+        domainControllers: [],
       },
       notes: v.notes || undefined,
     };
@@ -330,8 +320,6 @@ export class MaintenanceFormComponent implements OnChanges {
       const srv = payload as ServerMaintenancePayload;
 
       this.form.patchValue({
-        dcdiag:       srv.windows.dcdiag,
-        dcdiagDetail: srv.windows.dcdiagDetail ?? '',
         notes:        srv.notes ?? '',
         veeamStatus:  srv.veeam?.status ?? 'ok',
         veeamMissing: srv.veeam?.missingVMs ?? [],
@@ -355,9 +343,8 @@ export class MaintenanceFormComponent implements OnChanges {
           const saved = srv.windows.servers.find(s => s.serverId === vm.assetId);
           if (saved) {
             this.serverControls.at(i).patchValue({
-              rebootScript: saved.rebootScript,
-              updates:      saved.updates,
-              notes:        saved.notes ?? '',
+              updates: saved.updates,
+              notes:   saved.notes ?? '',
             });
           }
         });
