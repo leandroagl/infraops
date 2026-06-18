@@ -2,18 +2,35 @@
 
 // --- Server Maintenance ---
 
+export interface DcHealthSnapshot {
+  is_dc: boolean;
+  dc_name: string;
+  domain: string | null;
+  collected_at: string;
+  repl_healthy: boolean | null;
+  repl_failures: number | null;
+  repl_partners: number | null;
+  repl_max_age_hours: number | null;
+  dns_test_pass: boolean | null;
+  dns_service_ok: boolean | null;
+  dns_srv_ok: boolean | null;
+  dns_zone_count: number | null;
+  sysvol_state_ok: boolean | null;
+  sysvol_backlog: number | null;
+  sysvol_replication: string | null;
+  warnings: string[];
+}
+
 export interface WindowsServerEntry {
   serverId: number;
   serverName: string;
-  rebootScript: 'ok' | 'error' | 'falta_configurar';
   updates: 'ok' | 'pending' | 'failed';
   notes?: string;
 }
 
 export interface WindowsSection {
   servers: WindowsServerEntry[];
-  dcdiag: string;
-  dcdiagDetail?: string;
+  domainControllers: DcHealthSnapshot[];
 }
 
 export interface VMwareHostEntry {

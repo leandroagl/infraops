@@ -11,6 +11,7 @@ export interface InfraAsset {
 export interface ClientInfrastructure {
   esxiHosts: InfraAsset[];
   windowsVMs: InfraAsset[];
+  domainControllers: InfraAsset[];
   nas: InfraAsset[];
   routers: InfraAsset[];
 }
