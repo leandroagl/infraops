@@ -9,8 +9,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MaintenanceFormComponent } from './maintenance-form.component';
 import { Task } from '../../../../core/models/task.models';
-import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
+import { ClientInfrastructure, InfraAsset } from '../../../../core/models/infradoc.models';
 import {
+  DcHealthSnapshot,
   ServerMaintenancePayload,
   TerminalPayload,
 } from '../../../../core/models/maintenance-log.models';
@@ -33,6 +34,37 @@ const makeInfra = (overrides: Partial<ClientInfrastructure> = {}): ClientInfrast
   domainControllers: [],
   nas: [{ assetId: 10, name: 'QNAP', ip: '192.168.1.21', bmcIp: null, bmcType: null, os: null, model: 'QNAP TS-453D' }],
   routers: [{ assetId: 1, name: 'MikroTik', ip: '192.168.99.1', bmcIp: null, bmcType: null, os: 'RouterOS', model: 'CCR2004' }],
+  ...overrides,
+});
+
+const makeDcAsset = (overrides: Partial<InfraAsset> = {}): InfraAsset => ({
+  assetId: 5,
+  name: 'DC01',
+  ip: '192.168.1.5',
+  bmcIp: null,
+  bmcType: null,
+  os: 'Windows Server 2022',
+  model: null,
+  ...overrides,
+});
+
+const makeDcSnapshot = (overrides: Partial<DcHealthSnapshot> = {}): DcHealthSnapshot => ({
+  is_dc: true,
+  dc_name: 'DC01',
+  domain: 'contoso.local',
+  collected_at: '2026-06-17T10:00:00Z',
+  repl_healthy: true,
+  repl_failures: 0,
+  repl_partners: 1,
+  repl_max_age_hours: 1,
+  dns_test_pass: true,
+  dns_service_ok: true,
+  dns_srv_ok: true,
+  dns_zone_count: 3,
+  sysvol_state_ok: true,
+  sysvol_backlog: 0,
+  sysvol_replication: 'DFSR',
+  warnings: [],
   ...overrides,
 });
 
@@ -656,6 +688,97 @@ describe('MaintenanceFormComponent', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       component.serverControls.at(0).patchValue({ updates: 'pending' });
       expect(component.serverRowClass(0)).toBe('mf-srv-row--warn');
+    });
+  });
+
+  // ── Domain controllers (DC health snapshot) ─────────────────────────────────
+
+  describe('domain controllers', () => {
+    it('hasDomainControllers is false when domainControllers is empty', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      expect((component as any).hasDomainControllers).toBeFalse();
+    });
+
+    it('hasDomainControllers is true when domainControllers has entries', () => {
+      const infra = makeInfra({ esxiHosts: [], nas: [], routers: [], domainControllers: [makeDcAsset()] });
+      init(makeTask('SERVER_MAINTENANCE'), infra);
+      expect((component as any).hasDomainControllers).toBeTrue();
+    });
+
+    it('dcControls has one FormGroup per DC', () => {
+      const infra = makeInfra({ esxiHosts: [], nas: [], routers: [], domainControllers: [makeDcAsset(), makeDcAsset({ assetId: 6, name: 'DC02' })] });
+      init(makeTask('SERVER_MAINTENANCE'), infra);
+      expect((component as any).dcControls.length).toBe(2);
+    });
+
+    it('buildPayload incluye snapshot del DC cuando rawJson es JSON válido con is_dc true', () => {
+      const infra = makeInfra({ esxiHosts: [], nas: [], routers: [], domainControllers: [makeDcAsset()] });
+      init(makeTask('SERVER_MAINTENANCE'), infra);
+
+      const snapshot = makeDcSnapshot();
+      (component as any).dcControls.at(0).patchValue({ rawJson: JSON.stringify(snapshot) });
+
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.windows.domainControllers.length).toBe(1);
+      expect(payload.windows.domainControllers[0].dc_name).toBe('DC01');
+      expect(payload.windows.domainControllers[0].is_dc).toBeTrue();
+    });
+
+    it('buildPayload omite DC cuando rawJson está vacío', () => {
+      const infra = makeInfra({ esxiHosts: [], nas: [], routers: [], domainControllers: [makeDcAsset()] });
+      init(makeTask('SERVER_MAINTENANCE'), infra);
+      // rawJson defaults to '' — no value set
+
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.windows.domainControllers).toEqual([]);
+    });
+
+    it('buildPayload omite DC cuando rawJson es JSON malformado', () => {
+      const infra = makeInfra({ esxiHosts: [], nas: [], routers: [], domainControllers: [makeDcAsset()] });
+      init(makeTask('SERVER_MAINTENANCE'), infra);
+      (component as any).dcControls.at(0).patchValue({ rawJson: '{ invalid }' });
+
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.windows.domainControllers).toEqual([]);
+    });
+
+    it('patchFormFromPayload rellena rawJson del DC con JSON del snapshot guardado', () => {
+      const snapshot = makeDcSnapshot();
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: {
+          servers: [],
+          domainControllers: [snapshot],
+        },
+      };
+
+      const infra = makeInfra({ esxiHosts: [], nas: [], routers: [], domainControllers: [makeDcAsset()] });
+      // Use initWithSavedPayload pattern
+      fixture = TestBed.createComponent(MaintenanceFormComponent);
+      component = fixture.componentInstance;
+      component.task = makeTask('SERVER_MAINTENANCE');
+      component.infrastructure = infra;
+      component.savedPayload = saved;
+      const changes: { [k: string]: any } = {
+        infrastructure: new SimpleChange(undefined, infra, true),
+        task: new SimpleChange(undefined, makeTask('SERVER_MAINTENANCE'), true),
+        savedPayload: new SimpleChange(undefined, saved, true),
+      };
+      component.ngOnChanges(changes);
+      fixture.detectChanges();
+
+      const rawJson = (component as any).dcControls.at(0).get('rawJson')?.value;
+      const parsed = JSON.parse(rawJson);
+      expect(parsed.dc_name).toBe('DC01');
+      expect(parsed.is_dc).toBeTrue();
+    });
+
+    it('windows.servers no incluye rebootScript en ningún entry', () => {
+      const infra = makeInfra({ esxiHosts: [], nas: [], routers: [] });
+      init(makeTask('SERVER_MAINTENANCE'), infra);
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      const server = payload.windows.servers[0] as any;
+      expect(server.rebootScript).toBeUndefined();
     });
   });
 
