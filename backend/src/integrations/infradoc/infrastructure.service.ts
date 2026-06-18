@@ -72,7 +72,12 @@ export class InfrastructureService {
       if (type === 'server') {
         result.esxiHosts.push(this.mapAsset(asset, bmcMap.get(asset.asset_id)));
       } else if (type === 'virtual machine' && os.startsWith('windows server')) {
-        result.windowsVMs.push(this.mapAsset(asset));
+        const description = (asset.asset_description ?? '').toLowerCase();
+        if (description.includes('domain controller')) {
+          result.domainControllers.push(this.mapAsset(asset));
+        } else {
+          result.windowsVMs.push(this.mapAsset(asset));
+        }
       } else if (type === 'firewall/router' || type === 'router' || type === 'firewall') {
         result.routers.push(this.mapAsset(asset));
       } else if (type === 'nas' || make === 'qnap') {

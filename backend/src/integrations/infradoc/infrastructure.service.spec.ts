@@ -10,14 +10,15 @@ describe('InfrastructureService', () => {
   let infradocAssetsService: { getAssets: jest.Mock; getAssetInterfaces: jest.Mock };
 
   const makeAsset = (override: Partial<RawInfradocAsset> = {}): RawInfradocAsset => ({
-    asset_id:       '1',
-    asset_name:     'host1.kemini',
-    asset_type:     'Server',
-    asset_make:     'HPE',
-    interface_ip:   '192.168.0.104',
-    interface_name: null,
-    asset_os:       'VMware ESXi 7.0.0',
-    asset_model:    'ProLiant DL380 Gen10',
+    asset_id:          '1',
+    asset_name:        'host1.kemini',
+    asset_type:        'Server',
+    asset_make:        'HPE',
+    asset_description: null,
+    interface_ip:      '192.168.0.104',
+    interface_name:    null,
+    asset_os:          'VMware ESXi 7.0.0',
+    asset_model:       'ProLiant DL380 Gen10',
     ...override,
   } as RawInfradocAsset);
 
@@ -79,18 +80,18 @@ describe('InfrastructureService', () => {
     expect(result.routers).toHaveLength(0);
   });
 
-  it('agrupa Virtual Machine con Windows Server en windowsVMs', async () => {
+  it('agrupa Virtual Machine con Windows Server SIN description DC en windowsVMs', async () => {
     infradocAssetsService.getAssets.mockResolvedValue([
-      makeAsset({ asset_id: '3', asset_name: '47DC', asset_type: 'Virtual Machine', asset_os: 'Windows Server 2019', asset_make: null }),
-      makeAsset({ asset_id: '4', asset_name: 'DC2',  asset_type: 'Virtual Machine', asset_os: 'Windows Server 2022', asset_make: null }),
+      makeAsset({ asset_id: '3', asset_name: 'SRV-FILE', asset_type: 'Virtual Machine', asset_os: 'Windows Server 2019', asset_make: null, asset_description: null }),
+      makeAsset({ asset_id: '4', asset_name: 'SRV-APP',  asset_type: 'Virtual Machine', asset_os: 'Windows Server 2022', asset_make: null, asset_description: '' }),
     ]);
 
     const result = await service.getClientInfrastructure('uuid-1');
 
     expect(result.windowsVMs).toHaveLength(2);
-    expect(result.windowsVMs[0].name).toBe('47DC');
-    expect(result.windowsVMs[1].name).toBe('DC2');
-    expect(result.esxiHosts).toHaveLength(0);
+    expect(result.windowsVMs[0].name).toBe('SRV-FILE');
+    expect(result.windowsVMs[1].name).toBe('SRV-APP');
+    expect(result.domainControllers).toHaveLength(0);
   });
 
   it('ignora Virtual Machine con Windows 10 (no es Windows Server)', async () => {
@@ -306,6 +307,62 @@ describe('InfrastructureService', () => {
       const result = await service.getClientInfrastructure('uuid-1');
 
       expect(result.esxiHosts[0].bmcIp).toBe('10.0.0.1');
+    });
+  });
+
+  describe('domain controller detection', () => {
+    it('mueve VM con description "Domain Controller" a domainControllers', async () => {
+      infradocAssetsService.getAssets.mockResolvedValue([
+        makeAsset({
+          asset_id: '5', asset_name: 'DC01',
+          asset_type: 'Virtual Machine', asset_os: 'Windows Server 2022',
+          asset_make: null, asset_description: 'Domain Controller',
+        }),
+      ]);
+
+      const result = await service.getClientInfrastructure('uuid-1');
+
+      expect(result.domainControllers).toHaveLength(1);
+      expect(result.domainControllers[0].name).toBe('DC01');
+      expect(result.windowsVMs).toHaveLength(0);
+    });
+
+    it('detecta DC con description en minúsculas', async () => {
+      infradocAssetsService.getAssets.mockResolvedValue([
+        makeAsset({
+          asset_id: '6', asset_name: 'DC02',
+          asset_type: 'Virtual Machine', asset_os: 'Windows Server 2019',
+          asset_make: null, asset_description: 'domain controller - Primary',
+        }),
+      ]);
+
+      const result = await service.getClientInfrastructure('uuid-1');
+
+      expect(result.domainControllers).toHaveLength(1);
+      expect(result.domainControllers[0].name).toBe('DC02');
+      expect(result.windowsVMs).toHaveLength(0);
+    });
+
+    it('separa correctamente DCs y VMs no-DC cuando ambos están presentes', async () => {
+      infradocAssetsService.getAssets.mockResolvedValue([
+        makeAsset({ asset_id: '3', asset_name: 'SRV-FILE', asset_type: 'Virtual Machine', asset_os: 'Windows Server 2019', asset_make: null, asset_description: null }),
+        makeAsset({ asset_id: '5', asset_name: 'DC01',     asset_type: 'Virtual Machine', asset_os: 'Windows Server 2022', asset_make: null, asset_description: 'Domain Controller' }),
+      ]);
+
+      const result = await service.getClientInfrastructure('uuid-1');
+
+      expect(result.windowsVMs).toHaveLength(1);
+      expect(result.windowsVMs[0].name).toBe('SRV-FILE');
+      expect(result.domainControllers).toHaveLength(1);
+      expect(result.domainControllers[0].name).toBe('DC01');
+    });
+
+    it('domainControllers es array vacío cuando no hay DCs', async () => {
+      infradocAssetsService.getAssets.mockResolvedValue([]);
+
+      const result = await service.getClientInfrastructure('uuid-1');
+
+      expect(result.domainControllers).toEqual([]);
     });
   });
 });
