@@ -67,6 +67,22 @@
 
   </ng-container>
 
+  <!-- ── Controladores de dominio ────────────────────────────── -->
+  <ng-container *ngIf="hasDomainControllers">
+
+    <div class="mf-section-lbl">Controladores de dominio</div>
+
+    <ng-container formArrayName="domainControllers">
+      <app-dc-health-card
+        *ngFor="let _ of dcControls.controls; let i = index"
+        [dc]="infrastructure.domainControllers[i]"
+        [formGroup]="$any(dcControls.at(i))"
+        [readOnly]="readOnly">
+      </app-dc-health-card>
+    </ng-container>
+
+  </ng-container>
+
   <!-- ── VMware ESXi ──────────────────────────────────── -->
   <ng-container *ngIf="hasVMware">
 

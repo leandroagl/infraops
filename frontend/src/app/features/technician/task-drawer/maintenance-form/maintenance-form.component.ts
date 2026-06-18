@@ -11,6 +11,7 @@ import { Task } from '../../../../core/models/task.models';
 import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
 import {
   BmcEntry,
+  DcHealthSnapshot,
   MaintenancePayload,
   RouterEntry,
   ServerMaintenancePayload,
@@ -79,6 +80,14 @@ export class MaintenanceFormComponent implements OnChanges {
     return this.form.get('routerDevices') as FormArray;
   }
 
+  get dcControls(): FormArray {
+    return this.form.get('domainControllers') as FormArray;
+  }
+
+  get hasDomainControllers(): boolean {
+    return (this.infrastructure?.domainControllers?.length ?? 0) > 0;
+  }
+
   get isTerminalType(): boolean {
     return this.task?.type === 'TERMINAL_MAINTENANCE' || this.task?.type === 'SITE_VISIT';
   }
@@ -114,6 +123,11 @@ export class MaintenanceFormComponent implements OnChanges {
           notes:    [''],
           expanded: [false],
         }))
+      ),
+      domainControllers: this.fb.array(
+        (this.infrastructure.domainControllers ?? []).map(() =>
+          this.fb.group({ rawJson: [''] })
+        )
       ),
       vmwareHosts: this.fb.array(
         this.infrastructure.esxiHosts.map(() => this.fb.group({
@@ -246,7 +260,13 @@ export class MaintenanceFormComponent implements OnChanges {
       type: 'SERVER_MAINTENANCE',
       windows: {
         servers,
-        domainControllers: [],
+        domainControllers: (this.infrastructure.domainControllers ?? [])
+          .map((_, i) => {
+            const raw = this.dcControls.at(i).get('rawJson')?.value ?? '';
+            try { return JSON.parse(raw) as DcHealthSnapshot; }
+            catch { return null; }
+          })
+          .filter((s): s is DcHealthSnapshot => s !== null),
       },
       notes: v.notes || undefined,
     };
@@ -389,6 +409,14 @@ export class MaintenanceFormComponent implements OnChanges {
               alertNote:       saved.alertNote ?? '',
             });
           }
+        });
+      }
+
+      if (srv.windows.domainControllers?.length) {
+        srv.windows.domainControllers.forEach((snapshot, i) => {
+          this.dcControls.at(i)?.patchValue({
+            rawJson: JSON.stringify(snapshot, null, 2),
+          });
         });
       }
     } else if (payload.type === 'TERMINAL_MAINTENANCE') {

@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { SimpleChange } from '@angular/core';
+import { NO_ERRORS_SCHEMA, SimpleChange } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -96,6 +96,7 @@ describe('MaintenanceFormComponent', () => {
         MatInputModule,
         MatButtonModule,
       ],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
   });
 
