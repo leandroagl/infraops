@@ -57,10 +57,11 @@ export class InfrastructureService {
     bmcMap: Map<string, { bmcIp: string | null; bmcType: string | null }>,
   ): ClientInfrastructureDto {
     const result: ClientInfrastructureDto = {
-      esxiHosts:  [],
-      windowsVMs: [],
-      nas:        [],
-      routers:    [],
+      esxiHosts:         [],
+      windowsVMs:        [],
+      domainControllers: [],
+      nas:               [],
+      routers:           [],
     };
 
     for (const asset of raw) {
