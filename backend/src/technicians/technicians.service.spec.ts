@@ -57,7 +57,10 @@ describe('TechniciansService', () => {
       providers: [
         TechniciansService,
         { provide: getRepositoryToken(User), useValue: userRepository },
-        { provide: getRepositoryToken(Technician), useValue: technicianRepository },
+        {
+          provide: getRepositoryToken(Technician),
+          useValue: technicianRepository,
+        },
       ],
     }).compile();
 
@@ -67,7 +70,11 @@ describe('TechniciansService', () => {
 
   describe('findAll', () => {
     it('retorna todos los usuarios con perfil técnico sin passwordHash ni technician', async () => {
-      const userWithTech = { ...mockUser, technicianId: 'tech-1', technician: mockTechnician };
+      const userWithTech = {
+        ...mockUser,
+        technicianId: 'tech-1',
+        technician: mockTechnician,
+      };
       userRepository.find.mockResolvedValue([userWithTech]);
 
       const result = await service.findAll();
@@ -98,7 +105,9 @@ describe('TechniciansService', () => {
 
       expect(technicianRepository.create).toHaveBeenCalled();
       expect(technicianRepository.save).toHaveBeenCalledWith(mockTechnician);
-      expect(userRepository.update).toHaveBeenCalledWith('user-1', { technicianId: 'tech-1' });
+      expect(userRepository.update).toHaveBeenCalledWith('user-1', {
+        technicianId: 'tech-1',
+      });
       expect(result.id).toBe('tech-1');
       expect(result.user.id).toBe('user-1');
       expect(result.user).not.toHaveProperty('passwordHash');
@@ -107,11 +116,16 @@ describe('TechniciansService', () => {
     it('lanza NotFoundException si el user no existe', async () => {
       userRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.assign('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(service.assign('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('lanza ConflictException si el user ya tiene perfil técnico', async () => {
-      userRepository.findOne.mockResolvedValue({ ...mockUser, technicianId: 'tech-existing' });
+      userRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        technicianId: 'tech-existing',
+      });
 
       await expect(service.assign('user-1')).rejects.toThrow(ConflictException);
     });
@@ -135,7 +149,9 @@ describe('TechniciansService', () => {
     it('lanza NotFoundException si el Technician no existe', async () => {
       technicianRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.remove('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(service.remove('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

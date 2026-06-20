@@ -11,7 +11,10 @@ import { Technician } from './technician.entity';
 export type TechnicianUserResponse = {
   id: string;
   createdAt: Date;
-  user: Omit<User, 'passwordHash' | 'lastLogoutAt' | 'technician' | 'technicianId'>;
+  user: Omit<
+    User,
+    'passwordHash' | 'lastLogoutAt' | 'technician' | 'technicianId'
+  >;
 };
 
 @Injectable()
@@ -35,27 +38,50 @@ export class TechniciansService {
   async assign(userId: string): Promise<TechnicianUserResponse> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
-    if (user.technicianId) throw new ConflictException('Este usuario ya tiene perfil técnico');
+    if (user.technicianId)
+      throw new ConflictException('Este usuario ya tiene perfil técnico');
 
     const technician = await this.technicianRepository.save(
       this.technicianRepository.create(),
     );
     await this.userRepository.update(userId, { technicianId: technician.id });
 
-    const { passwordHash, lastLogoutAt, technician: _t, technicianId: _tid, ...userFields } = user;
-    return { id: technician.id, createdAt: technician.createdAt, user: userFields };
+    const {
+      passwordHash,
+      lastLogoutAt,
+      technician: _t,
+      technicianId: _tid,
+      ...userFields
+    } = user;
+    return {
+      id: technician.id,
+      createdAt: technician.createdAt,
+      user: userFields,
+    };
   }
 
   async remove(id: string): Promise<void> {
-    const technician = await this.technicianRepository.findOne({ where: { id } });
-    if (!technician) throw new NotFoundException('Perfil técnico no encontrado');
+    const technician = await this.technicianRepository.findOne({
+      where: { id },
+    });
+    if (!technician)
+      throw new NotFoundException('Perfil técnico no encontrado');
 
-    await this.userRepository.update({ technicianId: id }, { technicianId: null });
+    await this.userRepository.update(
+      { technicianId: id },
+      { technicianId: null },
+    );
     await this.technicianRepository.delete(id);
   }
 
   private toResponse(user: User): TechnicianUserResponse {
-    const { passwordHash, lastLogoutAt, technician, technicianId, ...userFields } = user;
+    const {
+      passwordHash,
+      lastLogoutAt,
+      technician,
+      technicianId,
+      ...userFields
+    } = user;
     return {
       id: technicianId!,
       createdAt: technician!.createdAt,

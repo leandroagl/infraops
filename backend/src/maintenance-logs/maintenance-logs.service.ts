@@ -24,16 +24,22 @@ export class MaintenanceLogsService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async create(taskId: string, dto: CreateLogDto, userId: string): Promise<MaintenanceLog> {
+  async create(
+    taskId: string,
+    dto: CreateLogDto,
+    userId: string,
+  ): Promise<MaintenanceLog> {
     const task = await this.taskRepository.findOne({ where: { id: taskId } });
     if (!task) throw new NotFoundException('Tarea no encontrada');
 
     const existing = await this.logRepository.findOne({ where: { taskId } });
-    if (existing) throw new ConflictException('Esta tarea ya tiene un log registrado');
+    if (existing)
+      throw new ConflictException('Esta tarea ya tiene un log registrado');
 
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
-    if (!user.technicianId) throw new ForbiddenException('El usuario no tiene perfil técnico');
+    if (!user.technicianId)
+      throw new ForbiddenException('El usuario no tiene perfil técnico');
 
     const log = this.logRepository.create({
       taskId,
@@ -59,7 +65,9 @@ export class MaintenanceLogsService {
 
   async update(taskId: string, dto: UpdateLogDto): Promise<MaintenanceLog> {
     if (Object.keys(dto).length === 0) {
-      throw new BadRequestException('Se debe proveer al menos un campo para actualizar');
+      throw new BadRequestException(
+        'Se debe proveer al menos un campo para actualizar',
+      );
     }
 
     const task = await this.taskRepository.findOne({ where: { id: taskId } });

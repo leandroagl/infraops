@@ -1,7 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ClientsService } from '../../clients/clients.service';
-import { InfradocAssetsService, RawInfradocAsset } from './infradoc-assets.service';
-import { ClientInfrastructureDto, InfraAssetDto } from './dto/client-infrastructure.dto';
+import {
+  InfradocAssetsService,
+  RawInfradocAsset,
+} from './infradoc-assets.service';
+import {
+  ClientInfrastructureDto,
+  InfraAssetDto,
+} from './dto/client-infrastructure.dto';
 
 @Injectable()
 export class InfrastructureService {
@@ -10,29 +16,37 @@ export class InfrastructureService {
     private readonly infradocAssetsService: InfradocAssetsService,
   ) {}
 
-  async getClientInfrastructure(clientId: string): Promise<ClientInfrastructureDto> {
+  async getClientInfrastructure(
+    clientId: string,
+  ): Promise<ClientInfrastructureDto> {
     const infradocId = await this.clientsService.findInfradocId(clientId);
-    if (infradocId === null) throw new NotFoundException('Cliente no encontrado');
+    if (infradocId === null)
+      throw new NotFoundException('Cliente no encontrado');
 
     const raw = await this.infradocAssetsService.getAssets(infradocId);
 
     const serverIds = [
       ...new Set(
         raw
-          .filter(a => (a.asset_type ?? '').trim().toLowerCase() === 'server')
-          .map(a => a.asset_id),
+          .filter((a) => (a.asset_type ?? '').trim().toLowerCase() === 'server')
+          .map((a) => a.asset_id),
       ),
     ];
 
     const settledResults = await Promise.allSettled(
-      serverIds.map(id => this.infradocAssetsService.getAssetInterfaces(Number(id))),
+      serverIds.map((id) =>
+        this.infradocAssetsService.getAssetInterfaces(Number(id)),
+      ),
     );
 
-    const interfaceArrays = settledResults.map(r =>
+    const interfaceArrays = settledResults.map((r) =>
       r.status === 'fulfilled' ? r.value : [],
     );
 
-    const bmcMap = new Map<string, { bmcIp: string | null; bmcType: string | null }>();
+    const bmcMap = new Map<
+      string,
+      { bmcIp: string | null; bmcType: string | null }
+    >();
     serverIds.forEach((id, i) => {
       bmcMap.set(id, this.resolveBmc(interfaceArrays[i]));
     });
@@ -40,14 +54,19 @@ export class InfrastructureService {
     return this.groupAssets(raw, bmcMap);
   }
 
-  private resolveBmc(interfaces: RawInfradocAsset[]): { bmcIp: string | null; bmcType: string | null } {
+  private resolveBmc(interfaces: RawInfradocAsset[]): {
+    bmcIp: string | null;
+    bmcType: string | null;
+  } {
     const BMC_PATTERNS = ['ilo', 'idrac', 'xclarity'];
-    const bmc = interfaces.find(iface =>
-      BMC_PATTERNS.some(p => (iface.interface_name ?? '').toLowerCase().includes(p)),
+    const bmc = interfaces.find((iface) =>
+      BMC_PATTERNS.some((p) =>
+        (iface.interface_name ?? '').toLowerCase().includes(p),
+      ),
     );
     if (!bmc) return { bmcIp: null, bmcType: null };
     return {
-      bmcIp:   bmc.interface_ip  || null,
+      bmcIp: bmc.interface_ip || null,
       bmcType: bmc.interface_name ?? null,
     };
   }
@@ -57,28 +76,35 @@ export class InfrastructureService {
     bmcMap: Map<string, { bmcIp: string | null; bmcType: string | null }>,
   ): ClientInfrastructureDto {
     const result: ClientInfrastructureDto = {
-      esxiHosts:         [],
-      windowsVMs:        [],
+      esxiHosts: [],
+      windowsVMs: [],
       domainControllers: [],
-      nas:               [],
-      routers:           [],
+      nas: [],
+      routers: [],
     };
 
     for (const asset of raw) {
       const type = (asset.asset_type ?? '').trim().toLowerCase();
       const make = (asset.asset_make ?? '').trim().toLowerCase();
-      const os   = (asset.asset_os   ?? '').trim().toLowerCase();
+      const os = (asset.asset_os ?? '').trim().toLowerCase();
 
       if (type === 'server') {
         result.esxiHosts.push(this.mapAsset(asset, bmcMap.get(asset.asset_id)));
-      } else if (type === 'virtual machine' && os.startsWith('windows server')) {
+      } else if (
+        type === 'virtual machine' &&
+        os.startsWith('windows server')
+      ) {
         const description = (asset.asset_description ?? '').toLowerCase();
         if (description.includes('domain controller')) {
           result.domainControllers.push(this.mapAsset(asset));
         } else {
           result.windowsVMs.push(this.mapAsset(asset));
         }
-      } else if (type === 'firewall/router' || type === 'router' || type === 'firewall') {
+      } else if (
+        type === 'firewall/router' ||
+        type === 'router' ||
+        type === 'firewall'
+      ) {
         result.routers.push(this.mapAsset(asset));
       } else if (type === 'nas' || make === 'qnap') {
         result.nas.push(this.mapAsset(asset));
@@ -94,12 +120,12 @@ export class InfrastructureService {
   ): InfraAssetDto {
     return {
       assetId: Number(raw.asset_id),
-      name:    raw.asset_name,
-      ip:      raw.interface_ip  || null,
-      bmcIp:   bmc?.bmcIp  ?? null,
+      name: raw.asset_name,
+      ip: raw.interface_ip || null,
+      bmcIp: bmc?.bmcIp ?? null,
       bmcType: bmc?.bmcType ?? null,
-      os:      raw.asset_os    || null,
-      model:   raw.asset_model || null,
+      os: raw.asset_os || null,
+      model: raw.asset_model || null,
     };
   }
 }

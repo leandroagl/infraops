@@ -78,7 +78,11 @@ describe('UsersController', () => {
 
       const result = await controller.update('user-1', currentUser, dto);
 
-      expect(usersService.update).toHaveBeenCalledWith('user-1', 'admin-id', dto);
+      expect(usersService.update).toHaveBeenCalledWith(
+        'user-1',
+        'admin-id',
+        dto,
+      );
       expect(result).toEqual(mockResult);
     });
   });
@@ -91,7 +95,11 @@ describe('UsersController', () => {
 
       const result = await controller.updateStatus('user-1', currentUser, dto);
 
-      expect(usersService.updateStatus).toHaveBeenCalledWith('user-1', 'admin-id', false);
+      expect(usersService.updateStatus).toHaveBeenCalledWith(
+        'user-1',
+        'admin-id',
+        false,
+      );
       expect(result).toEqual(mockResult);
     });
   });
@@ -103,7 +111,10 @@ describe('UsersController', () => {
 
       const result = await controller.resetPassword('user-1', currentUser);
 
-      expect(usersService.resetPassword).toHaveBeenCalledWith('user-1', 'admin-id');
+      expect(usersService.resetPassword).toHaveBeenCalledWith(
+        'user-1',
+        'admin-id',
+      );
       expect(result).toEqual(mockResult);
     });
   });

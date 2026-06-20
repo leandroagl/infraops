@@ -10,10 +10,26 @@ describe('InfrastructureController', () => {
   let infrastructureService: { getClientInfrastructure: jest.Mock };
 
   const makeInfrastructure = (): ClientInfrastructureDto => ({
-    servers: [{ assetId: 1, name: 'SRV-DC01', ip: '10.0.1.5', os: 'Windows Server 2019', model: 'Dell R640' }],
+    servers: [
+      {
+        assetId: 1,
+        name: 'SRV-DC01',
+        ip: '10.0.1.5',
+        os: 'Windows Server 2019',
+        model: 'Dell R640',
+      },
+    ],
     vms: [{ assetId: 2, name: 'VM-DC01', ip: null, os: null, model: null }],
     nas: [],
-    routers: [{ assetId: 3, name: 'MikroTik-01', ip: '10.0.1.1', os: null, model: 'CCR1009' }],
+    routers: [
+      {
+        assetId: 3,
+        name: 'MikroTik-01',
+        ip: '10.0.1.1',
+        os: null,
+        model: 'CCR1009',
+      },
+    ],
   });
 
   beforeEach(async () => {
@@ -37,7 +53,9 @@ describe('InfrastructureController', () => {
     const result = await controller.getClientInfrastructure('uuid-1');
 
     expect(result).toEqual(expected);
-    expect(infrastructureService.getClientInfrastructure).toHaveBeenCalledWith('uuid-1');
+    expect(infrastructureService.getClientInfrastructure).toHaveBeenCalledWith(
+      'uuid-1',
+    );
   });
 
   it('propaga NotFoundException cuando el servicio la lanza', async () => {

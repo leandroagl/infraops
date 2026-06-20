@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
@@ -32,16 +36,20 @@ export class OdooService {
       this.odooRpc.callKw<OdooPartner[]>(
         'res.partner',
         'search_read',
-        [[['is_company', '=', true], ['vat', '!=', false], ['email', '!=', false]]],
+        [
+          [
+            ['is_company', '=', true],
+            ['vat', '!=', false],
+            ['email', '!=', false],
+          ],
+        ],
         { fields: ['id', 'name', 'vat'] },
       ),
       this.clientRepo.find(),
     ]);
 
     const clientByCuit = new Map(
-      localClients
-        .filter((c) => c.taxIdNumber)
-        .map((c) => [c.taxIdNumber!, c]),
+      localClients.filter((c) => c.taxIdNumber).map((c) => [c.taxIdNumber!, c]),
     );
 
     let matched = 0;
@@ -49,10 +57,12 @@ export class OdooService {
 
     for (const partner of odooPartners) {
       if (!partner.vat) {
-        unmatched.push(typeof partner.name === 'string' ? partner.name : `id:${partner.id}`);
+        unmatched.push(
+          typeof partner.name === 'string' ? partner.name : `id:${partner.id}`,
+        );
         continue;
       }
-      const client = clientByCuit.get(partner.vat as string);
+      const client = clientByCuit.get(partner.vat);
       if (client) {
         await this.clientRepo.update(client.id, {
           odooPartnerId: partner.id,
@@ -60,7 +70,9 @@ export class OdooService {
         });
         matched++;
       } else {
-        unmatched.push(typeof partner.name === 'string' ? partner.name : partner.vat as string);
+        unmatched.push(
+          typeof partner.name === 'string' ? partner.name : partner.vat,
+        );
       }
     }
 
@@ -85,10 +97,13 @@ export class OdooService {
 
     for (const odooUser of odooUsers) {
       if (!odooUser.login) continue;
-      const login = odooUser.login as string;
+      const login = odooUser.login;
       const user = userByEmail.get(login);
       if (user) {
-        await this.userRepo.update(user.id, { odooUserId: odooUser.id, odooSyncedAt: new Date() });
+        await this.userRepo.update(user.id, {
+          odooUserId: odooUser.id,
+          odooSyncedAt: new Date(),
+        });
         matchedPairs.push({ userId: user.id, odooUserId: odooUser.id });
         matched++;
       } else {
@@ -97,7 +112,9 @@ export class OdooService {
     }
 
     if (matchedPairs.length > 0) {
-      const employees = await this.odooRpc.callKw<Array<{ id: number; user_id: [number, string] }>>(
+      const employees = await this.odooRpc.callKw<
+        Array<{ id: number; user_id: [number, string] }>
+      >(
         'hr.employee',
         'search_read',
         [[['user_id', 'in', matchedPairs.map((p) => p.odooUserId)]]],
@@ -109,7 +126,9 @@ export class OdooService {
       for (const pair of matchedPairs) {
         const employeeId = employeeByOdooUserId.get(pair.odooUserId);
         if (employeeId !== undefined) {
-          await this.userRepo.update(pair.userId, { odooEmployeeId: employeeId });
+          await this.userRepo.update(pair.userId, {
+            odooEmployeeId: employeeId,
+          });
         }
       }
     }
@@ -134,7 +153,12 @@ export class OdooService {
     const partners = await this.odooRpc.callKw<OdooPartner[]>(
       'res.partner',
       'search_read',
-      [[['vat', '=', client.taxIdNumber], ['is_company', '=', true]]],
+      [
+        [
+          ['vat', '=', client.taxIdNumber],
+          ['is_company', '=', true],
+        ],
+      ],
       { fields: ['id', 'vat'], limit: 1 },
     );
 
@@ -199,11 +223,13 @@ export class OdooService {
     const lines = await this.odooRpc.callKw<Array<{ id: number }>>(
       'sale.order.line',
       'search_read',
-      [[
-        ['order_id.partner_id', '=', client.odooPartnerId],
-        ['product_id.name', '=', 'Hora Única'],
-        ['order_id.state', 'in', ['sale', 'done']],
-      ]],
+      [
+        [
+          ['order_id.partner_id', '=', client.odooPartnerId],
+          ['product_id.name', '=', 'Hora Única'],
+          ['order_id.state', 'in', ['sale', 'done']],
+        ],
+      ],
       { fields: ['id'], limit: 1 },
     );
 
@@ -216,17 +242,23 @@ export class OdooService {
     return lines[0].id;
   }
 
-  async logTimesheet(odooTicketId: number, employeeId: number, unitAmount: number): Promise<void> {
+  async logTimesheet(
+    odooTicketId: number,
+    employeeId: number,
+    unitAmount: number,
+  ): Promise<void> {
     await this.odooRpc.callKw<number>(
       'account.analytic.line',
       'create',
-      [{
-        helpdesk_ticket_id: odooTicketId,
-        employee_id: employeeId,
-        name: 'Mantenimiento realizado',
-        unit_amount: unitAmount,
-        date: new Date().toISOString().split('T')[0],
-      }],
+      [
+        {
+          helpdesk_ticket_id: odooTicketId,
+          employee_id: employeeId,
+          name: 'Mantenimiento realizado',
+          unit_amount: unitAmount,
+          date: new Date().toISOString().split('T')[0],
+        },
+      ],
       {},
     );
   }
@@ -242,7 +274,12 @@ export class OdooService {
     const stages = await this.odooRpc.callKw<Array<{ id: number }>>(
       'helpdesk.stage',
       'search_read',
-      [[['team_ids', 'in', [teamId]], ['name', '=', 'En curso']]],
+      [
+        [
+          ['team_ids', 'in', [teamId]],
+          ['name', '=', 'En curso'],
+        ],
+      ],
       { fields: ['id'], limit: 1 },
     );
 
@@ -277,7 +314,12 @@ export class OdooService {
     const stages = await this.odooRpc.callKw<Array<{ id: number }>>(
       'helpdesk.stage',
       'search_read',
-      [[['team_ids', 'in', [teamId]], ['fold', '=', true]]],
+      [
+        [
+          ['team_ids', 'in', [teamId]],
+          ['fold', '=', true],
+        ],
+      ],
       { fields: ['id'], limit: 1 },
     );
 
@@ -291,7 +333,11 @@ export class OdooService {
     return this.doneStageId;
   }
 
-  async closeTicket(odooTicketId: number, employeeId: number, unitAmount: number): Promise<void> {
+  async closeTicket(
+    odooTicketId: number,
+    employeeId: number,
+    unitAmount: number,
+  ): Promise<void> {
     const stageId = await this.resolveDoneStageId();
     await this.logTimesheet(odooTicketId, employeeId, unitAmount);
     await this.odooRpc.callKw<boolean>(
@@ -316,12 +362,16 @@ export class OdooService {
       throw new BadRequestException(`Técnico ${technicianId} no encontrado`);
     }
     if (!technician.user) {
-      throw new BadRequestException(`Técnico ${technicianId} no tiene usuario asociado`);
+      throw new BadRequestException(
+        `Técnico ${technicianId} no tiene usuario asociado`,
+      );
     }
 
     const odooUserId = await this.resolveUserId(technician.user.id);
     if (odooUserId === null) {
-      throw new BadRequestException(`Técnico ${technicianId} no tiene ID de Odoo`);
+      throw new BadRequestException(
+        `Técnico ${technicianId} no tiene ID de Odoo`,
+      );
     }
 
     const teamId = parseInt(
@@ -329,7 +379,9 @@ export class OdooService {
       10,
     );
     if (isNaN(teamId)) {
-      throw new BadRequestException('ODOO_HELPDESK_TEAM_ID must be a valid integer');
+      throw new BadRequestException(
+        'ODOO_HELPDESK_TEAM_ID must be a valid integer',
+      );
     }
 
     const saleLineId = await this.resolveSaleLineId(clientId);
@@ -345,7 +397,12 @@ export class OdooService {
       payload['sale_line_id'] = saleLineId;
     }
 
-    const ticketId = await this.odooRpc.callKw<number>('helpdesk.ticket', 'create', [payload], {});
+    const ticketId = await this.odooRpc.callKw<number>(
+      'helpdesk.ticket',
+      'create',
+      [payload],
+      {},
+    );
     if (!ticketId) {
       throw new ServiceUnavailableException(
         'Odoo devolvió false al crear el ticket — verificar sale_line_id y permisos del equipo',

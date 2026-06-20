@@ -78,7 +78,9 @@ describe('UsersService', () => {
       const result = await service.findAll();
 
       expect(result).toEqual([userResponse]);
-      expect(userRepository.find).toHaveBeenCalledWith({ order: { createdAt: 'ASC' } });
+      expect(userRepository.find).toHaveBeenCalledWith({
+        order: { createdAt: 'ASC' },
+      });
     });
   });
 
@@ -101,7 +103,9 @@ describe('UsersService', () => {
 
     it('crea usuario, hashea la contraseña y devuelve plainPassword', async () => {
       userRepository.findOne.mockResolvedValue(null);
-      (passwordUtil.generateRandomPassword as jest.Mock).mockReturnValue('plain123');
+      (passwordUtil.generateRandomPassword as jest.Mock).mockReturnValue(
+        'plain123',
+      );
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_plain123');
       userRepository.create.mockReturnValue(savedUser);
       userRepository.save.mockResolvedValue(savedUser);
@@ -152,14 +156,17 @@ describe('UsersService', () => {
     it('lanza NotFoundException si el usuario no existe', async () => {
       userRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.update('nonexistent', 'admin-id', dto)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.update('nonexistent', 'admin-id', dto),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('lanza ConflictException si el email ya pertenece a otro usuario', async () => {
       userRepository.findOne.mockResolvedValueOnce(mockUser);
-      userRepository.findOne.mockResolvedValueOnce({ ...mockUser, id: 'other-user' });
+      userRepository.findOne.mockResolvedValueOnce({
+        ...mockUser,
+        id: 'other-user',
+      });
 
       await expect(service.update('user-1', 'admin-id', dto)).rejects.toThrow(
         ConflictException,
@@ -175,13 +182,15 @@ describe('UsersService', () => {
       const result = await service.updateStatus('user-1', 'admin-id', false);
 
       expect(result.isActive).toBe(false);
-      expect(userRepository.update).toHaveBeenCalledWith('user-1', { isActive: false });
+      expect(userRepository.update).toHaveBeenCalledWith('user-1', {
+        isActive: false,
+      });
     });
 
     it('lanza ForbiddenException si el id coincide con el usuario actual', async () => {
-      await expect(service.updateStatus('user-1', 'user-1', false)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.updateStatus('user-1', 'user-1', false),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('lanza NotFoundException si el usuario no existe', async () => {
@@ -196,7 +205,9 @@ describe('UsersService', () => {
   describe('resetPassword', () => {
     it('genera nueva contraseña, setea mustChangePassword y devuelve solo el texto plano', async () => {
       userRepository.findOne.mockResolvedValue(mockUser);
-      (passwordUtil.generateRandomPassword as jest.Mock).mockReturnValue('newplain456');
+      (passwordUtil.generateRandomPassword as jest.Mock).mockReturnValue(
+        'newplain456',
+      );
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_newplain456');
       userRepository.update.mockResolvedValue({ affected: 1 });
 
@@ -218,9 +229,9 @@ describe('UsersService', () => {
     it('lanza NotFoundException si el usuario no existe', async () => {
       userRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.resetPassword('nonexistent', 'admin-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.resetPassword('nonexistent', 'admin-id'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

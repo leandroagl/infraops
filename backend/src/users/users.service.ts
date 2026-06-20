@@ -12,7 +12,10 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './user.entity';
 
-export type UserResponse = Omit<User, 'passwordHash' | 'lastLogoutAt' | 'technician'>;
+export type UserResponse = Omit<
+  User,
+  'passwordHash' | 'lastLogoutAt' | 'technician'
+>;
 export type CreateUserResponse = UserResponse & { plainPassword: string };
 
 @Injectable()
@@ -23,7 +26,9 @@ export class UsersService {
   ) {}
 
   async findAll(): Promise<UserResponse[]> {
-    const users = await this.userRepository.find({ order: { createdAt: 'ASC' } });
+    const users = await this.userRepository.find({
+      order: { createdAt: 'ASC' },
+    });
     return users.map((u) => this.toResponse(u));
   }
 
@@ -74,7 +79,7 @@ export class UsersService {
     }
 
     await this.userRepository.update(id, dto);
-    return this.toResponse({ ...user, ...dto } as User);
+    return this.toResponse({ ...user, ...dto });
   }
 
   async updateStatus(
@@ -111,7 +116,10 @@ export class UsersService {
     const plainPassword = generateRandomPassword();
     const passwordHash = await bcrypt.hash(plainPassword, 10);
 
-    await this.userRepository.update(id, { passwordHash, mustChangePassword: true });
+    await this.userRepository.update(id, {
+      passwordHash,
+      mustChangePassword: true,
+    });
     return { plainPassword };
   }
 

@@ -20,9 +20,11 @@ export class InfradocAssetsService {
 
   async getAssets(infradocClientId: number): Promise<RawInfradocAsset[]> {
     const baseUrl = process.env.INFRADOC_URL;
-    const apiKey  = process.env.INFRADOC_API_KEY;
+    const apiKey = process.env.INFRADOC_API_KEY;
     if (!baseUrl || !apiKey) {
-      throw new Error('INFRADOC_URL and INFRADOC_API_KEY deben estar configurados');
+      throw new Error(
+        'INFRADOC_URL and INFRADOC_API_KEY deben estar configurados',
+      );
     }
     const url = `${baseUrl}/api/v1/assets/read.php`;
     const response = await firstValueFrom(
@@ -44,9 +46,11 @@ export class InfradocAssetsService {
 
   async getAssetInterfaces(assetId: number): Promise<RawInfradocAsset[]> {
     const baseUrl = process.env.INFRADOC_URL;
-    const apiKey  = process.env.INFRADOC_API_KEY;
+    const apiKey = process.env.INFRADOC_API_KEY;
     if (!baseUrl || !apiKey) {
-      throw new Error('INFRADOC_URL and INFRADOC_API_KEY deben estar configurados');
+      throw new Error(
+        'INFRADOC_URL and INFRADOC_API_KEY deben estar configurados',
+      );
     }
     const url = `${baseUrl}/api/v1/assets/read.php`;
     const response = await firstValueFrom(

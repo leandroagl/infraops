@@ -65,7 +65,9 @@ describe('MaintenanceLogsService', () => {
   const mockPayload: ServerMaintenancePayload = {
     type: 'SERVER_MAINTENANCE',
     windows: {
-      servers: [{ serverId: 1, serverName: '47DC', rebootScript: 'ok', updates: 'ok' }],
+      servers: [
+        { serverId: 1, serverName: '47DC', rebootScript: 'ok', updates: 'ok' },
+      ],
       dcdiag: 'OK',
     },
   };
@@ -98,7 +100,10 @@ describe('MaintenanceLogsService', () => {
     const module = await Test.createTestingModule({
       providers: [
         MaintenanceLogsService,
-        { provide: getRepositoryToken(MaintenanceLog), useValue: logRepository },
+        {
+          provide: getRepositoryToken(MaintenanceLog),
+          useValue: logRepository,
+        },
         { provide: getRepositoryToken(Task), useValue: taskRepository },
         { provide: getRepositoryToken(User), useValue: userRepository },
       ],
@@ -112,7 +117,7 @@ describe('MaintenanceLogsService', () => {
     it('crea y devuelve el log con relaciones cargadas', async () => {
       taskRepository.findOne.mockResolvedValue(mockTask);
       logRepository.findOne
-        .mockResolvedValueOnce(null)     // comprueba duplicado
+        .mockResolvedValueOnce(null) // comprueba duplicado
         .mockResolvedValueOnce(mockLog); // loadLog
       userRepository.findOne.mockResolvedValue(mockUser);
       logRepository.create.mockReturnValue(mockLog);
@@ -120,9 +125,15 @@ describe('MaintenanceLogsService', () => {
 
       const result = await service.create('task-1', createDto, 'user-1');
 
-      expect(taskRepository.findOne).toHaveBeenCalledWith({ where: { id: 'task-1' } });
-      expect(logRepository.findOne).toHaveBeenCalledWith({ where: { taskId: 'task-1' } });
-      expect(userRepository.findOne).toHaveBeenCalledWith({ where: { id: 'user-1' } });
+      expect(taskRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'task-1' },
+      });
+      expect(logRepository.findOne).toHaveBeenCalledWith({
+        where: { taskId: 'task-1' },
+      });
+      expect(userRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+      });
       expect(logRepository.create).toHaveBeenCalledWith({
         taskId: 'task-1',
         technicianId: 'tech-1',
@@ -135,28 +146,31 @@ describe('MaintenanceLogsService', () => {
     it('lanza NotFoundException si la tarea no existe', async () => {
       taskRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.create('nonexistent', createDto, 'user-1')).rejects.toThrow(
-        'Tarea no encontrada',
-      );
+      await expect(
+        service.create('nonexistent', createDto, 'user-1'),
+      ).rejects.toThrow('Tarea no encontrada');
     });
 
     it('lanza ConflictException si ya existe un log para la tarea', async () => {
       taskRepository.findOne.mockResolvedValue(mockTask);
       logRepository.findOne.mockResolvedValue(mockLog);
 
-      await expect(service.create('task-1', createDto, 'user-1')).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(
+        service.create('task-1', createDto, 'user-1'),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('lanza ForbiddenException si el usuario no tiene perfil técnico', async () => {
       taskRepository.findOne.mockResolvedValue(mockTask);
       logRepository.findOne.mockResolvedValue(null);
-      userRepository.findOne.mockResolvedValue({ ...mockUser, technicianId: null });
+      userRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        technicianId: null,
+      });
 
-      await expect(service.create('task-1', createDto, 'user-1')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(
+        service.create('task-1', createDto, 'user-1'),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('lanza NotFoundException si el usuario no existe', async () => {
@@ -164,9 +178,9 @@ describe('MaintenanceLogsService', () => {
       logRepository.findOne.mockResolvedValue(null);
       userRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.create('task-1', createDto, 'user-1')).rejects.toThrow(
-        'Usuario no encontrado',
-      );
+      await expect(
+        service.create('task-1', createDto, 'user-1'),
+      ).rejects.toThrow('Usuario no encontrado');
     });
   });
 
@@ -177,7 +191,9 @@ describe('MaintenanceLogsService', () => {
 
       const result = await service.findByTaskId('task-1');
 
-      expect(taskRepository.findOne).toHaveBeenCalledWith({ where: { id: 'task-1' } });
+      expect(taskRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'task-1' },
+      });
       expect(logRepository.findOne).toHaveBeenCalledWith({
         where: { taskId: 'task-1' },
         relations: ['task', 'technician'],
@@ -188,7 +204,9 @@ describe('MaintenanceLogsService', () => {
     it('lanza NotFoundException si la tarea no existe', async () => {
       taskRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.findByTaskId('nonexistent')).rejects.toThrow('Tarea no encontrada');
+      await expect(service.findByTaskId('nonexistent')).rejects.toThrow(
+        'Tarea no encontrada',
+      );
     });
 
     it('lanza NotFoundException si la tarea no tiene log', async () => {
@@ -206,26 +224,40 @@ describe('MaintenanceLogsService', () => {
       const updatedPayload: ServerMaintenancePayload = {
         type: 'SERVER_MAINTENANCE',
         windows: {
-          servers: [{ serverId: 1, serverName: '47DC', rebootScript: 'error', updates: 'pending' }],
+          servers: [
+            {
+              serverId: 1,
+              serverName: '47DC',
+              rebootScript: 'error',
+              updates: 'pending',
+            },
+          ],
           dcdiag: 'OK',
         },
       };
       const updatedLog = { ...mockLog, payload: updatedPayload };
       taskRepository.findOne.mockResolvedValue(mockTask);
       logRepository.findOne
-        .mockResolvedValueOnce(mockLog)     // buscar por taskId
+        .mockResolvedValueOnce(mockLog) // buscar por taskId
         .mockResolvedValueOnce(updatedLog); // loadLog
       logRepository.update.mockResolvedValue({ affected: 1 });
 
       const dto: UpdateLogDto = { payload: updatedPayload };
       const result = await service.update('task-1', dto);
 
-      expect(logRepository.update).toHaveBeenCalledWith('log-1', { payload: dto.payload });
-      expect((result.payload as ServerMaintenancePayload).windows.servers[0].rebootScript).toBe('error');
+      expect(logRepository.update).toHaveBeenCalledWith('log-1', {
+        payload: dto.payload,
+      });
+      expect(
+        (result.payload as ServerMaintenancePayload).windows.servers[0]
+          .rebootScript,
+      ).toBe('error');
     });
 
     it('lanza BadRequestException si el body está vacío', async () => {
-      await expect(service.update('task-1', {})).rejects.toThrow(BadRequestException);
+      await expect(service.update('task-1', {})).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('lanza NotFoundException si la tarea no tiene log', async () => {
@@ -240,9 +272,9 @@ describe('MaintenanceLogsService', () => {
     it('lanza NotFoundException si la tarea no existe', async () => {
       taskRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.update('nonexistent', { notes: 'test' })).rejects.toThrow(
-        'Tarea no encontrada',
-      );
+      await expect(
+        service.update('nonexistent', { notes: 'test' }),
+      ).rejects.toThrow('Tarea no encontrada');
     });
   });
 });

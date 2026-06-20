@@ -5,7 +5,9 @@ export class UpdateTaskStatusDto {
   @IsEnum(TaskStatus)
   status: TaskStatus;
 
-  @ValidateIf((o) => o.status === TaskStatus.DONE || o.status === TaskStatus.NOT_DONE)
+  @ValidateIf(
+    (o) => o.status === TaskStatus.DONE || o.status === TaskStatus.NOT_DONE,
+  )
   @IsInt()
   @Min(1)
   timeSpentMinutes?: number;

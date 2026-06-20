@@ -42,7 +42,12 @@ export class Task {
   @Column({ type: 'timestamptz', nullable: true, default: null })
   completedDate: Date | null;
 
-  @Column({ name: 'odoo_ticket_id', type: 'int', nullable: true, default: null })
+  @Column({
+    name: 'odoo_ticket_id',
+    type: 'int',
+    nullable: true,
+    default: null,
+  })
   odooTicketId: number | null;
 
   @CreateDateColumn()

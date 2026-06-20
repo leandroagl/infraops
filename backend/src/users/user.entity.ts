@@ -35,7 +35,12 @@ export class User {
   @Column({ default: true })
   isActive: boolean;
 
-  @Column({ name: 'technician_id', type: 'uuid', nullable: true, default: null })
+  @Column({
+    name: 'technician_id',
+    type: 'uuid',
+    nullable: true,
+    default: null,
+  })
   technicianId: string | null;
 
   @OneToOne(() => Technician, (technician) => technician.user)
@@ -45,10 +50,20 @@ export class User {
   @Column({ name: 'odoo_user_id', type: 'int', nullable: true, default: null })
   odooUserId: number | null;
 
-  @Column({ name: 'odoo_synced_at', type: 'timestamptz', nullable: true, default: null })
+  @Column({
+    name: 'odoo_synced_at',
+    type: 'timestamptz',
+    nullable: true,
+    default: null,
+  })
   odooSyncedAt: Date | null;
 
-  @Column({ name: 'odoo_employee_id', type: 'int', nullable: true, default: null })
+  @Column({
+    name: 'odoo_employee_id',
+    type: 'int',
+    nullable: true,
+    default: null,
+  })
   odooEmployeeId: number | null;
 
   @CreateDateColumn()

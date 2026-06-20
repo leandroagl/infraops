@@ -44,7 +44,9 @@ export class InfradocService {
       );
     }
 
-    return (response.data.data as Record<string, unknown>[]).map((raw) => this.mapClient(raw));
+    return (response.data.data as Record<string, unknown>[]).map((raw) =>
+      this.mapClient(raw),
+    );
   }
 
   async getLocations(): Promise<InfradocLocation[]> {
@@ -92,12 +94,13 @@ export class InfradocService {
       rate: raw.client_rate ? Number(raw.client_rate) : null,
       currencyCode: (raw.client_currency_code as string) ?? null,
       netTerms: raw.client_net_terms ? Number(raw.client_net_terms) : null,
-      taxIdNumber: this.extractCuit(raw.client_type as string | null | undefined),
+      taxIdNumber: this.extractCuit(
+        raw.client_type as string | null | undefined,
+      ),
       isLead: raw.client_is_lead === 1 || raw.client_is_lead === '1',
       notes: (raw.client_notes as string) ?? null,
       isActive:
-        raw.client_archived_at === null ||
-        raw.client_archived_at === undefined,
+        raw.client_archived_at === null || raw.client_archived_at === undefined,
     };
   }
 }

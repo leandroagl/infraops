@@ -1,4 +1,10 @@
-import { IsDateString, IsInt, IsOptional, IsPositive, IsUUID } from 'class-validator';
+import {
+  IsDateString,
+  IsInt,
+  IsOptional,
+  IsPositive,
+  IsUUID,
+} from 'class-validator';
 
 export class UpdateTaskDto {
   @IsOptional()

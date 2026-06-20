@@ -1,9 +1,20 @@
-import { HttpException, HttpStatus, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cron } from '@nestjs/schedule';
 import { Repository } from 'typeorm';
 import { Client } from './client.entity';
-import { InfradocClient, InfradocLocation, InfradocService } from './infradoc/infradoc.service';
+import {
+  InfradocClient,
+  InfradocLocation,
+  InfradocService,
+} from './infradoc/infradoc.service';
 
 export interface SyncResult {
   created: number;
@@ -37,7 +48,9 @@ export class ClientsService implements OnModuleInit {
   }
 
   async findAll(): Promise<ClientResponse[]> {
-    const clients = await this.clientRepository.find({ order: { name: 'ASC' } });
+    const clients = await this.clientRepository.find({
+      order: { name: 'ASC' },
+    });
     return clients.map(({ infradocId, lastSyncedAt, ...rest }) => rest);
   }
 
@@ -67,11 +80,12 @@ export class ClientsService implements OnModuleInit {
       }
     }
 
-    const [infradocClients, localClients, infradocLocations] = await Promise.all([
-      this.infradocService.getClients(),
-      this.clientRepository.find(),
-      this.infradocService.getLocations(),
-    ]);
+    const [infradocClients, localClients, infradocLocations] =
+      await Promise.all([
+        this.infradocService.getClients(),
+        this.clientRepository.find(),
+        this.infradocService.getLocations(),
+      ]);
 
     const primaryAddressMap = new Map<number, string>();
     for (const loc of infradocLocations) {
@@ -81,7 +95,9 @@ export class ClientsService implements OnModuleInit {
       }
     }
 
-    const localByInfradocId = new Map(localClients.map((c) => [c.infradocId, c]));
+    const localByInfradocId = new Map(
+      localClients.map((c) => [c.infradocId, c]),
+    );
     const infradocIds = new Set(infradocClients.map((c) => c.infradocId));
 
     let created = 0;
@@ -90,7 +106,8 @@ export class ClientsService implements OnModuleInit {
 
     for (const remote of infradocClients) {
       const local = localByInfradocId.get(remote.infradocId);
-      const newPrimaryAddress = primaryAddressMap.get(remote.infradocId) ?? null;
+      const newPrimaryAddress =
+        primaryAddressMap.get(remote.infradocId) ?? null;
 
       if (!local) {
         await this.clientRepository.save(
@@ -137,7 +154,10 @@ export class ClientsService implements OnModuleInit {
       const result = await this.syncWithInfradoc(true);
       this.logger.log(`Sync periódico completado: ${JSON.stringify(result)}`);
     } catch (err: unknown) {
-      this.logger.error('Sync periódico fallido — InfraDoc puede no estar disponible', err);
+      this.logger.error(
+        'Sync periódico fallido — InfraDoc puede no estar disponible',
+        err,
+      );
     }
   }
 

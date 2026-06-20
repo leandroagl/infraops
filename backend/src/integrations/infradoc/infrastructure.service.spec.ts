@@ -1,38 +1,46 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { ClientsService } from '../../clients/clients.service';
-import { InfradocAssetsService, RawInfradocAsset } from './infradoc-assets.service';
+import {
+  InfradocAssetsService,
+  RawInfradocAsset,
+} from './infradoc-assets.service';
 import { InfrastructureService } from './infrastructure.service';
 
 describe('InfrastructureService', () => {
   let service: InfrastructureService;
   let clientsService: { findInfradocId: jest.Mock };
-  let infradocAssetsService: { getAssets: jest.Mock; getAssetInterfaces: jest.Mock };
+  let infradocAssetsService: {
+    getAssets: jest.Mock;
+    getAssetInterfaces: jest.Mock;
+  };
 
-  const makeAsset = (override: Partial<RawInfradocAsset> = {}): RawInfradocAsset => ({
-    asset_id:          '1',
-    asset_name:        'host1.kemini',
-    asset_type:        'Server',
-    asset_make:        'HPE',
+  const makeAsset = (
+    override: Partial<RawInfradocAsset> = {},
+  ): RawInfradocAsset => ({
+    asset_id: '1',
+    asset_name: 'host1.kemini',
+    asset_type: 'Server',
+    asset_make: 'HPE',
     asset_description: null,
-    interface_ip:      '192.168.0.104',
-    interface_name:    null,
-    asset_os:          'VMware ESXi 7.0.0',
-    asset_model:       'ProLiant DL380 Gen10',
+    interface_ip: '192.168.0.104',
+    interface_name: null,
+    asset_os: 'VMware ESXi 7.0.0',
+    asset_model: 'ProLiant DL380 Gen10',
     ...override,
-  } as RawInfradocAsset);
+  });
 
   beforeEach(async () => {
-    clientsService        = { findInfradocId: jest.fn().mockResolvedValue(42) };
+    clientsService = { findInfradocId: jest.fn().mockResolvedValue(42) };
     infradocAssetsService = {
-      getAssets:          jest.fn().mockResolvedValue([]),
+      getAssets: jest.fn().mockResolvedValue([]),
       getAssetInterfaces: jest.fn().mockResolvedValue([]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InfrastructureService,
-        { provide: ClientsService,        useValue: clientsService },
+        { provide: ClientsService, useValue: clientsService },
         { provide: InfradocAssetsService, useValue: infradocAssetsService },
       ],
     }).compile();
@@ -60,7 +68,12 @@ describe('InfrastructureService', () => {
 
   it('agrupa hosts ESXi (asset_type=Server) en esxiHosts', async () => {
     infradocAssetsService.getAssets.mockResolvedValue([
-      makeAsset({ asset_id: '2', asset_name: 'host1.kemini', asset_type: 'Server', asset_os: 'VMware ESXi 7.0.0' }),
+      makeAsset({
+        asset_id: '2',
+        asset_name: 'host1.kemini',
+        asset_type: 'Server',
+        asset_os: 'VMware ESXi 7.0.0',
+      }),
     ]);
 
     const result = await service.getClientInfrastructure('uuid-1');
@@ -68,12 +81,12 @@ describe('InfrastructureService', () => {
     expect(result.esxiHosts).toHaveLength(1);
     expect(result.esxiHosts[0]).toEqual({
       assetId: 2,
-      name:    'host1.kemini',
-      ip:      '192.168.0.104',
-      bmcIp:   null,
+      name: 'host1.kemini',
+      ip: '192.168.0.104',
+      bmcIp: null,
       bmcType: null,
-      os:      'VMware ESXi 7.0.0',
-      model:   'ProLiant DL380 Gen10',
+      os: 'VMware ESXi 7.0.0',
+      model: 'ProLiant DL380 Gen10',
     });
     expect(result.windowsVMs).toHaveLength(0);
     expect(result.nas).toHaveLength(0);
@@ -82,8 +95,22 @@ describe('InfrastructureService', () => {
 
   it('agrupa Virtual Machine con Windows Server SIN description DC en windowsVMs', async () => {
     infradocAssetsService.getAssets.mockResolvedValue([
-      makeAsset({ asset_id: '3', asset_name: 'SRV-FILE', asset_type: 'Virtual Machine', asset_os: 'Windows Server 2019', asset_make: null, asset_description: null }),
-      makeAsset({ asset_id: '4', asset_name: 'SRV-APP',  asset_type: 'Virtual Machine', asset_os: 'Windows Server 2022', asset_make: null, asset_description: '' }),
+      makeAsset({
+        asset_id: '3',
+        asset_name: 'SRV-FILE',
+        asset_type: 'Virtual Machine',
+        asset_os: 'Windows Server 2019',
+        asset_make: null,
+        asset_description: null,
+      }),
+      makeAsset({
+        asset_id: '4',
+        asset_name: 'SRV-APP',
+        asset_type: 'Virtual Machine',
+        asset_os: 'Windows Server 2022',
+        asset_make: null,
+        asset_description: '',
+      }),
     ]);
 
     const result = await service.getClientInfrastructure('uuid-1');
@@ -96,7 +123,13 @@ describe('InfrastructureService', () => {
 
   it('ignora Virtual Machine con Windows 10 (no es Windows Server)', async () => {
     infradocAssetsService.getAssets.mockResolvedValue([
-      makeAsset({ asset_id: '5', asset_name: 'SOPORTE NEO', asset_type: 'Virtual Machine', asset_os: 'Windows 10 Pro', asset_make: null }),
+      makeAsset({
+        asset_id: '5',
+        asset_name: 'SOPORTE NEO',
+        asset_type: 'Virtual Machine',
+        asset_os: 'Windows 10 Pro',
+        asset_make: null,
+      }),
     ]);
 
     const result = await service.getClientInfrastructure('uuid-1');
@@ -107,7 +140,13 @@ describe('InfrastructureService', () => {
 
   it('agrupa QNAP (asset_type=Other, asset_make=QNAP) en nas', async () => {
     infradocAssetsService.getAssets.mockResolvedValue([
-      makeAsset({ asset_id: '10', asset_name: 'QNAP', asset_type: 'Other', asset_make: 'QNAP', asset_os: null }),
+      makeAsset({
+        asset_id: '10',
+        asset_name: 'QNAP',
+        asset_type: 'Other',
+        asset_make: 'QNAP',
+        asset_os: null,
+      }),
     ]);
 
     const result = await service.getClientInfrastructure('uuid-1');
@@ -119,8 +158,18 @@ describe('InfrastructureService', () => {
 
   it('agrupa Firewall/Router en routers', async () => {
     infradocAssetsService.getAssets.mockResolvedValue([
-      makeAsset({ asset_id: '1', asset_name: 'MikroTik MASTER', asset_type: 'Firewall/Router', asset_os: null }),
-      makeAsset({ asset_id: '2', asset_name: 'MikroTik BACKUP', asset_type: 'Firewall/Router', asset_os: null }),
+      makeAsset({
+        asset_id: '1',
+        asset_name: 'MikroTik MASTER',
+        asset_type: 'Firewall/Router',
+        asset_os: null,
+      }),
+      makeAsset({
+        asset_id: '2',
+        asset_name: 'MikroTik BACKUP',
+        asset_type: 'Firewall/Router',
+        asset_os: null,
+      }),
     ]);
 
     const result = await service.getClientInfrastructure('uuid-1');
@@ -199,9 +248,23 @@ describe('InfrastructureService', () => {
 
     it('NO llama a getAssetInterfaces para Virtual Machines ni NAS ni Routers', async () => {
       infradocAssetsService.getAssets.mockResolvedValue([
-        makeAsset({ asset_id: '3', asset_type: 'Virtual Machine', asset_os: 'Windows Server 2019', asset_make: null }),
-        makeAsset({ asset_id: '10', asset_type: 'Other', asset_make: 'QNAP', asset_os: null }),
-        makeAsset({ asset_id: '1', asset_type: 'Firewall/Router', asset_os: null }),
+        makeAsset({
+          asset_id: '3',
+          asset_type: 'Virtual Machine',
+          asset_os: 'Windows Server 2019',
+          asset_make: null,
+        }),
+        makeAsset({
+          asset_id: '10',
+          asset_type: 'Other',
+          asset_make: 'QNAP',
+          asset_os: null,
+        }),
+        makeAsset({
+          asset_id: '1',
+          asset_type: 'Firewall/Router',
+          asset_os: null,
+        }),
       ]);
 
       await service.getClientInfrastructure('uuid-1');
@@ -214,8 +277,8 @@ describe('InfrastructureService', () => {
         makeAsset({ asset_id: '2', asset_type: 'Server' }),
       ]);
       infradocAssetsService.getAssetInterfaces.mockResolvedValue([
-        makeAsset({ interface_name: 'VMware',  interface_ip: '192.168.0.104' }),
-        makeAsset({ interface_name: 'iLO',     interface_ip: '192.168.0.200' }),
+        makeAsset({ interface_name: 'VMware', interface_ip: '192.168.0.104' }),
+        makeAsset({ interface_name: 'iLO', interface_ip: '192.168.0.200' }),
       ]);
 
       const result = await service.getClientInfrastructure('uuid-1');
@@ -314,9 +377,12 @@ describe('InfrastructureService', () => {
     it('mueve VM con description "Domain Controller" a domainControllers', async () => {
       infradocAssetsService.getAssets.mockResolvedValue([
         makeAsset({
-          asset_id: '5', asset_name: 'DC01',
-          asset_type: 'Virtual Machine', asset_os: 'Windows Server 2022',
-          asset_make: null, asset_description: 'Domain Controller',
+          asset_id: '5',
+          asset_name: 'DC01',
+          asset_type: 'Virtual Machine',
+          asset_os: 'Windows Server 2022',
+          asset_make: null,
+          asset_description: 'Domain Controller',
         }),
       ]);
 
@@ -330,9 +396,12 @@ describe('InfrastructureService', () => {
     it('detecta DC con description en minúsculas', async () => {
       infradocAssetsService.getAssets.mockResolvedValue([
         makeAsset({
-          asset_id: '6', asset_name: 'DC02',
-          asset_type: 'Virtual Machine', asset_os: 'Windows Server 2019',
-          asset_make: null, asset_description: 'domain controller - Primary',
+          asset_id: '6',
+          asset_name: 'DC02',
+          asset_type: 'Virtual Machine',
+          asset_os: 'Windows Server 2019',
+          asset_make: null,
+          asset_description: 'domain controller - Primary',
         }),
       ]);
 
@@ -345,8 +414,22 @@ describe('InfrastructureService', () => {
 
     it('separa correctamente DCs y VMs no-DC cuando ambos están presentes', async () => {
       infradocAssetsService.getAssets.mockResolvedValue([
-        makeAsset({ asset_id: '3', asset_name: 'SRV-FILE', asset_type: 'Virtual Machine', asset_os: 'Windows Server 2019', asset_make: null, asset_description: null }),
-        makeAsset({ asset_id: '5', asset_name: 'DC01',     asset_type: 'Virtual Machine', asset_os: 'Windows Server 2022', asset_make: null, asset_description: 'Domain Controller' }),
+        makeAsset({
+          asset_id: '3',
+          asset_name: 'SRV-FILE',
+          asset_type: 'Virtual Machine',
+          asset_os: 'Windows Server 2019',
+          asset_make: null,
+          asset_description: null,
+        }),
+        makeAsset({
+          asset_id: '5',
+          asset_name: 'DC01',
+          asset_type: 'Virtual Machine',
+          asset_os: 'Windows Server 2022',
+          asset_make: null,
+          asset_description: 'Domain Controller',
+        }),
       ]);
 
       const result = await service.getClientInfrastructure('uuid-1');

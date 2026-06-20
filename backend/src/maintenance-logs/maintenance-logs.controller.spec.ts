@@ -71,7 +71,9 @@ describe('MaintenanceLogsController', () => {
 
     const module = await Test.createTestingModule({
       controllers: [MaintenanceLogsController],
-      providers: [{ provide: MaintenanceLogsService, useValue: maintenanceLogsService }],
+      providers: [
+        { provide: MaintenanceLogsService, useValue: maintenanceLogsService },
+      ],
     }).compile();
 
     controller = module.get(MaintenanceLogsController);
@@ -87,28 +89,36 @@ describe('MaintenanceLogsController', () => {
 
       const result = await controller.create('task-1', dto, mockUser);
 
-      expect(maintenanceLogsService.create).toHaveBeenCalledWith('task-1', dto, 'user-1');
+      expect(maintenanceLogsService.create).toHaveBeenCalledWith(
+        'task-1',
+        dto,
+        'user-1',
+      );
       expect(result).toEqual(mockLog);
     });
 
     it('propaga NotFoundException si la tarea no existe', async () => {
       maintenanceLogsService.create.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.create('nonexistent', dto, mockUser)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        controller.create('nonexistent', dto, mockUser),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('propaga ConflictException si ya existe un log', async () => {
       maintenanceLogsService.create.mockRejectedValue(new ConflictException());
 
-      await expect(controller.create('task-1', dto, mockUser)).rejects.toThrow(ConflictException);
+      await expect(controller.create('task-1', dto, mockUser)).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it('propaga ForbiddenException si el usuario no tiene perfil técnico', async () => {
       maintenanceLogsService.create.mockRejectedValue(new ForbiddenException());
 
-      await expect(controller.create('task-1', dto, mockUser)).rejects.toThrow(ForbiddenException);
+      await expect(controller.create('task-1', dto, mockUser)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -118,14 +128,20 @@ describe('MaintenanceLogsController', () => {
 
       const result = await controller.findByTaskId('task-1');
 
-      expect(maintenanceLogsService.findByTaskId).toHaveBeenCalledWith('task-1');
+      expect(maintenanceLogsService.findByTaskId).toHaveBeenCalledWith(
+        'task-1',
+      );
       expect(result).toEqual(mockLog);
     });
 
     it('propaga NotFoundException si la tarea no existe o no tiene log', async () => {
-      maintenanceLogsService.findByTaskId.mockRejectedValue(new NotFoundException());
+      maintenanceLogsService.findByTaskId.mockRejectedValue(
+        new NotFoundException(),
+      );
 
-      await expect(controller.findByTaskId('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(controller.findByTaskId('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -145,13 +161,19 @@ describe('MaintenanceLogsController', () => {
     it('propaga NotFoundException si la tarea no tiene log', async () => {
       maintenanceLogsService.update.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.update('task-1', dto)).rejects.toThrow(NotFoundException);
+      await expect(controller.update('task-1', dto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('propaga BadRequestException si el body está vacío', async () => {
-      maintenanceLogsService.update.mockRejectedValue(new BadRequestException());
+      maintenanceLogsService.update.mockRejectedValue(
+        new BadRequestException(),
+      );
 
-      await expect(controller.update('task-1', {})).rejects.toThrow(BadRequestException);
+      await expect(controller.update('task-1', {})).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 });

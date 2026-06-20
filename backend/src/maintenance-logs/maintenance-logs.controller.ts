@@ -22,7 +22,9 @@ import { MaintenanceLogsService } from './maintenance-logs.service';
 @Controller('tasks/:taskId/log')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class MaintenanceLogsController {
-  constructor(private readonly maintenanceLogsService: MaintenanceLogsService) {}
+  constructor(
+    private readonly maintenanceLogsService: MaintenanceLogsService,
+  ) {}
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.TL, UserRole.TECHNICIAN)

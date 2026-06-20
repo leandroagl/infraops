@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { Client } from '../clients/client.entity';
 import { Technician } from '../technicians/technician.entity';
@@ -95,7 +92,7 @@ describe('TasksController', () => {
     it('llama a tasksService.findAll con objeto vacío si no hay filtros', async () => {
       tasksService.findAll.mockResolvedValue([]);
 
-      await controller.findAll({} as FilterTasksDto);
+      await controller.findAll({});
 
       expect(tasksService.findAll).toHaveBeenCalledWith({});
     });
@@ -141,13 +138,17 @@ describe('TasksController', () => {
     it('propaga NotFoundException si la tarea no existe', async () => {
       tasksService.update.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.update('nonexistent', dto)).rejects.toThrow(NotFoundException);
+      await expect(controller.update('nonexistent', dto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('propaga BadRequestException si el body está vacío', async () => {
       tasksService.update.mockRejectedValue(new BadRequestException());
 
-      await expect(controller.update('task-1', {})).rejects.toThrow(BadRequestException);
+      await expect(controller.update('task-1', {})).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -160,30 +161,45 @@ describe('TasksController', () => {
 
       const result = await controller.updateStatus('task-1', dto);
 
-      expect(tasksService.updateStatus).toHaveBeenCalledWith('task-1', TaskStatus.IN_PROGRESS, undefined);
+      expect(tasksService.updateStatus).toHaveBeenCalledWith(
+        'task-1',
+        TaskStatus.IN_PROGRESS,
+        undefined,
+      );
       expect(result).toEqual(updated);
     });
 
     it('pasa timeSpentMinutes cuando está presente en el dto', async () => {
-      const dtoWithTime: UpdateTaskStatusDto = { status: TaskStatus.DONE, timeSpentMinutes: 90 };
+      const dtoWithTime: UpdateTaskStatusDto = {
+        status: TaskStatus.DONE,
+        timeSpentMinutes: 90,
+      };
       const updated = { ...mockTask, status: TaskStatus.DONE };
       tasksService.updateStatus.mockResolvedValue(updated);
 
       await controller.updateStatus('task-1', dtoWithTime);
 
-      expect(tasksService.updateStatus).toHaveBeenCalledWith('task-1', TaskStatus.DONE, 90);
+      expect(tasksService.updateStatus).toHaveBeenCalledWith(
+        'task-1',
+        TaskStatus.DONE,
+        90,
+      );
     });
 
     it('propaga NotFoundException si la tarea no existe', async () => {
       tasksService.updateStatus.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.updateStatus('nonexistent', dto)).rejects.toThrow(NotFoundException);
+      await expect(controller.updateStatus('nonexistent', dto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('propaga BadRequestException en transición inválida', async () => {
       tasksService.updateStatus.mockRejectedValue(new BadRequestException());
 
-      await expect(controller.updateStatus('task-1', dto)).rejects.toThrow(BadRequestException);
+      await expect(controller.updateStatus('task-1', dto)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -200,7 +216,9 @@ describe('TasksController', () => {
     it('propaga NotFoundException si la tarea no existe', async () => {
       tasksService.remove.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.remove('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(controller.remove('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

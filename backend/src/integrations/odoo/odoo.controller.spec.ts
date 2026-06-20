@@ -13,8 +13,15 @@ describe('OdooController', () => {
     getSyncStatus: jest.Mock;
   };
 
-  const mockSyncResult: OdooSyncResult = { matched: 10, unmatched: ['Sin CUIT'], total: 11 };
-  const mockStatus: OdooSyncStatusDto = { clientsWithoutOdooId: 3, techniciansWithoutOdooId: 1 };
+  const mockSyncResult: OdooSyncResult = {
+    matched: 10,
+    unmatched: ['Sin CUIT'],
+    total: 11,
+  };
+  const mockStatus: OdooSyncStatusDto = {
+    clientsWithoutOdooId: 3,
+    techniciansWithoutOdooId: 1,
+  };
 
   beforeEach(async () => {
     odooService = {
@@ -25,10 +32,7 @@ describe('OdooController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OdooController],
-      providers: [
-        { provide: OdooService, useValue: odooService },
-        Reflector,
-      ],
+      providers: [{ provide: OdooService, useValue: odooService }, Reflector],
     }).compile();
 
     controller = module.get<OdooController>(OdooController);

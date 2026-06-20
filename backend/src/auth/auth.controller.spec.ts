@@ -9,7 +9,11 @@ import { LoginResponseDto } from './dto/login-response.dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: { login: jest.Mock; logout: jest.Mock; changePassword: jest.Mock };
+  let authService: {
+    login: jest.Mock;
+    logout: jest.Mock;
+    changePassword: jest.Mock;
+  };
 
   const currentUser: JwtPayload = {
     sub: 'user-1',

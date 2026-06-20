@@ -103,8 +103,14 @@ describe('TasksService', () => {
         TasksService,
         { provide: getRepositoryToken(Task), useValue: taskRepository },
         { provide: getRepositoryToken(Client), useValue: clientRepository },
-        { provide: getRepositoryToken(Technician), useValue: technicianRepository },
-        { provide: getRepositoryToken(MaintenanceLog), useValue: logRepository },
+        {
+          provide: getRepositoryToken(Technician),
+          useValue: technicianRepository,
+        },
+        {
+          provide: getRepositoryToken(MaintenanceLog),
+          useValue: logRepository,
+        },
         { provide: OdooService, useValue: odooService },
       ],
     }).compile();
@@ -117,7 +123,7 @@ describe('TasksService', () => {
     it('retorna todas las tareas sin filtros', async () => {
       taskRepository.find.mockResolvedValue([mockTask]);
 
-      const result = await service.findAll({} as FilterTasksDto);
+      const result = await service.findAll({});
 
       expect(taskRepository.find).toHaveBeenCalledWith({
         where: {},
@@ -131,7 +137,7 @@ describe('TasksService', () => {
     it('aplica filtro por status cuando se provee', async () => {
       taskRepository.find.mockResolvedValue([]);
 
-      await service.findAll({ status: TaskStatus.PENDING } as FilterTasksDto);
+      await service.findAll({ status: TaskStatus.PENDING });
 
       expect(taskRepository.find).toHaveBeenCalledWith({
         where: { status: TaskStatus.PENDING },
@@ -143,7 +149,7 @@ describe('TasksService', () => {
     it('aplica filtro por clientId cuando se provee', async () => {
       taskRepository.find.mockResolvedValue([]);
 
-      await service.findAll({ clientId: 'client-1' } as FilterTasksDto);
+      await service.findAll({ clientId: 'client-1' });
 
       expect(taskRepository.find).toHaveBeenCalledWith({
         where: { clientId: 'client-1' },
@@ -155,7 +161,7 @@ describe('TasksService', () => {
     it('aplica filtro por technicianId cuando se provee', async () => {
       taskRepository.find.mockResolvedValue([]);
 
-      await service.findAll({ technicianId: 'tech-1' } as FilterTasksDto);
+      await service.findAll({ technicianId: 'tech-1' });
 
       expect(taskRepository.find).toHaveBeenCalledWith({
         where: { technicianId: 'tech-1' },
@@ -167,7 +173,9 @@ describe('TasksService', () => {
     it('aplica filtro por type cuando se provee', async () => {
       taskRepository.find.mockResolvedValue([mockTask]);
 
-      await service.findAll({ type: TaskType.SERVER_MAINTENANCE } as FilterTasksDto);
+      await service.findAll({
+        type: TaskType.SERVER_MAINTENANCE,
+      });
 
       expect(taskRepository.find).toHaveBeenCalledWith({
         where: { type: TaskType.SERVER_MAINTENANCE },
@@ -191,11 +199,17 @@ describe('TasksService', () => {
       odooService.createTicket.mockResolvedValue(42);
       taskRepository.create.mockReturnValue({ ...mockTask, odooTicketId: 42 });
       taskRepository.save.mockResolvedValue({ ...mockTask, odooTicketId: 42 });
-      taskRepository.findOne.mockResolvedValue({ ...mockTask, odooTicketId: 42 });
+      taskRepository.findOne.mockResolvedValue({
+        ...mockTask,
+        odooTicketId: 42,
+      });
 
       const result = await service.create(createDto);
 
-      expect(odooService.createTicket).toHaveBeenCalledWith('client-1', 'tech-1');
+      expect(odooService.createTicket).toHaveBeenCalledWith(
+        'client-1',
+        'tech-1',
+      );
       expect(taskRepository.create).toHaveBeenCalledWith({
         clientId: 'client-1',
         technicianId: 'tech-1',
@@ -214,7 +228,9 @@ describe('TasksService', () => {
         new ServiceUnavailableException('Odoo no disponible'),
       );
 
-      await expect(service.create(createDto)).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.create(createDto)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
 
       expect(taskRepository.save).not.toHaveBeenCalled();
     });
@@ -222,14 +238,18 @@ describe('TasksService', () => {
     it('lanza NotFoundException con mensaje si el cliente no existe', async () => {
       clientRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.create(createDto)).rejects.toThrow('Cliente no encontrado');
+      await expect(service.create(createDto)).rejects.toThrow(
+        'Cliente no encontrado',
+      );
     });
 
     it('lanza NotFoundException con mensaje si el técnico no existe', async () => {
       clientRepository.findOne.mockResolvedValue(mockClient);
       technicianRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.create(createDto)).rejects.toThrow('Técnico no encontrado');
+      await expect(service.create(createDto)).rejects.toThrow(
+        'Técnico no encontrado',
+      );
     });
   });
 
@@ -244,29 +264,33 @@ describe('TasksService', () => {
 
       const result = await service.update('task-1', { technicianId: 'tech-2' });
 
-      expect(taskRepository.update).toHaveBeenCalledWith('task-1', { technicianId: 'tech-2' });
+      expect(taskRepository.update).toHaveBeenCalledWith('task-1', {
+        technicianId: 'tech-2',
+      });
       expect(result.technicianId).toBe('tech-2');
     });
 
     it('lanza BadRequestException si el body está vacío', async () => {
-      await expect(service.update('task-1', {})).rejects.toThrow(BadRequestException);
+      await expect(service.update('task-1', {})).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('lanza NotFoundException si la tarea no existe', async () => {
       taskRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.update('nonexistent', { scheduledDate: '2026-07-01' })).rejects.toThrow(
-        'Tarea no encontrada',
-      );
+      await expect(
+        service.update('nonexistent', { scheduledDate: '2026-07-01' }),
+      ).rejects.toThrow('Tarea no encontrada');
     });
 
     it('lanza NotFoundException si el technicianId nuevo no existe', async () => {
       taskRepository.findOne.mockResolvedValue(mockTask);
       technicianRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.update('task-1', { technicianId: 'nonexistent' })).rejects.toThrow(
-        'Técnico no encontrado',
-      );
+      await expect(
+        service.update('task-1', { technicianId: 'nonexistent' }),
+      ).rejects.toThrow('Técnico no encontrado');
     });
   });
 
@@ -277,7 +301,10 @@ describe('TasksService', () => {
         .mockResolvedValueOnce({ ...mockTask, status: TaskStatus.IN_PROGRESS });
       taskRepository.update.mockResolvedValue({ affected: 1 });
 
-      const result = await service.updateStatus('task-1', TaskStatus.IN_PROGRESS);
+      const result = await service.updateStatus(
+        'task-1',
+        TaskStatus.IN_PROGRESS,
+      );
 
       expect(taskRepository.update).toHaveBeenCalledWith('task-1', {
         status: TaskStatus.IN_PROGRESS,
@@ -291,7 +318,11 @@ describe('TasksService', () => {
       jest.useFakeTimers().setSystemTime(now);
       taskRepository.findOne
         .mockResolvedValueOnce(mockTask)
-        .mockResolvedValueOnce({ ...mockTask, status: TaskStatus.NOT_DONE, completedDate: now });
+        .mockResolvedValueOnce({
+          ...mockTask,
+          status: TaskStatus.NOT_DONE,
+          completedDate: now,
+        });
       taskRepository.update.mockResolvedValue({ affected: 1 });
 
       const result = await service.updateStatus('task-1', TaskStatus.NOT_DONE);
@@ -311,7 +342,11 @@ describe('TasksService', () => {
       jest.useFakeTimers().setSystemTime(now);
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
-        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE, completedDate: now });
+        .mockResolvedValueOnce({
+          ...inProgressTask,
+          status: TaskStatus.DONE,
+          completedDate: now,
+        });
       taskRepository.update.mockResolvedValue({ affected: 1 });
 
       const result = await service.updateStatus('task-1', TaskStatus.DONE);
@@ -331,7 +366,11 @@ describe('TasksService', () => {
       jest.useFakeTimers().setSystemTime(now);
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
-        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.ESCALATED, completedDate: now });
+        .mockResolvedValueOnce({
+          ...inProgressTask,
+          status: TaskStatus.ESCALATED,
+          completedDate: now,
+        });
       taskRepository.update.mockResolvedValue({ affected: 1 });
 
       await service.updateStatus('task-1', TaskStatus.ESCALATED);
@@ -347,34 +386,34 @@ describe('TasksService', () => {
     it('lanza BadRequestException en transición inválida PENDING → DONE', async () => {
       taskRepository.findOne.mockResolvedValue(mockTask);
 
-      await expect(service.updateStatus('task-1', TaskStatus.DONE)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.updateStatus('task-1', TaskStatus.DONE),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('lanza BadRequestException en transición inválida PENDING → ESCALATED', async () => {
       taskRepository.findOne.mockResolvedValue(mockTask);
 
-      await expect(service.updateStatus('task-1', TaskStatus.ESCALATED)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.updateStatus('task-1', TaskStatus.ESCALATED),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('lanza BadRequestException si la tarea ya está en estado terminal', async () => {
       const doneTask = { ...mockTask, status: TaskStatus.DONE };
       taskRepository.findOne.mockResolvedValue(doneTask);
 
-      await expect(service.updateStatus('task-1', TaskStatus.PENDING)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.updateStatus('task-1', TaskStatus.PENDING),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('lanza NotFoundException si la tarea no existe', async () => {
       taskRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.updateStatus('nonexistent', TaskStatus.IN_PROGRESS)).rejects.toThrow(
-        'Tarea no encontrada',
-      );
+      await expect(
+        service.updateStatus('nonexistent', TaskStatus.IN_PROGRESS),
+      ).rejects.toThrow('Tarea no encontrada');
     });
 
     it('llama closeTicket al transicionar a DONE cuando la tarea tiene odooTicketId', async () => {
@@ -406,7 +445,10 @@ describe('TasksService', () => {
       };
       taskRepository.findOne
         .mockResolvedValueOnce(taskWithTicket)
-        .mockResolvedValueOnce({ ...taskWithTicket, status: TaskStatus.NOT_DONE });
+        .mockResolvedValueOnce({
+          ...taskWithTicket,
+          status: TaskStatus.NOT_DONE,
+        });
       odooService.resolveEmployeeId.mockResolvedValue(22);
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
@@ -417,7 +459,11 @@ describe('TasksService', () => {
     });
 
     it('no llama closeTicket cuando odooTicketId es null', async () => {
-      const inProgressTask = { ...mockTask, status: TaskStatus.IN_PROGRESS, odooTicketId: null };
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: null,
+      };
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
         .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
@@ -430,10 +476,17 @@ describe('TasksService', () => {
     });
 
     it('no llama closeTicket al transicionar a ESCALATED', async () => {
-      const inProgressTask = { ...mockTask, status: TaskStatus.IN_PROGRESS, odooTicketId: 42 };
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+      };
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
-        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.ESCALATED });
+        .mockResolvedValueOnce({
+          ...inProgressTask,
+          status: TaskStatus.ESCALATED,
+        });
       taskRepository.update.mockResolvedValue({ affected: 1 });
 
       await service.updateStatus('task-1', TaskStatus.ESCALATED);
@@ -450,11 +503,13 @@ describe('TasksService', () => {
       };
       taskRepository.findOne.mockResolvedValueOnce(inProgressTask);
       odooService.resolveEmployeeId.mockResolvedValue(22);
-      odooService.closeTicket.mockRejectedValue(new ServiceUnavailableException('Odoo caído'));
-
-      await expect(service.updateStatus('task-1', TaskStatus.DONE, 90)).rejects.toThrow(
-        ServiceUnavailableException,
+      odooService.closeTicket.mockRejectedValue(
+        new ServiceUnavailableException('Odoo caído'),
       );
+
+      await expect(
+        service.updateStatus('task-1', TaskStatus.DONE, 90),
+      ).rejects.toThrow(ServiceUnavailableException);
       expect(taskRepository.update).not.toHaveBeenCalled();
     });
 
@@ -468,9 +523,9 @@ describe('TasksService', () => {
       taskRepository.findOne.mockResolvedValueOnce(inProgressTask);
       odooService.resolveEmployeeId.mockResolvedValue(null);
 
-      await expect(service.updateStatus('task-1', TaskStatus.DONE, 90)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.updateStatus('task-1', TaskStatus.DONE, 90),
+      ).rejects.toThrow(BadRequestException);
       expect(taskRepository.update).not.toHaveBeenCalled();
     });
 
@@ -490,10 +545,17 @@ describe('TasksService', () => {
     });
 
     it('llama markTicketInProgress al transicionar a IN_PROGRESS cuando la tarea tiene odooTicketId', async () => {
-      const pendingTaskWithTicket = { ...mockTask, status: TaskStatus.PENDING, odooTicketId: 42 };
+      const pendingTaskWithTicket = {
+        ...mockTask,
+        status: TaskStatus.PENDING,
+        odooTicketId: 42,
+      };
       taskRepository.findOne
         .mockResolvedValueOnce(pendingTaskWithTicket)
-        .mockResolvedValueOnce({ ...pendingTaskWithTicket, status: TaskStatus.IN_PROGRESS });
+        .mockResolvedValueOnce({
+          ...pendingTaskWithTicket,
+          status: TaskStatus.IN_PROGRESS,
+        });
       odooService.markTicketInProgress.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
 
@@ -514,7 +576,12 @@ describe('TasksService', () => {
     });
 
     it('no llama markTicketInProgress al transicionar a DONE', async () => {
-      const inProgressTask = { ...mockTask, status: TaskStatus.IN_PROGRESS, odooTicketId: 42, technician: { user: { id: 'user-1' } } };
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+        technician: { user: { id: 'user-1' } },
+      };
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
         .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
@@ -528,10 +595,17 @@ describe('TasksService', () => {
     });
 
     it('taskRepository.update se llama igual aunque markTicketInProgress nunca resuelva (fire-and-forget)', async () => {
-      const pendingTaskWithTicket = { ...mockTask, status: TaskStatus.PENDING, odooTicketId: 42 };
+      const pendingTaskWithTicket = {
+        ...mockTask,
+        status: TaskStatus.PENDING,
+        odooTicketId: 42,
+      };
       taskRepository.findOne
         .mockResolvedValueOnce(pendingTaskWithTicket)
-        .mockResolvedValueOnce({ ...pendingTaskWithTicket, status: TaskStatus.IN_PROGRESS });
+        .mockResolvedValueOnce({
+          ...pendingTaskWithTicket,
+          status: TaskStatus.IN_PROGRESS,
+        });
       odooService.markTicketInProgress.mockReturnValue(new Promise(() => {})); // never resolves
       taskRepository.update.mockResolvedValue({ affected: 1 });
 
@@ -542,7 +616,6 @@ describe('TasksService', () => {
         completedDate: null,
       });
     });
-
   });
 
   describe('remove', () => {
@@ -553,7 +626,9 @@ describe('TasksService', () => {
 
       await service.remove('task-1');
 
-      expect(taskRepository.findOne).toHaveBeenCalledWith({ where: { id: 'task-1' } });
+      expect(taskRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'task-1' },
+      });
       expect(logRepository.delete).toHaveBeenCalledWith({ taskId: 'task-1' });
       expect(taskRepository.delete).toHaveBeenCalledWith('task-1');
     });
@@ -572,7 +647,9 @@ describe('TasksService', () => {
     it('lanza NotFoundException si la tarea no existe', async () => {
       taskRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.remove('nonexistent')).rejects.toThrow('Tarea no encontrada');
+      await expect(service.remove('nonexistent')).rejects.toThrow(
+        'Tarea no encontrada',
+      );
 
       expect(logRepository.delete).not.toHaveBeenCalled();
       expect(taskRepository.delete).not.toHaveBeenCalled();

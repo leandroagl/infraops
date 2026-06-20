@@ -1,4 +1,7 @@
-import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -13,8 +16,18 @@ import { OdooUser } from './dto/odoo-user.dto';
 describe('OdooService', () => {
   let service: OdooService;
   let odooRpc: { callKw: jest.Mock };
-  let clientRepo: { find: jest.Mock; findOne: jest.Mock; update: jest.Mock; count: jest.Mock };
-  let userRepo: { find: jest.Mock; findOne: jest.Mock; update: jest.Mock; count: jest.Mock };
+  let clientRepo: {
+    find: jest.Mock;
+    findOne: jest.Mock;
+    update: jest.Mock;
+    count: jest.Mock;
+  };
+  let userRepo: {
+    find: jest.Mock;
+    findOne: jest.Mock;
+    update: jest.Mock;
+    count: jest.Mock;
+  };
   let technicianRepo: { findOne: jest.Mock };
   let configService: { getOrThrow: jest.Mock };
 
@@ -31,7 +44,9 @@ describe('OdooService', () => {
       ...override,
     }) as Client;
 
-  const makeOdooPartner = (override: Partial<OdooPartner> = {}): OdooPartner => ({
+  const makeOdooPartner = (
+    override: Partial<OdooPartner> = {},
+  ): OdooPartner => ({
     id: 101,
     name: 'ACME Corp',
     vat: '20-12345678-0',
@@ -57,12 +72,11 @@ describe('OdooService', () => {
     ...override,
   });
 
-  const makeTechnician = (userId = 'user-uuid-1'): Technician =>
-    ({
-      id: 'tech-uuid-1',
-      user: makeUser({ id: userId, odooUserId: 201 }),
-      createdAt: new Date('2026-01-01'),
-    }) as unknown as Technician;
+  const makeTechnician = (userId = 'user-uuid-1'): Technician => ({
+    id: 'tech-uuid-1',
+    user: makeUser({ id: userId, odooUserId: 201 }),
+    createdAt: new Date('2026-01-01'),
+  });
 
   beforeEach(async () => {
     odooRpc = { callKw: jest.fn() };
@@ -106,7 +120,10 @@ describe('OdooService', () => {
 
       expect(clientRepo.update).toHaveBeenCalledWith(
         'client-uuid-1',
-        expect.objectContaining({ odooPartnerId: 101, odooSyncedAt: expect.any(Date) }),
+        expect.objectContaining({
+          odooPartnerId: 101,
+          odooSyncedAt: expect.any(Date),
+        }),
       );
       expect(result.matched).toBe(1);
       expect(result.unmatched).toEqual([]);
@@ -141,7 +158,9 @@ describe('OdooService', () => {
             ['email', '!=', false],
           ]),
         ]),
-        expect.objectContaining({ fields: expect.arrayContaining(['id', 'name', 'vat']) }),
+        expect.objectContaining({
+          fields: expect.arrayContaining(['id', 'name', 'vat']),
+        }),
       );
     });
 
@@ -160,7 +179,9 @@ describe('OdooService', () => {
       clientRepo.find.mockResolvedValue([]);
       odooRpc.callKw.mockRejectedValue(new Error('Connection refused'));
 
-      await expect(service.syncPartners()).rejects.toThrow('Connection refused');
+      await expect(service.syncPartners()).rejects.toThrow(
+        'Connection refused',
+      );
     });
   });
 
@@ -168,14 +189,17 @@ describe('OdooService', () => {
     it('actualiza odooUserId del usuario cuando email coincide', async () => {
       userRepo.find.mockResolvedValue([makeUser()]);
       odooRpc.callKw
-        .mockResolvedValueOnce([makeOdooUser()])  // res.users call
-        .mockResolvedValueOnce([]);               // hr.employee call → no employees
+        .mockResolvedValueOnce([makeOdooUser()]) // res.users call
+        .mockResolvedValueOnce([]); // hr.employee call → no employees
 
       const result = await service.syncUsers();
 
       expect(userRepo.update).toHaveBeenCalledWith(
         'user-uuid-1',
-        expect.objectContaining({ odooUserId: 201, odooSyncedAt: expect.any(Date) }),
+        expect.objectContaining({
+          odooUserId: 201,
+          odooSyncedAt: expect.any(Date),
+        }),
       );
       expect(result.matched).toBe(1);
       expect(result.unmatched).toEqual([]);
@@ -201,7 +225,9 @@ describe('OdooService', () => {
       await service.syncUsers();
 
       expect(userRepo.find).toHaveBeenCalledWith(
-        expect.objectContaining({ where: expect.objectContaining({ isActive: true }) }),
+        expect.objectContaining({
+          where: expect.objectContaining({ isActive: true }),
+        }),
       );
     });
 
@@ -216,7 +242,9 @@ describe('OdooService', () => {
     });
 
     it('resuelve odooEmployeeId en hr.employee para los usuarios matcheados', async () => {
-      const users = [makeUser({ id: 'user-1', email: 'a@ondra.com', odooUserId: null })];
+      const users = [
+        makeUser({ id: 'user-1', email: 'a@ondra.com', odooUserId: null }),
+      ];
       const odooUsers = [{ id: 7, login: 'a@ondra.com', name: 'A' }];
       const employees = [{ id: 22, user_id: [7, 'A'] }];
 
@@ -255,7 +283,10 @@ describe('OdooService', () => {
 
       const result = await service.getSyncStatus();
 
-      expect(result).toEqual({ clientsWithoutOdooId: 5, usersWithoutOdooId: 2 });
+      expect(result).toEqual({
+        clientsWithoutOdooId: 5,
+        usersWithoutOdooId: 2,
+      });
     });
   });
 
@@ -270,7 +301,9 @@ describe('OdooService', () => {
     });
 
     it('intenta sync puntual cuando odooPartnerId es null y retorna el id encontrado', async () => {
-      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: null, taxIdNumber: '20-12345678-0' }));
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: null, taxIdNumber: '20-12345678-0' }),
+      );
       odooRpc.callKw.mockResolvedValue([{ id: 101, vat: '20-12345678-0' }]);
 
       const result = await service.resolvePartnerId('client-uuid-1');
@@ -300,7 +333,9 @@ describe('OdooService', () => {
     });
 
     it('devuelve null cuando Odoo no encuentra el partner por CUIT', async () => {
-      clientRepo.findOne.mockResolvedValue(makeClient({ taxIdNumber: '20-12345678-0' }));
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ taxIdNumber: '20-12345678-0' }),
+      );
       odooRpc.callKw.mockResolvedValue([]);
 
       const result = await service.resolvePartnerId('client-uuid-1');
@@ -322,7 +357,9 @@ describe('OdooService', () => {
 
     it('intenta sync puntual por email cuando odooUserId es null y retorna el id encontrado', async () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: null }));
-      odooRpc.callKw.mockResolvedValue([{ id: 201, login: 'tecnico@ondra.com' }]);
+      odooRpc.callKw.mockResolvedValue([
+        { id: 201, login: 'tecnico@ondra.com' },
+      ]);
 
       const result = await service.resolveUserId('user-uuid-1');
 
@@ -354,14 +391,19 @@ describe('OdooService', () => {
 
   describe('createTicket', () => {
     it('crea un ticket en Odoo y retorna el ticket ID', async () => {
-      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: null }));
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw
-        .mockResolvedValueOnce([])  // sale.order.line search → sin resultado
+        .mockResolvedValueOnce([]) // sale.order.line search → sin resultado
         .mockResolvedValueOnce(42); // helpdesk.ticket create
 
-      const ticketId = await service.createTicket('client-uuid-1', 'tech-uuid-1');
+      const ticketId = await service.createTicket(
+        'client-uuid-1',
+        'tech-uuid-1',
+      );
 
       expect(ticketId).toBe(42);
       expect(odooRpc.callKw).toHaveBeenCalledWith(
@@ -381,11 +423,13 @@ describe('OdooService', () => {
     });
 
     it('lanza BadRequestException cuando el cliente no tiene ID de Odoo', async () => {
-      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: null, taxIdNumber: null }));
-
-      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
-        BadRequestException,
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: null, taxIdNumber: null }),
       );
+
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1'),
+      ).rejects.toThrow(BadRequestException);
       expect(odooRpc.callKw).not.toHaveBeenCalled();
     });
 
@@ -395,33 +439,37 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: null }));
       odooRpc.callKw.mockResolvedValue([]);
 
-      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('propaga ServiceUnavailableException cuando Odoo falla al crear el ticket', async () => {
       clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101 }));
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
-      odooRpc.callKw.mockRejectedValue(new ServiceUnavailableException('Odoo caído'));
-
-      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
-        ServiceUnavailableException,
+      odooRpc.callKw.mockRejectedValue(
+        new ServiceUnavailableException('Odoo caído'),
       );
+
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1'),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
 
     it('lanza ServiceUnavailableException cuando Odoo devuelve false al crear el ticket', async () => {
-      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: null }));
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw
-        .mockResolvedValueOnce([])     // sale.order.line search → sin resultado
+        .mockResolvedValueOnce([]) // sale.order.line search → sin resultado
         .mockResolvedValueOnce(false); // helpdesk.ticket create → false (Odoo constraint failure)
 
-      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
-        ServiceUnavailableException,
-      );
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1'),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
 
     it('lanza error cuando ODOO_HELPDESK_TEAM_ID no es un entero válido', async () => {
@@ -430,9 +478,9 @@ describe('OdooService', () => {
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
 
-      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
-        'ODOO_HELPDESK_TEAM_ID must be a valid integer',
-      );
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1'),
+      ).rejects.toThrow('ODOO_HELPDESK_TEAM_ID must be a valid integer');
       expect(odooRpc.callKw).not.toHaveBeenCalled();
     });
 
@@ -444,15 +492,17 @@ describe('OdooService', () => {
         createdAt: new Date('2026-01-01'),
       });
 
-      await expect(service.createTicket('client-uuid-1', 'tech-uuid-1')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1'),
+      ).rejects.toThrow(BadRequestException);
       expect(odooRpc.callKw).not.toHaveBeenCalled();
     });
 
     it('incluye sale_line_id en el payload cuando resolveSaleLineId retorna un id', async () => {
       const technician = makeTechnician();
-      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: 55 }));
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: 55 }),
+      );
       technicianRepo.findOne.mockResolvedValue(technician);
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw.mockResolvedValue(99);
@@ -469,12 +519,14 @@ describe('OdooService', () => {
 
     it('crea el ticket sin sale_line_id cuando resolveSaleLineId retorna null', async () => {
       const technician = makeTechnician();
-      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: null }));
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
       technicianRepo.findOne.mockResolvedValue(technician);
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line search → sin resultado
-        .mockResolvedValueOnce(99);  // helpdesk.ticket create
+        .mockResolvedValueOnce([]) // sale.order.line search → sin resultado
+        .mockResolvedValueOnce(99); // helpdesk.ticket create
 
       await service.createTicket('client-uuid-1', 'tech-uuid-1');
 
@@ -489,8 +541,8 @@ describe('OdooService', () => {
     it('llama logTimesheet y luego escribe stage_id en el ticket', async () => {
       odooRpc.callKw
         .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage search_read
-        .mockResolvedValueOnce(88)            // account.analytic.line create
-        .mockResolvedValueOnce(true);         // helpdesk.ticket write
+        .mockResolvedValueOnce(88) // account.analytic.line create
+        .mockResolvedValueOnce(true); // helpdesk.ticket write
 
       await service.closeTicket(42, 22, 1.5);
 
@@ -519,7 +571,9 @@ describe('OdooService', () => {
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage de cierre', async () => {
       odooRpc.callKw.mockResolvedValueOnce([]);
 
-      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
 
     it('no escribe stage_id si logTimesheet falla', async () => {
@@ -527,10 +581,13 @@ describe('OdooService', () => {
         .mockResolvedValueOnce([{ id: 99 }])
         .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
 
       const writeCalls = odooRpc.callKw.mock.calls.filter(
-        (args: unknown[]) => args[0] === 'helpdesk.ticket' && args[1] === 'write',
+        (args: unknown[]) =>
+          args[0] === 'helpdesk.ticket' && args[1] === 'write',
       );
       expect(writeCalls).toHaveLength(0);
     });
@@ -541,13 +598,17 @@ describe('OdooService', () => {
         .mockResolvedValueOnce(88)
         .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 
   describe('resolveEmployeeId', () => {
     it('busca en hr.employee por user_id, guarda odooEmployeeId y lo retorna', async () => {
-      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 7, odooEmployeeId: null }));
+      userRepo.findOne.mockResolvedValue(
+        makeUser({ odooUserId: 7, odooEmployeeId: null }),
+      );
       odooRpc.callKw.mockResolvedValue([{ id: 22 }]);
 
       const result = await service.resolveEmployeeId('user-uuid-1');
@@ -560,13 +621,18 @@ describe('OdooService', () => {
       );
       expect(userRepo.update).toHaveBeenCalledWith(
         'user-uuid-1',
-        expect.objectContaining({ odooEmployeeId: 22, odooSyncedAt: expect.any(Date) }),
+        expect.objectContaining({
+          odooEmployeeId: 22,
+          odooSyncedAt: expect.any(Date),
+        }),
       );
       expect(result).toBe(22);
     });
 
     it('retorna odooEmployeeId cacheado sin consultar Odoo', async () => {
-      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 7, odooEmployeeId: 22 }));
+      userRepo.findOne.mockResolvedValue(
+        makeUser({ odooUserId: 7, odooEmployeeId: 22 }),
+      );
 
       const result = await service.resolveEmployeeId('user-uuid-1');
 
@@ -611,21 +677,27 @@ describe('OdooService', () => {
       expect(odooRpc.callKw).toHaveBeenCalledWith(
         'account.analytic.line',
         'create',
-        [expect.objectContaining({
-          helpdesk_ticket_id: 42,
-          employee_id: 22,
-          name: 'Mantenimiento realizado',
-          unit_amount: 1.5,
-          date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
-        })],
+        [
+          expect.objectContaining({
+            helpdesk_ticket_id: 42,
+            employee_id: 22,
+            name: 'Mantenimiento realizado',
+            unit_amount: 1.5,
+            date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+          }),
+        ],
         {},
       );
     });
 
     it('propaga ServiceUnavailableException cuando Odoo falla al crear el timesheet', async () => {
-      odooRpc.callKw.mockRejectedValue(new ServiceUnavailableException('Odoo caído'));
+      odooRpc.callKw.mockRejectedValue(
+        new ServiceUnavailableException('Odoo caído'),
+      );
 
-      await expect(service.logTimesheet(42, 22, 1.5)).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.logTimesheet(42, 22, 1.5)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 
@@ -633,7 +705,7 @@ describe('OdooService', () => {
     it('resuelve stage "En Curso" por nombre y escribe stage_id en el ticket', async () => {
       odooRpc.callKw
         .mockResolvedValueOnce([{ id: 77 }]) // helpdesk.stage search_read → "En Curso"
-        .mockResolvedValueOnce(true);         // helpdesk.ticket write
+        .mockResolvedValueOnce(true); // helpdesk.ticket write
 
       await service.markTicketInProgress(42);
 
@@ -641,7 +713,12 @@ describe('OdooService', () => {
       expect(calls[0]).toEqual([
         'helpdesk.stage',
         'search_read',
-        [[['team_ids', 'in', [5]], ['name', '=', 'En curso']]],
+        [
+          [
+            ['team_ids', 'in', [5]],
+            ['name', '=', 'En curso'],
+          ],
+        ],
         { fields: ['id'], limit: 1 },
       ]);
       expect(calls[1]).toEqual([
@@ -655,7 +732,7 @@ describe('OdooService', () => {
     it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
       odooRpc.callKw
         .mockResolvedValueOnce([{ id: 77 }]) // primera llamada: resuelve stage
-        .mockResolvedValue(true);             // subsiguientes: write
+        .mockResolvedValue(true); // subsiguientes: write
 
       await service.markTicketInProgress(42);
       await service.markTicketInProgress(43);
@@ -669,7 +746,9 @@ describe('OdooService', () => {
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage "En Curso"', async () => {
       odooRpc.callKw.mockResolvedValueOnce([]);
 
-      await expect(service.markTicketInProgress(42)).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.markTicketInProgress(42)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
 
     it('propaga ServiceUnavailableException cuando Odoo falla al ejecutar write', async () => {
@@ -677,13 +756,17 @@ describe('OdooService', () => {
         .mockResolvedValueOnce([{ id: 77 }])
         .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.markTicketInProgress(42)).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.markTicketInProgress(42)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 
   describe('resolveSaleLineId', () => {
     it('busca sale.order.line por partner_id y producto Hora Única, cachea y retorna', async () => {
-      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: null }));
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
       odooRpc.callKw.mockResolvedValue([{ id: 55 }]);
 
       const result = await service.resolveSaleLineId('client-uuid-1');
@@ -691,22 +774,29 @@ describe('OdooService', () => {
       expect(odooRpc.callKw).toHaveBeenCalledWith(
         'sale.order.line',
         'search_read',
-        [[
-          ['order_id.partner_id', '=', 101],
-          ['product_id.name', '=', 'Hora Única'],
-          ['order_id.state', 'in', ['sale', 'done']],
-        ]],
+        [
+          [
+            ['order_id.partner_id', '=', 101],
+            ['product_id.name', '=', 'Hora Única'],
+            ['order_id.state', 'in', ['sale', 'done']],
+          ],
+        ],
         expect.objectContaining({ fields: ['id'], limit: 1 }),
       );
       expect(clientRepo.update).toHaveBeenCalledWith(
         'client-uuid-1',
-        expect.objectContaining({ odooSaleLineId: 55, odooSyncedAt: expect.any(Date) }),
+        expect.objectContaining({
+          odooSaleLineId: 55,
+          odooSyncedAt: expect.any(Date),
+        }),
       );
       expect(result).toBe(55);
     });
 
     it('retorna odooSaleLineId cacheado sin consultar Odoo', async () => {
-      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101, odooSaleLineId: 55 }));
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: 55 }),
+      );
 
       const result = await service.resolveSaleLineId('client-uuid-1');
 

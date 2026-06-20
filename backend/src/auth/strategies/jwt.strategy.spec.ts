@@ -97,9 +97,9 @@ describe('JwtStrategy', () => {
     const original = process.env.JWT_SECRET;
     delete process.env.JWT_SECRET;
 
-    expect(() => new JwtStrategy(userRepository as unknown as Repository<User>)).toThrow(
-      'JWT_SECRET environment variable is not set',
-    );
+    expect(
+      () => new JwtStrategy(userRepository as unknown as Repository<User>),
+    ).toThrow('JWT_SECRET environment variable is not set');
 
     process.env.JWT_SECRET = original;
   });

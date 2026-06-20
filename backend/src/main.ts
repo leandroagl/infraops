@@ -9,7 +9,11 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
   );
   await app.listen(parseInt(process.env.PORT ?? '3000', 10));
 }

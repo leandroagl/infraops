@@ -32,7 +32,7 @@ describe('InfradocAssetsService', () => {
   beforeEach(async () => {
     savedUrl = process.env.INFRADOC_URL;
     savedKey = process.env.INFRADOC_API_KEY;
-    process.env.INFRADOC_URL     = 'http://infradoc.test';
+    process.env.INFRADOC_URL = 'http://infradoc.test';
     process.env.INFRADOC_API_KEY = 'test-api-key';
 
     httpService = { get: jest.fn() };
@@ -48,7 +48,7 @@ describe('InfradocAssetsService', () => {
   });
 
   afterEach(() => {
-    process.env.INFRADOC_URL     = savedUrl;
+    process.env.INFRADOC_URL = savedUrl;
     process.env.INFRADOC_API_KEY = savedKey;
   });
 
@@ -85,7 +85,9 @@ describe('InfradocAssetsService', () => {
       of(axiosRes({ success: 'False', message: 'Auth failed' })),
     );
 
-    await expect(service.getAssets(42)).rejects.toThrow(ServiceUnavailableException);
+    await expect(service.getAssets(42)).rejects.toThrow(
+      ServiceUnavailableException,
+    );
   });
 
   it('devuelve array vacío cuando el cliente no tiene assets', async () => {
@@ -128,7 +130,11 @@ describe('InfradocAssetsService', () => {
 
   describe('getAssetInterfaces', () => {
     it('llama al endpoint con asset_id y devuelve array de interfaces', async () => {
-      const iface = { ...makeRawAsset(), interface_name: 'iLO', interface_ip: '10.0.1.200' };
+      const iface = {
+        ...makeRawAsset(),
+        interface_name: 'iLO',
+        interface_ip: '10.0.1.200',
+      };
       httpService.get.mockReturnValue(
         of(axiosRes({ success: 'True', count: 1, data: [iface] })),
       );
@@ -160,7 +166,9 @@ describe('InfradocAssetsService', () => {
         of(axiosRes({ success: 'False', message: 'Not found' })),
       );
 
-      await expect(service.getAssetInterfaces(101)).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.getAssetInterfaces(101)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 });

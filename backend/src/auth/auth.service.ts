@@ -41,7 +41,12 @@ export class AuthService {
     return {
       accessToken: this.jwtService.sign(payload),
       mustChangePassword: user.mustChangePassword,
-      user: { id: user.id, email: user.email, role: user.role, technicianId: user.technicianId ?? null },
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        technicianId: user.technicianId ?? null,
+      },
     };
   }
 

@@ -18,7 +18,11 @@ import { Task } from './task.entity';
 
 const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   [TaskStatus.PENDING]: [TaskStatus.IN_PROGRESS, TaskStatus.NOT_DONE],
-  [TaskStatus.IN_PROGRESS]: [TaskStatus.DONE, TaskStatus.ESCALATED, TaskStatus.NOT_DONE],
+  [TaskStatus.IN_PROGRESS]: [
+    TaskStatus.DONE,
+    TaskStatus.ESCALATED,
+    TaskStatus.NOT_DONE,
+  ],
   [TaskStatus.DONE]: [],
   [TaskStatus.ESCALATED]: [],
   [TaskStatus.NOT_DONE]: [],
@@ -42,10 +46,10 @@ export class TasksService {
 
   async findAll(filters: FilterTasksDto): Promise<Task[]> {
     const where: Record<string, unknown> = {};
-    if (filters.status)      where['status']      = filters.status;
-    if (filters.clientId)    where['clientId']    = filters.clientId;
+    if (filters.status) where['status'] = filters.status;
+    if (filters.clientId) where['clientId'] = filters.clientId;
     if (filters.technicianId) where['technicianId'] = filters.technicianId;
-    if (filters.type)        where['type']        = filters.type;
+    if (filters.type) where['type'] = filters.type;
 
     return this.taskRepository.find({
       where,
@@ -55,13 +59,20 @@ export class TasksService {
   }
 
   async create(dto: CreateTaskDto): Promise<Task> {
-    const client = await this.clientRepository.findOne({ where: { id: dto.clientId } });
+    const client = await this.clientRepository.findOne({
+      where: { id: dto.clientId },
+    });
     if (!client) throw new NotFoundException('Cliente no encontrado');
 
-    const technician = await this.technicianRepository.findOne({ where: { id: dto.technicianId } });
+    const technician = await this.technicianRepository.findOne({
+      where: { id: dto.technicianId },
+    });
     if (!technician) throw new NotFoundException('Técnico no encontrado');
 
-    const odooTicketId = await this.odooService.createTicket(dto.clientId, dto.technicianId);
+    const odooTicketId = await this.odooService.createTicket(
+      dto.clientId,
+      dto.technicianId,
+    );
 
     const task = this.taskRepository.create({
       clientId: dto.clientId,
@@ -76,7 +87,9 @@ export class TasksService {
 
   async update(id: string, dto: UpdateTaskDto): Promise<Task> {
     if (Object.keys(dto).length === 0) {
-      throw new BadRequestException('Se debe proveer al menos un campo para actualizar');
+      throw new BadRequestException(
+        'Se debe proveer al menos un campo para actualizar',
+      );
     }
 
     const task = await this.taskRepository.findOne({ where: { id } });
@@ -91,14 +104,19 @@ export class TasksService {
 
     const updates: Partial<Task> = {};
     if (dto.technicianId !== undefined) updates.technicianId = dto.technicianId;
-    if (dto.scheduledDate !== undefined) updates.scheduledDate = dto.scheduledDate;
+    if (dto.scheduledDate !== undefined)
+      updates.scheduledDate = dto.scheduledDate;
     if (dto.odooTicketId !== undefined) updates.odooTicketId = dto.odooTicketId;
 
     await this.taskRepository.update(id, updates);
     return this.loadTask(id);
   }
 
-  async updateStatus(id: string, newStatus: TaskStatus, timeSpentMinutes?: number): Promise<Task> {
+  async updateStatus(
+    id: string,
+    newStatus: TaskStatus,
+    timeSpentMinutes?: number,
+  ): Promise<Task> {
     const task = await this.taskRepository.findOne({
       where: { id },
       relations: ['technician', 'technician.user'],
@@ -113,12 +131,14 @@ export class TasksService {
     }
 
     if (newStatus === TaskStatus.IN_PROGRESS && task.odooTicketId !== null) {
-      this.odooService.markTicketInProgress(task.odooTicketId).catch((err: unknown) => {
-        this.logger.error(
-          `Error al marcar ticket ${task.odooTicketId} en curso en Odoo`,
-          err,
-        );
-      });
+      this.odooService
+        .markTicketInProgress(task.odooTicketId)
+        .catch((err: unknown) => {
+          this.logger.error(
+            `Error al marcar ticket ${task.odooTicketId} en curso en Odoo`,
+            err,
+          );
+        });
     }
 
     const isTerminal = VALID_TRANSITIONS[newStatus].length === 0;
@@ -130,18 +150,29 @@ export class TasksService {
 
     if (shouldCloseTicket) {
       const userId = task.technician?.user?.id;
-      if (!userId) throw new BadRequestException('La tarea no tiene técnico con usuario asociado');
+      if (!userId)
+        throw new BadRequestException(
+          'La tarea no tiene técnico con usuario asociado',
+        );
 
       const employeeId = await this.odooService.resolveEmployeeId(userId);
       if (employeeId === null) {
-        throw new BadRequestException('El técnico no tiene odooEmployeeId sincronizado');
+        throw new BadRequestException(
+          'El técnico no tiene odooEmployeeId sincronizado',
+        );
       }
 
       if (newStatus === TaskStatus.DONE && !timeSpentMinutes) {
-        throw new BadRequestException('Se requiere timeSpentMinutes para marcar una tarea como DONE');
+        throw new BadRequestException(
+          'Se requiere timeSpentMinutes para marcar una tarea como DONE',
+        );
       }
       const unitAmount = (timeSpentMinutes ?? 0) / 60;
-      await this.odooService.closeTicket(task.odooTicketId!, employeeId, unitAmount);
+      await this.odooService.closeTicket(
+        task.odooTicketId!,
+        employeeId,
+        unitAmount,
+      );
     }
 
     await this.taskRepository.update(id, { status: newStatus, completedDate });

@@ -3,7 +3,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Client } from './client.entity';
 import { ClientsService } from './clients.service';
-import { InfradocClient, InfradocLocation, InfradocService } from './infradoc/infradoc.service';
+import {
+  InfradocClient,
+  InfradocLocation,
+  InfradocService,
+} from './infradoc/infradoc.service';
 
 describe('ClientsService', () => {
   let service: ClientsService;
@@ -39,7 +43,9 @@ describe('ClientsService', () => {
     ...override,
   });
 
-  const makeRemote = (override: Partial<InfradocClient> = {}): InfradocClient => ({
+  const makeRemote = (
+    override: Partial<InfradocClient> = {},
+  ): InfradocClient => ({
     infradocId: 1,
     name: 'ACME Corp',
     abbreviation: 'ACME',
@@ -87,7 +93,9 @@ describe('ClientsService', () => {
 
       const result = await service.findAll();
 
-      expect(clientRepository.find).toHaveBeenCalledWith({ order: { name: 'ASC' } });
+      expect(clientRepository.find).toHaveBeenCalledWith({
+        order: { name: 'ASC' },
+      });
       expect(result[0]).not.toHaveProperty('infradocId');
       expect(result[0]).not.toHaveProperty('lastSyncedAt');
       expect(result[0].name).toBe('ACME Corp');
@@ -109,8 +117,12 @@ describe('ClientsService', () => {
     });
 
     it('actualiza un cliente cuando algún campo cambió', async () => {
-      clientRepository.find.mockResolvedValue([makeLocal({ name: 'Nombre Viejo' })]);
-      infradocService.getClients.mockResolvedValue([makeRemote({ name: 'Nombre Nuevo' })]);
+      clientRepository.find.mockResolvedValue([
+        makeLocal({ name: 'Nombre Viejo' }),
+      ]);
+      infradocService.getClients.mockResolvedValue([
+        makeRemote({ name: 'Nombre Nuevo' }),
+      ]);
 
       const result = await service.syncWithInfradoc();
 
@@ -134,7 +146,9 @@ describe('ClientsService', () => {
     });
 
     it('marca como inactivo un cliente local ausente en InfraDoc', async () => {
-      clientRepository.find.mockResolvedValue([makeLocal({ infradocId: 99, isActive: true })]);
+      clientRepository.find.mockResolvedValue([
+        makeLocal({ infradocId: 99, isActive: true }),
+      ]);
       infradocService.getClients.mockResolvedValue([]);
 
       const result = await service.syncWithInfradoc();
@@ -183,7 +197,9 @@ describe('ClientsService', () => {
       await service.syncWithInfradoc();
 
       expect(clientRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({ primaryAddress: 'Av. Corrientes 1234, Buenos Aires' }),
+        expect.objectContaining({
+          primaryAddress: 'Av. Corrientes 1234, Buenos Aires',
+        }),
       );
     });
 
@@ -213,7 +229,9 @@ describe('ClientsService', () => {
         isPrimary: true,
       };
       // Cliente local sin dirección
-      clientRepository.find.mockResolvedValue([makeLocal({ primaryAddress: null })]);
+      clientRepository.find.mockResolvedValue([
+        makeLocal({ primaryAddress: null }),
+      ]);
       infradocService.getClients.mockResolvedValue([makeRemote()]);
       infradocService.getLocations.mockResolvedValue([location]);
 
@@ -233,7 +251,9 @@ describe('ClientsService', () => {
 
       const result = await service.findOne('uuid-1');
 
-      expect(clientRepository.findOne).toHaveBeenCalledWith({ where: { id: 'uuid-1' } });
+      expect(clientRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'uuid-1' },
+      });
       expect(result).not.toHaveProperty('infradocId');
       expect(result).not.toHaveProperty('lastSyncedAt');
       expect(result.name).toBe('ACME Corp');
@@ -242,13 +262,18 @@ describe('ClientsService', () => {
     it('lanza NotFoundException cuando el cliente no existe', async () => {
       clientRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.findOne('uuid-no-existe')).rejects.toThrow('Cliente uuid-no-existe no encontrado');
+      await expect(service.findOne('uuid-no-existe')).rejects.toThrow(
+        'Cliente uuid-no-existe no encontrado',
+      );
     });
   });
 
   describe('findInfradocId', () => {
     it('devuelve infradocId para un cliente existente', async () => {
-      clientRepository.findOne.mockResolvedValue({ id: 'uuid-1', infradocId: 42 });
+      clientRepository.findOne.mockResolvedValue({
+        id: 'uuid-1',
+        infradocId: 42,
+      });
 
       const result = await service.findInfradocId('uuid-1');
 

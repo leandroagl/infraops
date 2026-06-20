@@ -36,7 +36,9 @@ describe('TechniciansController', () => {
 
     const module = await Test.createTestingModule({
       controllers: [TechniciansController],
-      providers: [{ provide: TechniciansService, useValue: techniciansService }],
+      providers: [
+        { provide: TechniciansService, useValue: techniciansService },
+      ],
     }).compile();
 
     controller = module.get(TechniciansController);
@@ -91,7 +93,9 @@ describe('TechniciansController', () => {
     it('propaga NotFoundException si el id no existe', async () => {
       techniciansService.remove.mockRejectedValue(new NotFoundException());
 
-      await expect(controller.remove('nonexistent')).rejects.toThrow(NotFoundException);
+      await expect(controller.remove('nonexistent')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

@@ -73,11 +73,13 @@ describe('InfradocService', () => {
 
   it('setea isActive en false cuando client_archived_at tiene fecha', async () => {
     httpService.get.mockReturnValue(
-      of(axiosRes({
-        success: 'True',
-        count: 1,
-        data: [makeRaw({ client_archived_at: '2026-01-01 00:00:00' })],
-      })),
+      of(
+        axiosRes({
+          success: 'True',
+          count: 1,
+          data: [makeRaw({ client_archived_at: '2026-01-01 00:00:00' })],
+        }),
+      ),
     );
 
     const result = await service.getClients();
@@ -87,11 +89,13 @@ describe('InfradocService', () => {
 
   it('mapea client_type a taxIdNumber cuando tiene formato CUIT', async () => {
     httpService.get.mockReturnValue(
-      of(axiosRes({
-        success: 'True',
-        count: 1,
-        data: [makeRaw({ client_type: '30-50438253-9' })],
-      })),
+      of(
+        axiosRes({
+          success: 'True',
+          count: 1,
+          data: [makeRaw({ client_type: '30-50438253-9' })],
+        }),
+      ),
     );
 
     const result = await service.getClients();
@@ -101,11 +105,13 @@ describe('InfradocService', () => {
 
   it('retorna taxIdNumber null cuando client_type no tiene formato CUIT', async () => {
     httpService.get.mockReturnValue(
-      of(axiosRes({
-        success: 'True',
-        count: 1,
-        data: [makeRaw({ client_type: 'Empresa' })],
-      })),
+      of(
+        axiosRes({
+          success: 'True',
+          count: 1,
+          data: [makeRaw({ client_type: 'Empresa' })],
+        }),
+      ),
     );
 
     const result = await service.getClients();
@@ -115,11 +121,13 @@ describe('InfradocService', () => {
 
   it('convierte client_is_lead "1" a true', async () => {
     httpService.get.mockReturnValue(
-      of(axiosRes({
-        success: 'True',
-        count: 1,
-        data: [makeRaw({ client_is_lead: '1' })],
-      })),
+      of(
+        axiosRes({
+          success: 'True',
+          count: 1,
+          data: [makeRaw({ client_is_lead: '1' })],
+        }),
+      ),
     );
 
     const result = await service.getClients();
@@ -132,7 +140,9 @@ describe('InfradocService', () => {
       of(axiosRes({ success: 'False', message: 'Auth failed' })),
     );
 
-    await expect(service.getClients()).rejects.toThrow(ServiceUnavailableException);
+    await expect(service.getClients()).rejects.toThrow(
+      ServiceUnavailableException,
+    );
   });
 
   describe('getLocations', () => {
@@ -163,7 +173,13 @@ describe('InfradocService', () => {
 
     it('mapea location_primary "0" a isPrimary false', async () => {
       httpService.get.mockReturnValue(
-        of(axiosRes({ success: 'True', count: 1, data: [makeRawLocation({ location_primary: '0' })] })),
+        of(
+          axiosRes({
+            success: 'True',
+            count: 1,
+            data: [makeRawLocation({ location_primary: '0' })],
+          }),
+        ),
       );
 
       const result = await service.getLocations();
@@ -176,7 +192,9 @@ describe('InfradocService', () => {
         of(axiosRes({ success: 'False', message: 'Auth failed' })),
       );
 
-      await expect(service.getLocations()).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.getLocations()).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 });

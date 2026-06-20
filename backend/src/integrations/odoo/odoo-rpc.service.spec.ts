@@ -62,7 +62,11 @@ describe('OdooRpcService', () => {
     it('usa createSecureClient cuando la URL es HTTPS', async () => {
       configService.getOrThrow.mockImplementation((key: string) => {
         if (key === 'ODOO_URL') return 'https://odoo.test';
-        const cfg: Record<string, string> = { ODOO_DB: 'testdb', ODOO_USERNAME: 'admin', ODOO_API_KEY: 'test-key' };
+        const cfg: Record<string, string> = {
+          ODOO_DB: 'testdb',
+          ODOO_USERNAME: 'admin',
+          ODOO_API_KEY: 'test-key',
+        };
         return cfg[key];
       });
       mockMethodCall.mockImplementation((_method, _params, cb) => cb(null, 5));
@@ -74,9 +78,13 @@ describe('OdooRpcService', () => {
     });
 
     it('lanza ServiceUnavailableException cuando uid es falsy', async () => {
-      mockMethodCall.mockImplementation((_method, _params, cb) => cb(null, false));
+      mockMethodCall.mockImplementation((_method, _params, cb) =>
+        cb(null, false),
+      );
 
-      await expect(service.authenticate()).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.authenticate()).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
 
     it('lanza ServiceUnavailableException cuando xmlrpc devuelve error', async () => {
@@ -84,7 +92,9 @@ describe('OdooRpcService', () => {
         cb(new Error('Access Denied'), null),
       );
 
-      await expect(service.authenticate()).rejects.toThrow(ServiceUnavailableException);
+      await expect(service.authenticate()).rejects.toThrow(
+        ServiceUnavailableException,
+      );
     });
   });
 
@@ -92,7 +102,9 @@ describe('OdooRpcService', () => {
     it('autentica antes de la primera llamada y devuelve el resultado', async () => {
       mockMethodCall
         .mockImplementationOnce((_m, _p, cb) => cb(null, 7))
-        .mockImplementationOnce((_m, _p, cb) => cb(null, [{ id: 1, name: 'ACME' }]));
+        .mockImplementationOnce((_m, _p, cb) =>
+          cb(null, [{ id: 1, name: 'ACME' }]),
+        );
 
       const result = await service.callKw<{ id: number; name: string }[]>(
         'res.partner',
@@ -134,8 +146,11 @@ describe('OdooRpcService', () => {
       const dataCall = mockMethodCall.mock.calls[1];
       expect(dataCall[0]).toBe('execute_kw');
       expect(dataCall[1]).toEqual([
-        'testdb', 7, 'test-key',
-        'res.partner', 'search_read',
+        'testdb',
+        7,
+        'test-key',
+        'res.partner',
+        'search_read',
         [[['is_company', '=', true]]],
         { fields: ['id', 'vat'] },
       ]);
@@ -144,7 +159,9 @@ describe('OdooRpcService', () => {
     it('lanza ServiceUnavailableException cuando xmlrpc devuelve error', async () => {
       mockMethodCall
         .mockImplementationOnce((_m, _p, cb) => cb(null, 7))
-        .mockImplementationOnce((_m, _p, cb) => cb(new Error('Model not found'), null));
+        .mockImplementationOnce((_m, _p, cb) =>
+          cb(new Error('Model not found'), null),
+        );
 
       await expect(
         service.callKw('res.partner', 'search_read', [[]], {}),

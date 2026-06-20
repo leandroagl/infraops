@@ -7,11 +7,7 @@ import { OdooService } from './odoo.service';
 import { OdooController } from './odoo.controller';
 
 @Module({
-  imports: [
-    ClientsModule,
-    UsersModule,
-    TechniciansModule,
-  ],
+  imports: [ClientsModule, UsersModule, TechniciansModule],
   controllers: [OdooController],
   providers: [OdooRpcService, OdooService],
   exports: [OdooService],

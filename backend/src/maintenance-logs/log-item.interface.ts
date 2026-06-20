@@ -42,12 +42,12 @@ export interface RouterSection {
 }
 
 export interface BmcEntry {
-  hostId:           number;
-  hostName:         string;
+  hostId: number;
+  hostName: string;
   firmwareVersion?: string;
-  biosVersion?:     string;
-  alertStatus:      'ok' | 'alerta';
-  alertNote?:       string;
+  biosVersion?: string;
+  alertStatus: 'ok' | 'alerta';
+  alertNote?: string;
 }
 
 export interface ServerMaintenancePayload {
