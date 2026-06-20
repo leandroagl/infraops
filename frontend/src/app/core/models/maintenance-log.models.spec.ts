@@ -1,4 +1,4 @@
-import { ServerMaintenancePayload, TerminalPayload } from './maintenance-log.models';
+import { BmcAlertCategory, ServerMaintenancePayload, TerminalPayload } from './maintenance-log.models';
 
 describe('maintenance-log.models', () => {
   describe('ServerMaintenancePayload', () => {
@@ -105,12 +105,13 @@ describe('maintenance-log.models', () => {
         windows: { servers: [], domainControllers: [] },
         bmc: [
           { hostId: 2, hostName: 'host1.kemini', firmwareVersion: '2.82', biosVersion: 'U30 v2.86', alertStatus: 'ok' },
-          { hostId: 3, hostName: 'host2.kemini', alertStatus: 'alerta', alertNote: 'Fan sensor warning' },
+          { hostId: 3, hostName: 'host2.kemini', alertStatus: 'alerta', alertCategories: ['fan', 'psu'], alertLogs: 'Fan1 speed: critical' },
         ],
       };
       expect(p.bmc?.length).toBe(2);
       expect(p.bmc?.[0].alertStatus).toBe('ok');
-      expect(p.bmc?.[1].alertNote).toBe('Fan sensor warning');
+      expect(p.bmc?.[1].alertCategories).toEqual(['fan', 'psu']);
+      expect(p.bmc?.[1].alertLogs).toBe('Fan1 speed: critical');
     });
 
     it('should accept BmcEntry without optional fields', () => {
@@ -121,7 +122,27 @@ describe('maintenance-log.models', () => {
       };
       expect(p.bmc?.[0].firmwareVersion).toBeUndefined();
       expect(p.bmc?.[0].biosVersion).toBeUndefined();
-      expect(p.bmc?.[0].alertNote).toBeUndefined();
+      expect(p.bmc?.[0].alertCategories).toBeUndefined();
+      expect(p.bmc?.[0].alertLogs).toBeUndefined();
+    });
+
+    it('should accept alertLogs as optional string on any alertStatus', () => {
+      const p: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], domainControllers: [] },
+        bmc: [{ hostId: 1, hostName: 'host1', alertStatus: 'ok', alertLogs: 'No events in last 7 days' }],
+      };
+      expect(p.bmc?.[0].alertLogs).toBe('No events in last 7 days');
+    });
+
+    it('should accept all BmcAlertCategory values', () => {
+      const categories: BmcAlertCategory[] = ['fan', 'psu', 'temperatura', 'cpu', 'memoria', 'storage', 'nic', 'sistema'];
+      const p: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], domainControllers: [] },
+        bmc: [{ hostId: 1, hostName: 'host1', alertStatus: 'alerta', alertCategories: categories }],
+      };
+      expect(p.bmc?.[0].alertCategories?.length).toBe(8);
     });
   });
 

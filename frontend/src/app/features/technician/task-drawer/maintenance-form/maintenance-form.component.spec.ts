@@ -467,7 +467,8 @@ describe('MaintenanceFormComponent', () => {
       expect(group.get('firmwareVersion')).not.toBeNull();
       expect(group.get('biosVersion')).not.toBeNull();
       expect(group.get('alertStatus')).not.toBeNull();
-      expect(group.get('alertNote')).not.toBeNull();
+      expect(group.get('alertCategories')).not.toBeNull();
+      expect(group.get('alertLogs')).not.toBeNull();
     });
 
     it('should rebuild bmcHostControls when infrastructure changes', () => {
@@ -524,20 +525,34 @@ describe('MaintenanceFormComponent', () => {
       expect(payload.bmc![0].biosVersion).toBeUndefined();
     });
 
-    it('should include alertNote when alertStatus is alerta', () => {
+    it('should include alertCategories when alertStatus is alerta', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      component.getBmcGroup(0).patchValue({ alertStatus: 'alerta', alertNote: 'Fan warning' });
+      component.getBmcGroup(0).patchValue({ alertStatus: 'alerta', alertCategories: ['fan', 'psu'] });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.bmc![0].alertStatus).toBe('alerta');
-      expect(payload.bmc![0].alertNote).toBe('Fan warning');
+      expect(payload.bmc![0].alertCategories).toEqual(['fan', 'psu']);
     });
 
-    it('should NOT include alertNote when alertStatus is ok', () => {
+    it('should NOT include alertCategories when alertStatus is ok', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      component.getBmcGroup(0).patchValue({ alertStatus: 'ok', alertNote: 'should be ignored' });
+      component.getBmcGroup(0).patchValue({ alertStatus: 'ok', alertCategories: ['fan'] });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.bmc![0].alertStatus).toBe('ok');
-      expect(payload.bmc![0].alertNote).toBeUndefined();
+      expect(payload.bmc![0].alertCategories).toBeUndefined();
+    });
+
+    it('should include alertLogs in payload when filled, regardless of alertStatus', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
+      component.getBmcGroup(0).patchValue({ alertStatus: 'ok', alertLogs: 'No events' });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.bmc![0].alertLogs).toBe('No events');
+    });
+
+    it('should omit alertLogs from payload when empty', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
+      component.getBmcGroup(0).patchValue({ alertStatus: 'ok', alertLogs: '' });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.bmc![0].alertLogs).toBeUndefined();
     });
   });
 
@@ -862,12 +877,13 @@ describe('MaintenanceFormComponent', () => {
       const saved: ServerMaintenancePayload = {
         type: 'SERVER_MAINTENANCE',
         windows: { servers: [], domainControllers: [] },
-        bmc: [{ hostId: 2, hostName: 'host1.kemini', alertStatus: 'alerta', alertNote: 'Fan warning', firmwareVersion: '2.82' }],
+        bmc: [{ hostId: 2, hostName: 'host1.kemini', alertStatus: 'alerta', alertCategories: ['fan', 'cpu'], alertLogs: 'Fan warning log', firmwareVersion: '2.82' }],
       };
       initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }), saved);
 
       expect(component.bmcHostControls.at(0).get('alertStatus')?.value).toBe('alerta');
-      expect(component.bmcHostControls.at(0).get('alertNote')?.value).toBe('Fan warning');
+      expect(component.bmcHostControls.at(0).get('alertCategories')?.value).toEqual(['fan', 'cpu']);
+      expect(component.bmcHostControls.at(0).get('alertLogs')?.value).toBe('Fan warning log');
       expect(component.bmcHostControls.at(0).get('firmwareVersion')?.value).toBe('2.82');
     });
 

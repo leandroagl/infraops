@@ -180,10 +180,26 @@
 
         <mat-form-field *ngIf="bmcHasAlert(i)"
                         appearance="outline" subscriptSizing="dynamic"
+                        class="mf-form-field">
+          <mat-label>Categorías de alerta</mat-label>
+          <mat-select formControlName="alertCategories" multiple>
+            <mat-option value="fan">Fan</mat-option>
+            <mat-option value="psu">PSU</mat-option>
+            <mat-option value="temperatura">Temperatura</mat-option>
+            <mat-option value="cpu">CPU</mat-option>
+            <mat-option value="memoria">Memoria</mat-option>
+            <mat-option value="storage">Storage</mat-option>
+            <mat-option value="nic">NIC</mat-option>
+            <mat-option value="sistema">Sistema</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
                         class="mf-form-field mf-dcdiag-detail-ff">
-          <mat-label>Nota de alerta</mat-label>
-          <input matInput formControlName="alertNote"
-                 placeholder="Describí la alerta detectada..." />
+          <mat-label>Logs en alerta</mat-label>
+          <textarea matInput formControlName="alertLogs"
+                    cdkTextareaAutosize
+                    placeholder="Pegá aquí entradas del event log del BMC..."></textarea>
         </mat-form-field>
 
       </div>

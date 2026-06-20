@@ -64,13 +64,16 @@ export interface RouterEntry {
   backupDone: boolean;
 }
 
+export type BmcAlertCategory = 'fan' | 'psu' | 'temperatura' | 'cpu' | 'memoria' | 'storage' | 'nic' | 'sistema';
+
 export interface BmcEntry {
-  hostId:           number;
-  hostName:         string;
-  firmwareVersion?: string;
-  biosVersion?:     string;
-  alertStatus:      'ok' | 'alerta';
-  alertNote?:       string;
+  hostId:             number;
+  hostName:           string;
+  firmwareVersion?:   string;
+  biosVersion?:       string;
+  alertStatus:        'ok' | 'alerta';
+  alertCategories?:   BmcAlertCategory[];
+  alertLogs?:         string;
 }
 
 export interface ServerMaintenancePayload {

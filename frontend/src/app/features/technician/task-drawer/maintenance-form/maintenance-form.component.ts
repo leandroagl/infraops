@@ -147,10 +147,11 @@ export class MaintenanceFormComponent implements OnChanges {
       ),
       bmcHosts: this.fb.array(
         this.infrastructure.esxiHosts.map(() => this.fb.group({
-          firmwareVersion: [''],
-          biosVersion:     [''],
-          alertStatus:     ['ok'],
-          alertNote:       [''],
+          firmwareVersion:  [''],
+          biosVersion:      [''],
+          alertStatus:      ['ok'],
+          alertCategories:  [[] as string[]],
+          alertLogs:        [''],
         }))
       ),
       veeamStatus:  ['ok'],
@@ -294,7 +295,8 @@ export class MaintenanceFormComponent implements OnChanges {
         };
         if (ctrl.firmwareVersion) entry.firmwareVersion = ctrl.firmwareVersion;
         if (ctrl.biosVersion)     entry.biosVersion     = ctrl.biosVersion;
-        if (ctrl.alertStatus === 'alerta' && ctrl.alertNote) entry.alertNote = ctrl.alertNote;
+        if (ctrl.alertStatus === 'alerta' && ctrl.alertCategories?.length) entry.alertCategories = ctrl.alertCategories;
+        if (ctrl.alertLogs)       entry.alertLogs       = ctrl.alertLogs;
         return entry;
       });
     }
@@ -403,10 +405,11 @@ export class MaintenanceFormComponent implements OnChanges {
           const saved = srv.bmc!.find(b => b.hostId === host.assetId);
           if (saved) {
             this.bmcHostControls.at(i).patchValue({
-              firmwareVersion: saved.firmwareVersion ?? '',
-              biosVersion:     saved.biosVersion ?? '',
-              alertStatus:     saved.alertStatus,
-              alertNote:       saved.alertNote ?? '',
+              firmwareVersion:  saved.firmwareVersion ?? '',
+              biosVersion:      saved.biosVersion ?? '',
+              alertStatus:      saved.alertStatus,
+              alertCategories:  saved.alertCategories ?? [],
+              alertLogs:        saved.alertLogs ?? '',
             });
           }
         });
