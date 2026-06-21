@@ -235,18 +235,21 @@
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff">
           <mat-label>Espacio total</mat-label>
           <input matInput formControlName="totalSpaceGB" type="number" min="0" placeholder="0" />
-          <span matTextSuffix>GB</span>
+          <mat-select matSuffix formControlName="totalSpaceUnit" style="width:55px">
+            <mat-option value="GB">GB</mat-option>
+            <mat-option value="TB">TB</mat-option>
+          </mat-select>
         </mat-form-field>
 
         <!-- Espacio utilizado -->
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff"
-                        [ngClass]="metricClass(
-                          getQnapGroup(i).get('usedSpaceGB')?.value /
-                          (getQnapGroup(i).get('totalSpaceGB')?.value || 1) * 100,
-                          70, 85)">
+                        [ngClass]="metricClass(spaceRatio(i), 70, 85)">
           <mat-label>Espacio utilizado</mat-label>
           <input matInput formControlName="usedSpaceGB" type="number" min="0" placeholder="0" />
-          <span matTextSuffix>GB</span>
+          <mat-select matSuffix formControlName="usedSpaceUnit" style="width:55px">
+            <mat-option value="GB">GB</mat-option>
+            <mat-option value="TB">TB</mat-option>
+          </mat-select>
         </mat-form-field>
 
         <!-- Discos con error (multi-select dinámico según diskCount) -->
