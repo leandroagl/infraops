@@ -974,12 +974,14 @@ describe('MaintenanceFormComponent', () => {
   // ── QNAP controls ────────────────────────────────────────────────────────────
 
   describe('QNAP controls', () => {
-    it('qnapDeviceControls should have diskCount, totalSpaceGB, usedSpaceGB, disksWithError, raidStatus, firmwareVersion, firmwareUpdated controls', () => {
+    it('qnapDeviceControls should have diskCount, totalSpaceGB, totalSpaceUnit, usedSpaceGB, usedSpaceUnit, disksWithError, raidStatus, firmwareVersion, firmwareUpdated, firmwareNewVersion controls', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
       const group = component.qnapDeviceControls.at(0);
       expect(group.get('diskCount')).not.toBeNull();
       expect(group.get('totalSpaceGB')).not.toBeNull();
+      expect(group.get('totalSpaceUnit')).not.toBeNull();
       expect(group.get('usedSpaceGB')).not.toBeNull();
+      expect(group.get('usedSpaceUnit')).not.toBeNull();
       expect(group.get('disksWithError')).not.toBeNull();
       expect(group.get('raidStatus')).not.toBeNull();
       expect(group.get('firmwareVersion')).not.toBeNull();
@@ -1134,6 +1136,142 @@ describe('MaintenanceFormComponent', () => {
 
       expect(component.qnapDeviceControls.at(0).get('firmwareUpdated')?.value).toBeTrue();
       expect(component.qnapDeviceControls.at(0).get('firmwareNewVersion')?.value).toBe('5.1.0.2566');
+    });
+  });
+
+  // ── spaceRatio helper ────────────────────────────────────────────────────────
+
+  describe('spaceRatio', () => {
+    it('should return 0 when totalSpaceGB is 0', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({ totalSpaceGB: 0, usedSpaceGB: 0, totalSpaceUnit: 'GB', usedSpaceUnit: 'GB' });
+      expect(component.spaceRatio(0)).toBe(0);
+    });
+
+    it('should return 50 when used is half of total in same unit (GB)', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({ totalSpaceGB: 1000, usedSpaceGB: 500, totalSpaceUnit: 'GB', usedSpaceUnit: 'GB' });
+      expect(component.spaceRatio(0)).toBe(50);
+    });
+
+    it('should return 50 when used is half of total in same unit (TB)', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({ totalSpaceGB: 8, usedSpaceGB: 4, totalSpaceUnit: 'TB', usedSpaceUnit: 'TB' });
+      expect(component.spaceRatio(0)).toBe(50);
+    });
+
+    it('should normalize cross-unit: 512 GB used / 1 TB total = 50%', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({ totalSpaceGB: 1, usedSpaceGB: 512, totalSpaceUnit: 'TB', usedSpaceUnit: 'GB' });
+      expect(component.spaceRatio(0)).toBe(50);
+    });
+
+    it('should normalize cross-unit: 1 TB used / 2 TB total = 50%', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({ totalSpaceGB: 2, usedSpaceGB: 1, totalSpaceUnit: 'TB', usedSpaceUnit: 'TB' });
+      expect(component.spaceRatio(0)).toBe(50);
+    });
+  });
+
+  // ── buildPayload — QNAP unit fields ─────────────────────────────────────────
+
+  describe('buildPayload — QNAP unit fields', () => {
+    it('should include totalSpaceUnit and usedSpaceUnit in payload (GB default)', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({
+        diskCount: 4, totalSpaceGB: 16000, usedSpaceGB: 11200,
+        totalSpaceUnit: 'GB', usedSpaceUnit: 'GB',
+        disksWithError: [], raidStatus: 'ok',
+        firmwareVersion: '5.1.0.2566', firmwareUpdated: false,
+      });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.qnap![0].totalSpaceUnit).toBe('GB');
+      expect(payload.qnap![0].usedSpaceUnit).toBe('GB');
+    });
+
+    it('should include totalSpaceUnit TB in payload when selected', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({
+        diskCount: 4, totalSpaceGB: 8, usedSpaceGB: 5,
+        totalSpaceUnit: 'TB', usedSpaceUnit: 'TB',
+        disksWithError: [], raidStatus: 'ok',
+        firmwareVersion: '5.1.0.2566', firmwareUpdated: false,
+      });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.qnap![0].totalSpaceGB).toBe(8);
+      expect(payload.qnap![0].totalSpaceUnit).toBe('TB');
+      expect(payload.qnap![0].usedSpaceGB).toBe(5);
+      expect(payload.qnap![0].usedSpaceUnit).toBe('TB');
+    });
+
+    it('should support mixed units in payload (total TB, used GB)', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({
+        diskCount: 4, totalSpaceGB: 8, usedSpaceGB: 3500,
+        totalSpaceUnit: 'TB', usedSpaceUnit: 'GB',
+        disksWithError: [], raidStatus: 'ok',
+        firmwareVersion: '5.1.0.2566', firmwareUpdated: false,
+      });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.qnap![0].totalSpaceUnit).toBe('TB');
+      expect(payload.qnap![0].usedSpaceUnit).toBe('GB');
+    });
+  });
+
+  // ── patchFormFromPayload — QNAP unit fields ──────────────────────────────────
+
+  describe('patchFormFromPayload — QNAP unit fields', () => {
+    it('parchea totalSpaceUnit y usedSpaceUnit cuando están presentes en el payload', () => {
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], domainControllers: [] },
+        qnap: [{
+          deviceId: 10, deviceName: 'QNAP',
+          diskCount: 4, totalSpaceGB: 8, totalSpaceUnit: 'TB',
+          usedSpaceGB: 5, usedSpaceUnit: 'TB',
+          disksWithError: [], raidStatus: 'ok',
+          firmwareVersion: '5.1.0.2566', firmwareUpdated: false,
+        }],
+      };
+      fixture = TestBed.createComponent(MaintenanceFormComponent);
+      component = fixture.componentInstance;
+      component.task = makeTask('SERVER_MAINTENANCE');
+      component.infrastructure = makeInfra({ esxiHosts: [], routers: [] });
+      component.savedPayload = saved;
+      component.ngOnChanges({
+        infrastructure: new SimpleChange(undefined, makeInfra({ esxiHosts: [], routers: [] }), true),
+        savedPayload: new SimpleChange(undefined, saved, true),
+      });
+      fixture.detectChanges();
+
+      expect(component.qnapDeviceControls.at(0).get('totalSpaceUnit')?.value).toBe('TB');
+      expect(component.qnapDeviceControls.at(0).get('usedSpaceUnit')?.value).toBe('TB');
+    });
+
+    it('defaultea a GB cuando el payload no tiene unit fields (logs existentes)', () => {
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], domainControllers: [] },
+        qnap: [{
+          deviceId: 10, deviceName: 'QNAP',
+          diskCount: 4, totalSpaceGB: 16000, usedSpaceGB: 11200,
+          disksWithError: [], raidStatus: 'ok',
+          firmwareVersion: '5.1.0.2566', firmwareUpdated: false,
+        }],
+      };
+      fixture = TestBed.createComponent(MaintenanceFormComponent);
+      component = fixture.componentInstance;
+      component.task = makeTask('SERVER_MAINTENANCE');
+      component.infrastructure = makeInfra({ esxiHosts: [], routers: [] });
+      component.savedPayload = saved;
+      component.ngOnChanges({
+        infrastructure: new SimpleChange(undefined, makeInfra({ esxiHosts: [], routers: [] }), true),
+        savedPayload: new SimpleChange(undefined, saved, true),
+      });
+      fixture.detectChanges();
+
+      expect(component.qnapDeviceControls.at(0).get('totalSpaceUnit')?.value).toBe('GB');
+      expect(component.qnapDeviceControls.at(0).get('usedSpaceUnit')?.value).toBe('GB');
     });
   });
 });

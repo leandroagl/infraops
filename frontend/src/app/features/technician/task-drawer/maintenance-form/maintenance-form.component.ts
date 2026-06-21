@@ -141,13 +141,15 @@ export class MaintenanceFormComponent implements OnChanges {
       ),
       qnapDevices: this.fb.array(
         this.infrastructure.nas.map(() => this.fb.group({
-          diskCount:       [null as number | null],
-          totalSpaceGB:    [null as number | null],
-          usedSpaceGB:     [null as number | null],
-          disksWithError:  [[] as string[]],
-          raidStatus:      ['ok'],
-          firmwareVersion: [''],
-          firmwareUpdated: [false],
+          diskCount:          [null as number | null],
+          totalSpaceGB:       [null as number | null],
+          totalSpaceUnit:     ['GB' as 'GB' | 'TB'],
+          usedSpaceGB:        [null as number | null],
+          usedSpaceUnit:      ['GB' as 'GB' | 'TB'],
+          disksWithError:     [[] as string[]],
+          raidStatus:         ['ok'],
+          firmwareVersion:    [''],
+          firmwareUpdated:    [false],
           firmwareNewVersion: [''],
         }))
       ),
@@ -245,6 +247,13 @@ export class MaintenanceFormComponent implements OnChanges {
     return this.qnapDeviceControls.at(index).get('firmwareUpdated')?.value === true;
   }
 
+  spaceRatio(index: number): number {
+    const g = this.getQnapGroup(index).value;
+    const total = Number(g.totalSpaceGB) * (g.totalSpaceUnit === 'TB' ? 1024 : 1);
+    const used  = Number(g.usedSpaceGB)  * (g.usedSpaceUnit  === 'TB' ? 1024 : 1);
+    return total ? (used / total) * 100 : 0;
+  }
+
   // ── Payload construction ────────────────────────────────────────────────────
 
   buildPayload(): ServerMaintenancePayload | TerminalPayload {
@@ -329,7 +338,9 @@ export class MaintenanceFormComponent implements OnChanges {
           deviceName:      nas.name,
           diskCount:       Number(ctrl.diskCount),
           totalSpaceGB:    Number(ctrl.totalSpaceGB),
+          totalSpaceUnit:  ctrl.totalSpaceUnit ?? 'GB',
           usedSpaceGB:     Number(ctrl.usedSpaceGB),
+          usedSpaceUnit:   ctrl.usedSpaceUnit ?? 'GB',
           disksWithError:  ctrl.disksWithError ?? [],
           raidStatus:      ctrl.raidStatus,
           firmwareVersion: ctrl.firmwareVersion ?? '',
@@ -420,13 +431,15 @@ export class MaintenanceFormComponent implements OnChanges {
           const saved = srv.qnap!.find(d => d.deviceId === nas.assetId);
           if (saved) {
             this.qnapDeviceControls.at(i).patchValue({
-              diskCount:       saved.diskCount,
-              totalSpaceGB:    saved.totalSpaceGB,
-              usedSpaceGB:     saved.usedSpaceGB,
-              disksWithError:  saved.disksWithError,
-              raidStatus:      saved.raidStatus,
-              firmwareVersion: saved.firmwareVersion,
-              firmwareUpdated: saved.firmwareUpdated,
+              diskCount:          saved.diskCount,
+              totalSpaceGB:       saved.totalSpaceGB,
+              totalSpaceUnit:     saved.totalSpaceUnit ?? 'GB',
+              usedSpaceGB:        saved.usedSpaceGB,
+              usedSpaceUnit:      saved.usedSpaceUnit ?? 'GB',
+              disksWithError:     saved.disksWithError,
+              raidStatus:         saved.raidStatus,
+              firmwareVersion:    saved.firmwareVersion,
+              firmwareUpdated:    saved.firmwareUpdated,
               firmwareNewVersion: saved.firmwareNewVersion,
             });
           }
