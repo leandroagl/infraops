@@ -13,6 +13,7 @@ import {
   BmcEntry,
   DcHealthSnapshot,
   MaintenancePayload,
+  QNAPSection,
   RouterEntry,
   ServerMaintenancePayload,
   TerminalPayload,
@@ -309,7 +310,7 @@ export class MaintenanceFormComponent implements OnChanges {
     if (this.hasQNAP) {
       payload.qnap = this.infrastructure.nas.map((nas, i) => {
         const ctrl = this.qnapDeviceControls.at(i).value;
-        const result: any = {
+        const result: QNAPSection = {
           deviceId:        nas.assetId,
           deviceName:      nas.name,
           diskCount:       Number(ctrl.diskCount),
