@@ -209,16 +209,16 @@ describe('MaintenanceFormComponent', () => {
       component.qnapDeviceControls.at(0).patchValue({
         diskCount: 4,
         totalSpaceGB: 16000,
-        usedSpaceGB: 11200,
+        usedSpaceGB: 10500,
         disksWithError: [],
         raidStatus: 'ok',
         firmwareVersion: '5.1.0.2566',
-        firmwareUpdated: false
+        firmwareUpdated: false,
       });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.qnap).toBeDefined();
       expect(Array.isArray(payload.qnap)).toBeTrue();
-      expect(payload.qnap![0].usedSpaceGB).toBe(11200);
+      expect(payload.qnap![0].diskCount).toBe(4);
       expect(payload.qnap![0].deviceName).toBe('QNAP');
     });
 
@@ -968,6 +968,172 @@ describe('MaintenanceFormComponent', () => {
 
       // defaults intactos
       expect(component.serverControls.at(0).get('updates')?.value).toBe('ok');
+    });
+  });
+
+  // ── QNAP controls ────────────────────────────────────────────────────────────
+
+  describe('QNAP controls', () => {
+    it('qnapDeviceControls should have diskCount, totalSpaceGB, usedSpaceGB, disksWithError, raidStatus, firmwareVersion, firmwareUpdated controls', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      const group = component.qnapDeviceControls.at(0);
+      expect(group.get('diskCount')).not.toBeNull();
+      expect(group.get('totalSpaceGB')).not.toBeNull();
+      expect(group.get('usedSpaceGB')).not.toBeNull();
+      expect(group.get('disksWithError')).not.toBeNull();
+      expect(group.get('raidStatus')).not.toBeNull();
+      expect(group.get('firmwareVersion')).not.toBeNull();
+      expect(group.get('firmwareUpdated')).not.toBeNull();
+      expect(group.get('firmwareNewVersion')).not.toBeNull();
+    });
+
+    it('qnapDeviceControls should NOT have spaceUsed control (campo reemplazado)', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      expect(component.qnapDeviceControls.at(0).get('spaceUsed')).toBeNull();
+    });
+
+    it('diskSlotOptions should return empty array when diskCount is null', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({ diskCount: null });
+      expect(component.diskSlotOptions(0)).toEqual([]);
+    });
+
+    it('diskSlotOptions should return ["Disk 1", "Disk 2", "Disk 3", "Disk 4"] for diskCount 4', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({ diskCount: 4 });
+      expect(component.diskSlotOptions(0)).toEqual(['Disk 1', 'Disk 2', 'Disk 3', 'Disk 4']);
+    });
+
+    it('qnapFirmwareUpdated should return false when firmwareUpdated is false', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({ firmwareUpdated: false });
+      expect(component.qnapFirmwareUpdated(0)).toBeFalse();
+    });
+
+    it('qnapFirmwareUpdated should return true when firmwareUpdated is true', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({ firmwareUpdated: true });
+      expect(component.qnapFirmwareUpdated(0)).toBeTrue();
+    });
+  });
+
+  // ── buildPayload — QNAP section (nuevos campos) ──────────────────────────────
+
+  describe('buildPayload — QNAP section (nuevos campos)', () => {
+    it('should include diskCount, totalSpaceGB, usedSpaceGB, disksWithError, firmwareVersion in payload', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({
+        diskCount: 4,
+        totalSpaceGB: 16000,
+        usedSpaceGB: 11200,
+        disksWithError: [],
+        raidStatus: 'ok',
+        firmwareVersion: '5.1.0.2566',
+        firmwareUpdated: false,
+        firmwareNewVersion: '',
+      });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.qnap![0].diskCount).toBe(4);
+      expect(payload.qnap![0].totalSpaceGB).toBe(16000);
+      expect(payload.qnap![0].usedSpaceGB).toBe(11200);
+      expect(payload.qnap![0].disksWithError).toEqual([]);
+      expect(payload.qnap![0].firmwareVersion).toBe('5.1.0.2566');
+    });
+
+    it('should include firmwareNewVersion in payload only when firmwareUpdated is true', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({
+        diskCount: 4, totalSpaceGB: 16000, usedSpaceGB: 11200,
+        disksWithError: [], raidStatus: 'ok',
+        firmwareVersion: '5.1.0.2400',
+        firmwareUpdated: true,
+        firmwareNewVersion: '5.1.0.2566',
+      });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.qnap![0].firmwareUpdated).toBeTrue();
+      expect(payload.qnap![0].firmwareNewVersion).toBe('5.1.0.2566');
+    });
+
+    it('should NOT include firmwareNewVersion in payload when firmwareUpdated is false', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      component.qnapDeviceControls.at(0).patchValue({
+        diskCount: 2, totalSpaceGB: 8000, usedSpaceGB: 3000,
+        disksWithError: [], raidStatus: 'ok',
+        firmwareVersion: '4.5.4.2117',
+        firmwareUpdated: false,
+        firmwareNewVersion: '5.0.0.0000',
+      });
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect(payload.qnap![0].firmwareUpdated).toBeFalse();
+      expect(payload.qnap![0].firmwareNewVersion).toBeUndefined();
+    });
+
+    it('should NOT include spaceUsed in payload', () => {
+      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], routers: [] }));
+      const payload = component.buildPayload() as ServerMaintenancePayload;
+      expect((payload.qnap![0] as any).spaceUsed).toBeUndefined();
+    });
+  });
+
+  // ── patchFormFromPayload — QNAP nuevos campos ────────────────────────────────
+
+  describe('patchFormFromPayload — QNAP nuevos campos', () => {
+    it('parchea diskCount, totalSpaceGB, usedSpaceGB, disksWithError, firmwareVersion', () => {
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], domainControllers: [] },
+        qnap: [{
+          deviceId: 10, deviceName: 'QNAP',
+          diskCount: 4, totalSpaceGB: 16000, usedSpaceGB: 11200,
+          disksWithError: ['Disk 2'], raidStatus: 'degraded',
+          firmwareVersion: '5.1.0.2566', firmwareUpdated: false,
+        }],
+      };
+      fixture = TestBed.createComponent(MaintenanceFormComponent);
+      component = fixture.componentInstance;
+      component.task = makeTask('SERVER_MAINTENANCE');
+      component.infrastructure = makeInfra({ esxiHosts: [], routers: [] });
+      component.savedPayload = saved;
+      component.ngOnChanges({
+        infrastructure: new SimpleChange(undefined, makeInfra({ esxiHosts: [], routers: [] }), true),
+        savedPayload: new SimpleChange(undefined, saved, true),
+      });
+      fixture.detectChanges();
+
+      expect(component.qnapDeviceControls.at(0).get('diskCount')?.value).toBe(4);
+      expect(component.qnapDeviceControls.at(0).get('totalSpaceGB')?.value).toBe(16000);
+      expect(component.qnapDeviceControls.at(0).get('usedSpaceGB')?.value).toBe(11200);
+      expect(component.qnapDeviceControls.at(0).get('disksWithError')?.value).toEqual(['Disk 2']);
+      expect(component.qnapDeviceControls.at(0).get('firmwareVersion')?.value).toBe('5.1.0.2566');
+      expect(component.qnapDeviceControls.at(0).get('raidStatus')?.value).toBe('degraded');
+    });
+
+    it('parchea firmwareNewVersion cuando firmwareUpdated es true', () => {
+      const saved: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], domainControllers: [] },
+        qnap: [{
+          deviceId: 10, deviceName: 'QNAP',
+          diskCount: 4, totalSpaceGB: 16000, usedSpaceGB: 11200,
+          disksWithError: [], raidStatus: 'ok',
+          firmwareVersion: '5.1.0.2400',
+          firmwareUpdated: true,
+          firmwareNewVersion: '5.1.0.2566',
+        }],
+      };
+      fixture = TestBed.createComponent(MaintenanceFormComponent);
+      component = fixture.componentInstance;
+      component.task = makeTask('SERVER_MAINTENANCE');
+      component.infrastructure = makeInfra({ esxiHosts: [], routers: [] });
+      component.savedPayload = saved;
+      component.ngOnChanges({
+        infrastructure: new SimpleChange(undefined, makeInfra({ esxiHosts: [], routers: [] }), true),
+        savedPayload: new SimpleChange(undefined, saved, true),
+      });
+      fixture.detectChanges();
+
+      expect(component.qnapDeviceControls.at(0).get('firmwareUpdated')?.value).toBeTrue();
+      expect(component.qnapDeviceControls.at(0).get('firmwareNewVersion')?.value).toBe('5.1.0.2566');
     });
   });
 });

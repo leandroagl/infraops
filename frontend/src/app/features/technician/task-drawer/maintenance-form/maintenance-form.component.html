@@ -225,15 +225,37 @@
           </div>
         </div>
 
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff">
+          <mat-label>Cantidad de discos</mat-label>
+          <input matInput formControlName="diskCount" type="number" min="0" placeholder="0" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff">
+          <mat-label>Espacio total (GB)</mat-label>
+          <input matInput formControlName="totalSpaceGB" type="number" min="0" placeholder="0" />
+          <span matTextSuffix>GB</span>
+        </mat-form-field>
+
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff"
-                        [ngClass]="metricClass(qnapDeviceControls.at(i).get('spaceUsed')?.value, 70, 85)">
-          <mat-label>Espacio utilizado</mat-label>
-          <input matInput formControlName="spaceUsed" type="number" min="0" max="100" placeholder="0" />
-          <span matTextSuffix>%</span>
+                        [ngClass]="metricClass(
+                          getQnapGroup(i).get('usedSpaceGB')?.value !== null && getQnapGroup(i).get('totalSpaceGB')?.value
+                            ? (getQnapGroup(i).get('usedSpaceGB')?.value / getQnapGroup(i).get('totalSpaceGB')?.value) * 100
+                            : null,
+                          70, 85)">
+          <mat-label>Espacio usado (GB)</mat-label>
+          <input matInput formControlName="usedSpaceGB" type="number" min="0" placeholder="0" />
+          <span matTextSuffix>GB</span>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
+          <mat-label>Discos con error</mat-label>
+          <mat-select formControlName="disksWithError" multiple>
+            <mat-option *ngFor="let slot of diskSlotOptions(i)" [value]="slot">{{ slot }}</mat-option>
+          </mat-select>
         </mat-form-field>
 
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
-                        [ngClass]="selectClass(qnapDeviceControls.at(i).get('raidStatus')?.value)">
+                        [ngClass]="selectClass(getQnapGroup(i).get('raidStatus')?.value)">
           <mat-label>Estado RAID</mat-label>
           <mat-select formControlName="raidStatus">
             <mat-option value="ok">OK — saludable</mat-option>
@@ -242,9 +264,20 @@
           </mat-select>
         </mat-form-field>
 
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
+          <mat-label>Versión firmware actual</mat-label>
+          <input matInput formControlName="firmwareVersion" placeholder="Ej: 5.1.0.2566" />
+        </mat-form-field>
+
         <mat-checkbox formControlName="firmwareUpdated" class="mf-cl-mat mf-qnap-fw-check">
-          Actualizar firmware si disponible
+          Firmware actualizado
         </mat-checkbox>
+
+        <mat-form-field *ngIf="qnapFirmwareUpdated(i)"
+                        appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
+          <mat-label>Nueva versión firmware</mat-label>
+          <input matInput formControlName="firmwareNewVersion" placeholder="Ej: 5.2.0.2700" />
+        </mat-form-field>
 
       </div>
     </div>

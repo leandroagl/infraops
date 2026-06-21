@@ -231,6 +231,20 @@ export class MaintenanceFormComponent implements OnChanges {
     return this.getBmcGroup(index).get('alertStatus')?.value === 'alerta';
   }
 
+  getQnapGroup(index: number): FormGroup {
+    return this.qnapDeviceControls.at(index) as FormGroup;
+  }
+
+  diskSlotOptions(index: number): string[] {
+    const count = Number(this.qnapDeviceControls.at(index).get('diskCount')?.value);
+    if (!count || isNaN(count) || count <= 0) return [];
+    return Array.from({ length: count }, (_, k) => `Disk ${k + 1}`);
+  }
+
+  qnapFirmwareUpdated(index: number): boolean {
+    return this.qnapDeviceControls.at(index).get('firmwareUpdated')?.value === true;
+  }
+
   // ── Payload construction ────────────────────────────────────────────────────
 
   buildPayload(): ServerMaintenancePayload | TerminalPayload {
@@ -316,12 +330,12 @@ export class MaintenanceFormComponent implements OnChanges {
           diskCount:       Number(ctrl.diskCount),
           totalSpaceGB:    Number(ctrl.totalSpaceGB),
           usedSpaceGB:     Number(ctrl.usedSpaceGB),
-          disksWithError:  ctrl.disksWithError || [],
+          disksWithError:  ctrl.disksWithError ?? [],
           raidStatus:      ctrl.raidStatus,
-          firmwareVersion: ctrl.firmwareVersion || '',
+          firmwareVersion: ctrl.firmwareVersion ?? '',
           firmwareUpdated: ctrl.firmwareUpdated,
         };
-        if (ctrl.firmwareNewVersion) {
+        if (ctrl.firmwareUpdated && ctrl.firmwareNewVersion) {
           result.firmwareNewVersion = ctrl.firmwareNewVersion;
         }
         return result;
