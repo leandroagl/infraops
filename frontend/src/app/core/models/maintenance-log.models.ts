@@ -46,9 +46,14 @@ export interface VMwareHostEntry {
 export interface QNAPSection {
   deviceId: number;
   deviceName: string;
-  spaceUsed: number;
+  diskCount: number;
+  totalSpaceGB: number;
+  usedSpaceGB: number;
+  disksWithError: string[];
   raidStatus: 'ok' | 'degraded' | 'failed';
+  firmwareVersion: string;
   firmwareUpdated: boolean;
+  firmwareNewVersion?: string;
 }
 
 export interface VeeamSection {

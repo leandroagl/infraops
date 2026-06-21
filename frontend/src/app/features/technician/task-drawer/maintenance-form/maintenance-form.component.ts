@@ -140,9 +140,14 @@ export class MaintenanceFormComponent implements OnChanges {
       ),
       qnapDevices: this.fb.array(
         this.infrastructure.nas.map(() => this.fb.group({
-          spaceUsed:       [null as number | null],
+          diskCount:       [null as number | null],
+          totalSpaceGB:    [null as number | null],
+          usedSpaceGB:     [null as number | null],
+          disksWithError:  [[] as string[]],
           raidStatus:      ['ok'],
+          firmwareVersion: [''],
           firmwareUpdated: [false],
+          firmwareNewVersion: [''],
         }))
       ),
       bmcHosts: this.fb.array(
@@ -304,13 +309,21 @@ export class MaintenanceFormComponent implements OnChanges {
     if (this.hasQNAP) {
       payload.qnap = this.infrastructure.nas.map((nas, i) => {
         const ctrl = this.qnapDeviceControls.at(i).value;
-        return {
+        const result: any = {
           deviceId:        nas.assetId,
           deviceName:      nas.name,
-          spaceUsed:       Number(ctrl.spaceUsed),
+          diskCount:       Number(ctrl.diskCount),
+          totalSpaceGB:    Number(ctrl.totalSpaceGB),
+          usedSpaceGB:     Number(ctrl.usedSpaceGB),
+          disksWithError:  ctrl.disksWithError || [],
           raidStatus:      ctrl.raidStatus,
+          firmwareVersion: ctrl.firmwareVersion || '',
           firmwareUpdated: ctrl.firmwareUpdated,
         };
+        if (ctrl.firmwareNewVersion) {
+          result.firmwareNewVersion = ctrl.firmwareNewVersion;
+        }
+        return result;
       });
     }
 
@@ -392,9 +405,14 @@ export class MaintenanceFormComponent implements OnChanges {
           const saved = srv.qnap!.find(d => d.deviceId === nas.assetId);
           if (saved) {
             this.qnapDeviceControls.at(i).patchValue({
-              spaceUsed:       saved.spaceUsed,
+              diskCount:       saved.diskCount,
+              totalSpaceGB:    saved.totalSpaceGB,
+              usedSpaceGB:     saved.usedSpaceGB,
+              disksWithError:  saved.disksWithError,
               raidStatus:      saved.raidStatus,
+              firmwareVersion: saved.firmwareVersion,
               firmwareUpdated: saved.firmwareUpdated,
+              firmwareNewVersion: saved.firmwareNewVersion,
             });
           }
         });

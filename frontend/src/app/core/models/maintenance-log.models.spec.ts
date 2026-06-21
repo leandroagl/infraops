@@ -70,13 +70,111 @@ describe('maintenance-log.models', () => {
       expect(p.vmware?.[1].snapshotsOk).toBe(false);
     });
 
-    it('should accept optional qnap section as array with degraded status', () => {
+    it('should accept qnap section with diskCount, totalSpaceGB, usedSpaceGB and disksWithError', () => {
       const p: ServerMaintenancePayload = {
         type: 'SERVER_MAINTENANCE',
         windows: { servers: [], domainControllers: [] },
-        qnap: [{ deviceId: 10, deviceName: 'QNAP TS-453D', spaceUsed: 65, raidStatus: 'degraded', firmwareUpdated: false }],
+        qnap: [{
+          deviceId: 10,
+          deviceName: 'QNAP TS-453D',
+          diskCount: 4,
+          totalSpaceGB: 16000,
+          usedSpaceGB: 11200,
+          disksWithError: [],
+          raidStatus: 'ok',
+          firmwareVersion: '5.1.0.2566',
+          firmwareUpdated: false,
+        }],
+      };
+      expect(p.qnap?.[0].diskCount).toBe(4);
+      expect(p.qnap?.[0].totalSpaceGB).toBe(16000);
+      expect(p.qnap?.[0].usedSpaceGB).toBe(11200);
+      expect(p.qnap?.[0].disksWithError).toEqual([]);
+      expect(p.qnap?.[0].firmwareVersion).toBe('5.1.0.2566');
+    });
+
+    it('should accept qnap entry with raidStatus degraded and disksWithError list', () => {
+      const p: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], domainControllers: [] },
+        qnap: [{
+          deviceId: 10,
+          deviceName: 'QNAP TS-453D',
+          diskCount: 4,
+          totalSpaceGB: 16000,
+          usedSpaceGB: 11200,
+          disksWithError: ['Disk 2'],
+          raidStatus: 'degraded',
+          firmwareVersion: '5.1.0.2566',
+          firmwareUpdated: false,
+        }],
       };
       expect(p.qnap?.[0].raidStatus).toBe('degraded');
+      expect(p.qnap?.[0].disksWithError).toEqual(['Disk 2']);
+    });
+
+    it('should accept qnap entry with firmwareUpdated true and firmwareNewVersion', () => {
+      const p: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], domainControllers: [] },
+        qnap: [{
+          deviceId: 10,
+          deviceName: 'QNAP TS-453D',
+          diskCount: 4,
+          totalSpaceGB: 16000,
+          usedSpaceGB: 11200,
+          disksWithError: [],
+          raidStatus: 'ok',
+          firmwareVersion: '5.1.0.2400',
+          firmwareUpdated: true,
+          firmwareNewVersion: '5.1.0.2566',
+        }],
+      };
+      expect(p.qnap?.[0].firmwareUpdated).toBeTrue();
+      expect(p.qnap?.[0].firmwareNewVersion).toBe('5.1.0.2566');
+    });
+
+    it('should accept qnap entry without firmwareNewVersion when not updated', () => {
+      const p: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], domainControllers: [] },
+        qnap: [{
+          deviceId: 10,
+          deviceName: 'QNAP TS-453D',
+          diskCount: 2,
+          totalSpaceGB: 8000,
+          usedSpaceGB: 3200,
+          disksWithError: [],
+          raidStatus: 'ok',
+          firmwareVersion: '4.5.4.2117',
+          firmwareUpdated: false,
+        }],
+      };
+      expect(p.qnap?.[0].firmwareNewVersion).toBeUndefined();
+    });
+
+    it('should accept multiple qnap entries', () => {
+      const p: ServerMaintenancePayload = {
+        type: 'SERVER_MAINTENANCE',
+        windows: { servers: [], domainControllers: [] },
+        qnap: [
+          {
+            deviceId: 10, deviceName: 'QNAP-A',
+            diskCount: 4, totalSpaceGB: 16000, usedSpaceGB: 8000,
+            disksWithError: [], raidStatus: 'ok',
+            firmwareVersion: '5.1.0.2566', firmwareUpdated: false,
+          },
+          {
+            deviceId: 11, deviceName: 'QNAP-B',
+            diskCount: 2, totalSpaceGB: 4000, usedSpaceGB: 3900,
+            disksWithError: ['Disk 1', 'Disk 2'], raidStatus: 'failed',
+            firmwareVersion: '4.5.4.2117', firmwareUpdated: false,
+          },
+        ],
+      };
+      expect(p.qnap?.length).toBe(2);
+      expect(p.qnap?.[1].disksWithError.length).toBe(2);
+      expect(p.qnap?.[1].raidStatus).toBe('failed');
     });
 
     it('should accept optional veeam section with missingVMs as string array', () => {
