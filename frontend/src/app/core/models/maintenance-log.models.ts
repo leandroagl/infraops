@@ -48,7 +48,9 @@ export interface QNAPSection {
   deviceName: string;
   diskCount: number;
   totalSpaceGB: number;
+  totalSpaceUnit?: 'GB' | 'TB';
   usedSpaceGB: number;
+  usedSpaceUnit?: 'GB' | 'TB';
   disksWithError: string[];
   raidStatus: 'ok' | 'degraded' | 'failed';
   firmwareVersion: string;

@@ -1,4 +1,4 @@
-import { BmcAlertCategory, ServerMaintenancePayload, TerminalPayload } from './maintenance-log.models';
+import { BmcAlertCategory, QNAPSection, ServerMaintenancePayload, TerminalPayload } from './maintenance-log.models';
 
 describe('maintenance-log.models', () => {
   describe('ServerMaintenancePayload', () => {
@@ -241,6 +241,40 @@ describe('maintenance-log.models', () => {
         bmc: [{ hostId: 1, hostName: 'host1', alertStatus: 'alerta', alertCategories: categories }],
       };
       expect(p.bmc?.[0].alertCategories?.length).toBe(8);
+    });
+
+    it('should accept QNAPSection with totalSpaceUnit and usedSpaceUnit', () => {
+      const section: QNAPSection = {
+        deviceId: 10,
+        deviceName: 'QNAP',
+        diskCount: 4,
+        totalSpaceGB: 8,
+        totalSpaceUnit: 'TB',
+        usedSpaceGB: 5,
+        usedSpaceUnit: 'TB',
+        disksWithError: [],
+        raidStatus: 'ok',
+        firmwareVersion: '5.1.0.2566',
+        firmwareUpdated: false,
+      };
+      expect(section.totalSpaceUnit).toBe('TB');
+      expect(section.usedSpaceUnit).toBe('TB');
+    });
+
+    it('should accept QNAPSection without unit fields (backward compat)', () => {
+      const section: QNAPSection = {
+        deviceId: 10,
+        deviceName: 'QNAP',
+        diskCount: 4,
+        totalSpaceGB: 16000,
+        usedSpaceGB: 11200,
+        disksWithError: [],
+        raidStatus: 'ok',
+        firmwareVersion: '5.1.0.2566',
+        firmwareUpdated: false,
+      };
+      expect(section.totalSpaceUnit).toBeUndefined();
+      expect(section.usedSpaceUnit).toBeUndefined();
     });
   });
 
