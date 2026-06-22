@@ -12,6 +12,7 @@ export class ClientInfrastructureDto {
   esxiHosts: InfraAssetDto[];
   windowsVMs: InfraAssetDto[];
   domainControllers: InfraAssetDto[];
+  linuxVMs: InfraAssetDto[];
   nas: InfraAssetDto[];
   routers: InfraAssetDto[];
 }

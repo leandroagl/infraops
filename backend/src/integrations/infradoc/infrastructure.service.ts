@@ -79,6 +79,7 @@ export class InfrastructureService {
       esxiHosts: [],
       windowsVMs: [],
       domainControllers: [],
+      linuxVMs: [],
       nas: [],
       routers: [],
     };
@@ -100,6 +101,8 @@ export class InfrastructureService {
         } else {
           result.windowsVMs.push(this.mapAsset(asset));
         }
+      } else if (type === 'virtual machine' && os !== '' && !os.startsWith('windows server')) {
+        result.linuxVMs.push(this.mapAsset(asset));
       } else if (
         type === 'firewall/router' ||
         type === 'router' ||

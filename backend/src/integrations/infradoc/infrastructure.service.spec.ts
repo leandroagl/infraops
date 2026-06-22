@@ -448,4 +448,55 @@ describe('InfrastructureService', () => {
       expect(result.domainControllers).toEqual([]);
     });
   });
+
+  describe('linux VM detection', () => {
+    it('agrupa Virtual Machine con OS Ubuntu en linuxVMs', async () => {
+      infradocAssetsService.getAssets.mockResolvedValue([
+        makeAsset({ asset_id: '10', asset_name: 'SRV-UBUNTU', asset_type: 'Virtual Machine', asset_os: 'Ubuntu 22.04', asset_make: null, asset_description: null }),
+      ]);
+      const result = await service.getClientInfrastructure('uuid-1');
+      expect(result.linuxVMs).toHaveLength(1);
+      expect(result.linuxVMs[0].name).toBe('SRV-UBUNTU');
+      expect(result.windowsVMs).toHaveLength(0);
+      expect(result.domainControllers).toHaveLength(0);
+    });
+
+    it('no incluye VMs Windows Server en linuxVMs', async () => {
+      infradocAssetsService.getAssets.mockResolvedValue([
+        makeAsset({ asset_id: '3', asset_name: 'SRV-FILE', asset_type: 'Virtual Machine', asset_os: 'Windows Server 2019', asset_make: null, asset_description: null }),
+      ]);
+      const result = await service.getClientInfrastructure('uuid-1');
+      expect(result.linuxVMs).toHaveLength(0);
+      expect(result.windowsVMs).toHaveLength(1);
+    });
+
+    it('no incluye VMs con asset_os null en linuxVMs', async () => {
+      infradocAssetsService.getAssets.mockResolvedValue([
+        makeAsset({ asset_id: '11', asset_name: 'VM-UNKNOWN', asset_type: 'Virtual Machine', asset_os: null, asset_make: null, asset_description: null }),
+      ]);
+      const result = await service.getClientInfrastructure('uuid-1');
+      expect(result.linuxVMs).toHaveLength(0);
+    });
+
+    it('linuxVMs es array vacío cuando no hay VMs no-Windows', async () => {
+      infradocAssetsService.getAssets.mockResolvedValue([]);
+      const result = await service.getClientInfrastructure('uuid-1');
+      expect(result.linuxVMs).toEqual([]);
+    });
+
+    it('separa correctamente Windows, Linux y DCs cuando los tres están presentes', async () => {
+      infradocAssetsService.getAssets.mockResolvedValue([
+        makeAsset({ asset_id: '3', asset_name: 'SRV-FILE', asset_type: 'Virtual Machine', asset_os: 'Windows Server 2019', asset_make: null, asset_description: null }),
+        makeAsset({ asset_id: '4', asset_name: 'DC01',     asset_type: 'Virtual Machine', asset_os: 'Windows Server 2022', asset_make: null, asset_description: 'Domain Controller' }),
+        makeAsset({ asset_id: '10', asset_name: 'SRV-LINUX', asset_type: 'Virtual Machine', asset_os: 'Ubuntu 22.04', asset_make: null, asset_description: null }),
+      ]);
+      const result = await service.getClientInfrastructure('uuid-1');
+      expect(result.windowsVMs).toHaveLength(1);
+      expect(result.windowsVMs[0].name).toBe('SRV-FILE');
+      expect(result.domainControllers).toHaveLength(1);
+      expect(result.domainControllers[0].name).toBe('DC01');
+      expect(result.linuxVMs).toHaveLength(1);
+      expect(result.linuxVMs[0].name).toBe('SRV-LINUX');
+    });
+  });
 });
