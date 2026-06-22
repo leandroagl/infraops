@@ -58,9 +58,15 @@ export interface QNAPSection {
   firmwareNewVersion?: string;
 }
 
+export interface VeeamJobEntry {
+  jobName: string;
+  fullsAvailable: number;
+  restorePoints: number;
+}
+
 export interface VeeamSection {
-  status: 'ok' | 'partial' | 'missing';
-  missingVMs?: string[];
+  jobs: VeeamJobEntry[];
+  uncoveredVMs: number[];
 }
 
 export interface RouterEntry {
