@@ -2,20 +2,15 @@
      [class.mf-cl-rpt--warn]="cardHealth === 'warn'"
      [class.qnap-card--crit]="cardHealth === 'crit'">
 
-  <!-- Header -->
+  <!-- Header — solo badge RAID, espacio % se muestra junto a la barra -->
   <div class="qnap-card-header">
     <div class="qnap-card-identity">
       <span class="mf-cl-rpt-label">{{ device.name }}</span>
       <span class="mono mf-host-ip">{{ device.ip ?? '—' }}</span>
     </div>
-    <div class="qnap-card-badges">
-      <span class="badge" [ngClass]="raidBadgeClass()">
-        <span class="dot"></span>{{ raidBadgeLabel() }}
-      </span>
-      <span *ngIf="spaceRatio > 0" class="badge" [ngClass]="spaceBadgeClass()">
-        <span class="dot"></span>{{ spaceRatio | number:'1.0-0' }}%
-      </span>
-    </div>
+    <span class="badge" [ngClass]="raidBadgeClass()">
+      <span class="dot"></span>{{ raidBadgeLabel() }}
+    </span>
   </div>
 
   <div [formGroup]="group">
@@ -23,12 +18,28 @@
     <!-- Sección almacenamiento -->
     <div class="mf-section-lbl">Almacenamiento</div>
 
-    <div class="qnap-storage-row">
+    <!-- Fila 1: info física del arreglo -->
+    <div class="qnap-disks-row">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff">
         <mat-label>Cantidad de discos</mat-label>
         <input matInput formControlName="diskCount" type="number" min="1" placeholder="0" />
       </mat-form-field>
 
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
+                      [ngClass]="group.get('disksWithError')?.value?.length ? 'mf-sel--crit' : ''">
+        <mat-label>Discos con error</mat-label>
+        <mat-select formControlName="disksWithError" multiple>
+          <mat-option *ngFor="let slot of diskSlotOptions" [value]="slot">{{ slot }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <div *ngIf="group.get('disksWithError')?.value?.length" class="qnap-disk-error-chips">
+      <span *ngFor="let disk of group.get('disksWithError')?.value" class="qnap-disk-chip">{{ disk }}</span>
+    </div>
+
+    <!-- Fila 2: capacidad -->
+    <div class="qnap-space-row">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff">
         <mat-label>Espacio total</mat-label>
         <input matInput formControlName="totalSpaceGB" type="number" min="0" placeholder="0" />
@@ -49,26 +60,19 @@
       </mat-form-field>
     </div>
 
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
-                    [ngClass]="group.get('disksWithError')?.value?.length ? 'mf-sel--crit' : ''">
-      <mat-label>Discos con error</mat-label>
-      <mat-select formControlName="disksWithError" multiple>
-        <mat-option *ngFor="let slot of diskSlotOptions" [value]="slot">{{ slot }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-
-    <div *ngIf="group.get('disksWithError')?.value?.length" class="qnap-disk-error-chips">
-      <span *ngFor="let disk of group.get('disksWithError')?.value" class="qnap-disk-chip">{{ disk }}</span>
+    <!-- Barra de progreso + % juntos -->
+    <div *ngIf="spaceRatio > 0" class="qnap-progress-wrap">
+      <div class="qnap-progress-bar">
+        <div class="qnap-progress-fill"
+             [ngClass]="metricClass(spaceRatio, 70, 85)"
+             [style.width.%]="spaceRatio"></div>
+      </div>
+      <span class="qnap-progress-pct" [ngClass]="metricClass(spaceRatio, 70, 85)">
+        {{ spaceRatio | number:'1.0-0' }}%
+      </span>
     </div>
 
-    <!-- Barra de progreso -->
-    <div *ngIf="spaceRatio > 0" class="qnap-progress-bar">
-      <div class="qnap-progress-fill"
-           [ngClass]="metricClass(spaceRatio, 70, 85)"
-           [style.width.%]="spaceRatio"></div>
-    </div>
-
-    <!-- Estado RAID (select oculto visualmente — el badge del header lo representa) -->
+    <!-- Estado RAID -->
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
                     [ngClass]="selectClass(group.get('raidStatus')?.value)">
       <mat-label>Estado RAID</mat-label>

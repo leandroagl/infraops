@@ -1,4 +1,4 @@
-// ── Section label (copied from maintenance-form for component-level scope) ────
+// ── Section label ─────────────────────────────────────────────
 .mf-section-lbl {
   display: flex;
   align-items: center;
@@ -9,7 +9,7 @@
   letter-spacing: 0.8px;
   text-transform: uppercase;
   font-family: var(--font-mono);
-  margin-top: 4px;
+  margin-top: 12px;
   white-space: nowrap;
 
   &::after {
@@ -20,6 +20,7 @@
   }
 }
 
+// ── Estado de salud de la card ─────────────────────────────────
 .qnap-card--crit {
   border-color: var(--crit-bd);
   background: color-mix(in srgb, var(--crit) 3%, transparent);
@@ -32,13 +33,13 @@
   }
 }
 
-// Header
+// ── Header ─────────────────────────────────────────────────────
 .qnap-card-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
 
 .qnap-card-identity {
@@ -48,35 +49,38 @@
   min-width: 0;
 }
 
-.qnap-card-badges {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-// Filas de campos
-.qnap-storage-row {
+// ── Filas de campos ────────────────────────────────────────────
+.qnap-disks-row,
+.qnap-space-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
   align-items: start;
+  margin-top: 8px;
 }
 
 .qnap-firmware-row {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
+  margin-top: 8px;
 }
 
-// Barra de progreso
+// ── Barra de progreso con % inline ─────────────────────────────
+.qnap-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .qnap-progress-bar {
+  flex: 1;
   height: 5px;
   background: var(--elevated);
   border-radius: 3px;
   overflow: hidden;
-  margin: 2px 0 6px;
 }
 
 .qnap-progress-fill {
@@ -89,12 +93,25 @@
   &.mf-inp--crit { background: var(--crit); }
 }
 
-// Chips de discos con error
+.qnap-progress-pct {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  min-width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+
+  &.mf-inp--ok   { color: var(--ok); }
+  &.mf-inp--warn { color: var(--warn); }
+  &.mf-inp--crit { color: var(--crit); }
+}
+
+// ── Chips de discos con error ──────────────────────────────────
 .qnap-disk-error-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-bottom: 2px;
+  margin-top: 4px;
 }
 
 .qnap-disk-chip {

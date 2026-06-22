@@ -53,14 +53,6 @@ export class QnapDeviceCardComponent {
     return 'RAID: —';
   }
 
-  spaceBadgeClass(): string {
-    const ratio = this.spaceRatio;
-    if (ratio >= 85) return 'badge--crit';
-    if (ratio >= 70) return 'badge--warn';
-    if (ratio > 0)   return 'badge--ok';
-    return 'badge--neutral';
-  }
-
   selectClass(value: string): string {
     if (!value || value === 'ok') return 'mf-sel--ok';
     if (value === 'degraded')     return 'mf-sel--warn';
