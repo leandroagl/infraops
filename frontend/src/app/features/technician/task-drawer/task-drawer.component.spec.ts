@@ -159,14 +159,14 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(issues.dcdiagErrors.length).toBe(0);
     });
 
-    it('should return veeam missing error when payload.veeam.status === "missing"', () => {
-      const payload = makeServerPayload({ veeam: { status: 'missing' } });
+    it('should return veeam missing error when uncoveredVMs is non-empty', () => {
+      const payload = makeServerPayload({ veeam: { jobs: [], uncoveredVMs: [1, 2] } });
       const issues = component.detectIssues(payload);
       expect(issues.veeamMissing).toBe(true);
     });
 
-    it('should not flag veeam when status is ok', () => {
-      const payload = makeServerPayload({ veeam: { status: 'ok' } });
+    it('should not flag veeam when uncoveredVMs is empty', () => {
+      const payload = makeServerPayload({ veeam: { jobs: [], uncoveredVMs: [] } });
       const issues = component.detectIssues(payload);
       expect(issues.veeamMissing).toBe(false);
     });
@@ -197,7 +197,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       const payload = makeServerPayload({
         windows: { servers: [], domainControllers: [] },
         vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: 40, memUsage: 50, storageUsage: 30, snapshotsOk: true }],
-        veeam: { status: 'ok' },
+        veeam: { jobs: [], uncoveredVMs: [] },
       });
       const issues = component.detectIssues(payload);
       expect(issues.dcdiagErrors.length).toBe(0);

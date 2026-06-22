@@ -32,6 +32,7 @@ const makeInfra = (overrides: Partial<ClientInfrastructure> = {}): ClientInfrast
   esxiHosts: [{ assetId: 2, name: 'host1.kemini', ip: '192.168.0.104', bmcIp: '192.168.0.200', bmcType: 'iLO', os: 'VMware ESXi 7.0', model: 'HPE DL380' }],
   windowsVMs: [{ assetId: 3, name: '47DC', ip: '192.168.1.18', bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null }],
   domainControllers: [],
+  linuxVMs: [],
   nas: [{ assetId: 10, name: 'QNAP', ip: '192.168.1.21', bmcIp: null, bmcType: null, os: null, model: 'QNAP TS-453D' }],
   routers: [{ assetId: 1, name: 'MikroTik', ip: '192.168.99.1', bmcIp: null, bmcType: null, os: 'RouterOS', model: 'CCR2004' }],
   ...overrides,
@@ -196,24 +197,24 @@ describe('MaintenanceFormComponent', () => {
 
     it('should include veeam section only when hasVeeam is true', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }));
-      component.form.patchValue({ veeamStatus: 'ok' });
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.veeam).toBeDefined();
-      expect(payload.veeam!.status).toBe('ok');
+      expect(payload.veeam!.jobs).toEqual([]);
+      expect(payload.veeam!.uncoveredVMs).toEqual([]);
     });
 
-    it('should include veeam.missingVMs array when status is missing', () => {
+    it('should include veeam.uncoveredVMs when set', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }));
-      component.form.patchValue({ veeamStatus: 'missing', veeamMissing: ['VM-APP01', 'VM-DB01'] });
+      component.form.patchValue({ veeamUncovered: [1, 2] });
       const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.veeam!.missingVMs).toEqual(['VM-APP01', 'VM-DB01']);
+      expect(payload.veeam!.uncoveredVMs).toEqual([1, 2]);
     });
 
-    it('should NOT include veeam.missingVMs when status is ok', () => {
+    it('should include empty uncoveredVMs when none set', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }));
-      component.form.patchValue({ veeamStatus: 'ok', veeamMissing: ['should be ignored'] });
+      component.form.patchValue({ veeamUncovered: [] });
       const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.veeam!.missingVMs).toBeUndefined();
+      expect(payload.veeam!.uncoveredVMs).toEqual([]);
     });
 
     it('should include router section as array when hasRouter is true', () => {
@@ -836,15 +837,15 @@ describe('MaintenanceFormComponent', () => {
       expect(component.bmcHostControls.at(0).get('firmwareVersion')?.value).toBe('2.82');
     });
 
-    it('parchea veeamStatus y veeamMissing', () => {
+    it('parchea veeamJobs y veeamUncovered', () => {
       const saved: ServerMaintenancePayload = {
         type: 'SERVER_MAINTENANCE',
         windows: { servers: [], domainControllers: [] },
-        veeam: { status: 'partial', missingVMs: ['VM-DB01'] },
+        veeam: { jobs: [], uncoveredVMs: [3, 5] },
       };
       initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }), saved);
 
-      expect(component.form.get('veeamStatus')?.value).toBe('partial');
+      expect(component.form.get('veeamUncovered')?.value).toEqual([3, 5]);
     });
 
     it('ignora entrada guardada si el serverId no está en la infra actual', () => {

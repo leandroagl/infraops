@@ -184,14 +184,14 @@ describe('maintenance-log.models', () => {
       expect(p.qnap?.[1].raidStatus).toBe('failed');
     });
 
-    it('should accept optional veeam section with missingVMs as string array', () => {
+    it('should accept optional veeam section with jobs and uncoveredVMs', () => {
       const p: ServerMaintenancePayload = {
         type: 'SERVER_MAINTENANCE',
         windows: { servers: [], domainControllers: [] },
-        veeam: { status: 'missing', missingVMs: ['VM-WEB01', 'VM-SQL01'] },
+        veeam: { jobs: [{ jobName: 'Daily Backup', fullsAvailable: 3, restorePoints: 14 }], uncoveredVMs: [1, 2] },
       };
-      expect(p.veeam?.status).toBe('missing');
-      expect(p.veeam?.missingVMs).toEqual(['VM-WEB01', 'VM-SQL01']);
+      expect(p.veeam?.jobs.length).toBe(1);
+      expect(p.veeam?.uncoveredVMs).toEqual([1, 2]);
     });
 
     it('should accept optional router section as array of RouterEntry', () => {

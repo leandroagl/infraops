@@ -143,7 +143,7 @@ export class TaskDrawerComponent implements OnChanges {
       .flatMap(dc => dc.warnings ?? [])
       .filter(w => w.toUpperCase().startsWith('ERROR'));
 
-    const veeamMissing = srv.veeam?.status === 'missing' || srv.veeam?.status === 'partial';
+    const veeamMissing = (srv.veeam?.uncoveredVMs?.length ?? 0) > 0;
 
     const emptyFields: string[] = [];
     if (srv.vmware?.length) {

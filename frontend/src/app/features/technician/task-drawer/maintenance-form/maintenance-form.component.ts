@@ -16,6 +16,7 @@ import {
   RouterEntry,
   ServerMaintenancePayload,
   TerminalPayload,
+  VeeamJobEntry,
 } from '../../../../core/models/maintenance-log.models';
 
 @Component({
@@ -142,8 +143,8 @@ export class MaintenanceFormComponent implements OnChanges {
           alertLogs:        [''],
         }))
       ),
-      veeamStatus:  ['ok'],
-      veeamMissing: [[] as string[]],
+      veeamJobs:        [[] as VeeamJobEntry[]],
+      veeamUncovered:   [[] as number[]],
       routerDevices: this.fb.array(
         this.infrastructure.routers.map(() => this.fb.group({
           firmwareUpdated: [false],
@@ -291,8 +292,8 @@ export class MaintenanceFormComponent implements OnChanges {
 
     if (this.hasVeeam) {
       payload.veeam = {
-        status:     v.veeamStatus,
-        missingVMs: v.veeamStatus !== 'ok' ? (v.veeamMissing ?? []) : undefined,
+        jobs:         v.veeamJobs ?? [],
+        uncoveredVMs: v.veeamUncovered ?? [],
       };
     }
 
@@ -318,8 +319,8 @@ export class MaintenanceFormComponent implements OnChanges {
 
       this.form.patchValue({
         notes:        srv.notes ?? '',
-        veeamStatus:  srv.veeam?.status ?? 'ok',
-        veeamMissing: srv.veeam?.missingVMs ?? [],
+        veeamJobs:      srv.veeam?.jobs ?? [],
+        veeamUncovered: srv.veeam?.uncoveredVMs ?? [],
       });
 
       if (srv.router?.length) {
