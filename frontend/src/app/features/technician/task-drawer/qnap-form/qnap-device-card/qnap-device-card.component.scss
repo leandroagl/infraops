@@ -20,26 +20,40 @@
   }
 }
 
-// ── Estado de salud de la card ─────────────────────────────────
-.qnap-card--crit {
-  border-color: var(--crit-bd);
-  background: color-mix(in srgb, var(--crit) 3%, transparent);
-}
-
+// ── Base card (mf-cl-rpt es scoped a MaintenanceFormComponent, re-declarado acá) ──
 .mf-cl-rpt {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0;
+  box-shadow: var(--shadow-card);
+
   &.mf-cl-rpt--warn {
     border-color: var(--warn-bd);
     background: color-mix(in srgb, var(--warn) 3%, transparent);
   }
 }
 
-// ── Header ─────────────────────────────────────────────────────
+.qnap-card--crit {
+  border-color: var(--crit-bd);
+  background: color-mix(in srgb, var(--crit) 3%, transparent);
+}
+
+// ── Header con separador inferior ─────────────────────────────
 .qnap-card-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 4px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-lo);
+  background: var(--elevated);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+// ── Body con padding propio ────────────────────────────────────
+.qnap-card-body {
+  padding: 12px 14px 14px;
 }
 
 .qnap-card-identity {
