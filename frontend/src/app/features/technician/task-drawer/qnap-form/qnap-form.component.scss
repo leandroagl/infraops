@@ -1,0 +1,32 @@
+.mf-cl-rpt-dot--ok   { background: var(--ok); }
+.mf-cl-rpt-dot--warn { background: var(--warn); }
+.mf-cl-rpt-dot--crit { background: var(--crit); }
+
+.qnap-space-pct {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  align-self: flex-start;
+
+  &.mf-inp--ok   { background: var(--ok-bg);   color: var(--ok);   }
+  &.mf-inp--warn { background: var(--warn-bg);  color: var(--warn); }
+  &.mf-inp--crit { background: var(--crit-bg);  color: var(--crit); }
+}
+
+.qnap-disk-error-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: -4px;
+}
+
+.qnap-disk-chip {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--crit-bg);
+  color: var(--crit);
+}
