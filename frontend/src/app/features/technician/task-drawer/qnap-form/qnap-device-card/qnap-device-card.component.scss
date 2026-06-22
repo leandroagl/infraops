@@ -25,6 +25,13 @@
   background: color-mix(in srgb, var(--crit) 3%, transparent);
 }
 
+.mf-cl-rpt {
+  &.mf-cl-rpt--warn {
+    border-color: var(--warn-bd);
+    background: color-mix(in srgb, var(--warn) 3%, transparent);
+  }
+}
+
 // Header
 .qnap-card-header {
   display: flex;

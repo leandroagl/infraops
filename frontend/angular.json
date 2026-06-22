@@ -124,7 +124,8 @@
               "-d",
               "."
             ],
-            "port": 6006
+            "port": 6006,
+            "styles": ["src/styles.scss"]
           }
         },
         "build-storybook": {
@@ -139,7 +140,8 @@
               "-d",
               "."
             ],
-            "outputDir": "storybook-static"
+            "outputDir": "storybook-static",
+            "styles": ["src/styles.scss"]
           }
         }
       }
