@@ -4,6 +4,7 @@ export class AddQnapMaintenanceTaskType1782172800000
   implements MigrationInterface
 {
   name = 'AddQnapMaintenanceTaskType1782172800000';
+  transaction = false as const; // ALTER TYPE ADD VALUE no puede ejecutarse dentro de una transacción
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
