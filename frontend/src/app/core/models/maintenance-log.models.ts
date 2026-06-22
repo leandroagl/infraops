@@ -117,4 +117,10 @@ export interface TerminalPayload {
   notes?: string;
 }
 
-export type MaintenancePayload = ServerMaintenancePayload | TerminalPayload;
+export interface QnapPayload {
+  type: 'QNAP_MAINTENANCE';
+  qnap: QNAPSection[];
+  notes?: string;
+}
+
+export type MaintenancePayload = ServerMaintenancePayload | TerminalPayload | QnapPayload;

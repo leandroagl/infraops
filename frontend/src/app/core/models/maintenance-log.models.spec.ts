@@ -1,4 +1,11 @@
-import { BmcAlertCategory, QNAPSection, ServerMaintenancePayload, TerminalPayload } from './maintenance-log.models';
+import {
+  BmcAlertCategory,
+  MaintenancePayload,
+  QnapPayload,
+  QNAPSection,
+  ServerMaintenancePayload,
+  TerminalPayload,
+} from './maintenance-log.models';
 
 describe('maintenance-log.models', () => {
   describe('ServerMaintenancePayload', () => {
@@ -317,5 +324,44 @@ describe('maintenance-log.models', () => {
       };
       expect(p.notes).toBe('Visita realizada con normalidad');
     });
+  });
+});
+
+describe('QnapPayload', () => {
+  it('acepta type QNAP_MAINTENANCE con array de qnap', () => {
+    const payload: QnapPayload = {
+      type: 'QNAP_MAINTENANCE',
+      qnap: [{
+        deviceId: 10,
+        deviceName: 'QNAP-01',
+        diskCount: 4,
+        totalSpaceGB: 16000,
+        usedSpaceGB: 11200,
+        disksWithError: [],
+        raidStatus: 'ok',
+        firmwareVersion: '5.1.0.2566',
+        firmwareUpdated: false,
+      }],
+    };
+    expect(payload.type).toBe('QNAP_MAINTENANCE');
+    expect(payload.qnap.length).toBe(1);
+    expect(payload.qnap[0].diskCount).toBe(4);
+  });
+
+  it('acepta notes opcional', () => {
+    const payload: QnapPayload = {
+      type: 'QNAP_MAINTENANCE',
+      qnap: [],
+      notes: 'revisado',
+    };
+    expect(payload.notes).toBe('revisado');
+  });
+
+  it('acepta QnapPayload como MaintenancePayload', () => {
+    const payload: MaintenancePayload = {
+      type: 'QNAP_MAINTENANCE',
+      qnap: [],
+    };
+    expect(payload.type).toBe('QNAP_MAINTENANCE');
   });
 });
