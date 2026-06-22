@@ -120,8 +120,8 @@
   &.mf-inp--crit { color: var(--crit); }
 }
 
-// Espacio entre barra de progreso y campo Estado RAID
-.qnap-progress-wrap + mat-form-field {
+// Estado RAID siempre con margen superior fijo
+mat-form-field.qnap-raid-field {
   margin-top: 14px;
 }
 
