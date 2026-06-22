@@ -13,6 +13,7 @@ import {
   BmcEntry,
   DcHealthSnapshot,
   MaintenancePayload,
+  QNAPSection,
   RouterEntry,
   ServerMaintenancePayload,
   TerminalPayload,
@@ -140,9 +141,16 @@ export class MaintenanceFormComponent implements OnChanges {
       ),
       qnapDevices: this.fb.array(
         this.infrastructure.nas.map(() => this.fb.group({
-          spaceUsed:       [null as number | null],
-          raidStatus:      ['ok'],
-          firmwareUpdated: [false],
+          diskCount:          [null as number | null],
+          totalSpaceGB:       [null as number | null],
+          totalSpaceUnit:     ['GB' as 'GB' | 'TB'],
+          usedSpaceGB:        [null as number | null],
+          usedSpaceUnit:      ['GB' as 'GB' | 'TB'],
+          disksWithError:     [[] as string[]],
+          raidStatus:         ['ok'],
+          firmwareVersion:    [''],
+          firmwareUpdated:    [false],
+          firmwareNewVersion: [''],
         }))
       ),
       bmcHosts: this.fb.array(
@@ -225,6 +233,27 @@ export class MaintenanceFormComponent implements OnChanges {
     return this.getBmcGroup(index).get('alertStatus')?.value === 'alerta';
   }
 
+  getQnapGroup(index: number): FormGroup {
+    return this.qnapDeviceControls.at(index) as FormGroup;
+  }
+
+  diskSlotOptions(index: number): string[] {
+    const count = Number(this.qnapDeviceControls.at(index).get('diskCount')?.value);
+    if (!count || isNaN(count) || count <= 0) return [];
+    return Array.from({ length: count }, (_, k) => `Disk ${k + 1}`);
+  }
+
+  qnapFirmwareUpdated(index: number): boolean {
+    return this.qnapDeviceControls.at(index).get('firmwareUpdated')?.value === true;
+  }
+
+  spaceRatio(index: number): number {
+    const g = this.getQnapGroup(index).value;
+    const total = Number(g.totalSpaceGB) * (g.totalSpaceUnit === 'TB' ? 1024 : 1);
+    const used  = Number(g.usedSpaceGB)  * (g.usedSpaceUnit  === 'TB' ? 1024 : 1);
+    return total ? (used / total) * 100 : 0;
+  }
+
   // ── Payload construction ────────────────────────────────────────────────────
 
   buildPayload(): ServerMaintenancePayload | TerminalPayload {
@@ -304,13 +333,23 @@ export class MaintenanceFormComponent implements OnChanges {
     if (this.hasQNAP) {
       payload.qnap = this.infrastructure.nas.map((nas, i) => {
         const ctrl = this.qnapDeviceControls.at(i).value;
-        return {
+        const result: QNAPSection = {
           deviceId:        nas.assetId,
           deviceName:      nas.name,
-          spaceUsed:       Number(ctrl.spaceUsed),
+          diskCount:       Number(ctrl.diskCount),
+          totalSpaceGB:    Number(ctrl.totalSpaceGB),
+          totalSpaceUnit:  ctrl.totalSpaceUnit ?? 'GB',
+          usedSpaceGB:     Number(ctrl.usedSpaceGB),
+          usedSpaceUnit:   ctrl.usedSpaceUnit ?? 'GB',
+          disksWithError:  ctrl.disksWithError ?? [],
           raidStatus:      ctrl.raidStatus,
+          firmwareVersion: ctrl.firmwareVersion ?? '',
           firmwareUpdated: ctrl.firmwareUpdated,
         };
+        if (ctrl.firmwareUpdated && ctrl.firmwareNewVersion) {
+          result.firmwareNewVersion = ctrl.firmwareNewVersion;
+        }
+        return result;
       });
     }
 
@@ -392,9 +431,16 @@ export class MaintenanceFormComponent implements OnChanges {
           const saved = srv.qnap!.find(d => d.deviceId === nas.assetId);
           if (saved) {
             this.qnapDeviceControls.at(i).patchValue({
-              spaceUsed:       saved.spaceUsed,
-              raidStatus:      saved.raidStatus,
-              firmwareUpdated: saved.firmwareUpdated,
+              diskCount:          saved.diskCount,
+              totalSpaceGB:       saved.totalSpaceGB,
+              totalSpaceUnit:     saved.totalSpaceUnit ?? 'GB',
+              usedSpaceGB:        saved.usedSpaceGB,
+              usedSpaceUnit:      saved.usedSpaceUnit ?? 'GB',
+              disksWithError:     saved.disksWithError,
+              raidStatus:         saved.raidStatus,
+              firmwareVersion:    saved.firmwareVersion,
+              firmwareUpdated:    saved.firmwareUpdated,
+              firmwareNewVersion: saved.firmwareNewVersion,
             });
           }
         });
