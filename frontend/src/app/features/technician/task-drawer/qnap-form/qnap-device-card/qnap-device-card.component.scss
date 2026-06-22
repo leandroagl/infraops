@@ -106,6 +106,16 @@
   &.mf-inp--crit { color: var(--crit); }
 }
 
+// Espacio entre barra de progreso y campo Estado RAID
+.qnap-progress-wrap + mat-form-field {
+  margin-top: 14px;
+}
+
+// Campo "Nueva versión" (condicional post-checkbox)
+mat-form-field.qnap-new-version {
+  margin-top: 8px;
+}
+
 // ── Chips de discos con error ──────────────────────────────────
 .qnap-disk-error-chips {
   display: flex;

@@ -1,6 +1,6 @@
 <form [formGroup]="form">
 
-  <div class="mf-vmware-grid">
+  <div class="qnap-devices-stack">
     <app-qnap-device-card
       *ngFor="let _ of qnapDeviceControls.controls; let i = index"
       [device]="infrastructure.nas[i]"
