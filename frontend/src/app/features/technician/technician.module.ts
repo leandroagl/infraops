@@ -18,10 +18,11 @@ import { ConfirmMaintenanceDialogComponent } from './task-drawer/confirm-mainten
 import { TimeSpentDialogComponent } from './task-drawer/time-spent-dialog/time-spent-dialog.component';
 import { DcHealthCardComponent } from './task-drawer/maintenance-form/dc-health-card/dc-health-card.component';
 import { QnapFormComponent } from './task-drawer/qnap-form/qnap-form.component';
+import { QnapDeviceCardComponent } from './task-drawer/qnap-form/qnap-device-card/qnap-device-card.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
-  declarations: [TaskListComponent, TaskDrawerComponent, MaintenanceFormComponent, ConfirmMaintenanceDialogComponent, TimeSpentDialogComponent, DcHealthCardComponent, QnapFormComponent],
+  declarations: [TaskListComponent, TaskDrawerComponent, MaintenanceFormComponent, ConfirmMaintenanceDialogComponent, TimeSpentDialogComponent, DcHealthCardComponent, QnapFormComponent, QnapDeviceCardComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,

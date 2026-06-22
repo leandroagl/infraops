@@ -1,0 +1,100 @@
+// ── Section label (copied from maintenance-form for component-level scope) ────
+.mf-section-lbl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tx-lo);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  margin-top: 4px;
+  white-space: nowrap;
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-lo);
+  }
+}
+
+.qnap-card--crit {
+  border-color: var(--crit-bd);
+  background: color-mix(in srgb, var(--crit) 3%, transparent);
+}
+
+// Header
+.qnap-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.qnap-card-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.qnap-card-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+// Filas de campos
+.qnap-storage-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.qnap-firmware-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+// Barra de progreso
+.qnap-progress-bar {
+  height: 5px;
+  background: var(--elevated);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 2px 0 6px;
+}
+
+.qnap-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 300ms ease;
+
+  &.mf-inp--ok   { background: var(--ok); }
+  &.mf-inp--warn { background: var(--warn); }
+  &.mf-inp--crit { background: var(--crit); }
+}
+
+// Chips de discos con error
+.qnap-disk-error-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.qnap-disk-chip {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--crit-bg);
+  color: var(--crit);
+}

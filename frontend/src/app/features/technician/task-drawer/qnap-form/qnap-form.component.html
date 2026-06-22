@@ -1,102 +1,14 @@
 <form [formGroup]="form">
 
-  <div class="mf-vmware-grid" formArrayName="qnapDevices">
-    <div *ngFor="let _ of qnapDeviceControls.controls; let i = index"
-         [formGroupName]="i"
-         class="mf-cl-rpt mf-vmware-card">
-
-      <div class="mf-cl-rpt-hdr">
-        <div class="mf-cl-rpt-dot"
-             [ngClass]="'mf-cl-rpt-dot--' + qnapCardHealth(i)"></div>
-        <div class="mf-vmware-name-block">
-          <span class="mf-cl-rpt-label">{{ infrastructure.nas[i].name }}</span>
-          <span class="mono mf-host-ip">{{ infrastructure.nas[i].ip ?? '—' }}</span>
-        </div>
-      </div>
-
-      <!-- Discos -->
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff">
-        <mat-label>Cantidad de discos</mat-label>
-        <input matInput formControlName="diskCount" type="number" min="1" placeholder="0" />
-      </mat-form-field>
-
-      <!-- Espacio total -->
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff">
-        <mat-label>Espacio total</mat-label>
-        <input matInput formControlName="totalSpaceGB" type="number" min="0" placeholder="0" />
-        <mat-select matSuffix formControlName="totalSpaceUnit" style="width:55px">
-          <mat-option value="GB">GB</mat-option>
-          <mat-option value="TB">TB</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <!-- Espacio utilizado -->
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff"
-                      [ngClass]="metricClass(spaceRatio(i), 70, 85)">
-        <mat-label>Espacio utilizado</mat-label>
-        <input matInput formControlName="usedSpaceGB" type="number" min="0" placeholder="0" />
-        <mat-select matSuffix formControlName="usedSpaceUnit" style="width:55px">
-          <mat-option value="GB">GB</mat-option>
-          <mat-option value="TB">TB</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <!-- Badge porcentaje de espacio -->
-      <span *ngIf="spaceRatio(i) > 0"
-            class="qnap-space-pct"
-            [ngClass]="metricClass(spaceRatio(i), 70, 85)">
-        {{ spaceRatio(i) | number:'1.0-0' }}%
-      </span>
-
-      <!-- Discos con error -->
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
-                      [ngClass]="getQnapGroup(i).get('disksWithError')?.value?.length ? 'mf-sel--crit' : ''">
-        <mat-label>Discos con error</mat-label>
-        <mat-select formControlName="disksWithError" multiple>
-          <mat-option *ngFor="let slot of diskSlotOptions(i)" [value]="slot">{{ slot }}</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <!-- Chips de discos con error -->
-      <div *ngIf="getQnapGroup(i).get('disksWithError')?.value?.length"
-           class="qnap-disk-error-chips">
-        <span *ngFor="let disk of getQnapGroup(i).get('disksWithError')?.value"
-              class="qnap-disk-chip">{{ disk }}</span>
-      </div>
-
-      <!-- Estado RAID -->
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
-                      [ngClass]="selectClass(getQnapGroup(i).get('raidStatus')?.value)">
-        <mat-label>Estado RAID</mat-label>
-        <mat-select formControlName="raidStatus">
-          <mat-option value="ok">OK — saludable</mat-option>
-          <mat-option value="degraded">Degradado</mat-option>
-          <mat-option value="failed">Error</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <!-- Versión firmware instalada -->
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
-        <mat-label>Versión firmware instalada</mat-label>
-        <input matInput formControlName="firmwareVersion" placeholder="Ej: 5.1.0.2566" />
-      </mat-form-field>
-
-      <!-- Checkbox firmware actualizado -->
-      <mat-checkbox formControlName="firmwareUpdated" class="mf-cl-mat">
-        Se actualizó el firmware
-      </mat-checkbox>
-
-      <!-- Versión nueva (condicional) -->
-      <mat-form-field *ngIf="qnapFirmwareUpdated(i)"
-                      appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
-        <mat-label>Nueva versión aplicada</mat-label>
-        <input matInput formControlName="firmwareNewVersion" placeholder="Ej: 5.2.0.2800" />
-      </mat-form-field>
-
-    </div>
+  <div class="mf-vmware-grid">
+    <app-qnap-device-card
+      *ngFor="let _ of qnapDeviceControls.controls; let i = index"
+      [device]="infrastructure.nas[i]"
+      [group]="getQnapGroup(i)"
+      [readOnly]="readOnly">
+    </app-qnap-device-card>
   </div>
 
-  <!-- Notas globales -->
   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field" style="margin-top:12px">
     <mat-label>Notas</mat-label>
     <textarea matInput formControlName="notes" placeholder="Observaciones generales..."></textarea>
