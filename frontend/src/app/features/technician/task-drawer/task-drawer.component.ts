@@ -23,6 +23,7 @@ import {
 } from '../../../core/services/maintenance-logs.service';
 import { TasksService } from '../../../core/services/tasks.service';
 import { MaintenanceFormComponent } from './maintenance-form/maintenance-form.component';
+import { QnapFormComponent } from './qnap-form/qnap-form.component';
 import {
   ConfirmMaintenanceDialogComponent,
   ConfirmMaintenanceDialogData,
@@ -45,6 +46,7 @@ export class TaskDrawerComponent implements OnChanges {
   @Output() drawerClosed = new EventEmitter<void>();
 
   @ViewChild(MaintenanceFormComponent) maintenanceForm?: MaintenanceFormComponent;
+  @ViewChild(QnapFormComponent) qnapForm?: QnapFormComponent;
 
   infrastructure: ClientInfrastructure | null = null;
   savedPayload: MaintenancePayload | null = null;
@@ -174,6 +176,7 @@ export class TaskDrawerComponent implements OnChanges {
 
   triggerFormComplete(): void {
     this.maintenanceForm?.submit();
+    this.qnapForm?.submit();
   }
 
   triggerFormSave(): void {

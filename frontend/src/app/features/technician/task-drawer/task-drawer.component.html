@@ -42,9 +42,20 @@
   <!-- Banner solo-lectura -->
   <div *ngIf="!isActiveTask" class="d-readonly">Solo lectura — tarea completada</div>
 
-  <!-- Formulario de mantenimiento -->
+  <!-- Formulario QNAP -->
+  <app-qnap-form
+    *ngIf="infrastructure && task.type === 'QNAP_MAINTENANCE'"
+    [task]="task"
+    [infrastructure]="infrastructure"
+    [savedPayload]="savedPayload"
+    [readOnly]="!isActiveTask"
+    (requestComplete)="onRequestComplete($event)"
+    (requestNotDone)="onRequestNotDone()">
+  </app-qnap-form>
+
+  <!-- Formulario de mantenimiento (todos los tipos menos QNAP) -->
   <app-maintenance-form
-    *ngIf="infrastructure"
+    *ngIf="infrastructure && task.type !== 'QNAP_MAINTENANCE'"
     [task]="task"
     [infrastructure]="infrastructure"
     [savedPayload]="savedPayload"
@@ -78,6 +89,12 @@
     <ng-container *ngIf="task.type === 'TERMINAL_MAINTENANCE' || task.type === 'SITE_VISIT'">
       <button mat-flat-button color="primary" (click)="triggerFormComplete()">Marcar visita como realizada</button>
       <button mat-flat-button color="warn" (click)="onRequestNotDone()">No concretada</button>
+    </ng-container>
+
+    <!-- QNAP_MAINTENANCE -->
+    <ng-container *ngIf="task.type === 'QNAP_MAINTENANCE'">
+      <button mat-flat-button color="primary" (click)="triggerFormComplete()">Completar mantenimiento</button>
+      <button mat-stroked-button (click)="drawerClosed.emit()">Cerrar</button>
     </ng-container>
 
     <!-- Tipos sin formulario -->
