@@ -117,7 +117,7 @@
           "options": {
             "configDir": ".storybook",
             "browserTarget": "frontend:build",
-            "compodoc": true,
+            "compodoc": false,
             "compodocArgs": [
               "-e",
               "json",
@@ -132,7 +132,7 @@
           "options": {
             "configDir": ".storybook",
             "browserTarget": "frontend:build",
-            "compodoc": true,
+            "compodoc": false,
             "compodocArgs": [
               "-e",
               "json",
