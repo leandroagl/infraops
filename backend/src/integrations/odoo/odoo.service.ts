@@ -14,6 +14,17 @@ import { OdooPartner } from './dto/odoo-partner.dto';
 import { OdooUser } from './dto/odoo-user.dto';
 import { OdooSyncResult } from './dto/odoo-sync-result.dto';
 import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
+import { TaskType } from '../../tasks/task-type.enum';
+
+const TICKET_META: Record<TaskType, { name: string; description: string }> = {
+  [TaskType.SERVER_MAINTENANCE]:   { name: 'Mantenimiento de infraestructura',              description: 'Mantenimiento mensual de infraestructura.' },
+  [TaskType.QNAP_MAINTENANCE]:     { name: 'Mantenimiento repositorio de backups QNAP/NAS', description: 'Control de estado de discos, volumen y actualizaciones' },
+  [TaskType.TERMINAL_MAINTENANCE]: { name: 'Mantenimiento de terminales',                   description: 'Mantenimiento mensual de terminales.' },
+  [TaskType.SITE_VISIT]:           { name: 'Visita técnica presencial',                     description: 'Visita técnica al cliente.' },
+  [TaskType.AV_CONTROL]:           { name: 'Control de antivirus',                          description: 'Control mensual de antivirus.' },
+  [TaskType.UPS_CONTROL]:          { name: 'Control de UPS',                                description: 'Control mensual de equipos UPS.' },
+  [TaskType.ENDPOINT_INVENTORY]:   { name: 'Inventario de endpoints',                       description: 'Relevamiento de endpoints.' },
+};
 
 @Injectable()
 export class OdooService {
@@ -348,7 +359,21 @@ export class OdooService {
     );
   }
 
-  async createTicket(clientId: string, technicianId: string): Promise<number> {
+  async createTicket(
+    clientId: string,
+    technicianId: string,
+    taskType: TaskType,
+  ): Promise<number> {
+    const teamId = parseInt(
+      this.configService.getOrThrow<string>('ODOO_HELPDESK_TEAM_ID'),
+      10,
+    );
+    if (isNaN(teamId)) {
+      throw new BadRequestException(
+        'ODOO_HELPDESK_TEAM_ID must be a valid integer',
+      );
+    }
+
     const partnerId = await this.resolvePartnerId(clientId);
     if (partnerId === null) {
       throw new BadRequestException(`Cliente ${clientId} no tiene ID de Odoo`);
@@ -374,24 +399,15 @@ export class OdooService {
       );
     }
 
-    const teamId = parseInt(
-      this.configService.getOrThrow<string>('ODOO_HELPDESK_TEAM_ID'),
-      10,
-    );
-    if (isNaN(teamId)) {
-      throw new BadRequestException(
-        'ODOO_HELPDESK_TEAM_ID must be a valid integer',
-      );
-    }
-
     const saleLineId = await this.resolveSaleLineId(clientId);
+    const meta = TICKET_META[taskType];
 
     const payload: Record<string, unknown> = {
       team_id: teamId,
       partner_id: partnerId,
       user_id: odooUserId,
-      name: 'Mantenimiento de infraestructura',
-      description: 'Mantenimiento mensual!',
+      name: meta.name,
+      description: meta.description,
     };
     if (saleLineId !== null) {
       payload['sale_line_id'] = saleLineId;

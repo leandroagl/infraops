@@ -209,6 +209,7 @@ describe('TasksService', () => {
       expect(odooService.createTicket).toHaveBeenCalledWith(
         'client-1',
         'tech-1',
+        TaskType.SERVER_MAINTENANCE,
       );
       expect(taskRepository.create).toHaveBeenCalledWith({
         clientId: 'client-1',

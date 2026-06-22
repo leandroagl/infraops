@@ -72,6 +72,7 @@ export class TasksService {
     const odooTicketId = await this.odooService.createTicket(
       dto.clientId,
       dto.technicianId,
+      dto.type,
     );
 
     const task = this.taskRepository.create({
