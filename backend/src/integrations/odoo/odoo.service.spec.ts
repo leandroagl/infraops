@@ -428,8 +428,9 @@ describe('OdooService', () => {
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce(55);
+        .mockResolvedValueOnce([])              // sale.order.line
+        .mockResolvedValueOnce([{ id: 7 }])    // helpdesk.tag → Backups (NAS)
+        .mockResolvedValueOnce(55);             // helpdesk.ticket create
 
       const ticketId = await service.createTicket(
         'client-uuid-1',
@@ -449,6 +450,88 @@ describe('OdooService', () => {
         ],
         {},
       );
+    });
+
+    it('incluye tag_ids con Backups (NAS) al crear ticket QNAP_MAINTENANCE', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])              // sale.order.line
+        .mockResolvedValueOnce([{ id: 7 }])    // helpdesk.tag → Backups (NAS)
+        .mockResolvedValueOnce(55);             // helpdesk.ticket create
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.QNAP_MAINTENANCE);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.tag',
+        'search_read',
+        [[['name', '=', 'Backups (NAS)']]],
+        { fields: ['id'], limit: 1 },
+      );
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [expect.objectContaining({ tag_ids: [[6, 0, [7]]] })],
+        {},
+      );
+    });
+
+    it('cachea el tag_id de QNAP entre llamadas sucesivas', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])           // sale.order.line (1ra llamada)
+        .mockResolvedValueOnce([{ id: 7 }]) // helpdesk.tag (solo 1ra llamada)
+        .mockResolvedValueOnce(55)           // helpdesk.ticket create (1ra llamada)
+        .mockResolvedValueOnce([])           // sale.order.line (2da llamada)
+        .mockResolvedValueOnce(56);          // helpdesk.ticket create (2da llamada)
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.QNAP_MAINTENANCE);
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.QNAP_MAINTENANCE);
+
+      const tagCalls = odooRpc.callKw.mock.calls.filter(
+        (args: unknown[]) => args[0] === 'helpdesk.tag',
+      );
+      expect(tagCalls).toHaveLength(1);
+    });
+
+    it('NO incluye tag_ids al crear ticket SERVER_MAINTENANCE', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])  // sale.order.line
+        .mockResolvedValueOnce(42); // helpdesk.ticket create
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_MAINTENANCE);
+
+      const createCall = odooRpc.callKw.mock.calls.find(
+        (args: unknown[]) => args[0] === 'helpdesk.ticket',
+      );
+      expect(createCall![2][0]).not.toHaveProperty('tag_ids');
+    });
+
+    it('lanza ServiceUnavailableException cuando Odoo no encuentra el tag Backups (NAS)', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])  // sale.order.line
+        .mockResolvedValueOnce([]); // helpdesk.tag → no encontrado
+
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.QNAP_MAINTENANCE),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
 
     it('incluye sale_line_id en el payload cuando el cliente tiene odooSaleLineId', async () => {

@@ -30,6 +30,7 @@ const TICKET_META: Record<TaskType, { name: string; description: string }> = {
 export class OdooService {
   private doneStageId: number | null = null;
   private inProgressStageId: number | null = null;
+  private qnapTagId: number | null = null;
 
   constructor(
     private readonly odooRpc: OdooRpcService,
@@ -314,6 +315,26 @@ export class OdooService {
     );
   }
 
+  private async resolveQnapTagId(): Promise<number> {
+    if (this.qnapTagId !== null) return this.qnapTagId;
+
+    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
+      'helpdesk.tag',
+      'search_read',
+      [[['name', '=', 'Backups (NAS)']]],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (tags.length === 0) {
+      throw new ServiceUnavailableException(
+        'No se encontró el tag "Backups (NAS)" en Odoo',
+      );
+    }
+
+    this.qnapTagId = tags[0].id;
+    return this.qnapTagId;
+  }
+
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 
@@ -411,6 +432,10 @@ export class OdooService {
     };
     if (saleLineId !== null) {
       payload['sale_line_id'] = saleLineId;
+    }
+    if (taskType === TaskType.QNAP_MAINTENANCE) {
+      const tagId = await this.resolveQnapTagId();
+      payload['tag_ids'] = [[6, 0, [tagId]]];
     }
 
     const ticketId = await this.odooRpc.callKw<number>(
