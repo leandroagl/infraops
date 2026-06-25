@@ -212,39 +212,11 @@
 
     <div class="mf-section-lbl">Veeam Backup</div>
 
-    <div class="mf-cl-rpt">
-      <div class="mf-cl-rpt-hdr">
-        <div class="mf-cl-rpt-dot"></div>
-        <span class="mf-cl-rpt-label">Estado del backup</span>
-        <span class="mf-vm-count">{{ infrastructure.windowsVMs.length }} VMs en entorno</span>
-      </div>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
-                      [ngClass]="selectClass(form.get('veeamStatus')?.value)">
-        <mat-label>Estado</mat-label>
-        <mat-select formControlName="veeamStatus">
-          <mat-option value="ok">Todas las VMs cubiertas</mat-option>
-          <mat-option value="partial">Hay VMs excluidas (intencional)</mat-option>
-          <mat-option value="missing">Hay VMs sin backup — falta agregar</mat-option>
-        </mat-select>
-      </mat-form-field>
-    </div>
-
-    <div *ngIf="form.get('veeamStatus')?.value !== 'ok'" class="mf-cl-rpt mf-cl-rpt--warn">
-      <div class="mf-cl-rpt-hdr">
-        <div class="mf-cl-rpt-dot" style="background:var(--warn)"></div>
-        <span class="mf-cl-rpt-label">
-          {{ form.get('veeamStatus')?.value === 'missing' ? 'VMs sin backup' : 'VMs excluidas del backup' }}
-        </span>
-      </div>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
-        <mat-label>VMs</mat-label>
-        <mat-select formControlName="veeamMissing" multiple>
-          <mat-option *ngFor="let vm of infrastructure.windowsVMs" [value]="vm.name">
-            {{ vm.name }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-    </div>
+    <app-veeam-form
+      [formGroup]="veeamGroup"
+      [allVMs]="allVMs"
+      [readOnly]="readOnly">
+    </app-veeam-form>
 
   </ng-container>
 

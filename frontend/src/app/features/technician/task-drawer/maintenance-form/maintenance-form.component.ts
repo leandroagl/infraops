@@ -16,7 +16,6 @@ import {
   RouterEntry,
   ServerMaintenancePayload,
   TerminalPayload,
-  VeeamJobEntry,
 } from '../../../../core/models/maintenance-log.models';
 
 @Component({
@@ -59,6 +58,18 @@ export class MaintenanceFormComponent implements OnChanges {
   get hasVMware(): boolean  { return this.infrastructure?.esxiHosts?.length > 0; }
   get hasVeeam(): boolean   { return this.infrastructure?.esxiHosts?.length > 0; }
   get hasRouter(): boolean  { return this.infrastructure?.routers?.length > 0; }
+
+  get allVMs() {
+    return [
+      ...(this.infrastructure?.windowsVMs ?? []),
+      ...(this.infrastructure?.domainControllers ?? []),
+      ...(this.infrastructure?.linuxVMs ?? []),
+    ];
+  }
+
+  get veeamGroup(): FormGroup {
+    return this.form.get('veeam') as FormGroup;
+  }
 
   get serverControls(): FormArray {
     return this.form.get('servers') as FormArray;
@@ -143,8 +154,10 @@ export class MaintenanceFormComponent implements OnChanges {
           alertLogs:        [''],
         }))
       ),
-      veeamJobs:        [[] as VeeamJobEntry[]],
-      veeamUncovered:   [[] as number[]],
+      veeam: this.fb.group({
+        jobs:         this.fb.array([] as FormGroup[]),
+        uncoveredVMs: [[] as number[]],
+      }),
       routerDevices: this.fb.array(
         this.infrastructure.routers.map(() => this.fb.group({
           firmwareUpdated: [false],
@@ -292,8 +305,8 @@ export class MaintenanceFormComponent implements OnChanges {
 
     if (this.hasVeeam) {
       payload.veeam = {
-        jobs:         v.veeamJobs ?? [],
-        uncoveredVMs: v.veeamUncovered ?? [],
+        jobs:         (this.veeamGroup.get('jobs') as FormArray).value,
+        uncoveredVMs: this.veeamGroup.get('uncoveredVMs')?.value ?? [],
       };
     }
 
@@ -317,11 +330,20 @@ export class MaintenanceFormComponent implements OnChanges {
     if (payload.type === 'SERVER_MAINTENANCE') {
       const srv = payload as ServerMaintenancePayload;
 
-      this.form.patchValue({
-        notes:        srv.notes ?? '',
-        veeamJobs:      srv.veeam?.jobs ?? [],
-        veeamUncovered: srv.veeam?.uncoveredVMs ?? [],
-      });
+      this.form.patchValue({ notes: srv.notes ?? '' });
+
+      if (srv.veeam) {
+        const jobsArray = this.veeamGroup.get('jobs') as FormArray;
+        while (jobsArray.length) jobsArray.removeAt(0);
+        (srv.veeam.jobs ?? []).forEach(job => {
+          jobsArray.push(this.fb.group({
+            jobName:        [job.jobName],
+            fullsAvailable: [job.fullsAvailable],
+            restorePoints:  [job.restorePoints],
+          }));
+        });
+        this.veeamGroup.get('uncoveredVMs')!.setValue(srv.veeam.uncoveredVMs ?? []);
+      }
 
       if (srv.router?.length) {
         this.infrastructure.routers.forEach((router, i) => {
