@@ -56,7 +56,6 @@ export class MaintenanceFormComponent implements OnChanges {
 
   get hasServers(): boolean { return this.infrastructure?.windowsVMs?.length > 0; }
   get hasVMware(): boolean  { return this.infrastructure?.esxiHosts?.length > 0; }
-  get hasVeeam(): boolean   { return this.infrastructure?.esxiHosts?.length > 0; }
   get hasRouter(): boolean  { return this.infrastructure?.routers?.length > 0; }
 
   get allVMs() {
@@ -65,10 +64,6 @@ export class MaintenanceFormComponent implements OnChanges {
       ...(this.infrastructure?.domainControllers ?? []),
       ...(this.infrastructure?.linuxVMs ?? []),
     ];
-  }
-
-  get veeamGroup(): FormGroup {
-    return this.form.get('veeam') as FormGroup;
   }
 
   get serverControls(): FormArray {
@@ -154,10 +149,6 @@ export class MaintenanceFormComponent implements OnChanges {
           alertLogs:        [''],
         }))
       ),
-      veeam: this.fb.group({
-        jobs:         this.fb.array([] as FormGroup[]),
-        uncoveredVMs: [[] as number[]],
-      }),
       routerDevices: this.fb.array(
         this.infrastructure.routers.map(() => this.fb.group({
           firmwareUpdated: [false],
@@ -303,13 +294,6 @@ export class MaintenanceFormComponent implements OnChanges {
       });
     }
 
-    if (this.hasVeeam) {
-      payload.veeam = {
-        jobs:         (this.veeamGroup.get('jobs') as FormArray).value,
-        uncoveredVMs: this.veeamGroup.get('uncoveredVMs')?.value ?? [],
-      };
-    }
-
     if (this.hasRouter) {
       payload.router = this.infrastructure.routers.map((router, i): RouterEntry => {
         const ctrl = this.routerDeviceControls.at(i).value;
@@ -331,19 +315,6 @@ export class MaintenanceFormComponent implements OnChanges {
       const srv = payload as ServerMaintenancePayload;
 
       this.form.patchValue({ notes: srv.notes ?? '' });
-
-      if (srv.veeam) {
-        const jobsArray = this.veeamGroup.get('jobs') as FormArray;
-        while (jobsArray.length) jobsArray.removeAt(0);
-        (srv.veeam.jobs ?? []).forEach(job => {
-          jobsArray.push(this.fb.group({
-            jobName:        [job.jobName],
-            fullsAvailable: [job.fullsAvailable],
-            restorePoints:  [job.restorePoints],
-          }));
-        });
-        this.veeamGroup.get('uncoveredVMs')!.setValue(srv.veeam.uncoveredVMs ?? []);
-      }
 
       if (srv.router?.length) {
         this.infrastructure.routers.forEach((router, i) => {

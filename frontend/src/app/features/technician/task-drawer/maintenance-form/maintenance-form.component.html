@@ -207,19 +207,6 @@
 
   </ng-container>
 
-  <!-- ── Veeam Backup ──────────────────────────────────── -->
-  <ng-container *ngIf="hasVeeam">
-
-    <div class="mf-section-lbl">Veeam Backup</div>
-
-    <app-veeam-form
-      [formGroup]="veeamGroup"
-      [allVMs]="allVMs"
-      [readOnly]="readOnly">
-    </app-veeam-form>
-
-  </ng-container>
-
   <!-- ── Router / Firewall ─────────────────────────────── -->
   <ng-container *ngIf="hasRouter">
 

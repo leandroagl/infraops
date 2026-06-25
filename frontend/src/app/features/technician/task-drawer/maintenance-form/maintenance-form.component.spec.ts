@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA, SimpleChange } from '@angular/core';
-import { FormArray, ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -130,16 +130,6 @@ describe('MaintenanceFormComponent', () => {
       expect(component.hasVMware).toBeFalse();
     });
 
-    it('hasVeeam should be true when esxiHosts.length > 0', () => {
-      init(makeTask(), makeInfra());
-      expect(component.hasVeeam).toBeTrue();
-    });
-
-    it('hasVeeam should be false when esxiHosts is empty', () => {
-      init(makeTask(), makeInfra({ esxiHosts: [] }));
-      expect(component.hasVeeam).toBeFalse();
-    });
-
     it('hasRouter should be true when routers.length > 0', () => {
       init(makeTask(), makeInfra());
       expect(component.hasRouter).toBeTrue();
@@ -222,43 +212,6 @@ describe('MaintenanceFormComponent', () => {
       init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       const payload = component.buildPayload() as ServerMaintenancePayload;
       expect(payload.vmware).toBeUndefined();
-    });
-
-    it('should include veeam section with empty jobs and uncoveredVMs when hasVeeam is true', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }));
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.veeam).toBeDefined();
-      expect(Array.isArray(payload.veeam!.jobs)).toBeTrue();
-      expect(Array.isArray(payload.veeam!.uncoveredVMs)).toBeTrue();
-    });
-
-    it('should include veeam.jobs with correct data when jobs are added to veeamGroup', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }));
-      const jobsArray = component.veeamGroup.get('jobs') as FormArray;
-      const jobGroup = (component as any).fb.group({
-        jobName: ['Daily Backup'],
-        fullsAvailable: [2],
-        restorePoints: [14],
-      });
-      jobsArray.push(jobGroup);
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.veeam!.jobs).toHaveSize(1);
-      expect(payload.veeam!.jobs[0].jobName).toBe('Daily Backup');
-      expect(payload.veeam!.jobs[0].fullsAvailable).toBe(2);
-      expect(payload.veeam!.jobs[0].restorePoints).toBe(14);
-    });
-
-    it('should include veeam.uncoveredVMs in payload', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }));
-      component.veeamGroup.get('uncoveredVMs')!.setValue([3, 5]);
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.veeam!.uncoveredVMs).toEqual([3, 5]);
-    });
-
-    it('should NOT include veeam section when hasVeeam is false', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.veeam).toBeUndefined();
     });
 
     it('should include router section as array when hasRouter is true', () => {
@@ -879,25 +832,6 @@ describe('MaintenanceFormComponent', () => {
       expect(component.bmcHostControls.at(0).get('alertCategories')?.value).toEqual(['fan', 'cpu']);
       expect(component.bmcHostControls.at(0).get('alertLogs')?.value).toBe('Fan warning log');
       expect(component.bmcHostControls.at(0).get('firmwareVersion')?.value).toBe('2.82');
-    });
-
-    it('parchea veeam: jobs y uncoveredVMs desde payload guardado', () => {
-      const saved: ServerMaintenancePayload = {
-        type: 'SERVER_MAINTENANCE',
-        windows: { servers: [], domainControllers: [] },
-        veeam: {
-          jobs: [{ jobName: 'Daily Backup', fullsAvailable: 3, restorePoints: 21 }],
-          uncoveredVMs: [3],
-        },
-      };
-      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }), saved);
-
-      const jobsArray = component.veeamGroup.get('jobs') as FormArray;
-      expect(jobsArray.length).toBe(1);
-      expect(jobsArray.at(0).get('jobName')?.value).toBe('Daily Backup');
-      expect(jobsArray.at(0).get('fullsAvailable')?.value).toBe(3);
-      expect(jobsArray.at(0).get('restorePoints')?.value).toBe(21);
-      expect(component.veeamGroup.get('uncoveredVMs')?.value).toEqual([3]);
     });
 
     it('ignora entrada guardada si el serverId no está en la infra actual', () => {
