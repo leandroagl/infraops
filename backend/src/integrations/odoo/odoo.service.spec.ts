@@ -534,6 +534,76 @@ describe('OdooService', () => {
       ).rejects.toThrow(ServiceUnavailableException);
     });
 
+    it('crea un ticket VEEAM_BACKUP con título y descripción correctos', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])              // sale.order.line
+        .mockResolvedValueOnce([{ id: 9 }])    // helpdesk.tag → Backups (Veeam)
+        .mockResolvedValueOnce(77);             // helpdesk.ticket create
+
+      const ticketId = await service.createTicket(
+        'client-uuid-1',
+        'tech-uuid-1',
+        TaskType.VEEAM_BACKUP,
+      );
+
+      expect(ticketId).toBe(77);
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [expect.objectContaining({
+          name: 'Mantenimiento de backups Veeam',
+        })],
+        {},
+      );
+    });
+
+    it('incluye tag_ids con Backups (Veeam) al crear ticket VEEAM_BACKUP', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])              // sale.order.line
+        .mockResolvedValueOnce([{ id: 9 }])    // helpdesk.tag → Backups (Veeam)
+        .mockResolvedValueOnce(77);             // helpdesk.ticket create
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.VEEAM_BACKUP);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.tag',
+        'search_read',
+        [[['name', '=', 'Backups (Veeam)']]],
+        { fields: ['id'], limit: 1 },
+      );
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [expect.objectContaining({ tag_ids: [[6, 0, [9]]] })],
+        {},
+      );
+    });
+
+    it('lanza ServiceUnavailableException cuando Odoo no encuentra el tag Backups (Veeam)', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])  // sale.order.line
+        .mockResolvedValueOnce([]); // helpdesk.tag → no encontrado
+
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.VEEAM_BACKUP),
+      ).rejects.toThrow(ServiceUnavailableException);
+    });
+
     it('incluye sale_line_id en el payload cuando el cliente tiene odooSaleLineId', async () => {
       clientRepo.findOne.mockResolvedValue(
         makeClient({ odooPartnerId: 101, odooSaleLineId: 77 }),

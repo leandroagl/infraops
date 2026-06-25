@@ -19,6 +19,7 @@ import { TaskType } from '../../tasks/task-type.enum';
 const TICKET_META: Record<TaskType, { name: string; description: string }> = {
   [TaskType.SERVER_MAINTENANCE]:   { name: 'Mantenimiento de infraestructura',              description: 'Mantenimiento mensual de infraestructura.' },
   [TaskType.QNAP_MAINTENANCE]:     { name: 'Mantenimiento repositorio de backups QNAP/NAS', description: 'Control de estado de discos, volumen y actualizaciones' },
+  [TaskType.VEEAM_BACKUP]:         { name: 'Mantenimiento de backups Veeam',                  description: 'Control de jobs de backup, puntos de restauración y cobertura de VMs.' },
   [TaskType.TERMINAL_MAINTENANCE]: { name: 'Mantenimiento de terminales',                   description: 'Mantenimiento mensual de terminales.' },
   [TaskType.SITE_VISIT]:           { name: 'Visita técnica presencial',                     description: 'Visita técnica al cliente.' },
   [TaskType.AV_CONTROL]:           { name: 'Control de antivirus',                          description: 'Control mensual de antivirus.' },
@@ -31,6 +32,7 @@ export class OdooService {
   private doneStageId: number | null = null;
   private inProgressStageId: number | null = null;
   private qnapTagId: number | null = null;
+  private veeamTagId: number | null = null;
 
   constructor(
     private readonly odooRpc: OdooRpcService,
@@ -335,6 +337,26 @@ export class OdooService {
     return this.qnapTagId;
   }
 
+  private async resolveVeeamTagId(): Promise<number> {
+    if (this.veeamTagId !== null) return this.veeamTagId;
+
+    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
+      'helpdesk.tag',
+      'search_read',
+      [[['name', '=', 'Backups (Veeam)']]],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (tags.length === 0) {
+      throw new ServiceUnavailableException(
+        'No se encontró el tag "Backups (Veeam)" en Odoo',
+      );
+    }
+
+    this.veeamTagId = tags[0].id;
+    return this.veeamTagId;
+  }
+
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 
@@ -435,6 +457,10 @@ export class OdooService {
     }
     if (taskType === TaskType.QNAP_MAINTENANCE) {
       const tagId = await this.resolveQnapTagId();
+      payload['tag_ids'] = [[6, 0, [tagId]]];
+    }
+    if (taskType === TaskType.VEEAM_BACKUP) {
+      const tagId = await this.resolveVeeamTagId();
       payload['tag_ids'] = [[6, 0, [tagId]]];
     }
 
