@@ -244,5 +244,20 @@ describe('VeeamFormComponent', () => {
       component.submitNotDone();
       expect(emitted).toBe(true);
     });
+
+    it('buildPayload retorna el payload aunque el formulario esté deshabilitado', () => {
+      fixture = TestBed.createComponent(VeeamFormComponent);
+      component = fixture.componentInstance;
+      component.task           = makeTask();
+      component.infrastructure = makeInfra();
+      component.readOnly       = true;
+      component.ngOnChanges({ infrastructure: new SimpleChange(undefined, makeInfra(), true) });
+      fixture.detectChanges();
+
+      const payload = component.buildPayload();
+      expect(payload.type).toBe('VEEAM_BACKUP');
+      expect(Array.isArray(payload.jobs)).toBeTrue();
+      expect(Array.isArray(payload.uncoveredVMs)).toBeTrue();
+    });
   });
 });

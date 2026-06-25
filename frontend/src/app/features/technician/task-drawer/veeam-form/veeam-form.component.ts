@@ -88,7 +88,7 @@ export class VeeamFormComponent implements OnChanges {
   }
 
   buildPayload(): VeeamBackupPayload {
-    const v = this.form.value;
+    const v = this.form.getRawValue();
     return {
       type: 'VEEAM_BACKUP',
       jobs: v.jobs ?? [],
