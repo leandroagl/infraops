@@ -1,4 +1,4 @@
-<div [formGroup]="formGroup">
+<form [formGroup]="form" class="vf">
 
   <!-- ── Jobs de backup ───────────────────────────────── -->
   <div class="vf-section-lbl">Jobs de backup</div>
@@ -71,4 +71,11 @@
 
   </ng-container>
 
-</div>
+  <!-- ── Notas adicionales ─────────────────────────────── -->
+  <div class="vf-section-lbl">Notas adicionales</div>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="vf-ff-notes">
+    <textarea matInput formControlName="notes" rows="3"
+              placeholder="Observaciones adicionales..."></textarea>
+  </mat-form-field>
+
+</form>
