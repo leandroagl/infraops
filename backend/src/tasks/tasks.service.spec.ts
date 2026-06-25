@@ -595,27 +595,21 @@ describe('TasksService', () => {
       expect(odooService.markTicketInProgress).not.toHaveBeenCalled();
     });
 
-    it('taskRepository.update se llama igual aunque markTicketInProgress nunca resuelva (fire-and-forget)', async () => {
+    it('propaga el error de Odoo y no actualiza el status en DB cuando markTicketInProgress falla', async () => {
       const pendingTaskWithTicket = {
         ...mockTask,
         status: TaskStatus.PENDING,
         odooTicketId: 42,
       };
-      taskRepository.findOne
-        .mockResolvedValueOnce(pendingTaskWithTicket)
-        .mockResolvedValueOnce({
-          ...pendingTaskWithTicket,
-          status: TaskStatus.IN_PROGRESS,
-        });
-      odooService.markTicketInProgress.mockReturnValue(new Promise(() => {})); // never resolves
-      taskRepository.update.mockResolvedValue({ affected: 1 });
+      taskRepository.findOne.mockResolvedValueOnce(pendingTaskWithTicket);
+      odooService.markTicketInProgress.mockRejectedValue(
+        new ServiceUnavailableException('Odoo caído'),
+      );
 
-      await service.updateStatus('task-1', TaskStatus.IN_PROGRESS);
-
-      expect(taskRepository.update).toHaveBeenCalledWith('task-1', {
-        status: TaskStatus.IN_PROGRESS,
-        completedDate: null,
-      });
+      await expect(
+        service.updateStatus('task-1', TaskStatus.IN_PROGRESS),
+      ).rejects.toThrow(ServiceUnavailableException);
+      expect(taskRepository.update).not.toHaveBeenCalled();
     });
   });
 

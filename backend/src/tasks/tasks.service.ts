@@ -132,14 +132,7 @@ export class TasksService {
     }
 
     if (newStatus === TaskStatus.IN_PROGRESS && task.odooTicketId !== null) {
-      this.odooService
-        .markTicketInProgress(task.odooTicketId)
-        .catch((err: unknown) => {
-          this.logger.error(
-            `Error al marcar ticket ${task.odooTicketId} en curso en Odoo`,
-            err,
-          );
-        });
+      await this.odooService.markTicketInProgress(task.odooTicketId);
     }
 
     const isTerminal = VALID_TRANSITIONS[newStatus].length === 0;
