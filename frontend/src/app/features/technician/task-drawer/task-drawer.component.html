@@ -53,9 +53,20 @@
     (requestNotDone)="onRequestNotDone()">
   </app-qnap-form>
 
-  <!-- Formulario de mantenimiento (todos los tipos menos QNAP) -->
+  <!-- Formulario VEEAM BACKUP -->
+  <app-veeam-form
+    *ngIf="infrastructure && task.type === 'VEEAM_BACKUP'"
+    [task]="task"
+    [infrastructure]="infrastructure"
+    [savedPayload]="savedPayload"
+    [readOnly]="!isActiveTask"
+    (requestComplete)="onRequestComplete($event)"
+    (requestNotDone)="onRequestNotDone()">
+  </app-veeam-form>
+
+  <!-- Formulario de mantenimiento (todos los tipos menos QNAP y VEEAM_BACKUP) -->
   <app-maintenance-form
-    *ngIf="infrastructure && task.type !== 'QNAP_MAINTENANCE'"
+    *ngIf="infrastructure && task.type !== 'QNAP_MAINTENANCE' && task.type !== 'VEEAM_BACKUP'"
     [task]="task"
     [infrastructure]="infrastructure"
     [savedPayload]="savedPayload"
@@ -93,6 +104,13 @@
 
     <!-- QNAP_MAINTENANCE -->
     <ng-container *ngIf="task.type === 'QNAP_MAINTENANCE'">
+      <button mat-flat-button color="primary" (click)="triggerFormComplete()">Completar mantenimiento</button>
+      <button mat-stroked-button color="warn" (click)="onRequestNotDone()">No concretada</button>
+      <button mat-stroked-button (click)="drawerClosed.emit()">Cerrar</button>
+    </ng-container>
+
+    <!-- VEEAM_BACKUP -->
+    <ng-container *ngIf="task.type === 'VEEAM_BACKUP'">
       <button mat-flat-button color="primary" (click)="triggerFormComplete()">Completar mantenimiento</button>
       <button mat-stroked-button color="warn" (click)="onRequestNotDone()">No concretada</button>
       <button mat-stroked-button (click)="drawerClosed.emit()">Cerrar</button>
