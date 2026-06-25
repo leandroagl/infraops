@@ -129,4 +129,11 @@ export interface QnapPayload {
   notes?: string;
 }
 
-export type MaintenancePayload = ServerMaintenancePayload | TerminalPayload | QnapPayload;
+export interface VeeamBackupPayload {
+  type: 'VEEAM_BACKUP';
+  jobs: VeeamJobEntry[];
+  uncoveredVMs: number[];
+  notes?: string;
+}
+
+export type MaintenancePayload = ServerMaintenancePayload | TerminalPayload | QnapPayload | VeeamBackupPayload;

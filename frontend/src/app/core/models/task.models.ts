@@ -1,6 +1,7 @@
 export type TaskType =
   | 'SERVER_MAINTENANCE'
   | 'QNAP_MAINTENANCE'
+  | 'VEEAM_BACKUP'
   | 'TERMINAL_MAINTENANCE'
   | 'SITE_VISIT'
   | 'AV_CONTROL'

@@ -29,6 +29,7 @@ export function typeLabel(type: TaskType): string {
   const labels: Record<TaskType, string> = {
     SERVER_MAINTENANCE:   'Servidores',
     QNAP_MAINTENANCE:     'QNAP/NAS',
+    VEEAM_BACKUP:         'Veeam',
     TERMINAL_MAINTENANCE: 'Terminales',
     SITE_VISIT:           'Visita',
     AV_CONTROL:           'Antivirus',
@@ -43,6 +44,7 @@ export function typeLabelLong(type: TaskType): string {
   const labels: Record<TaskType, string> = {
     SERVER_MAINTENANCE:   'Mantenimiento de servidores',
     QNAP_MAINTENANCE:     'Mantenimiento QNAP/NAS',
+    VEEAM_BACKUP:         'Mantenimiento de backups Veeam',
     TERMINAL_MAINTENANCE: 'Visita de terminales',
     SITE_VISIT:           'Visita presencial',
     AV_CONTROL:           'Control antivirus',

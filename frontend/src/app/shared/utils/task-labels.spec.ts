@@ -86,4 +86,16 @@ describe('task-labels utils', () => {
     });
   });
 
+  it('typeLabel retorna "Veeam" para VEEAM_BACKUP', () => {
+    expect(typeLabel('VEEAM_BACKUP')).toBe('Veeam');
+  });
+
+  it('typeLabelLong retorna "Mantenimiento de backups Veeam" para VEEAM_BACKUP', () => {
+    expect(typeLabelLong('VEEAM_BACKUP')).toBe('Mantenimiento de backups Veeam');
+  });
+
+  it('typeBadge retorna "badge--srv" para VEEAM_BACKUP', () => {
+    expect(typeBadge('VEEAM_BACKUP')).toBe('badge--srv');
+  });
+
 });
