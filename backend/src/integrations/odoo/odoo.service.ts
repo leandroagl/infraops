@@ -32,7 +32,6 @@ export class OdooService {
   private doneStageId: number | null = null;
   private inProgressStageId: number | null = null;
   private qnapTagId: number | null = null;
-  private veeamTagId: number | null = null;
 
   constructor(
     private readonly odooRpc: OdooRpcService,
@@ -337,26 +336,6 @@ export class OdooService {
     return this.qnapTagId;
   }
 
-  private async resolveVeeamTagId(): Promise<number> {
-    if (this.veeamTagId !== null) return this.veeamTagId;
-
-    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Backups (Veeam)']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Backups (Veeam)" en Odoo',
-      );
-    }
-
-    this.veeamTagId = tags[0].id;
-    return this.veeamTagId;
-  }
-
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 
@@ -460,7 +439,7 @@ export class OdooService {
       payload['tag_ids'] = [[6, 0, [tagId]]];
     }
     if (taskType === TaskType.VEEAM_BACKUP) {
-      const tagId = await this.resolveVeeamTagId();
+      const tagId = await this.resolveQnapTagId();
       payload['tag_ids'] = [[6, 0, [tagId]]];
     }
 

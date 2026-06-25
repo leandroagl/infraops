@@ -542,7 +542,7 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw
         .mockResolvedValueOnce([])              // sale.order.line
-        .mockResolvedValueOnce([{ id: 9 }])    // helpdesk.tag → Backups (Veeam)
+        .mockResolvedValueOnce([{ id: 9 }])    // helpdesk.tag → Backups (NAS)
         .mockResolvedValueOnce(77);             // helpdesk.ticket create
 
       const ticketId = await service.createTicket(
@@ -562,7 +562,7 @@ describe('OdooService', () => {
       );
     });
 
-    it('incluye tag_ids con Backups (Veeam) al crear ticket VEEAM_BACKUP', async () => {
+    it('incluye tag_ids con Backups (NAS) al crear ticket VEEAM_BACKUP', async () => {
       clientRepo.findOne.mockResolvedValue(
         makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
       );
@@ -570,7 +570,7 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw
         .mockResolvedValueOnce([])              // sale.order.line
-        .mockResolvedValueOnce([{ id: 9 }])    // helpdesk.tag → Backups (Veeam)
+        .mockResolvedValueOnce([{ id: 9 }])    // helpdesk.tag → Backups (NAS)
         .mockResolvedValueOnce(77);             // helpdesk.ticket create
 
       await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.VEEAM_BACKUP);
@@ -578,7 +578,7 @@ describe('OdooService', () => {
       expect(odooRpc.callKw).toHaveBeenCalledWith(
         'helpdesk.tag',
         'search_read',
-        [[['name', '=', 'Backups (Veeam)']]],
+        [[['name', '=', 'Backups (NAS)']]],
         { fields: ['id'], limit: 1 },
       );
       expect(odooRpc.callKw).toHaveBeenCalledWith(
@@ -589,7 +589,7 @@ describe('OdooService', () => {
       );
     });
 
-    it('lanza ServiceUnavailableException cuando Odoo no encuentra el tag Backups (Veeam)', async () => {
+    it('lanza ServiceUnavailableException cuando Odoo no encuentra el tag Backups (NAS) para VEEAM_BACKUP', async () => {
       clientRepo.findOne.mockResolvedValue(
         makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
       );
