@@ -64,6 +64,20 @@ export interface ServerMaintenancePayload {
   notes?: string;
 }
 
+export interface ServerHostPayload {
+  type: 'SERVER_HOST_MAINTENANCE';
+  vmware: VMwareHostEntry[];
+  bmc: BmcEntry[];
+  notes?: string;
+}
+
+export interface WindowsDomainPayload {
+  type: 'WINDOWS_DOMAIN_MAINTENANCE';
+  windows: WindowsSection;
+  router?: RouterSection;
+  notes?: string;
+}
+
 export interface TerminalChecks {
   cleanedTemp: boolean;
   windowsUpdates: boolean;
@@ -85,4 +99,8 @@ export interface TerminalPayload {
   notes?: string;
 }
 
-export type MaintenancePayload = ServerMaintenancePayload | TerminalPayload;
+export type MaintenancePayload =
+  | ServerMaintenancePayload
+  | ServerHostPayload
+  | WindowsDomainPayload
+  | TerminalPayload;
