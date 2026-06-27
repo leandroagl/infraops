@@ -1,110 +1,165 @@
+.vf {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .vf-section-lbl {
   font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
+  font-weight: 600;
   color: var(--tx-lo);
-  margin-bottom: 6px;
-
-  &--cov {
-    margin-top: 16px;
-  }
-}
-
-.vf-jobs-head {
-  display: grid;
-  grid-template-columns: 1fr 80px 80px 32px;
-  gap: 6px;
-  padding: 0 4px 4px;
-}
-
-.vf-col-hdr {
-  font-size: 9px;
-  text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: var(--tx-lo);
-}
-
-.vf-col-num {
-  text-align: center;
-}
-
-.vf-job-row {
-  display: grid;
-  grid-template-columns: 1fr 80px 80px 32px;
-  gap: 6px;
+  text-transform: uppercase;
+  display: flex;
   align-items: center;
-  margin-bottom: 4px;
-}
+  gap: 8px;
 
-.vf-ff-name,
-.vf-ff-num {
-  width: 100%;
-}
-
-.vf-rm-btn {
-  width: 28px;
-  height: 28px;
-  color: var(--tx-lo);
-
-  &:hover {
-    color: var(--crit);
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-lo);
   }
 }
 
-.vf-empty-jobs {
-  padding: 8px 4px;
+.vf-summary {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: -8px;
 }
 
-.vf-empty-msg {
-  font-size: 11px;
+.vf-pill {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  border: 1px solid var(--border);
   color: var(--tx-lo);
-}
+  background: var(--card);
 
-.vf-add-btn {
-  margin-top: 4px;
-  font-size: 11px;
-}
-
-.vf-cov-hint {
-  font-size: 11px;
-  color: var(--tx-lo);
-  margin-bottom: 8px;
+  &.p-ok   { background: var(--ok-bg);   border-color: var(--ok-bd);   color: var(--ok);   }
+  &.p-warn { background: var(--warn-bg); border-color: var(--warn-bd); color: var(--warn); }
+  &.p-crit { background: var(--crit-bg); border-color: var(--crit-bd); color: var(--crit); }
 }
 
 .vf-vm-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 5px;
+  margin-top: -8px;
 }
 
 .vf-vm-row {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+
+  &.st-ok   { border-color: var(--ok-bd);   }
+  &.st-warn { border-color: var(--warn-bd); }
+  &.st-no   { border-color: var(--crit-bd); }
+}
+
+.vf-stripe {
+  width: 3px;
+  align-self: stretch;
+  flex-shrink: 0;
+  background: var(--border-md);
+
+  .st-ok   & { background: var(--ok);   }
+  .st-warn & { background: var(--warn); }
+  .st-no   & { background: var(--crit); }
+}
+
+.vf-inner {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.vf-vm-check {
-  flex-shrink: 0;
+  padding: 7px 11px;
+  flex: 1;
+  min-width: 0;
 }
 
 .vf-vm-name {
-  font-size: 12px;
-  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--tx-hi);
+  min-width: 90px;
+  flex-shrink: 0;
 }
 
 .vf-vm-os {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--tx-lo);
+  font-family: var(--font-mono);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.vf-uncov-badge {
-  font-size: 10px;
+.vf-cov-ff {
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.vf-fulls-ff {
+  width: 64px;
+  flex-shrink: 0;
+
+  input { text-align: center; }
+}
+
+.vf-hint {
+  font-size: 9px;
   font-family: var(--font-mono);
-  font-weight: 600;
-  padding: 1px 5px;
-  border-radius: 3px;
-  background: var(--crit-bg);
-  color: var(--crit);
+  color: var(--tx-lo);
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &.h-ok   { color: var(--ok);   }
+  &.h-warn { color: var(--warn); }
+  &.h-no   { color: var(--crit); }
+}
+
+.vf-notes-ff { width: 100%; }
+
+.vf-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+// Coverage select coloring via CSS custom properties (sin ::ng-deep)
+mat-form-field.cov--ok {
+  --mdc-outlined-text-field-outline-color: var(--ok-bd);
+  --mat-select-trigger-text-color: var(--ok);
+}
+mat-form-field.cov--warn {
+  --mdc-outlined-text-field-outline-color: var(--warn-bd);
+  --mat-select-trigger-text-color: var(--warn);
+}
+mat-form-field.cov--no {
+  --mdc-outlined-text-field-outline-color: var(--crit-bd);
+  --mat-select-trigger-text-color: var(--crit);
+}
+
+// Fulls input coloring
+mat-form-field.fulls--ok {
+  --mdc-outlined-text-field-outline-color: var(--ok-bd);
+  --mdc-outlined-text-field-input-text-color: var(--ok);
+}
+mat-form-field.fulls--warn {
+  --mdc-outlined-text-field-outline-color: var(--warn-bd);
+  --mdc-outlined-text-field-input-text-color: var(--warn);
+}
+mat-form-field.fulls--no {
+  --mdc-outlined-text-field-outline-color: var(--crit-bd);
+  --mdc-outlined-text-field-input-text-color: var(--crit);
 }

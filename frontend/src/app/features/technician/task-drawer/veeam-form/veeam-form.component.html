@@ -1,81 +1,60 @@
 <form [formGroup]="form" class="vf">
 
-  <!-- ── Jobs de backup ───────────────────────────────── -->
-  <div class="vf-section-lbl">Jobs de backup</div>
+  <!-- ── VMs del entorno ───────────────────────────── -->
+  <div class="vf-section-lbl">VMs del entorno</div>
 
-  <ng-container formArrayName="jobs">
-
-    <div class="vf-jobs-head" *ngIf="jobControls.length > 0">
-      <span class="vf-col-hdr">Job</span>
-      <span class="vf-col-hdr vf-col-num">Fulls</span>
-      <span class="vf-col-hdr vf-col-num">Restore points</span>
-      <span></span>
-    </div>
-
-    <div class="vf-job-row"
-         *ngFor="let _ of jobControls.controls; let i = index"
-         [formGroupName]="i">
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="vf-ff-name">
-        <mat-label>Nombre del job</mat-label>
-        <input matInput formControlName="jobName" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="vf-ff-num">
-        <mat-label>Fulls</mat-label>
-        <input matInput type="number" min="0" formControlName="fullsAvailable" />
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="vf-ff-num">
-        <mat-label>RPs</mat-label>
-        <input matInput type="number" min="0" formControlName="restorePoints" />
-      </mat-form-field>
-
-      <button *ngIf="!readOnly" mat-icon-button type="button" class="vf-rm-btn" (click)="removeJob(i)">
-        <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-
-    </div>
-
-  </ng-container>
-
-  <div class="vf-empty-jobs" *ngIf="jobControls.length === 0">
-    <span class="vf-empty-msg">Sin jobs registrados</span>
+  <div class="vf-summary">
+    <span class="vf-pill" [class.p-ok]="summaryOk > 0">{{ summaryOk }} OK</span>
+    <span class="vf-pill" [class.p-warn]="summaryWarn > 0">{{ summaryWarn }} Advertencia</span>
+    <span class="vf-pill" [class.p-crit]="summaryNo > 0">{{ summaryNo }} Sin cobertura</span>
   </div>
 
-  <button *ngIf="!readOnly" mat-stroked-button type="button" class="vf-add-btn" (click)="addJob()">
-    + Agregar job
-  </button>
+  <div class="vf-vm-list" formArrayName="vmRows">
+    <div
+      *ngFor="let _ of vmRows.controls; let i = index"
+      class="vf-vm-row"
+      [ngClass]="'st-' + vmRowState(i)"
+      [formGroupName]="i">
 
-  <!-- ── Cobertura de VMs ──────────────────────────────── -->
-  <ng-container *ngIf="allVMs.length > 0">
+      <div class="vf-stripe"></div>
 
-    <div class="vf-section-lbl vf-section-lbl--cov">Cobertura de VMs</div>
-    <div class="vf-cov-hint">Marcá las VMs que NO están cubiertas por ningún job</div>
+      <div class="vf-inner">
+        <span class="vf-vm-name">{{ vms[i].name }}</span>
+        <span class="vf-vm-os">{{ vms[i].os }}</span>
 
-    <div class="vf-vm-list">
-      <div class="vf-vm-row" *ngFor="let vm of allVMs">
-        <mat-checkbox
-          [checked]="isUncovered(vm.assetId)"
-          (change)="toggleVM(vm.assetId)"
-          [disabled]="readOnly"
-          class="vf-vm-check">
-        </mat-checkbox>
-        <span class="vf-vm-name">{{ vm.name }}</span>
-        <span class="vf-vm-os mono">{{ vm.os ?? '—' }}</span>
-        <span class="vf-uncov-badge" *ngIf="isUncovered(vm.assetId)">sin cobertura</span>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="vf-cov-ff" [ngClass]="covClass(i)">
+          <mat-select formControlName="coverage" (selectionChange)="onCoverageChange(i)">
+            <mat-option value="job">Job</mat-option>
+            <mat-option value="agent">Agent</mat-option>
+            <mat-option value="excluded">Excluida</mat-option>
+            <mat-option value="no_backup">Sin backup</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field *ngIf="showFulls(i)" appearance="outline" subscriptSizing="dynamic"
+                        class="vf-fulls-ff" [ngClass]="fullsClass(i)">
+          <input matInput type="number" min="0" formControlName="fullsInMonth" />
+        </mat-form-field>
+
+        <span class="vf-hint" [ngClass]="vmHint(i).cls">{{ vmHint(i).text }}</span>
       </div>
+
     </div>
+  </div>
 
-  </ng-container>
+  <!-- ── Observaciones ─────────────────────────────── -->
+  <div class="vf-section-lbl">Observaciones</div>
 
-  <!-- ── Notas adicionales ─────────────────────────────── -->
-  <div class="vf-section-lbl">Notas adicionales</div>
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="vf-ff-notes">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="vf-notes-ff">
     <textarea matInput formControlName="notes" rows="3"
-              placeholder="Observaciones adicionales..."></textarea>
+              placeholder="Notas del control, problemas detectados, acciones pendientes..."></textarea>
   </mat-form-field>
+
+  <!-- ── Footer ────────────────────────────────────── -->
+  <div class="vf-footer">
+    <button mat-stroked-button type="button" (click)="cancelled.emit()">Cancelar</button>
+    <button mat-flat-button color="primary" type="button" (click)="submit()">Guardar control</button>
+  </div>
 
 </form>
