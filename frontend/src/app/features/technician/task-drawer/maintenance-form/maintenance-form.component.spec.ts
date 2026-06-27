@@ -120,15 +120,6 @@ describe('MaintenanceFormComponent', () => {
       expect(component.hasServers).toBeFalse();
     });
 
-    it('hasRouter should be true when routers.length > 0', () => {
-      init(makeTask(), makeInfra());
-      expect(component.hasRouter).toBeTrue();
-    });
-
-    it('hasRouter should be false when routers is empty', () => {
-      init(makeTask(), makeInfra({ routers: [] }));
-      expect(component.hasRouter).toBeFalse();
-    });
   });
 
   describe('allVMs getter', () => {
@@ -185,41 +176,6 @@ describe('MaintenanceFormComponent', () => {
       init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       const payload = component.buildPayload() as WindowsDomainPayload;
       expect(Array.isArray(payload.windows.domainControllers)).toBeTrue();
-    });
-
-    it('should include router section as array when hasRouter is true', () => {
-      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }));
-      component.routerDeviceControls.at(0).patchValue({ firmwareUpdated: true, firmwareVersion: '7.14', backupDone: true });
-      const payload = component.buildPayload() as WindowsDomainPayload;
-      expect(payload.router).toBeDefined();
-      expect(Array.isArray(payload.router)).toBeTrue();
-      expect(payload.router![0].routerId).toBe(1);
-      expect(payload.router![0].routerName).toBe('MikroTik');
-      expect(payload.router![0].firmwareUpdated).toBeTrue();
-      expect(payload.router![0].firmwareVersion).toBe('7.14');
-      expect(payload.router![0].backupDone).toBeTrue();
-    });
-
-    it('should support multiple routers for HA architecture', () => {
-      const infra = makeInfra({
-        esxiHosts: [], nas: [],
-        routers: [
-          { assetId: 1, name: 'MikroTik-Primary', ip: '192.168.99.1', bmcIp: null, bmcType: null, os: 'RouterOS', model: 'CCR2004' },
-          { assetId: 2, name: 'MikroTik-Secondary', ip: '192.168.99.2', bmcIp: null, bmcType: null, os: 'RouterOS', model: 'CCR2004' },
-        ],
-      });
-      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
-      expect(component.routerDeviceControls.length).toBe(2);
-      const payload = component.buildPayload() as WindowsDomainPayload;
-      expect(payload.router!.length).toBe(2);
-      expect(payload.router![0].routerName).toBe('MikroTik-Primary');
-      expect(payload.router![1].routerName).toBe('MikroTik-Secondary');
-    });
-
-    it('should NOT include router section when hasRouter is false', () => {
-      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      const payload = component.buildPayload() as WindowsDomainPayload;
-      expect(payload.router).toBeUndefined();
     });
   });
 
@@ -438,37 +394,6 @@ describe('MaintenanceFormComponent', () => {
     });
   });
 
-  // ── Router controls ─────────────────────────────────────────────────────────
-
-  describe('Router controls', () => {
-    it('routerDeviceControls should have one entry per router', () => {
-      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }));
-      expect(component.routerDeviceControls.length).toBe(1);
-    });
-
-    it('routerDeviceControls should be empty when routers is empty', () => {
-      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      expect(component.routerDeviceControls.length).toBe(0);
-    });
-
-    it('should rebuild routerDeviceControls when infrastructure changes', () => {
-      const infra1 = makeInfra({ esxiHosts: [], nas: [], routers: [{ assetId: 1, name: 'R1', ip: null, bmcIp: null, bmcType: null, os: null, model: null }] });
-      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra1);
-      expect(component.routerDeviceControls.length).toBe(1);
-
-      const infra2: ClientInfrastructure = {
-        ...infra1,
-        routers: [
-          { assetId: 1, name: 'R1', ip: null, bmcIp: null, bmcType: null, os: null, model: null },
-          { assetId: 2, name: 'R2', ip: null, bmcIp: null, bmcType: null, os: null, model: null },
-        ],
-      };
-      component.infrastructure = infra2;
-      component.ngOnChanges({ infrastructure: { currentValue: infra2, previousValue: infra1, firstChange: false, isFirstChange: () => false } });
-      expect(component.routerDeviceControls.length).toBe(2);
-    });
-  });
-
   // ── selectClass — alerta ─────────────────────────────────────────────────────
 
   describe('selectClass — alerta', () => {
@@ -667,18 +592,6 @@ describe('MaintenanceFormComponent', () => {
       expect(component.form.get('connectivity')?.value).toBeTrue();
       expect(component.form.get('switches')?.value).toBeFalse();
       expect(component.form.get('observations')?.value).toBe('pantalla rota en terminal 3');
-    });
-
-    it('parchea sección router usando routerId', () => {
-      const saved: WindowsDomainPayload = {
-        type: 'WINDOWS_DOMAIN_MAINTENANCE',
-        windows: { servers: [], domainControllers: [] },
-        router: [{ routerId: 1, routerName: 'MikroTik', firmwareUpdated: true, firmwareVersion: '7.14', backupDone: true }],
-      };
-      initWithSavedPayload(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }), saved);
-      expect(component.routerDeviceControls.at(0).get('firmwareUpdated')?.value).toBeTrue();
-      expect(component.routerDeviceControls.at(0).get('firmwareVersion')?.value).toBe('7.14');
-      expect(component.routerDeviceControls.at(0).get('backupDone')?.value).toBeTrue();
     });
 
     it('no modifica el formulario cuando savedPayload es null', () => {

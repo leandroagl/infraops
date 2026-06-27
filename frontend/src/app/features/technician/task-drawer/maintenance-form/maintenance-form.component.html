@@ -83,47 +83,6 @@
 
   </ng-container>
 
-  <!-- ── Router / Firewall ─────────────────────────────── -->
-  <ng-container *ngIf="hasRouter">
-
-    <div class="mf-section-lbl">Router / Firewall</div>
-
-    <div class="mf-vmware-grid" formArrayName="routerDevices">
-      <div *ngFor="let _ of routerDeviceControls.controls; let i = index"
-           [formGroupName]="i"
-           class="mf-cl-rpt mf-vmware-card">
-
-        <div class="mf-cl-rpt-hdr">
-          <div class="mf-cl-rpt-dot"></div>
-          <div class="mf-vmware-name-block">
-            <span class="mf-cl-rpt-label">{{ infrastructure.routers[i].name }}</span>
-            <span class="mono mf-host-ip">{{ infrastructure.routers[i].ip ?? '—' }}</span>
-          </div>
-        </div>
-
-        <mat-checkbox formControlName="firmwareUpdated" class="mf-cl-mat">
-          Actualizar firmware a última versión estable
-        </mat-checkbox>
-
-        <div class="mf-cl-rpt">
-          <div class="mf-cl-rpt-hdr">
-            <span class="mf-cl-rpt-label">Versión firmware aplicada</span>
-          </div>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
-            <mat-label>Versión</mat-label>
-            <input matInput formControlName="firmwareVersion" placeholder="Ej: 7.14.2" />
-          </mat-form-field>
-        </div>
-
-        <mat-checkbox formControlName="backupDone" class="mf-cl-mat">
-          Realizar backup de configuración
-        </mat-checkbox>
-
-      </div>
-    </div>
-
-  </ng-container>
-
   <!-- ── Terminal / Visita ─────────────────────────────── -->
   <ng-container *ngIf="isTerminalType">
 

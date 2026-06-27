@@ -110,7 +110,12 @@ export interface ServerHostPayload {
 export interface WindowsDomainPayload {
   type: 'WINDOWS_DOMAIN_MAINTENANCE';
   windows: WindowsSection;
-  router?: RouterEntry[];
+  notes?: string;
+}
+
+export interface RouterMaintenancePayload {
+  type: 'ROUTER_MAINTENANCE';
+  router: RouterEntry[];
   notes?: string;
 }
 
@@ -159,6 +164,7 @@ export type MaintenancePayload =
   | ServerMaintenancePayload
   | ServerHostPayload
   | WindowsDomainPayload
+  | RouterMaintenancePayload
   | TerminalPayload
   | QnapPayload
   | VeeamBackupPayload;

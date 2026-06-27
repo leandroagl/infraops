@@ -12,7 +12,6 @@ import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
 import {
   DcHealthSnapshot,
   MaintenancePayload,
-  RouterEntry,
   TerminalPayload,
   WindowsDomainPayload,
 } from '../../../../core/models/maintenance-log.models';
@@ -54,7 +53,6 @@ export class MaintenanceFormComponent implements OnChanges {
   // ── Getters condicionales ────────────────────────────────────────────────────
 
   get hasServers(): boolean { return this.infrastructure?.windowsVMs?.length > 0; }
-  get hasRouter(): boolean  { return this.infrastructure?.routers?.length > 0; }
 
   get allVMs() {
     return [
@@ -66,10 +64,6 @@ export class MaintenanceFormComponent implements OnChanges {
 
   get serverControls(): FormArray {
     return this.form.get('servers') as FormArray;
-  }
-
-  get routerDeviceControls(): FormArray {
-    return this.form.get('routerDevices') as FormArray;
   }
 
   get dcControls(): FormArray {
@@ -120,13 +114,6 @@ export class MaintenanceFormComponent implements OnChanges {
         (this.infrastructure.domainControllers ?? []).map(() =>
           this.fb.group({ rawJson: [''] })
         )
-      ),
-      routerDevices: this.fb.array(
-        this.infrastructure.routers.map(() => this.fb.group({
-          firmwareUpdated: [false],
-          firmwareVersion: [''],
-          backupDone:      [false],
-        }))
       ),
       cleanedTemp:    [false],
       windowsUpdates: [false],
@@ -214,19 +201,6 @@ export class MaintenanceFormComponent implements OnChanges {
       notes: v.notes || undefined,
     };
 
-    if (this.hasRouter) {
-      payload.router = this.infrastructure.routers.map((router, i): RouterEntry => {
-        const ctrl = this.routerDeviceControls.at(i).value;
-        return {
-          routerId:        router.assetId,
-          routerName:      router.name,
-          firmwareUpdated: ctrl.firmwareUpdated,
-          firmwareVersion: ctrl.firmwareVersion || undefined,
-          backupDone:      ctrl.backupDone,
-        };
-      });
-    }
-
     return payload;
   }
 
@@ -235,19 +209,6 @@ export class MaintenanceFormComponent implements OnChanges {
       const srv = payload as WindowsDomainPayload;
 
       this.form.patchValue({ notes: srv.notes ?? '' });
-
-      if (srv.router?.length) {
-        this.infrastructure.routers.forEach((router, i) => {
-          const saved = srv.router!.find(r => r.routerId === router.assetId);
-          if (saved) {
-            this.routerDeviceControls.at(i).patchValue({
-              firmwareUpdated: saved.firmwareUpdated,
-              firmwareVersion: saved.firmwareVersion ?? '',
-              backupDone:      saved.backupDone,
-            });
-          }
-        });
-      }
 
       if (srv.windows.servers?.length) {
         this.infrastructure.windowsVMs.forEach((vm, i) => {

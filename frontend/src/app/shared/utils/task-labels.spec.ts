@@ -36,6 +36,7 @@ describe('task-labels utils', () => {
   describe('typeLabel() — labels cortas', () => {
     const cases: [TaskType, string][] = [
       ['SERVER_MAINTENANCE',   'Servidores'],
+      ['ROUTER_MAINTENANCE',   'Router / FW'],
       ['TERMINAL_MAINTENANCE', 'Terminales'],
       ['SITE_VISIT',           'Visita'],
       ['AV_CONTROL',           'Antivirus'],
@@ -52,6 +53,7 @@ describe('task-labels utils', () => {
   describe('typeLabelLong() — labels largas', () => {
     const cases: [TaskType, string][] = [
       ['SERVER_MAINTENANCE',   'Mantenimiento de servidores'],
+      ['ROUTER_MAINTENANCE',   'Mantenimiento de router y firewall'],
       ['TERMINAL_MAINTENANCE', 'Visita de terminales'],
       ['SITE_VISIT',           'Visita presencial'],
       ['AV_CONTROL',           'Control antivirus'],
@@ -120,6 +122,18 @@ describe('task-labels utils', () => {
 
   it('typeBadge retorna "badge--srv" para WINDOWS_DOMAIN_MAINTENANCE', () => {
     expect(typeBadge('WINDOWS_DOMAIN_MAINTENANCE')).toBe('badge--srv');
+  });
+
+  it('typeLabel retorna "Router / FW" para ROUTER_MAINTENANCE', () => {
+    expect(typeLabel('ROUTER_MAINTENANCE')).toBe('Router / FW');
+  });
+
+  it('typeLabelLong retorna "Mantenimiento de router y firewall" para ROUTER_MAINTENANCE', () => {
+    expect(typeLabelLong('ROUTER_MAINTENANCE')).toBe('Mantenimiento de router y firewall');
+  });
+
+  it('typeBadge retorna "badge--srv" para ROUTER_MAINTENANCE', () => {
+    expect(typeBadge('ROUTER_MAINTENANCE')).toBe('badge--srv');
   });
 
 });
