@@ -1,9 +1,12 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddRouterMaintenanceTaskType1782604800000 implements MigrationInterface {
+  name = 'AddRouterMaintenanceTaskType1782604800000';
+  transaction = false as const;
+
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TYPE task_type_enum ADD VALUE IF NOT EXISTS 'ROUTER_MAINTENANCE'`
+      `ALTER TYPE "public"."tasks_type_enum" ADD VALUE IF NOT EXISTS 'ROUTER_MAINTENANCE'`
     );
   }
 
