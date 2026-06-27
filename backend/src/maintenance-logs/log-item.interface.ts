@@ -41,6 +41,14 @@ export interface RouterSection {
   backupDone: boolean;
 }
 
+export interface RouterEntry {
+  routerId: number;
+  routerName: string;
+  firmwareUpdated: boolean;
+  firmwareVersion?: string;
+  backupDone: boolean;
+}
+
 export type BmcAlertCategory = 'fan' | 'psu' | 'temperatura' | 'cpu' | 'memoria' | 'storage' | 'nic' | 'sistema';
 
 export interface BmcEntry {
@@ -74,7 +82,12 @@ export interface ServerHostPayload {
 export interface WindowsDomainPayload {
   type: 'WINDOWS_DOMAIN_MAINTENANCE';
   windows: WindowsSection;
-  router?: RouterSection;
+  notes?: string;
+}
+
+export interface RouterMaintenancePayload {
+  type: 'ROUTER_MAINTENANCE';
+  router: RouterEntry[];
   notes?: string;
 }
 
@@ -103,4 +116,5 @@ export type MaintenancePayload =
   | ServerMaintenancePayload
   | ServerHostPayload
   | WindowsDomainPayload
+  | RouterMaintenancePayload
   | TerminalPayload;
