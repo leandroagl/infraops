@@ -1,0 +1,70 @@
+.rf {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rf-section-lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--tx-lo);
+  margin-top: 8px;
+  margin-bottom: 2px;
+}
+
+.rf-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rf-card {
+  background: var(--surface-2);
+  border: 1px solid var(--bd);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rf-card-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.rf-card-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--srv);
+  flex-shrink: 0;
+}
+
+.rf-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rf-card-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tx-hi);
+}
+
+.rf-ip {
+  font-size: 11px;
+  color: var(--tx-lo);
+}
+
+.rf-check {
+  font-size: 12px;
+}
+
+.rf-field {
+  width: 100%;
+}
