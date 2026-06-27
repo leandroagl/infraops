@@ -141,6 +141,16 @@ describe('RouterFormComponent — pure unit tests', () => {
     });
   });
 
+  describe('getRouterGroup()', () => {
+    it('devuelve el FormGroup en el índice correcto del FormArray', () => {
+      component.infrastructure = makeInfra([makeRouter(), makeRouter({ assetId: 2, name: 'fw-02' })]);
+      component.ngOnChanges({ infrastructure: {} as any });
+      const group = component.getRouterGroup(1);
+      expect(group).toBeTruthy();
+      expect(group.get('firmwareUpdated')).not.toBeNull();
+    });
+  });
+
   describe('outputs', () => {
     beforeEach(() => {
       component.infrastructure = makeInfra();

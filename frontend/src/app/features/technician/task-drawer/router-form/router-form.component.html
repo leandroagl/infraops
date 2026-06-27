@@ -1,40 +1,17 @@
 <form [formGroup]="form" class="rf">
 
-  <div class="rf-section-lbl">Router / Firewall</div>
-
-  <div class="rf-grid" formArrayName="routers">
-    <div *ngFor="let _ of routerControls.controls; let i = index"
-         [formGroupName]="i"
-         class="rf-card">
-
-      <div class="rf-card-hdr">
-        <div class="rf-card-dot"></div>
-        <div class="rf-name-block">
-          <span class="rf-card-label">{{ infrastructure.routers[i].name }}</span>
-          <span class="mono rf-ip">{{ infrastructure.routers[i].ip ?? '—' }}</span>
-        </div>
-      </div>
-
-      <mat-checkbox formControlName="firmwareUpdated" class="rf-check">
-        Actualizar firmware a última versión estable
-      </mat-checkbox>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rf-field">
-        <mat-label>Versión firmware aplicada</mat-label>
-        <input matInput formControlName="firmwareVersion" placeholder="Ej: 7.14.2" />
-      </mat-form-field>
-
-      <mat-checkbox formControlName="backupDone" class="rf-check">
-        Realizar backup de configuración
-      </mat-checkbox>
-
-    </div>
+  <div class="rf-devices-stack">
+    <app-router-device-card
+      *ngFor="let _ of routerControls.controls; let i = index"
+      [device]="infrastructure.routers[i]"
+      [group]="getRouterGroup(i)"
+      [readOnly]="readOnly">
+    </app-router-device-card>
   </div>
 
-  <div class="rf-section-lbl">Notas adicionales</div>
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rf-field">
-    <textarea matInput formControlName="notes" rows="3"
-              placeholder="Observaciones adicionales..."></textarea>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rf-notes-field">
+    <mat-label>Notas</mat-label>
+    <textarea matInput formControlName="notes" placeholder="Observaciones generales..."></textarea>
   </mat-form-field>
 
 </form>

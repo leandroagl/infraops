@@ -52,6 +52,10 @@ export class RouterFormComponent implements OnChanges {
     return this.form.get('routers') as FormArray;
   }
 
+  getRouterGroup(i: number): FormGroup {
+    return this.routerControls.at(i) as FormGroup;
+  }
+
   buildPayload(): RouterMaintenancePayload {
     const router: RouterEntry[] = this.infrastructure.routers.map((r, i) => {
       const ctrl = this.routerControls.at(i).getRawValue();
