@@ -53,6 +53,7 @@ export class TaskDrawerComponent implements OnChanges {
 
   infrastructure: ClientInfrastructure | null = null;
   savedPayload: MaintenancePayload | null = null;
+  veeamVms: { name: string; os: string }[] = [];
   loadingInfra = false;
   infraError = '';
   confirmError = '';
@@ -84,6 +85,7 @@ export class TaskDrawerComponent implements OnChanges {
   loadInfrastructure(): void {
     this.infrastructure = null;
     this.savedPayload = null;
+    this.veeamVms = [];
     this.infraError = '';
     this.loadingInfra = true;
 
@@ -102,6 +104,11 @@ export class TaskDrawerComponent implements OnChanges {
       next: ({ infra, savedPayload }) => {
         this.infrastructure = infra;
         this.savedPayload = savedPayload;
+        this.veeamVms = [
+          ...infra.windowsVMs,
+          ...infra.domainControllers,
+          ...infra.linuxVMs,
+        ].map(v => ({ name: v.name, os: v.os ?? '—' }));
         this.loadingInfra = false;
       },
       error: () => {
@@ -287,15 +294,6 @@ export class TaskDrawerComponent implements OnChanges {
 
   get odooLink(): string | null {
     return this.task.odooTicketId != null ? odooTicketUrl(this.task.odooTicketId) : null;
-  }
-
-  get veeamVms(): { name: string; os: string }[] {
-    if (!this.infrastructure) return [];
-    return [
-      ...this.infrastructure.windowsVMs,
-      ...this.infrastructure.domainControllers,
-      ...this.infrastructure.linuxVMs,
-    ].map(v => ({ name: v.name, os: v.os ?? '—' }));
   }
 
   get veeamPayload(): VeeamBackupPayload | undefined {
