@@ -76,10 +76,11 @@ describe('TaskCreateDialogComponent', () => {
     expect(values).not.toContain('SERVER_MAINTENANCE' as any);
   });
 
-  it('contiene WINDOWS_DOMAIN_MAINTENANCE y SERVER_HOST_MAINTENANCE en la lista de tipos', () => {
+  it('contiene WINDOWS_DOMAIN_MAINTENANCE, SERVER_HOST_MAINTENANCE y ROUTER_MAINTENANCE en la lista de tipos', () => {
     const values = component.taskTypes.map(t => t.value);
     expect(values).toContain('WINDOWS_DOMAIN_MAINTENANCE');
     expect(values).toContain('SERVER_HOST_MAINTENANCE');
+    expect(values).toContain('ROUTER_MAINTENANCE');
   });
 
   it('carga clientes y técnicos activos al iniciar', () => {

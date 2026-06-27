@@ -25,6 +25,7 @@ export class TaskCreateDialogComponent implements OnInit {
   readonly taskTypes: { value: TaskType; label: string }[] = [
     { value: 'WINDOWS_DOMAIN_MAINTENANCE', label: 'Windows / Dominio'           },
     { value: 'SERVER_HOST_MAINTENANCE',    label: 'VMware / BMC'                },
+    { value: 'ROUTER_MAINTENANCE',         label: 'Router / Firewall'           },
     { value: 'QNAP_MAINTENANCE',           label: 'Mantenimiento QNAP/NAS'      },
     { value: 'VEEAM_BACKUP',              label: 'Mantenimiento Veeam Backup'   },
     { value: 'TERMINAL_MAINTENANCE',       label: 'Visita de terminales'         },
