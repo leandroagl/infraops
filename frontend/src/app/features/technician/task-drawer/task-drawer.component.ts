@@ -14,8 +14,9 @@ import { Task, TaskType } from '../../../core/models/task.models';
 import { ClientInfrastructure } from '../../../core/models/infradoc.models';
 import {
   MaintenancePayload,
-  ServerMaintenancePayload,
+  ServerHostPayload,
   VeeamBackupPayload,
+  WindowsDomainPayload,
 } from '../../../core/models/maintenance-log.models';
 import { InfradocService } from '../../../core/services/infradoc.service';
 import {
@@ -26,6 +27,7 @@ import { TasksService } from '../../../core/services/tasks.service';
 import { MaintenanceFormComponent } from './maintenance-form/maintenance-form.component';
 import { QnapFormComponent } from './qnap-form/qnap-form.component';
 import { VeeamFormComponent } from './veeam-form/veeam-form.component';
+import { ServerHostFormComponent } from './server-host-form/server-host-form.component';
 import {
   ConfirmMaintenanceDialogComponent,
   ConfirmMaintenanceDialogData,
@@ -50,6 +52,7 @@ export class TaskDrawerComponent implements OnChanges {
   @ViewChild(MaintenanceFormComponent) maintenanceForm?: MaintenanceFormComponent;
   @ViewChild(QnapFormComponent) qnapForm?: QnapFormComponent;
   @ViewChild(VeeamFormComponent) veeamForm?: VeeamFormComponent;
+  @ViewChild(ServerHostFormComponent) serverHostForm?: ServerHostFormComponent;
 
   infrastructure: ClientInfrastructure | null = null;
   savedPayload: MaintenancePayload | null = null;
@@ -144,29 +147,27 @@ export class TaskDrawerComponent implements OnChanges {
     veeamMissing: boolean;
     emptyFields: string[];
   } {
-    if (payload.type !== 'SERVER_MAINTENANCE') {
-      return { dcdiagErrors: [], veeamMissing: false, emptyFields: [] };
+    if (payload.type === 'WINDOWS_DOMAIN_MAINTENANCE') {
+      const srv = payload as WindowsDomainPayload;
+      const dcdiagErrors: string[] = (srv.windows.domainControllers ?? [])
+        .flatMap(dc => dc.warnings ?? [])
+        .filter(w => w.toUpperCase().startsWith('ERROR'));
+      return { dcdiagErrors, veeamMissing: false, emptyFields: [] };
     }
 
-    const srv = payload as ServerMaintenancePayload;
-
-    const dcdiagErrors: string[] = srv.windows.domainControllers
-      .flatMap(dc => dc.warnings ?? [])
-      .filter(w => w.toUpperCase().startsWith('ERROR'));
-
-    const veeamMissing = (srv.veeam?.uncoveredVMs?.length ?? 0) > 0;
-
-    const emptyFields: string[] = [];
-    if (srv.vmware?.length) {
+    if (payload.type === 'SERVER_HOST_MAINTENANCE') {
+      const srv = payload as ServerHostPayload;
+      const emptyFields: string[] = [];
       srv.vmware.forEach((host) => {
-        const label = srv.vmware!.length > 1 ? ` (${host.hostName})` : '';
+        const label = srv.vmware.length > 1 ? ` (${host.hostName})` : '';
         if (isNaN(host.cpuUsage))     emptyFields.push(`CPU%${label}`);
         if (isNaN(host.memUsage))     emptyFields.push(`Memoria%${label}`);
         if (isNaN(host.storageUsage)) emptyFields.push(`Storage%${label}`);
       });
+      return { dcdiagErrors: [], veeamMissing: false, emptyFields };
     }
 
-    return { dcdiagErrors, veeamMissing, emptyFields };
+    return { dcdiagErrors: [], veeamMissing: false, emptyFields: [] };
   }
 
   // ── Getters ─────────────────────────────────────────────────────────────────
@@ -189,10 +190,15 @@ export class TaskDrawerComponent implements OnChanges {
     this.maintenanceForm?.submit();
     this.qnapForm?.submit();
     this.veeamForm?.submit();
+    this.serverHostForm?.submit();
   }
 
   triggerFormSave(): void {
     this.maintenanceForm?.save();
+  }
+
+  triggerServerHostSave(): void {
+    this.serverHostForm?.save();
   }
 
   onRequestSave(payload: MaintenancePayload): void {

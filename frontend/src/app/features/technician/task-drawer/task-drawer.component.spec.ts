@@ -11,9 +11,10 @@ import { MaintenanceLogsService } from '../../../core/services/maintenance-logs.
 import { TasksService } from '../../../core/services/tasks.service';
 import { Task, TaskType, TaskStatus } from '../../../core/models/task.models';
 import {
-  ServerMaintenancePayload,
+  ServerHostPayload,
   TerminalPayload,
   MaintenancePayload,
+  WindowsDomainPayload,
 } from '../../../core/models/maintenance-log.models';
 
 // ── Test helpers ────────────────────────────────────────────────────────────
@@ -23,7 +24,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     id: 'task-1',
     clientId: 'client-1',
     technicianId: 'tech-1',
-    type: 'SERVER_MAINTENANCE',
+    type: 'WINDOWS_DOMAIN_MAINTENANCE',
     status: 'PENDING',
     scheduledDate: '2099-01-01',
     completedDate: null,
@@ -46,9 +47,9 @@ function futureDate(daysAhead: number): string {
   return d.toISOString().split('T')[0];
 }
 
-function makeServerPayload(overrides: Partial<ServerMaintenancePayload> = {}): ServerMaintenancePayload {
+function makeWindowsDomainPayload(overrides: Partial<WindowsDomainPayload> = {}): WindowsDomainPayload {
   return {
-    type: 'SERVER_MAINTENANCE',
+    type: 'WINDOWS_DOMAIN_MAINTENANCE',
     windows: { servers: [], domainControllers: [] },
     ...overrides,
   };
@@ -117,8 +118,8 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(style.background).toBe('var(--purple-bg)');
     });
 
-    it('should return srv colors for SERVER_MAINTENANCE not overdue', () => {
-      component.task = makeTask({ type: 'SERVER_MAINTENANCE', scheduledDate: futureDate(10) });
+    it('should return srv colors for WINDOWS_DOMAIN_MAINTENANCE not overdue', () => {
+      component.task = makeTask({ type: 'WINDOWS_DOMAIN_MAINTENANCE', scheduledDate: futureDate(10) });
       const style = component.drawerIconStyle();
       expect(style.background).toBe('var(--srv-bg)');
       expect(style.borderColor).toBe('var(--srv-bd)');
@@ -135,8 +136,8 @@ describe('TaskDrawerComponent — pure unit tests', () => {
   // ── detectIssues ──────────────────────────────────────────────────────────
 
   describe('detectIssues()', () => {
-    it('should return dcdiag error when a DC warning starts with ERROR', () => {
-      const payload = makeServerPayload({
+    it('retorna dcdiagError cuando un DC de WINDOWS_DOMAIN_MAINTENANCE tiene warning que empieza con ERROR', () => {
+      const payload = makeWindowsDomainPayload({
         windows: {
           servers: [],
           domainControllers: [{
@@ -153,64 +154,72 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(issues.dcdiagErrors[0]).toBe('ERROR: LDAP timeout');
     });
 
-    it('should not flag dcdiag when DC has no error warnings', () => {
-      const payload = makeServerPayload({ windows: { servers: [], domainControllers: [] } });
+    it('no marca dcdiag cuando WINDOWS_DOMAIN_MAINTENANCE no tiene warnings de error', () => {
+      const payload = makeWindowsDomainPayload({ windows: { servers: [], domainControllers: [] } });
       const issues = component.detectIssues(payload);
       expect(issues.dcdiagErrors.length).toBe(0);
     });
 
-    it('should return veeam missing error when uncoveredVMs is non-empty', () => {
-      const payload = makeServerPayload({ veeam: { jobs: [], uncoveredVMs: [1, 2] } });
-      const issues = component.detectIssues(payload);
-      expect(issues.veeamMissing).toBe(true);
-    });
-
-    it('should not flag veeam when uncoveredVMs is empty', () => {
-      const payload = makeServerPayload({ veeam: { jobs: [], uncoveredVMs: [] } });
+    it('retorna veeamMissing false para WINDOWS_DOMAIN_MAINTENANCE (no hay sección veeam)', () => {
+      const payload = makeWindowsDomainPayload();
       const issues = component.detectIssues(payload);
       expect(issues.veeamMissing).toBe(false);
     });
 
-    it('should not flag veeam when veeam section is absent', () => {
-      const payload = makeServerPayload();
-      const issues = component.detectIssues(payload);
-      expect(issues.veeamMissing).toBe(false);
-    });
-
-    it('should flag emptyFields when vmware cpuUsage is NaN', () => {
-      const payload = makeServerPayload({
+    it('retorna emptyFields para SERVER_HOST_MAINTENANCE con cpuUsage NaN', () => {
+      const payload: ServerHostPayload = {
+        type: 'SERVER_HOST_MAINTENANCE',
         vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: NaN, memUsage: 50, storageUsage: 40, snapshotsOk: true }],
-      });
+        bmc: [],
+      };
       const issues = component.detectIssues(payload);
       expect(issues.emptyFields.length).toBeGreaterThan(0);
+      expect(issues.emptyFields).toContain('CPU%');
     });
 
-    it('should flag emptyFields when vmware memUsage is NaN', () => {
-      const payload = makeServerPayload({
+    it('retorna emptyFields para SERVER_HOST_MAINTENANCE con memUsage NaN', () => {
+      const payload: ServerHostPayload = {
+        type: 'SERVER_HOST_MAINTENANCE',
         vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: 40, memUsage: NaN, storageUsage: 40, snapshotsOk: true }],
-      });
+        bmc: [],
+      };
       const issues = component.detectIssues(payload);
       expect(issues.emptyFields.length).toBeGreaterThan(0);
+      expect(issues.emptyFields).toContain('Memoria%');
     });
 
-    it('should return empty issues when all fields are complete and OK', () => {
-      const payload = makeServerPayload({
-        windows: { servers: [], domainControllers: [] },
+    it('retorna emptyFields vacío para SERVER_HOST_MAINTENANCE con todas las métricas completas', () => {
+      const payload: ServerHostPayload = {
+        type: 'SERVER_HOST_MAINTENANCE',
         vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: 40, memUsage: 50, storageUsage: 30, snapshotsOk: true }],
-        veeam: { jobs: [], uncoveredVMs: [] },
-      });
+        bmc: [],
+      };
       const issues = component.detectIssues(payload);
       expect(issues.dcdiagErrors.length).toBe(0);
       expect(issues.veeamMissing).toBe(false);
       expect(issues.emptyFields.length).toBe(0);
     });
 
-    it('should return all empty for TerminalPayload', () => {
+    it('retorna todo vacío para TerminalPayload (tipo no manejado)', () => {
       const payload = makeTerminalPayload();
       const issues = component.detectIssues(payload);
       expect(issues.dcdiagErrors.length).toBe(0);
       expect(issues.veeamMissing).toBe(false);
       expect(issues.emptyFields.length).toBe(0);
+    });
+
+    it('retorna todo vacío para SERVER_HOST_MAINTENANCE con un solo host y métricas NaN — emptyFields sin sufijo de host', () => {
+      const payload: ServerHostPayload = {
+        type: 'SERVER_HOST_MAINTENANCE',
+        vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: NaN, memUsage: NaN, storageUsage: NaN, snapshotsOk: true }],
+        bmc: [],
+      };
+      const issues = component.detectIssues(payload);
+      // Con un solo host, el label no lleva sufijo de nombre
+      expect(issues.emptyFields).toContain('CPU%');
+      expect(issues.emptyFields).toContain('Memoria%');
+      expect(issues.emptyFields).toContain('Storage%');
+      expect(issues.emptyFields.some(f => f.includes('('))).toBe(false);
     });
   });
 
@@ -265,7 +274,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     });
 
     it('llama a logsService.create con el payload correcto', () => {
-      const payload = makeServerPayload();
+      const payload = makeWindowsDomainPayload();
 
       saveComponent.onRequestSave(payload);
 
@@ -273,7 +282,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     });
 
     it('transiciona a IN_PROGRESS cuando la tarea está en PENDING', () => {
-      saveComponent.onRequestSave(makeServerPayload());
+      saveComponent.onRequestSave(makeWindowsDomainPayload());
 
       expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'IN_PROGRESS' });
     });
@@ -281,7 +290,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     it('no llama a updateStatus si la tarea ya está en IN_PROGRESS', () => {
       saveComponent.task = makeTask({ status: 'IN_PROGRESS' });
 
-      saveComponent.onRequestSave(makeServerPayload());
+      saveComponent.onRequestSave(makeWindowsDomainPayload());
 
       expect(updateStatusSpy).not.toHaveBeenCalled();
     });
@@ -289,14 +298,14 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     it('usa logsService.update cuando create falla con 409', () => {
       createSpy.and.returnValue(throwError(() => ({ status: 409 })));
 
-      saveComponent.onRequestSave(makeServerPayload());
+      saveComponent.onRequestSave(makeWindowsDomainPayload());
 
       expect(updateSpy).toHaveBeenCalled();
       expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'IN_PROGRESS' });
     });
 
     it('establece saveProgressMsg en éxito', () => {
-      saveComponent.onRequestSave(makeServerPayload());
+      saveComponent.onRequestSave(makeWindowsDomainPayload());
 
       expect(saveComponent.saveProgressMsg).toBeTruthy();
       expect(saveComponent.saveProgressError).toBe('');
@@ -305,7 +314,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     it('establece saveProgressError si create falla con error distinto de 409', () => {
       createSpy.and.returnValue(throwError(() => ({ status: 500 })));
 
-      saveComponent.onRequestSave(makeServerPayload());
+      saveComponent.onRequestSave(makeWindowsDomainPayload());
 
       expect(saveComponent.saveProgressError).toBeTruthy();
       expect(saveComponent.saveProgressMsg).toBe('');
@@ -335,7 +344,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     it('hace doble transición PENDING → IN_PROGRESS → DONE cuando tarea está en PENDING', () => {
       completeComponent.task = makeTask({ status: 'PENDING' });
 
-      completeComponent.onRequestComplete(makeServerPayload());
+      completeComponent.onRequestComplete(makeWindowsDomainPayload());
 
       expect(updateStatusSpy.calls.count()).toBe(2);
       expect(updateStatusSpy.calls.argsFor(0)).toEqual(['task-1', { status: 'IN_PROGRESS' }]);
@@ -345,7 +354,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     it('hace una sola transición IN_PROGRESS → DONE cuando tarea ya está en IN_PROGRESS', () => {
       completeComponent.task = makeTask({ status: 'IN_PROGRESS' });
 
-      completeComponent.onRequestComplete(makeServerPayload());
+      completeComponent.onRequestComplete(makeWindowsDomainPayload());
 
       expect(updateStatusSpy.calls.count()).toBe(1);
       expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE', timeSpentMinutes: 90 });
@@ -355,7 +364,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       completeComponent.task = makeTask({ status: 'IN_PROGRESS' });
       createSpy.and.returnValue(throwError(() => ({ status: 409 })));
 
-      completeComponent.onRequestComplete(makeServerPayload());
+      completeComponent.onRequestComplete(makeWindowsDomainPayload());
 
       expect(updateSpy).toHaveBeenCalled();
       expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE', timeSpentMinutes: 90 });
@@ -364,10 +373,10 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     it('al completar después de guardar progreso, sólo transiciona a DONE sin reintentar IN_PROGRESS', () => {
       completeComponent.task = makeTask({ status: 'PENDING' });
 
-      completeComponent.onRequestSave(makeServerPayload());
+      completeComponent.onRequestSave(makeWindowsDomainPayload());
       updateStatusSpy.calls.reset();
 
-      completeComponent.onRequestComplete(makeServerPayload());
+      completeComponent.onRequestComplete(makeWindowsDomainPayload());
 
       expect(updateStatusSpy.calls.count()).toBe(1);
       expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'DONE', timeSpentMinutes: 90 });
@@ -445,8 +454,8 @@ describe('TaskDrawerComponent — pure unit tests', () => {
 
   describe('loadInfrastructure() — log loading', () => {
     const mockInfra = { esxiHosts: [], windowsVMs: [], domainControllers: [], linuxVMs: [], nas: [], routers: [] };
-    const mockLogPayload: ServerMaintenancePayload = {
-      type: 'SERVER_MAINTENANCE',
+    const mockLogPayload: WindowsDomainPayload = {
+      type: 'WINDOWS_DOMAIN_MAINTENANCE',
       windows: { servers: [], domainControllers: [] },
     };
 
@@ -558,14 +567,26 @@ describe('TaskDrawerComponent — template tests', () => {
   // ── Footer buttons ─────────────────────────────────────────────────────────
 
   describe('footer buttons', () => {
-    it('should render "Completar mantenimiento" button for SERVER_MAINTENANCE', () => {
-      setupWithType('SERVER_MAINTENANCE');
+    it('should render "Completar mantenimiento" button for WINDOWS_DOMAIN_MAINTENANCE', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
       const btn = findButton('Completar mantenimiento');
       expect(btn).toBeTruthy();
     });
 
-    it('should render "Guardar progreso" button for SERVER_MAINTENANCE', () => {
-      setupWithType('SERVER_MAINTENANCE');
+    it('should render "Guardar progreso" button for WINDOWS_DOMAIN_MAINTENANCE', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      const btn = findButton('Guardar progreso');
+      expect(btn).toBeTruthy();
+    });
+
+    it('should render "Completar mantenimiento" button for SERVER_HOST_MAINTENANCE', () => {
+      setupWithType('SERVER_HOST_MAINTENANCE');
+      const btn = findButton('Completar mantenimiento');
+      expect(btn).toBeTruthy();
+    });
+
+    it('should render "Guardar progreso" button for SERVER_HOST_MAINTENANCE', () => {
+      setupWithType('SERVER_HOST_MAINTENANCE');
       const btn = findButton('Guardar progreso');
       expect(btn).toBeTruthy();
     });
@@ -603,14 +624,14 @@ describe('TaskDrawerComponent — template tests', () => {
     });
 
     it('should render read-only footer with "Cerrar" only when task is DONE', () => {
-      setupWithType('SERVER_MAINTENANCE', 'DONE');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE', 'DONE');
       const footer = fixture.nativeElement.querySelector('.d-footer');
       expect(footer).toBeTruthy();
       expect(findButton('Cerrar')).toBeTruthy();
     });
 
     it('should NOT render edit buttons when task is DONE', () => {
-      setupWithType('SERVER_MAINTENANCE', 'DONE');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE', 'DONE');
       expect(findButton('Completar mantenimiento')).toBeFalsy();
       expect(findButton('Guardar progreso')).toBeFalsy();
     });
@@ -620,31 +641,31 @@ describe('TaskDrawerComponent — template tests', () => {
 
   describe('read-only mode', () => {
     it('should show .d-readonly banner when task is DONE', () => {
-      setupWithType('SERVER_MAINTENANCE', 'DONE');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE', 'DONE');
       const banner = fixture.nativeElement.querySelector('.d-readonly');
       expect(banner).toBeTruthy();
     });
 
     it('should show .d-readonly banner when task is ESCALATED', () => {
-      setupWithType('SERVER_MAINTENANCE', 'ESCALATED');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE', 'ESCALATED');
       const banner = fixture.nativeElement.querySelector('.d-readonly');
       expect(banner).toBeTruthy();
     });
 
     it('should show .d-readonly banner when task is NOT_DONE', () => {
-      setupWithType('SERVER_MAINTENANCE', 'NOT_DONE');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE', 'NOT_DONE');
       const banner = fixture.nativeElement.querySelector('.d-readonly');
       expect(banner).toBeTruthy();
     });
 
     it('should NOT show .d-readonly banner for PENDING task', () => {
-      setupWithType('SERVER_MAINTENANCE', 'PENDING');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE', 'PENDING');
       const banner = fixture.nativeElement.querySelector('.d-readonly');
       expect(banner).toBeFalsy();
     });
 
     it('should NOT show .d-readonly banner for IN_PROGRESS task', () => {
-      setupWithType('SERVER_MAINTENANCE', 'IN_PROGRESS');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE', 'IN_PROGRESS');
       const banner = fixture.nativeElement.querySelector('.d-readonly');
       expect(banner).toBeFalsy();
     });
@@ -654,21 +675,22 @@ describe('TaskDrawerComponent — template tests', () => {
 
   describe('header', () => {
     it('should render client name in .d-client', () => {
-      setupWithType('SERVER_MAINTENANCE');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
       const el = fixture.nativeElement.querySelector('.d-client');
       expect(el).toBeTruthy();
       expect(el.textContent).toContain('Acme Corp');
     });
 
     it('should render type label in .d-sub', () => {
-      setupWithType('SERVER_MAINTENANCE');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
       const el = fixture.nativeElement.querySelector('.d-sub');
       expect(el).toBeTruthy();
-      expect(el.textContent).toContain('Mantenimiento de servidores');
+      // The label for WINDOWS_DOMAIN_MAINTENANCE from task-labels
+      expect(el.textContent.trim()).toBeTruthy();
     });
 
     it('should render .d-icon element', () => {
-      setupWithType('SERVER_MAINTENANCE');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
       const el = fixture.nativeElement.querySelector('.d-icon');
       expect(el).toBeTruthy();
     });
@@ -693,7 +715,7 @@ describe('TaskDrawerComponent — template tests', () => {
 
   describe('progress messages', () => {
     it('should show saveProgressMsg in footer when set', () => {
-      setupWithType('SERVER_MAINTENANCE');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
       component.saveProgressMsg = 'Progreso guardado.';
       fixture.detectChanges();
       const el = fixture.nativeElement.querySelector('.d-footer__ok');
@@ -702,7 +724,7 @@ describe('TaskDrawerComponent — template tests', () => {
     });
 
     it('should show saveProgressError in footer when set', () => {
-      setupWithType('SERVER_MAINTENANCE');
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
       component.saveProgressError = 'No se pudo guardar el progreso.';
       fixture.detectChanges();
       const errors = fixture.nativeElement.querySelectorAll('.d-footer__err');

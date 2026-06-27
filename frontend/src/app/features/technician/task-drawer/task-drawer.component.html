@@ -63,9 +63,21 @@
     (cancelled)="drawerClosed.emit()">
   </app-veeam-form>
 
-  <!-- Formulario de mantenimiento (todos los tipos menos QNAP y VEEAM_BACKUP) -->
+  <!-- Formulario SERVER_HOST_MAINTENANCE -->
+  <app-server-host-form
+    *ngIf="infrastructure && task.type === 'SERVER_HOST_MAINTENANCE'"
+    [task]="task"
+    [infrastructure]="infrastructure"
+    [savedPayload]="savedPayload"
+    [readOnly]="!isActiveTask"
+    (requestComplete)="onRequestComplete($event)"
+    (requestSave)="onRequestSave($event)"
+    (requestNotDone)="onRequestNotDone()">
+  </app-server-host-form>
+
+  <!-- Formulario WINDOWS_DOMAIN_MAINTENANCE + TERMINAL_MAINTENANCE + SITE_VISIT + otros -->
   <app-maintenance-form
-    *ngIf="infrastructure && task.type !== 'QNAP_MAINTENANCE' && task.type !== 'VEEAM_BACKUP'"
+    *ngIf="infrastructure && task.type !== 'QNAP_MAINTENANCE' && task.type !== 'VEEAM_BACKUP' && task.type !== 'SERVER_HOST_MAINTENANCE'"
     [task]="task"
     [infrastructure]="infrastructure"
     [savedPayload]="savedPayload"
@@ -88,13 +100,23 @@
 <div class="d-footer" *ngIf="isActiveTask">
 
   <div class="d-footer__actions">
-    <!-- SERVER_MAINTENANCE -->
-    <ng-container *ngIf="task.type === 'SERVER_MAINTENANCE'">
+    <!-- WINDOWS_DOMAIN_MAINTENANCE -->
+    <ng-container *ngIf="task.type === 'WINDOWS_DOMAIN_MAINTENANCE'">
       <button mat-flat-button color="primary" (click)="triggerFormComplete()" [disabled]="completing">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
       <button mat-stroked-button (click)="triggerFormSave()" [disabled]="completing">Guardar progreso</button>
+      <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
+    </ng-container>
+
+    <!-- SERVER_HOST_MAINTENANCE -->
+    <ng-container *ngIf="task.type === 'SERVER_HOST_MAINTENANCE'">
+      <button mat-flat-button color="primary" (click)="triggerFormComplete()" [disabled]="completing">
+        <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
+        <span *ngIf="!completing">Completar mantenimiento</span>
+      </button>
+      <button mat-stroked-button (click)="triggerServerHostSave()" [disabled]="completing">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
