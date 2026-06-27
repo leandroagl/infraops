@@ -59,9 +59,9 @@
   align-items: center;
   overflow: hidden;
 
-  &.st-ok   { border-color: var(--ok-bd);   }
-  &.st-warn { border-color: var(--warn-bd); }
-  &.st-no   { border-color: var(--crit-bd); }
+  &.st-ok   { border-color: var(--ok-bd); }
+  &.st-warn { border-color: var(--warn-bd); background: color-mix(in srgb, var(--warn) 5%, transparent); }
+  &.st-no   { border-color: var(--crit-bd); background: color-mix(in srgb, var(--crit) 5%, transparent); }
 }
 
 .vf-stripe {
@@ -79,25 +79,23 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 11px;
+  padding: 6px 10px;
   flex: 1;
   min-width: 0;
 }
 
-.vf-vm-name {
-  font-size: 11px;
-  font-weight: 600;
-  font-family: var(--font-mono);
-  color: var(--tx-hi);
-  min-width: 90px;
-  flex-shrink: 0;
+.vf-name-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
-.vf-vm-os {
-  font-size: 9px;
-  color: var(--tx-lo);
-  font-family: var(--font-mono);
-  flex: 1;
+.vf-vm-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--tx-hi);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -106,21 +104,37 @@
 .vf-cov-ff {
   width: 110px;
   flex-shrink: 0;
+
+  --mat-form-field-container-height:           28px;
+  --mat-form-field-container-vertical-padding: 4px;
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mat-select-trigger-text-color:                  var(--tx-hi);
+  --mat-select-trigger-text-size:                   10px;
 }
 
 .vf-fulls-ff {
-  width: 64px;
+  width: 60px;
   flex-shrink: 0;
 
-  input { text-align: center; }
+  --mat-form-field-container-height:           28px;
+  --mat-form-field-container-vertical-padding: 4px;
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mdc-outlined-text-field-input-text-color:       var(--tx-hi);
+
+  input { text-align: center; font-size: 10px; }
 }
 
 .vf-hint {
-  font-size: 9px;
+  font-size: 10px;
   font-family: var(--font-mono);
   color: var(--tx-lo);
   white-space: nowrap;
-  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &.h-ok   { color: var(--ok);   }
   &.h-warn { color: var(--warn); }
@@ -128,13 +142,6 @@
 }
 
 .vf-notes-ff { width: 100%; }
-
-.vf-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding-top: 4px;
-}
 
 // Coverage select coloring via CSS custom properties (sin ::ng-deep)
 mat-form-field.cov--ok {

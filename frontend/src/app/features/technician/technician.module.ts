@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TechnicianRoutingModule } from './technician-routing.module';
 import { TaskListComponent } from './task-list/task-list.component';
 import { TaskDrawerComponent } from './task-drawer/task-drawer.component';
@@ -35,6 +36,7 @@ import { SharedModule } from '../../shared/shared.module';
     MatCardModule,
     MatDialogModule,
     MatSnackBarModule,
+    MatProgressSpinnerModule,
     TechnicianRoutingModule,
     SharedModule,
     TextFieldModule,

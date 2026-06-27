@@ -444,7 +444,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
   // ── loadInfrastructure — log loading ────────────────────────────────────────
 
   describe('loadInfrastructure() — log loading', () => {
-    const mockInfra = { esxiHosts: [], windowsVMs: [], nas: [], routers: [] };
+    const mockInfra = { esxiHosts: [], windowsVMs: [], domainControllers: [], linuxVMs: [], nas: [], routers: [] };
     const mockLogPayload: ServerMaintenancePayload = {
       type: 'SERVER_MAINTENANCE',
       windows: { servers: [], domainControllers: [] },

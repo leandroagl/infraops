@@ -19,8 +19,10 @@
       <div class="vf-stripe"></div>
 
       <div class="vf-inner">
-        <span class="vf-vm-name">{{ vms[i].name }}</span>
-        <span class="vf-vm-os">{{ vms[i].os }}</span>
+        <div class="vf-name-cell">
+          <span class="vf-vm-name">{{ vms[i].name }}</span>
+          <span class="vf-hint" [ngClass]="vmHint(i).cls">{{ vmHint(i).text }}</span>
+        </div>
 
         <mat-form-field appearance="outline" subscriptSizing="dynamic"
                         class="vf-cov-ff" [ngClass]="covClass(i)">
@@ -36,8 +38,6 @@
                         class="vf-fulls-ff" [ngClass]="fullsClass(i)">
           <input matInput type="number" min="0" formControlName="fullsInMonth" />
         </mat-form-field>
-
-        <span class="vf-hint" [ngClass]="vmHint(i).cls">{{ vmHint(i).text }}</span>
       </div>
 
     </div>
@@ -51,10 +51,5 @@
               placeholder="Notas del control, problemas detectados, acciones pendientes..."></textarea>
   </mat-form-field>
 
-  <!-- ── Footer ────────────────────────────────────── -->
-  <div class="vf-footer">
-    <button mat-stroked-button type="button" (click)="cancelled.emit()">Cancelar</button>
-    <button mat-flat-button color="primary" type="button" (click)="submit()">Guardar control</button>
-  </div>
 
 </form>

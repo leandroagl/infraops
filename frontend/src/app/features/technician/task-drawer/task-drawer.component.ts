@@ -59,6 +59,7 @@ export class TaskDrawerComponent implements OnChanges {
   confirmError = '';
   saveProgressMsg = '';
   saveProgressError = '';
+  completing = false;
 
   private pendingPayload: MaintenancePayload | null = null;
   private pendingTimeSpentMinutes: number | null = null;
@@ -235,14 +236,16 @@ export class TaskDrawerComponent implements OnChanges {
   private saveAndComplete(timeSpentMinutes: number): void {
     if (!this.pendingPayload) return;
     this.confirmError = '';
+    this.completing = true;
 
     let logSaved = false;
     this.upsertLog(this.pendingPayload).pipe(
       tap(() => { logSaved = true; }),
       switchMap(() => this.transitionToDone(timeSpentMinutes))
     ).subscribe({
-      next: () => { this.taskCompleted.emit(); },
+      next: () => { this.completing = false; this.taskCompleted.emit(); },
       error: () => {
+        this.completing = false;
         this.confirmError = logSaved
           ? 'Log guardado, pero no se pudo actualizar el estado de la tarea.'
           : 'No se pudo guardar el registro. Intentá de nuevo.';
