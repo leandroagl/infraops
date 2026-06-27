@@ -54,7 +54,7 @@ export class RouterFormComponent implements OnChanges {
 
   buildPayload(): RouterMaintenancePayload {
     const router: RouterEntry[] = this.infrastructure.routers.map((r, i) => {
-      const ctrl = this.routerControls.at(i).value;
+      const ctrl = this.routerControls.at(i).getRawValue();
       const entry: RouterEntry = {
         routerId:        r.assetId,
         routerName:      r.name,
@@ -68,7 +68,7 @@ export class RouterFormComponent implements OnChanges {
     return {
       type: 'ROUTER_MAINTENANCE',
       router,
-      notes: this.form.value.notes || undefined,
+      notes: this.form.getRawValue().notes || undefined,
     };
   }
 
