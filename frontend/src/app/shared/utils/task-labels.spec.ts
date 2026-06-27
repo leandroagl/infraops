@@ -98,4 +98,28 @@ describe('task-labels utils', () => {
     expect(typeBadge('VEEAM_BACKUP')).toBe('badge--srv');
   });
 
+  it('typeLabel retorna "VMware / BMC" para SERVER_HOST_MAINTENANCE', () => {
+    expect(typeLabel('SERVER_HOST_MAINTENANCE')).toBe('VMware / BMC');
+  });
+
+  it('typeLabel retorna "Windows / AD" para WINDOWS_DOMAIN_MAINTENANCE', () => {
+    expect(typeLabel('WINDOWS_DOMAIN_MAINTENANCE')).toBe('Windows / AD');
+  });
+
+  it('typeLabelLong retorna "Mantenimiento de hosts VMware" para SERVER_HOST_MAINTENANCE', () => {
+    expect(typeLabelLong('SERVER_HOST_MAINTENANCE')).toBe('Mantenimiento de hosts VMware');
+  });
+
+  it('typeLabelLong retorna "Mantenimiento Windows y dominios" para WINDOWS_DOMAIN_MAINTENANCE', () => {
+    expect(typeLabelLong('WINDOWS_DOMAIN_MAINTENANCE')).toBe('Mantenimiento Windows y dominios');
+  });
+
+  it('typeBadge retorna "badge--srv" para SERVER_HOST_MAINTENANCE', () => {
+    expect(typeBadge('SERVER_HOST_MAINTENANCE')).toBe('badge--srv');
+  });
+
+  it('typeBadge retorna "badge--srv" para WINDOWS_DOMAIN_MAINTENANCE', () => {
+    expect(typeBadge('WINDOWS_DOMAIN_MAINTENANCE')).toBe('badge--srv');
+  });
+
 });

@@ -100,6 +100,20 @@ export interface ServerMaintenancePayload {
   notes?: string;
 }
 
+export interface ServerHostPayload {
+  type: 'SERVER_HOST_MAINTENANCE';
+  vmware: VMwareHostEntry[];
+  bmc: BmcEntry[];
+  notes?: string;
+}
+
+export interface WindowsDomainPayload {
+  type: 'WINDOWS_DOMAIN_MAINTENANCE';
+  windows: WindowsSection;
+  router?: RouterEntry[];
+  notes?: string;
+}
+
 // --- Terminal Maintenance ---
 
 export interface TerminalChecks {
@@ -141,4 +155,10 @@ export interface VeeamBackupPayload {
   notes: string | null;
 }
 
-export type MaintenancePayload = ServerMaintenancePayload | TerminalPayload | QnapPayload | VeeamBackupPayload;
+export type MaintenancePayload =
+  | ServerMaintenancePayload
+  | ServerHostPayload
+  | WindowsDomainPayload
+  | TerminalPayload
+  | QnapPayload
+  | VeeamBackupPayload;
