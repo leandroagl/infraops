@@ -1,0 +1,174 @@
+.shf {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shf-section-lbl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tx-lo);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  margin-top: 4px;
+  white-space: nowrap;
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-lo);
+  }
+}
+
+mat-form-field.shf-form-field {
+  width: 100%;
+  --mat-form-field-container-height:           32px;
+  --mat-form-field-container-vertical-padding: 6px;
+  --mdc-outlined-text-field-container-color:        var(--elevated);
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mdc-outlined-text-field-label-text-color:       var(--tx-lo);
+  --mdc-outlined-text-field-hover-label-text-color: var(--tx-md);
+  --mdc-outlined-text-field-focus-label-text-color: var(--accent);
+  --mat-select-trigger-text-color:                  var(--tx-hi);
+  --mat-select-placeholder-text-color:              var(--tx-lo);
+  --mat-select-arrow-foreground-color:              var(--tx-lo);
+  --mat-select-trigger-text-size:                   11px;
+}
+
+mat-form-field.shf-metric-ff {
+  width: 100%;
+  --mat-form-field-container-height:           32px;
+  --mat-form-field-container-vertical-padding: 6px;
+  --mdc-outlined-text-field-container-color:        var(--elevated);
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mdc-outlined-text-field-label-text-color:       var(--tx-lo);
+  --mdc-outlined-text-field-focus-label-text-color: var(--accent);
+  --mat-select-trigger-text-size:                   11px;
+}
+
+mat-form-field.shf-alertlogs-ff {
+  --mdc-outlined-text-field-container-color:        var(--crit-bg);
+  --mdc-outlined-text-field-outline-color:          var(--crit-bd);
+  --mdc-outlined-text-field-hover-outline-color:    var(--crit-bd);
+  --mdc-outlined-text-field-focus-outline-color:    var(--crit);
+  --mdc-outlined-text-field-label-text-color:       var(--crit);
+  --mdc-outlined-text-field-focus-label-text-color: var(--crit);
+  --mdc-outlined-text-field-input-text-color:       var(--crit);
+}
+
+mat-form-field {
+  &.shf-sel--ok {
+    --mdc-outlined-text-field-container-color: var(--ok-bg);
+    --mdc-outlined-text-field-outline-color:   var(--ok-bd);
+    --mat-select-trigger-text-color:           var(--ok);
+  }
+  &.shf-sel--crit {
+    --mdc-outlined-text-field-container-color: var(--crit-bg);
+    --mdc-outlined-text-field-outline-color:   var(--crit-bd);
+    --mat-select-trigger-text-color:           var(--crit);
+  }
+  &.shf-inp--ok {
+    --mdc-outlined-text-field-container-color: var(--ok-bg);
+    --mdc-outlined-text-field-outline-color:   var(--ok-bd);
+  }
+  &.shf-inp--warn {
+    --mdc-outlined-text-field-container-color: var(--warn-bg);
+    --mdc-outlined-text-field-outline-color:   var(--warn-bd);
+  }
+  &.shf-inp--crit {
+    --mdc-outlined-text-field-container-color: var(--crit-bg);
+    --mdc-outlined-text-field-outline-color:   var(--crit-bd);
+  }
+}
+
+.shf-vmware-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+
+.shf-vmware-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.shf-cl-rpt {
+  background: var(--card);
+  border: 1px solid var(--border-lo);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  box-shadow: var(--shadow-card);
+}
+
+.shf-cl-rpt-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.shf-cl-rpt-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tx-lo);
+  flex-shrink: 0;
+}
+
+.shf-cl-rpt-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--tx-hi);
+  flex: 1;
+}
+
+.shf-vmware-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.shf-host-ip {
+  font-size: 9px;
+  color: var(--tx-lo);
+  font-family: var(--font-mono);
+}
+
+mat-checkbox.shf-cl-mat {
+  --mdc-checkbox-unselected-outline-color:        var(--border);
+  --mdc-checkbox-unselected-hover-outline-color:  var(--accent);
+  --mdc-checkbox-selected-icon-color:             var(--ok-bg);
+  --mdc-checkbox-selected-checkmark-color:        var(--ok);
+  --mdc-checkbox-selected-focus-icon-color:       var(--ok-bg);
+  --mdc-checkbox-selected-hover-icon-color:       var(--ok-bg);
+  --mdc-checkbox-selected-pressed-icon-color:     var(--ok-bg);
+  --mdc-form-field-label-text-size:  11px;
+  --mdc-form-field-label-text-color: var(--tx-hi);
+
+  background: var(--card);
+  border: 1px solid var(--border-lo);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+mat-checkbox.shf-snapshot-check {
+  background: transparent !important;
+  border-color: transparent !important;
+}

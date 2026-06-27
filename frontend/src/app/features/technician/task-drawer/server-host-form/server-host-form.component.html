@@ -1,0 +1,125 @@
+<form [formGroup]="form" class="shf">
+
+  <!-- ── VMware ESXi ──────────────────────────────────── -->
+  <div class="shf-section-lbl">VMware ESXi</div>
+
+  <div class="shf-vmware-grid" formArrayName="vmwareHosts">
+    <div *ngFor="let _ of vmwareHostControls.controls; let i = index"
+         [formGroupName]="i"
+         class="shf-cl-rpt shf-vmware-card">
+
+      <div class="shf-cl-rpt-hdr">
+        <div class="shf-cl-rpt-dot" style="background:var(--srv)"></div>
+        <div class="shf-vmware-name-block">
+          <span class="shf-cl-rpt-label">{{ infrastructure.esxiHosts[i].name }}</span>
+          <span class="mono shf-host-ip">{{ infrastructure.esxiHosts[i].ip ?? '—' }}</span>
+        </div>
+      </div>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="shf-metric-ff"
+                      [ngClass]="metricClass(vmwareHostControls.at(i).get('cpuUsage')?.value, 60, 80)">
+        <mat-label>CPU</mat-label>
+        <input matInput formControlName="cpuUsage" type="number" min="0" max="100" placeholder="0" />
+        <span matTextSuffix>%</span>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="shf-metric-ff"
+                      [ngClass]="metricClass(vmwareHostControls.at(i).get('memUsage')?.value, 70, 85)">
+        <mat-label>Memoria</mat-label>
+        <input matInput formControlName="memUsage" type="number" min="0" max="100" placeholder="0" />
+        <span matTextSuffix>%</span>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="shf-metric-ff"
+                      [ngClass]="metricClass(vmwareHostControls.at(i).get('storageUsage')?.value, 70, 85)">
+        <mat-label>Storage</mat-label>
+        <input matInput formControlName="storageUsage" type="number" min="0" max="100" placeholder="0" />
+        <span matTextSuffix>%</span>
+      </mat-form-field>
+
+      <mat-form-field *ngIf="showHighVMsForHost(i)"
+                      appearance="outline" subscriptSizing="dynamic" class="shf-form-field">
+        <mat-label>VMs afectadas</mat-label>
+        <mat-select formControlName="highUsageVMs" multiple>
+          <mat-option *ngFor="let vm of infrastructure.windowsVMs" [value]="vm.name">
+            {{ vm.name }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-checkbox formControlName="snapshotsOk" class="shf-cl-mat shf-snapshot-check">
+        Snapshots revisados y limpiados
+      </mat-checkbox>
+
+    </div>
+  </div>
+
+  <!-- ── BMC / Gestión remota ──────────────────────────────────────────────── -->
+  <div class="shf-section-lbl">BMC / Gestión remota</div>
+
+  <div class="shf-vmware-grid" formArrayName="bmcHosts">
+    <div *ngFor="let _ of bmcHostControls.controls; let i = index"
+         [formGroupName]="i"
+         class="shf-cl-rpt shf-vmware-card">
+
+      <div class="shf-cl-rpt-hdr">
+        <div class="shf-cl-rpt-dot" style="background:var(--srv)"></div>
+        <span class="shf-cl-rpt-label">{{ infrastructure.esxiHosts[i].name }}</span>
+        <span *ngIf="infrastructure.esxiHosts[i].bmcType"
+              class="badge badge--srv">{{ infrastructure.esxiHosts[i].bmcType }}</span>
+        <span class="mono shf-host-ip">{{ infrastructure.esxiHosts[i].bmcIp ?? '—' }}</span>
+      </div>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="shf-form-field">
+        <mat-label>Versión firmware</mat-label>
+        <input matInput formControlName="firmwareVersion" placeholder="Ej: 2.82" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="shf-form-field">
+        <mat-label>Versión BIOS</mat-label>
+        <input matInput formControlName="biosVersion" placeholder="Ej: U30 v2.86" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="shf-form-field"
+                      [ngClass]="selectClass(getBmcGroup(i).get('alertStatus')?.value)">
+        <mat-label>Alertas detectadas</mat-label>
+        <mat-select formControlName="alertStatus">
+          <mat-option value="ok">OK</mat-option>
+          <mat-option value="alerta">ALERTA</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field *ngIf="bmcHasAlert(i)"
+                      appearance="outline" subscriptSizing="dynamic"
+                      class="shf-form-field">
+        <mat-label>Categorías de alerta</mat-label>
+        <mat-select formControlName="alertCategories" multiple>
+          <mat-option value="fan">Fan</mat-option>
+          <mat-option value="psu">PSU</mat-option>
+          <mat-option value="temperatura">Temperatura</mat-option>
+          <mat-option value="cpu">CPU</mat-option>
+          <mat-option value="memoria">Memoria</mat-option>
+          <mat-option value="storage">Storage</mat-option>
+          <mat-option value="nic">NIC</mat-option>
+          <mat-option value="sistema">Sistema</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                      class="shf-form-field shf-alertlogs-ff">
+        <mat-label>Logs en alerta</mat-label>
+        <textarea matInput formControlName="alertLogs"
+                  cdkTextareaAutosize
+                  placeholder="Pegá aquí entradas del event log del BMC..."></textarea>
+      </mat-form-field>
+
+    </div>
+  </div>
+
+  <!-- ── Notas ─────────────────────────────────────────────────────────────── -->
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="shf-form-field">
+    <mat-label>Notas</mat-label>
+    <textarea matInput formControlName="notes" cdkTextareaAutosize placeholder="Observaciones generales..."></textarea>
+  </mat-form-field>
+
+</form>

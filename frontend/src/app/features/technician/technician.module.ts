@@ -21,10 +21,11 @@ import { DcHealthCardComponent } from './task-drawer/maintenance-form/dc-health-
 import { QnapFormComponent } from './task-drawer/qnap-form/qnap-form.component';
 import { QnapDeviceCardComponent } from './task-drawer/qnap-form/qnap-device-card/qnap-device-card.component';
 import { VeeamFormComponent } from './task-drawer/veeam-form/veeam-form.component';
+import { ServerHostFormComponent } from './task-drawer/server-host-form/server-host-form.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
-  declarations: [TaskListComponent, TaskDrawerComponent, MaintenanceFormComponent, ConfirmMaintenanceDialogComponent, TimeSpentDialogComponent, DcHealthCardComponent, QnapFormComponent, QnapDeviceCardComponent, VeeamFormComponent],
+  declarations: [TaskListComponent, TaskDrawerComponent, MaintenanceFormComponent, ConfirmMaintenanceDialogComponent, TimeSpentDialogComponent, DcHealthCardComponent, QnapFormComponent, QnapDeviceCardComponent, VeeamFormComponent, ServerHostFormComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,
