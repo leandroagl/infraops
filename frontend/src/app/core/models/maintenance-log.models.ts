@@ -129,11 +129,16 @@ export interface QnapPayload {
   notes?: string;
 }
 
+export interface VeeamVmEntry {
+  vmName: string;
+  coverage: 'job' | 'agent' | 'excluded' | 'no_backup';
+  fullsInMonth: number | null;
+}
+
 export interface VeeamBackupPayload {
   type: 'VEEAM_BACKUP';
-  jobs: VeeamJobEntry[];
-  uncoveredVMs: number[];
-  notes?: string;
+  vms: VeeamVmEntry[];
+  notes: string | null;
 }
 
 export type MaintenancePayload = ServerMaintenancePayload | TerminalPayload | QnapPayload | VeeamBackupPayload;
