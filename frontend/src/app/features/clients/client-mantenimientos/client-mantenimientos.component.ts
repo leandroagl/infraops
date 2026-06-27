@@ -1,6 +1,7 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { Task, TaskStatus } from '../../../core/models/task.models';
 import { TasksService } from '../../../core/services/tasks.service';
 import { statusLabel } from '../../../shared/utils/task-labels';
@@ -28,11 +29,17 @@ export class ClientMantenimientosComponent implements OnInit {
     const clientId = this.route.parent?.snapshot.paramMap.get('id') ?? '';
     this.loading = true;
     this.error = '';
-    this.tasksService
-      .getAll({ clientId, type: 'SERVER_MAINTENANCE' })
+    forkJoin({
+      windows: this.tasksService.getAll({ clientId, type: 'WINDOWS_DOMAIN_MAINTENANCE' }),
+      host:    this.tasksService.getAll({ clientId, type: 'SERVER_HOST_MAINTENANCE' }),
+    })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (tasks) => { this.tasks = tasks; this.loading = false; },
+        next: ({ windows, host }) => {
+          this.tasks = [...windows, ...host]
+            .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime());
+          this.loading = false;
+        },
         error: () => { this.error = 'No se pudieron cargar las tareas.'; this.loading = false; },
       });
   }

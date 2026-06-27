@@ -17,7 +17,9 @@ import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 import { TaskType } from '../../tasks/task-type.enum';
 
 const TICKET_META: Record<TaskType, { name: string; description: string }> = {
-  [TaskType.SERVER_MAINTENANCE]:   { name: 'Mantenimiento de infraestructura',              description: 'Mantenimiento mensual de infraestructura.' },
+  [TaskType.SERVER_MAINTENANCE]:             { name: 'Mantenimiento de infraestructura',              description: 'Mantenimiento mensual de infraestructura.' },
+  [TaskType.SERVER_HOST_MAINTENANCE]:        { name: 'Mantenimiento de hosts VMware/BMC',             description: 'Control mensual de hosts ESXi y BMC.' },
+  [TaskType.WINDOWS_DOMAIN_MAINTENANCE]:     { name: 'Mantenimiento Windows y dominios',              description: 'Mantenimiento mensual de servidores Windows y controladores de dominio.' },
   [TaskType.QNAP_MAINTENANCE]:     { name: 'Mantenimiento repositorio de backups QNAP/NAS', description: 'Control de estado de discos, volumen y actualizaciones' },
   [TaskType.VEEAM_BACKUP]:         { name: 'Mantenimiento de backups Veeam',                  description: 'Control de jobs de backup, puntos de restauración y cobertura de VMs.' },
   [TaskType.TERMINAL_MAINTENANCE]: { name: 'Mantenimiento de terminales',                   description: 'Mantenimiento mensual de terminales.' },

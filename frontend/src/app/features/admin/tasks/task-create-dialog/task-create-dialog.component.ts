@@ -23,14 +23,15 @@ export class TaskCreateDialogComponent implements OnInit {
   error = '';
 
   readonly taskTypes: { value: TaskType; label: string }[] = [
-    { value: 'SERVER_MAINTENANCE',   label: 'Mantenimiento de servidores' },
-    { value: 'QNAP_MAINTENANCE',     label: 'Mantenimiento QNAP/NAS'      },
-    { value: 'VEEAM_BACKUP',         label: 'Mantenimiento Veeam Backup'   },
-    { value: 'TERMINAL_MAINTENANCE', label: 'Visita de terminales'         },
-    { value: 'SITE_VISIT',           label: 'Visita presencial'            },
-    { value: 'AV_CONTROL',           label: 'Control antivirus'            },
-    { value: 'UPS_CONTROL',          label: 'Control UPS'                  },
-    { value: 'ENDPOINT_INVENTORY',   label: 'Inventario de endpoints'      },
+    { value: 'WINDOWS_DOMAIN_MAINTENANCE', label: 'Windows / Dominio'           },
+    { value: 'SERVER_HOST_MAINTENANCE',    label: 'VMware / BMC'                },
+    { value: 'QNAP_MAINTENANCE',           label: 'Mantenimiento QNAP/NAS'      },
+    { value: 'VEEAM_BACKUP',              label: 'Mantenimiento Veeam Backup'   },
+    { value: 'TERMINAL_MAINTENANCE',       label: 'Visita de terminales'         },
+    { value: 'SITE_VISIT',                label: 'Visita presencial'            },
+    { value: 'AV_CONTROL',               label: 'Control antivirus'            },
+    { value: 'UPS_CONTROL',              label: 'Control UPS'                  },
+    { value: 'ENDPOINT_INVENTORY',        label: 'Inventario de endpoints'      },
   ];
 
   constructor(
@@ -45,7 +46,7 @@ export class TaskCreateDialogComponent implements OnInit {
     this.form = this.fb.group({
       clientId:      ['', Validators.required],
       technicianId:  ['', Validators.required],
-      type:          ['SERVER_MAINTENANCE', Validators.required],
+      type:          ['WINDOWS_DOMAIN_MAINTENANCE', Validators.required],
       scheduledDate: ['', Validators.required],
     });
 

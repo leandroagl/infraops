@@ -12,7 +12,7 @@ const mockTask: Task = {
   id: 't1',
   clientId: 'c1',
   technicianId: 'tech1',
-  type: 'SERVER_MAINTENANCE',
+  type: 'WINDOWS_DOMAIN_MAINTENANCE',
   status: 'PENDING',
   scheduledDate: '2026-06-01T00:00:00.000Z',
   completedDate: null,
@@ -53,15 +53,14 @@ describe('ClientMantenimientosComponent', () => {
     expect(el.textContent).toContain('Servidores');
   });
 
-  it('carga tareas de tipo SERVER_MAINTENANCE del cliente al iniciar', () => {
-    expect(tasksServiceSpy.getAll).toHaveBeenCalledWith({
-      clientId: 'c1',
-      type: 'SERVER_MAINTENANCE',
-    });
+  it('carga tareas de tipo servidor del cliente al iniciar', () => {
+    expect(tasksServiceSpy.getAll).toHaveBeenCalledWith({ clientId: 'c1', type: 'WINDOWS_DOMAIN_MAINTENANCE' });
+    expect(tasksServiceSpy.getAll).toHaveBeenCalledWith({ clientId: 'c1', type: 'SERVER_HOST_MAINTENANCE' });
   });
 
   it('almacena las tareas recibidas', () => {
-    expect(component.tasks).toEqual([mockTask]);
+    expect(component.tasks.length).toBe(2);
+    expect(component.tasks[0]).toEqual(mockTask);
   });
 
   it('muestra error cuando el servicio falla', () => {
