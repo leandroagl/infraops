@@ -15,6 +15,7 @@ import { ClientInfrastructure } from '../../../core/models/infradoc.models';
 import {
   MaintenancePayload,
   ServerMaintenancePayload,
+  VeeamBackupPayload,
 } from '../../../core/models/maintenance-log.models';
 import { InfradocService } from '../../../core/services/infradoc.service';
 import {
@@ -286,6 +287,21 @@ export class TaskDrawerComponent implements OnChanges {
 
   get odooLink(): string | null {
     return this.task.odooTicketId != null ? odooTicketUrl(this.task.odooTicketId) : null;
+  }
+
+  get veeamVms(): { name: string; os: string }[] {
+    if (!this.infrastructure) return [];
+    return [
+      ...this.infrastructure.windowsVMs,
+      ...this.infrastructure.domainControllers,
+      ...this.infrastructure.linuxVMs,
+    ].map(v => ({ name: v.name, os: v.os ?? '—' }));
+  }
+
+  get veeamPayload(): VeeamBackupPayload | undefined {
+    return this.savedPayload?.type === 'VEEAM_BACKUP'
+      ? (this.savedPayload as VeeamBackupPayload)
+      : undefined;
   }
 
   // ── Labels ──────────────────────────────────────────────────name───────────
