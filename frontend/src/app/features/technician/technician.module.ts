@@ -23,10 +23,11 @@ import { QnapDeviceCardComponent } from './task-drawer/qnap-form/qnap-device-car
 import { VeeamFormComponent } from './task-drawer/veeam-form/veeam-form.component';
 import { ServerHostFormComponent } from './task-drawer/server-host-form/server-host-form.component';
 import { RouterFormComponent } from './task-drawer/router-form/router-form.component';
+import { RouterDeviceCardComponent } from './task-drawer/router-form/router-device-card/router-device-card.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
-  declarations: [TaskListComponent, TaskDrawerComponent, MaintenanceFormComponent, ConfirmMaintenanceDialogComponent, TimeSpentDialogComponent, DcHealthCardComponent, QnapFormComponent, QnapDeviceCardComponent, VeeamFormComponent, ServerHostFormComponent, RouterFormComponent],
+  declarations: [TaskListComponent, TaskDrawerComponent, MaintenanceFormComponent, ConfirmMaintenanceDialogComponent, TimeSpentDialogComponent, DcHealthCardComponent, QnapFormComponent, QnapDeviceCardComponent, VeeamFormComponent, ServerHostFormComponent, RouterFormComponent, RouterDeviceCardComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,

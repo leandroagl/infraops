@@ -1,0 +1,33 @@
+<div class="mf-cl-rpt rdc-card">
+
+  <div class="rdc-header">
+    <div class="rdc-identity">
+      <span class="rdc-device-name">{{ device.name }}</span>
+      <span class="rdc-device-ip mono">{{ device.ip ?? '—' }}</span>
+    </div>
+  </div>
+
+  <div [formGroup]="group" class="rdc-body">
+
+    <div class="mf-section-lbl">Firmware</div>
+
+    <div class="rdc-firmware-row">
+      <mat-checkbox formControlName="firmwareUpdated" class="rdc-check">
+        Se actualizó el firmware
+      </mat-checkbox>
+    </div>
+
+    <mat-form-field *ngIf="firmwareUpdated"
+                    appearance="outline" subscriptSizing="dynamic" class="rdc-form-field rdc-version-field">
+      <mat-label>Versión instalada</mat-label>
+      <input matInput formControlName="firmwareVersion" placeholder="Ej: 7.14.2" />
+    </mat-form-field>
+
+    <div class="mf-section-lbl">Configuración</div>
+
+    <mat-checkbox formControlName="backupDone" class="rdc-check">
+      Backup de configuración realizado
+    </mat-checkbox>
+
+  </div>
+</div>
