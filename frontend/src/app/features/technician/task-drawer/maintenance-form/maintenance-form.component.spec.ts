@@ -12,11 +12,11 @@ import { Task } from '../../../../core/models/task.models';
 import { ClientInfrastructure, InfraAsset } from '../../../../core/models/infradoc.models';
 import {
   DcHealthSnapshot,
-  ServerMaintenancePayload,
+  WindowsDomainPayload,
   TerminalPayload,
 } from '../../../../core/models/maintenance-log.models';
 
-const makeTask = (type = 'SERVER_MAINTENANCE'): Task => ({
+const makeTask = (type = 'WINDOWS_DOMAIN_MAINTENANCE'): Task => ({
   id: '1',
   clientId: '10',
   technicianId: '2',
@@ -120,16 +120,6 @@ describe('MaintenanceFormComponent', () => {
       expect(component.hasServers).toBeFalse();
     });
 
-    it('hasVMware should be true when esxiHosts.length > 0', () => {
-      init(makeTask(), makeInfra());
-      expect(component.hasVMware).toBeTrue();
-    });
-
-    it('hasVMware should be false when esxiHosts is empty', () => {
-      init(makeTask(), makeInfra({ esxiHosts: [] }));
-      expect(component.hasVMware).toBeFalse();
-    });
-
     it('hasRouter should be true when routers.length > 0', () => {
       init(makeTask(), makeInfra());
       expect(component.hasRouter).toBeTrue();
@@ -149,7 +139,7 @@ describe('MaintenanceFormComponent', () => {
         domainControllers: [makeVM({ assetId: 4 })],
         linuxVMs:          [makeVM({ assetId: 7 })],
       });
-      init(makeTask('SERVER_MAINTENANCE'), infra);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
       expect(component.allVMs).toHaveSize(3);
       expect(component.allVMs.map(v => v.assetId)).toEqual([3, 4, 7]);
     });
@@ -159,25 +149,25 @@ describe('MaintenanceFormComponent', () => {
         esxiHosts: [], nas: [], routers: [],
         windowsVMs: [], domainControllers: [], linuxVMs: [],
       });
-      init(makeTask('SERVER_MAINTENANCE'), infra);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
       expect(component.allVMs).toHaveSize(0);
     });
   });
 
-  // ── buildPayload — SERVER_MAINTENANCE ───────────────────────────────────────
+  // ── buildPayload — WINDOWS_DOMAIN_MAINTENANCE ───────────────────────────────
 
-  describe('buildPayload — SERVER_MAINTENANCE', () => {
-    it('should build ServerMaintenancePayload with type SERVER_MAINTENANCE', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.type).toBe('SERVER_MAINTENANCE');
+  describe('buildPayload — WINDOWS_DOMAIN_MAINTENANCE', () => {
+    it('should build WindowsDomainPayload with type WINDOWS_DOMAIN_MAINTENANCE', () => {
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      const payload = component.buildPayload() as WindowsDomainPayload;
+      expect(payload.type).toBe('WINDOWS_DOMAIN_MAINTENANCE');
     });
 
     it('should include windows.servers with updates per VM', () => {
       const infra = makeInfra({ esxiHosts: [], nas: [], routers: [] });
-      init(makeTask('SERVER_MAINTENANCE'), infra);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
       component.serverControls.at(0).patchValue({ updates: 'ok' });
-      const payload = component.buildPayload() as ServerMaintenancePayload;
+      const payload = component.buildPayload() as WindowsDomainPayload;
       expect(payload.windows.servers.length).toBe(1);
       expect(payload.windows.servers[0].serverName).toBe('47DC');
       expect(payload.windows.servers[0].updates).toBe('ok');
@@ -185,39 +175,22 @@ describe('MaintenanceFormComponent', () => {
 
     it('should capture updates pending value', () => {
       const infra = makeInfra({ esxiHosts: [], nas: [], routers: [] });
-      init(makeTask('SERVER_MAINTENANCE'), infra);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
       component.serverControls.at(0).patchValue({ updates: 'pending' });
-      const payload = component.buildPayload() as ServerMaintenancePayload;
+      const payload = component.buildPayload() as WindowsDomainPayload;
       expect(payload.windows.servers[0].updates).toBe('pending');
     });
 
     it('should include windows.domainControllers as empty array in payload', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      const payload = component.buildPayload() as ServerMaintenancePayload;
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      const payload = component.buildPayload() as WindowsDomainPayload;
       expect(Array.isArray(payload.windows.domainControllers)).toBeTrue();
     });
 
-    it('should include vmware as array of host entries when hasVMware is true', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }));
-      component.vmwareHostControls.at(0).patchValue({ cpuUsage: 45, memUsage: 60, storageUsage: 55, snapshotsOk: true });
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.vmware).toBeDefined();
-      expect(Array.isArray(payload.vmware)).toBeTrue();
-      expect(payload.vmware![0].cpuUsage).toBe(45);
-      expect(payload.vmware![0].hostName).toBe('host1.kemini');
-      expect(payload.vmware![0].snapshotsOk).toBeTrue();
-    });
-
-    it('should NOT include vmware section when hasVMware is false', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.vmware).toBeUndefined();
-    });
-
     it('should include router section as array when hasRouter is true', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }));
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }));
       component.routerDeviceControls.at(0).patchValue({ firmwareUpdated: true, firmwareVersion: '7.14', backupDone: true });
-      const payload = component.buildPayload() as ServerMaintenancePayload;
+      const payload = component.buildPayload() as WindowsDomainPayload;
       expect(payload.router).toBeDefined();
       expect(Array.isArray(payload.router)).toBeTrue();
       expect(payload.router![0].routerId).toBe(1);
@@ -235,17 +208,17 @@ describe('MaintenanceFormComponent', () => {
           { assetId: 2, name: 'MikroTik-Secondary', ip: '192.168.99.2', bmcIp: null, bmcType: null, os: 'RouterOS', model: 'CCR2004' },
         ],
       });
-      init(makeTask('SERVER_MAINTENANCE'), infra);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
       expect(component.routerDeviceControls.length).toBe(2);
-      const payload = component.buildPayload() as ServerMaintenancePayload;
+      const payload = component.buildPayload() as WindowsDomainPayload;
       expect(payload.router!.length).toBe(2);
       expect(payload.router![0].routerName).toBe('MikroTik-Primary');
       expect(payload.router![1].routerName).toBe('MikroTik-Secondary');
     });
 
     it('should NOT include router section when hasRouter is false', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      const payload = component.buildPayload() as ServerMaintenancePayload;
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      const payload = component.buildPayload() as WindowsDomainPayload;
       expect(payload.router).toBeUndefined();
     });
   });
@@ -291,16 +264,16 @@ describe('MaintenanceFormComponent', () => {
 
   describe('outputs', () => {
     it('should emit requestComplete with payload on submit()', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      const emitted: (ServerMaintenancePayload | TerminalPayload)[] = [];
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      const emitted: (WindowsDomainPayload | TerminalPayload)[] = [];
       component.requestComplete.subscribe(p => emitted.push(p));
       component.submit();
       expect(emitted.length).toBe(1);
-      expect(emitted[0].type).toBe('SERVER_MAINTENANCE');
+      expect(emitted[0].type).toBe('WINDOWS_DOMAIN_MAINTENANCE');
     });
 
     it('should emit requestNotDone on submitNotDone()', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra());
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra());
       let emitted = false;
       component.requestNotDone.subscribe(() => (emitted = true));
       component.submitNotDone();
@@ -308,7 +281,7 @@ describe('MaintenanceFormComponent', () => {
     });
 
     it('should NOT inject logsService or tasksService — constructor only has FormBuilder', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra());
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra());
       expect(component).toBeTruthy();
       expect((component as any).logsService).toBeUndefined();
       expect((component as any).tasksService).toBeUndefined();
@@ -320,7 +293,7 @@ describe('MaintenanceFormComponent', () => {
   describe('ngOnChanges', () => {
     it('should rebuild serverControls when infrastructure input changes', () => {
       const infra1 = makeInfra({ windowsVMs: [{ assetId: 1, name: 'VM-A', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null }] });
-      init(makeTask('SERVER_MAINTENANCE'), infra1);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra1);
       expect(component.serverControls.length).toBe(1);
 
       const infra2: ClientInfrastructure = {
@@ -334,24 +307,6 @@ describe('MaintenanceFormComponent', () => {
       component.ngOnChanges({ infrastructure: { currentValue: infra2, previousValue: infra1, firstChange: false, isFirstChange: () => false } });
 
       expect(component.serverControls.length).toBe(2);
-    });
-
-    it('should rebuild vmwareHostControls matching esxiHosts count', () => {
-      const infra1 = makeInfra({ esxiHosts: [{ assetId: 2, name: 'host1', ip: null, bmcIp: null, bmcType: null, os: 'VMware ESXi 7.0', model: null }] });
-      init(makeTask('SERVER_MAINTENANCE'), infra1);
-      expect(component.vmwareHostControls.length).toBe(1);
-
-      const infra2: ClientInfrastructure = {
-        ...infra1,
-        esxiHosts: [
-          { assetId: 2, name: 'host1', ip: null, bmcIp: null, bmcType: null, os: 'VMware ESXi 7.0', model: null },
-          { assetId: 22, name: 'host2', ip: null, bmcIp: null, bmcType: null, os: 'VMware ESXi 6.7', model: null },
-        ],
-      };
-      component.infrastructure = infra2;
-      component.ngOnChanges({ infrastructure: { currentValue: infra2, previousValue: infra1, firstChange: false, isFirstChange: () => false } });
-
-      expect(component.vmwareHostControls.length).toBe(2);
     });
   });
 
@@ -394,128 +349,6 @@ describe('MaintenanceFormComponent', () => {
     });
   });
 
-  // ── dcdiagHasError removed — DC health is now handled by DcHealthCardComponent ──
-
-  // ── BMC controls ────────────────────────────────────────────────────────────
-
-  describe('BMC controls', () => {
-    it('bmcHostControls should have one entry per esxiHost', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      expect(component.bmcHostControls.length).toBe(1);
-    });
-
-    it('bmcHostControls should be empty when esxiHosts is empty', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [] }));
-      expect(component.bmcHostControls.length).toBe(0);
-    });
-
-    it('bmcHasAlert should return false when alertStatus is ok', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      component.getBmcGroup(0).patchValue({ alertStatus: 'ok' });
-      expect(component.bmcHasAlert(0)).toBeFalse();
-    });
-
-    it('bmcHasAlert should return true when alertStatus is alerta', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      component.getBmcGroup(0).patchValue({ alertStatus: 'alerta' });
-      expect(component.bmcHasAlert(0)).toBeTrue();
-    });
-
-    it('getBmcGroup should return the FormGroup for the given index', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      const group = component.getBmcGroup(0);
-      expect(group.get('firmwareVersion')).not.toBeNull();
-      expect(group.get('biosVersion')).not.toBeNull();
-      expect(group.get('alertStatus')).not.toBeNull();
-      expect(group.get('alertCategories')).not.toBeNull();
-      expect(group.get('alertLogs')).not.toBeNull();
-    });
-
-    it('should rebuild bmcHostControls when infrastructure changes', () => {
-      const infra1 = makeInfra({ esxiHosts: [{ assetId: 2, name: 'h1', ip: null, bmcIp: null, bmcType: null, os: null, model: null }] });
-      init(makeTask('SERVER_MAINTENANCE'), infra1);
-      expect(component.bmcHostControls.length).toBe(1);
-
-      const infra2: ClientInfrastructure = {
-        ...infra1,
-        esxiHosts: [
-          { assetId: 2, name: 'h1', ip: null, bmcIp: null, bmcType: null, os: null, model: null },
-          { assetId: 22, name: 'h2', ip: null, bmcIp: null, bmcType: null, os: null, model: null },
-        ],
-      };
-      component.infrastructure = infra2;
-      component.ngOnChanges({ infrastructure: { currentValue: infra2, previousValue: infra1, firstChange: false, isFirstChange: () => false } });
-
-      expect(component.bmcHostControls.length).toBe(2);
-    });
-  });
-
-  // ── buildPayload — BMC section ───────────────────────────────────────────────
-
-  describe('buildPayload — BMC section', () => {
-    it('should include bmc array when hasVMware is true', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.bmc).toBeDefined();
-      expect(Array.isArray(payload.bmc)).toBeTrue();
-      expect(payload.bmc!.length).toBe(1);
-      expect(payload.bmc![0].hostId).toBe(2);
-      expect(payload.bmc![0].hostName).toBe('host1.kemini');
-    });
-
-    it('should NOT include bmc when hasVMware is false', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.bmc).toBeUndefined();
-    });
-
-    it('should include firmwareVersion and biosVersion when filled', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      component.getBmcGroup(0).patchValue({ firmwareVersion: '2.82', biosVersion: 'U30 v2.86' });
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.bmc![0].firmwareVersion).toBe('2.82');
-      expect(payload.bmc![0].biosVersion).toBe('U30 v2.86');
-    });
-
-    it('should omit firmwareVersion and biosVersion when empty', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      component.getBmcGroup(0).patchValue({ firmwareVersion: '', biosVersion: '' });
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.bmc![0].firmwareVersion).toBeUndefined();
-      expect(payload.bmc![0].biosVersion).toBeUndefined();
-    });
-
-    it('should include alertCategories when alertStatus is alerta', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      component.getBmcGroup(0).patchValue({ alertStatus: 'alerta', alertCategories: ['fan', 'psu'] });
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.bmc![0].alertStatus).toBe('alerta');
-      expect(payload.bmc![0].alertCategories).toEqual(['fan', 'psu']);
-    });
-
-    it('should NOT include alertCategories when alertStatus is ok', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      component.getBmcGroup(0).patchValue({ alertStatus: 'ok', alertCategories: ['fan'] });
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.bmc![0].alertStatus).toBe('ok');
-      expect(payload.bmc![0].alertCategories).toBeUndefined();
-    });
-
-    it('should include alertLogs in payload when filled, regardless of alertStatus', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      component.getBmcGroup(0).patchValue({ alertStatus: 'ok', alertLogs: 'No events' });
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.bmc![0].alertLogs).toBe('No events');
-    });
-
-    it('should omit alertLogs from payload when empty', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ windowsVMs: [], nas: [], routers: [] }));
-      component.getBmcGroup(0).patchValue({ alertStatus: 'ok', alertLogs: '' });
-      const payload = component.buildPayload() as ServerMaintenancePayload;
-      expect(payload.bmc![0].alertLogs).toBeUndefined();
-    });
-  });
-
   // ── readOnly input ───────────────────────────────────────────────────────────
 
   describe('readOnly input', () => {
@@ -538,7 +371,7 @@ describe('MaintenanceFormComponent', () => {
 
     it('should disable the FormGroup when readOnly is true on init', () => {
       initWithReadOnly(
-        makeTask('SERVER_MAINTENANCE'),
+        makeTask('WINDOWS_DOMAIN_MAINTENANCE'),
         makeInfra({ esxiHosts: [], nas: [], routers: [] }),
         true,
       );
@@ -547,7 +380,7 @@ describe('MaintenanceFormComponent', () => {
 
     it('should keep the FormGroup enabled when readOnly is false on init', () => {
       initWithReadOnly(
-        makeTask('SERVER_MAINTENANCE'),
+        makeTask('WINDOWS_DOMAIN_MAINTENANCE'),
         makeInfra({ esxiHosts: [], nas: [], routers: [] }),
         false,
       );
@@ -555,7 +388,7 @@ describe('MaintenanceFormComponent', () => {
     });
 
     it('should disable the FormGroup when readOnly changes to true after init', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       expect(component.form.disabled).toBeFalse();
 
       component.readOnly = true;
@@ -568,7 +401,7 @@ describe('MaintenanceFormComponent', () => {
 
     it('should enable the FormGroup when readOnly changes to false after being true', () => {
       initWithReadOnly(
-        makeTask('SERVER_MAINTENANCE'),
+        makeTask('WINDOWS_DOMAIN_MAINTENANCE'),
         makeInfra({ esxiHosts: [], nas: [], routers: [] }),
         true,
       );
@@ -585,10 +418,10 @@ describe('MaintenanceFormComponent', () => {
     it('should patch savedPayload values and still disable form when readOnly is true', () => {
       fixture = TestBed.createComponent(MaintenanceFormComponent);
       component = fixture.componentInstance;
-      const task = makeTask('SERVER_MAINTENANCE');
+      const task = makeTask('WINDOWS_DOMAIN_MAINTENANCE');
       const infra = makeInfra({ esxiHosts: [], nas: [], routers: [] });
-      const savedPayload: ServerMaintenancePayload = {
-        type: 'SERVER_MAINTENANCE',
+      const savedPayload: WindowsDomainPayload = {
+        type: 'WINDOWS_DOMAIN_MAINTENANCE',
         windows: { servers: [], domainControllers: [] },
       };
       component.task = task;
@@ -609,18 +442,18 @@ describe('MaintenanceFormComponent', () => {
 
   describe('Router controls', () => {
     it('routerDeviceControls should have one entry per router', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }));
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }));
       expect(component.routerDeviceControls.length).toBe(1);
     });
 
     it('routerDeviceControls should be empty when routers is empty', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       expect(component.routerDeviceControls.length).toBe(0);
     });
 
     it('should rebuild routerDeviceControls when infrastructure changes', () => {
       const infra1 = makeInfra({ esxiHosts: [], nas: [], routers: [{ assetId: 1, name: 'R1', ip: null, bmcIp: null, bmcType: null, os: null, model: null }] });
-      init(makeTask('SERVER_MAINTENANCE'), infra1);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra1);
       expect(component.routerDeviceControls.length).toBe(1);
 
       const infra2: ClientInfrastructure = {
@@ -649,19 +482,19 @@ describe('MaintenanceFormComponent', () => {
 
   describe('serverRowClass', () => {
     it('should return empty string when updates is ok', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       component.serverControls.at(0).patchValue({ updates: 'ok' });
       expect(component.serverRowClass(0)).toBe('');
     });
 
     it('should return mf-srv-row--crit when updates is failed', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       component.serverControls.at(0).patchValue({ updates: 'failed' });
       expect(component.serverRowClass(0)).toBe('mf-srv-row--crit');
     });
 
     it('should return mf-srv-row--warn when updates is pending', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       component.serverControls.at(0).patchValue({ updates: 'pending' });
       expect(component.serverRowClass(0)).toBe('mf-srv-row--warn');
     });
@@ -671,30 +504,30 @@ describe('MaintenanceFormComponent', () => {
 
   describe('domain controllers', () => {
     it('hasDomainControllers is false when domainControllers is empty', () => {
-      init(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
       expect((component as any).hasDomainControllers).toBeFalse();
     });
 
     it('hasDomainControllers is true when domainControllers has entries', () => {
       const infra = makeInfra({ esxiHosts: [], nas: [], routers: [], domainControllers: [makeDcAsset()] });
-      init(makeTask('SERVER_MAINTENANCE'), infra);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
       expect((component as any).hasDomainControllers).toBeTrue();
     });
 
     it('dcControls has one FormGroup per DC', () => {
       const infra = makeInfra({ esxiHosts: [], nas: [], routers: [], domainControllers: [makeDcAsset(), makeDcAsset({ assetId: 6, name: 'DC02' })] });
-      init(makeTask('SERVER_MAINTENANCE'), infra);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
       expect((component as any).dcControls.length).toBe(2);
     });
 
     it('buildPayload incluye snapshot del DC cuando rawJson es JSON válido con is_dc true', () => {
       const infra = makeInfra({ esxiHosts: [], nas: [], routers: [], domainControllers: [makeDcAsset()] });
-      init(makeTask('SERVER_MAINTENANCE'), infra);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
 
       const snapshot = makeDcSnapshot();
       (component as any).dcControls.at(0).patchValue({ rawJson: JSON.stringify(snapshot) });
 
-      const payload = component.buildPayload() as ServerMaintenancePayload;
+      const payload = component.buildPayload() as WindowsDomainPayload;
       expect(payload.windows.domainControllers.length).toBe(1);
       expect(payload.windows.domainControllers[0].dc_name).toBe('DC01');
       expect(payload.windows.domainControllers[0].is_dc).toBeTrue();
@@ -702,26 +535,26 @@ describe('MaintenanceFormComponent', () => {
 
     it('buildPayload omite DC cuando rawJson está vacío', () => {
       const infra = makeInfra({ esxiHosts: [], nas: [], routers: [], domainControllers: [makeDcAsset()] });
-      init(makeTask('SERVER_MAINTENANCE'), infra);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
       // rawJson defaults to '' — no value set
 
-      const payload = component.buildPayload() as ServerMaintenancePayload;
+      const payload = component.buildPayload() as WindowsDomainPayload;
       expect(payload.windows.domainControllers).toEqual([]);
     });
 
     it('buildPayload omite DC cuando rawJson es JSON malformado', () => {
       const infra = makeInfra({ esxiHosts: [], nas: [], routers: [], domainControllers: [makeDcAsset()] });
-      init(makeTask('SERVER_MAINTENANCE'), infra);
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
       (component as any).dcControls.at(0).patchValue({ rawJson: '{ invalid }' });
 
-      const payload = component.buildPayload() as ServerMaintenancePayload;
+      const payload = component.buildPayload() as WindowsDomainPayload;
       expect(payload.windows.domainControllers).toEqual([]);
     });
 
     it('patchFormFromPayload rellena rawJson del DC con JSON del snapshot guardado', () => {
       const snapshot = makeDcSnapshot();
-      const saved: ServerMaintenancePayload = {
-        type: 'SERVER_MAINTENANCE',
+      const saved: WindowsDomainPayload = {
+        type: 'WINDOWS_DOMAIN_MAINTENANCE',
         windows: {
           servers: [],
           domainControllers: [snapshot],
@@ -732,12 +565,12 @@ describe('MaintenanceFormComponent', () => {
       // Use initWithSavedPayload pattern
       fixture = TestBed.createComponent(MaintenanceFormComponent);
       component = fixture.componentInstance;
-      component.task = makeTask('SERVER_MAINTENANCE');
+      component.task = makeTask('WINDOWS_DOMAIN_MAINTENANCE');
       component.infrastructure = infra;
       component.savedPayload = saved;
       const changes: { [k: string]: any } = {
         infrastructure: new SimpleChange(undefined, infra, true),
-        task: new SimpleChange(undefined, makeTask('SERVER_MAINTENANCE'), true),
+        task: new SimpleChange(undefined, makeTask('WINDOWS_DOMAIN_MAINTENANCE'), true),
         savedPayload: new SimpleChange(undefined, saved, true),
       };
       component.ngOnChanges(changes);
@@ -751,8 +584,8 @@ describe('MaintenanceFormComponent', () => {
 
     it('windows.servers no incluye rebootScript en ningún entry', () => {
       const infra = makeInfra({ esxiHosts: [], nas: [], routers: [] });
-      init(makeTask('SERVER_MAINTENANCE'), infra);
-      const payload = component.buildPayload() as ServerMaintenancePayload;
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
+      const payload = component.buildPayload() as WindowsDomainPayload;
       const server = payload.windows.servers[0] as any;
       expect(server.rebootScript).toBeUndefined();
     });
@@ -764,7 +597,7 @@ describe('MaintenanceFormComponent', () => {
     function initWithSavedPayload(
       task: Task,
       infra: ClientInfrastructure,
-      savedPayload: ServerMaintenancePayload | TerminalPayload | null,
+      savedPayload: WindowsDomainPayload | TerminalPayload | null,
     ): void {
       fixture = TestBed.createComponent(MaintenanceFormComponent);
       component = fixture.componentInstance;
@@ -783,67 +616,38 @@ describe('MaintenanceFormComponent', () => {
     }
 
     it('parchea dcdiag — campo eliminado, domainControllers se maneja por DcHealthCardComponent', () => {
-      const saved: ServerMaintenancePayload = {
-        type: 'SERVER_MAINTENANCE',
+      const saved: WindowsDomainPayload = {
+        type: 'WINDOWS_DOMAIN_MAINTENANCE',
         windows: { servers: [], domainControllers: [] },
       };
-      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }), saved);
+      initWithSavedPayload(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }), saved);
       expect(component.form).toBeTruthy(); // formulario construido sin errores
     });
 
     it('parchea updates del servidor correcto usando serverId', () => {
       // makeInfra tiene windowsVMs[0].assetId = 3
-      const saved: ServerMaintenancePayload = {
-        type: 'SERVER_MAINTENANCE',
+      const saved: WindowsDomainPayload = {
+        type: 'WINDOWS_DOMAIN_MAINTENANCE',
         windows: {
           servers: [{ serverId: 3, serverName: '47DC', updates: 'pending' }],
           domainControllers: [],
         },
       };
-      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }), saved);
+      initWithSavedPayload(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }), saved);
 
       expect(component.serverControls.at(0).get('updates')?.value).toBe('pending');
     });
 
-    it('parchea métricas VMware usando hostId', () => {
-      // makeInfra tiene esxiHosts[0].assetId = 2
-      const saved: ServerMaintenancePayload = {
-        type: 'SERVER_MAINTENANCE',
-        windows: { servers: [], domainControllers: [] },
-        vmware: [{ hostId: 2, hostName: 'host1.kemini', cpuUsage: 72, memUsage: 81, storageUsage: 65, snapshotsOk: false }],
-      };
-      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }), saved);
-
-      expect(component.vmwareHostControls.at(0).get('cpuUsage')?.value).toBe(72);
-      expect(component.vmwareHostControls.at(0).get('memUsage')?.value).toBe(81);
-      expect(component.vmwareHostControls.at(0).get('snapshotsOk')?.value).toBeFalse();
-    });
-
-    it('parchea sección BMC usando hostId', () => {
-      // makeInfra tiene esxiHosts[0].assetId = 2
-      const saved: ServerMaintenancePayload = {
-        type: 'SERVER_MAINTENANCE',
-        windows: { servers: [], domainControllers: [] },
-        bmc: [{ hostId: 2, hostName: 'host1.kemini', alertStatus: 'alerta', alertCategories: ['fan', 'cpu'], alertLogs: 'Fan warning log', firmwareVersion: '2.82' }],
-      };
-      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ nas: [], routers: [] }), saved);
-
-      expect(component.bmcHostControls.at(0).get('alertStatus')?.value).toBe('alerta');
-      expect(component.bmcHostControls.at(0).get('alertCategories')?.value).toEqual(['fan', 'cpu']);
-      expect(component.bmcHostControls.at(0).get('alertLogs')?.value).toBe('Fan warning log');
-      expect(component.bmcHostControls.at(0).get('firmwareVersion')?.value).toBe('2.82');
-    });
-
     it('ignora entrada guardada si el serverId no está en la infra actual', () => {
       // infra tiene assetId 3; payload tiene serverId 999 (no existe)
-      const saved: ServerMaintenancePayload = {
-        type: 'SERVER_MAINTENANCE',
+      const saved: WindowsDomainPayload = {
+        type: 'WINDOWS_DOMAIN_MAINTENANCE',
         windows: {
           servers: [{ serverId: 999, serverName: 'OldServer', updates: 'failed' }],
           domainControllers: [],
         },
       };
-      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }), saved);
+      initWithSavedPayload(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }), saved);
 
       // el control en index 0 (assetId 3) mantiene el default
       expect(component.serverControls.at(0).get('updates')?.value).toBe('ok');
@@ -866,12 +670,12 @@ describe('MaintenanceFormComponent', () => {
     });
 
     it('parchea sección router usando routerId', () => {
-      const saved: ServerMaintenancePayload = {
-        type: 'SERVER_MAINTENANCE',
+      const saved: WindowsDomainPayload = {
+        type: 'WINDOWS_DOMAIN_MAINTENANCE',
         windows: { servers: [], domainControllers: [] },
         router: [{ routerId: 1, routerName: 'MikroTik', firmwareUpdated: true, firmwareVersion: '7.14', backupDone: true }],
       };
-      initWithSavedPayload(makeTask('SERVER_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }), saved);
+      initWithSavedPayload(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [] }), saved);
       expect(component.routerDeviceControls.at(0).get('firmwareUpdated')?.value).toBeTrue();
       expect(component.routerDeviceControls.at(0).get('firmwareVersion')?.value).toBe('7.14');
       expect(component.routerDeviceControls.at(0).get('backupDone')?.value).toBeTrue();
@@ -879,7 +683,7 @@ describe('MaintenanceFormComponent', () => {
 
     it('no modifica el formulario cuando savedPayload es null', () => {
       initWithSavedPayload(
-        makeTask('SERVER_MAINTENANCE'),
+        makeTask('WINDOWS_DOMAIN_MAINTENANCE'),
         makeInfra({ esxiHosts: [], nas: [], routers: [] }),
         null,
       );

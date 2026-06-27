@@ -10,12 +10,11 @@ import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { Task } from '../../../../core/models/task.models';
 import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
 import {
-  BmcEntry,
   DcHealthSnapshot,
   MaintenancePayload,
   RouterEntry,
-  ServerMaintenancePayload,
   TerminalPayload,
+  WindowsDomainPayload,
 } from '../../../../core/models/maintenance-log.models';
 
 @Component({
@@ -29,9 +28,9 @@ export class MaintenanceFormComponent implements OnChanges {
   @Input() savedPayload: MaintenancePayload | null = null;
   @Input() readOnly = false;
 
-  @Output() requestComplete = new EventEmitter<ServerMaintenancePayload | TerminalPayload>();
-  @Output() requestSave = new EventEmitter<ServerMaintenancePayload | TerminalPayload>();
-  @Output() requestNotDone = new EventEmitter<void>();
+  @Output() requestComplete = new EventEmitter<WindowsDomainPayload | TerminalPayload>();
+  @Output() requestSave     = new EventEmitter<WindowsDomainPayload | TerminalPayload>();
+  @Output() requestNotDone  = new EventEmitter<void>();
 
   form!: FormGroup;
 
@@ -55,7 +54,6 @@ export class MaintenanceFormComponent implements OnChanges {
   // ── Getters condicionales ────────────────────────────────────────────────────
 
   get hasServers(): boolean { return this.infrastructure?.windowsVMs?.length > 0; }
-  get hasVMware(): boolean  { return this.infrastructure?.esxiHosts?.length > 0; }
   get hasRouter(): boolean  { return this.infrastructure?.routers?.length > 0; }
 
   get allVMs() {
@@ -68,14 +66,6 @@ export class MaintenanceFormComponent implements OnChanges {
 
   get serverControls(): FormArray {
     return this.form.get('servers') as FormArray;
-  }
-
-  get vmwareHostControls(): FormArray {
-    return this.form.get('vmwareHosts') as FormArray;
-  }
-
-  get bmcHostControls(): FormArray {
-    return this.form.get('bmcHosts') as FormArray;
   }
 
   get routerDeviceControls(): FormArray {
@@ -95,7 +85,7 @@ export class MaintenanceFormComponent implements OnChanges {
   }
 
   get isServerType(): boolean {
-    return this.task?.type === 'SERVER_MAINTENANCE';
+    return this.task?.type === 'WINDOWS_DOMAIN_MAINTENANCE';
   }
 
   get isUnsupported(): boolean {
@@ -130,24 +120,6 @@ export class MaintenanceFormComponent implements OnChanges {
         (this.infrastructure.domainControllers ?? []).map(() =>
           this.fb.group({ rawJson: [''] })
         )
-      ),
-      vmwareHosts: this.fb.array(
-        this.infrastructure.esxiHosts.map(() => this.fb.group({
-          cpuUsage:     [null as number | null],
-          memUsage:     [null as number | null],
-          storageUsage: [null as number | null],
-          highUsageVMs: [[] as string[]],
-          snapshotsOk:  [false],
-        }))
-      ),
-      bmcHosts: this.fb.array(
-        this.infrastructure.esxiHosts.map(() => this.fb.group({
-          firmwareVersion:  [''],
-          biosVersion:      [''],
-          alertStatus:      ['ok'],
-          alertCategories:  [[] as string[]],
-          alertLogs:        [''],
-        }))
       ),
       routerDevices: this.fb.array(
         this.infrastructure.routers.map(() => this.fb.group({
@@ -186,21 +158,6 @@ export class MaintenanceFormComponent implements OnChanges {
     return '';
   }
 
-  metricClass(value: number | null, warnThreshold: number, critThreshold: number): string {
-    if (value === null || value === undefined || isNaN(value)) return '';
-    if (value >= critThreshold) return 'mf-inp--crit';
-    if (value >= warnThreshold) return 'mf-inp--warn';
-    return 'mf-inp--ok';
-  }
-
-  showHighVMsForHost(i: number): boolean {
-    const ctrl = this.vmwareHostControls.at(i);
-    const cpu     = Number(ctrl.get('cpuUsage')?.value);
-    const mem     = Number(ctrl.get('memUsage')?.value);
-    const storage = Number(ctrl.get('storageUsage')?.value);
-    return cpu >= 60 || mem >= 70 || storage >= 70;
-  }
-
   toggleExpand(index: number): void {
     const ctrl = this.serverControls.at(index).get('expanded');
     ctrl?.setValue(!ctrl.value);
@@ -210,17 +167,9 @@ export class MaintenanceFormComponent implements OnChanges {
     return this.serverControls.at(index) as FormGroup;
   }
 
-  getBmcGroup(index: number): FormGroup {
-    return this.bmcHostControls.at(index) as FormGroup;
-  }
-
-  bmcHasAlert(index: number): boolean {
-    return this.getBmcGroup(index).get('alertStatus')?.value === 'alerta';
-  }
-
   // ── Payload construction ────────────────────────────────────────────────────
 
-  buildPayload(): ServerMaintenancePayload | TerminalPayload {
+  buildPayload(): WindowsDomainPayload | TerminalPayload {
     const v = this.form.value;
 
     if (this.isTerminalType) {
@@ -250,8 +199,8 @@ export class MaintenanceFormComponent implements OnChanges {
       notes:      v.servers[i]?.notes || undefined,
     }));
 
-    const payload: ServerMaintenancePayload = {
-      type: 'SERVER_MAINTENANCE',
+    const payload: WindowsDomainPayload = {
+      type: 'WINDOWS_DOMAIN_MAINTENANCE',
       windows: {
         servers,
         domainControllers: (this.infrastructure.domainControllers ?? [])
@@ -264,35 +213,6 @@ export class MaintenanceFormComponent implements OnChanges {
       },
       notes: v.notes || undefined,
     };
-
-    if (this.hasVMware) {
-      payload.vmware = this.infrastructure.esxiHosts.map((host, i) => {
-        const ctrl = this.vmwareHostControls.at(i).value;
-        return {
-          hostId:       host.assetId,
-          hostName:     host.name,
-          cpuUsage:     Number(ctrl.cpuUsage),
-          memUsage:     Number(ctrl.memUsage),
-          storageUsage: Number(ctrl.storageUsage),
-          highUsageVMs: ctrl.highUsageVMs?.length ? ctrl.highUsageVMs : undefined,
-          snapshotsOk:  ctrl.snapshotsOk,
-        };
-      });
-
-      payload.bmc = this.infrastructure.esxiHosts.map((host, i) => {
-        const ctrl = this.bmcHostControls.at(i).value;
-        const entry: BmcEntry = {
-          hostId:      host.assetId,
-          hostName:    host.name,
-          alertStatus: ctrl.alertStatus,
-        };
-        if (ctrl.firmwareVersion) entry.firmwareVersion = ctrl.firmwareVersion;
-        if (ctrl.biosVersion)     entry.biosVersion     = ctrl.biosVersion;
-        if (ctrl.alertStatus === 'alerta' && ctrl.alertCategories?.length) entry.alertCategories = ctrl.alertCategories;
-        if (ctrl.alertLogs)       entry.alertLogs       = ctrl.alertLogs;
-        return entry;
-      });
-    }
 
     if (this.hasRouter) {
       payload.router = this.infrastructure.routers.map((router, i): RouterEntry => {
@@ -311,8 +231,8 @@ export class MaintenanceFormComponent implements OnChanges {
   }
 
   private patchFormFromPayload(payload: MaintenancePayload): void {
-    if (payload.type === 'SERVER_MAINTENANCE') {
-      const srv = payload as ServerMaintenancePayload;
+    if (payload.type === 'WINDOWS_DOMAIN_MAINTENANCE') {
+      const srv = payload as WindowsDomainPayload;
 
       this.form.patchValue({ notes: srv.notes ?? '' });
 
@@ -336,36 +256,6 @@ export class MaintenanceFormComponent implements OnChanges {
             this.serverControls.at(i).patchValue({
               updates: saved.updates,
               notes:   saved.notes ?? '',
-            });
-          }
-        });
-      }
-
-      if (srv.vmware?.length) {
-        this.infrastructure.esxiHosts.forEach((host, i) => {
-          const saved = srv.vmware!.find(h => h.hostId === host.assetId);
-          if (saved) {
-            this.vmwareHostControls.at(i).patchValue({
-              cpuUsage:     saved.cpuUsage,
-              memUsage:     saved.memUsage,
-              storageUsage: saved.storageUsage,
-              highUsageVMs: saved.highUsageVMs ?? [],
-              snapshotsOk:  saved.snapshotsOk,
-            });
-          }
-        });
-      }
-
-      if (srv.bmc?.length) {
-        this.infrastructure.esxiHosts.forEach((host, i) => {
-          const saved = srv.bmc!.find(b => b.hostId === host.assetId);
-          if (saved) {
-            this.bmcHostControls.at(i).patchValue({
-              firmwareVersion:  saved.firmwareVersion ?? '',
-              biosVersion:      saved.biosVersion ?? '',
-              alertStatus:      saved.alertStatus,
-              alertCategories:  saved.alertCategories ?? [],
-              alertLogs:        saved.alertLogs ?? '',
             });
           }
         });
