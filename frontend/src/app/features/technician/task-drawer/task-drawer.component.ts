@@ -14,6 +14,7 @@ import { Task, TaskType } from '../../../core/models/task.models';
 import { ClientInfrastructure } from '../../../core/models/infradoc.models';
 import {
   MaintenancePayload,
+  RouterMaintenancePayload,
   ServerHostPayload,
   VeeamBackupPayload,
   WindowsDomainPayload,
@@ -28,6 +29,7 @@ import { MaintenanceFormComponent } from './maintenance-form/maintenance-form.co
 import { QnapFormComponent } from './qnap-form/qnap-form.component';
 import { VeeamFormComponent } from './veeam-form/veeam-form.component';
 import { ServerHostFormComponent } from './server-host-form/server-host-form.component';
+import { RouterFormComponent } from './router-form/router-form.component';
 import {
   ConfirmMaintenanceDialogComponent,
   ConfirmMaintenanceDialogData,
@@ -53,6 +55,7 @@ export class TaskDrawerComponent implements OnChanges {
   @ViewChild(QnapFormComponent) qnapForm?: QnapFormComponent;
   @ViewChild(VeeamFormComponent) veeamForm?: VeeamFormComponent;
   @ViewChild(ServerHostFormComponent) serverHostForm?: ServerHostFormComponent;
+  @ViewChild(RouterFormComponent) routerForm?: RouterFormComponent;
 
   infrastructure: ClientInfrastructure | null = null;
   savedPayload: MaintenancePayload | null = null;
@@ -191,6 +194,7 @@ export class TaskDrawerComponent implements OnChanges {
     this.qnapForm?.submit();
     this.veeamForm?.submit();
     this.serverHostForm?.submit();
+    this.routerForm?.submit();
   }
 
   triggerFormSave(): void {
@@ -199,6 +203,10 @@ export class TaskDrawerComponent implements OnChanges {
 
   triggerServerHostSave(): void {
     this.serverHostForm?.save();
+  }
+
+  triggerRouterFormSave(): void {
+    this.routerForm?.save();
   }
 
   onRequestSave(payload: MaintenancePayload): void {

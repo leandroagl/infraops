@@ -75,9 +75,21 @@
     (requestNotDone)="onRequestNotDone()">
   </app-server-host-form>
 
+  <!-- Formulario ROUTER_MAINTENANCE -->
+  <app-router-form
+    *ngIf="infrastructure && task.type === 'ROUTER_MAINTENANCE'"
+    [task]="task"
+    [infrastructure]="infrastructure"
+    [savedPayload]="savedPayload"
+    [readOnly]="!isActiveTask"
+    (requestComplete)="onRequestComplete($event)"
+    (requestSave)="onRequestSave($event)"
+    (requestNotDone)="onRequestNotDone()">
+  </app-router-form>
+
   <!-- Formulario WINDOWS_DOMAIN_MAINTENANCE + TERMINAL_MAINTENANCE + SITE_VISIT + otros -->
   <app-maintenance-form
-    *ngIf="infrastructure && task.type !== 'QNAP_MAINTENANCE' && task.type !== 'VEEAM_BACKUP' && task.type !== 'SERVER_HOST_MAINTENANCE'"
+    *ngIf="infrastructure && task.type !== 'QNAP_MAINTENANCE' && task.type !== 'VEEAM_BACKUP' && task.type !== 'SERVER_HOST_MAINTENANCE' && task.type !== 'ROUTER_MAINTENANCE'"
     [task]="task"
     [infrastructure]="infrastructure"
     [savedPayload]="savedPayload"
@@ -146,6 +158,16 @@
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
       <button mat-stroked-button color="warn" (click)="onRequestNotDone()" [disabled]="completing">No concretada</button>
+      <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
+    </ng-container>
+
+    <!-- ROUTER_MAINTENANCE -->
+    <ng-container *ngIf="task.type === 'ROUTER_MAINTENANCE'">
+      <button mat-flat-button color="primary" (click)="triggerFormComplete()" [disabled]="completing">
+        <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
+        <span *ngIf="!completing">Completar mantenimiento</span>
+      </button>
+      <button mat-stroked-button (click)="triggerRouterFormSave()" [disabled]="completing">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 

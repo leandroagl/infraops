@@ -609,6 +609,18 @@ describe('TaskDrawerComponent — template tests', () => {
       expect(btn).toBeTruthy();
     });
 
+    it('should render "Completar mantenimiento" button for ROUTER_MAINTENANCE', () => {
+      setupWithType('ROUTER_MAINTENANCE');
+      const btn = findButton('Completar mantenimiento');
+      expect(btn).toBeTruthy();
+    });
+
+    it('should render "Guardar progreso" button for ROUTER_MAINTENANCE', () => {
+      setupWithType('ROUTER_MAINTENANCE');
+      const btn = findButton('Guardar progreso');
+      expect(btn).toBeTruthy();
+    });
+
     it('should render disabled "Completar" for AV_CONTROL', () => {
       setupWithType('AV_CONTROL');
       const btn = findButton('Completar');
@@ -708,6 +720,16 @@ describe('TaskDrawerComponent — template tests', () => {
       fixture.detectChanges();
       const link = fixture.nativeElement.querySelector('.d-odoo-link');
       expect(link).toBeNull();
+    });
+  });
+
+  // ── Form routing ───────────────────────────────────────────────────────────
+
+  describe('form routing', () => {
+    it('no muestra app-maintenance-form para ROUTER_MAINTENANCE', () => {
+      setupWithType('ROUTER_MAINTENANCE');
+      const form = fixture.nativeElement.querySelector('app-maintenance-form');
+      expect(form).toBeNull();
     });
   });
 
