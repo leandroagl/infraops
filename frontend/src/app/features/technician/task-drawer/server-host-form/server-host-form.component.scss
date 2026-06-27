@@ -76,15 +76,15 @@ mat-form-field {
     --mdc-outlined-text-field-outline-color:   var(--crit-bd);
     --mat-select-trigger-text-color:           var(--crit);
   }
-  &.shf-inp--ok {
+  &.mf-inp--ok {
     --mdc-outlined-text-field-container-color: var(--ok-bg);
     --mdc-outlined-text-field-outline-color:   var(--ok-bd);
   }
-  &.shf-inp--warn {
+  &.mf-inp--warn {
     --mdc-outlined-text-field-container-color: var(--warn-bg);
     --mdc-outlined-text-field-outline-color:   var(--warn-bd);
   }
-  &.shf-inp--crit {
+  &.mf-inp--crit {
     --mdc-outlined-text-field-container-color: var(--crit-bg);
     --mdc-outlined-text-field-outline-color:   var(--crit-bd);
   }

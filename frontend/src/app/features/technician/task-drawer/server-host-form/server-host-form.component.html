@@ -105,7 +105,8 @@
         </mat-select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic"
+      <mat-form-field *ngIf="bmcHasAlert(i)"
+                      appearance="outline" subscriptSizing="dynamic"
                       class="shf-form-field shf-alertlogs-ff">
         <mat-label>Logs en alerta</mat-label>
         <textarea matInput formControlName="alertLogs"
