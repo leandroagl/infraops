@@ -2,7 +2,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Task } from '../../../core/models/task.models';
 import { daysFromToday, urgencyLabel, urgencyClass } from '../../utils/urgency';
-import { typeLabelLong, statusLabel as getStatusLabel } from '../../utils/task-labels';
+import { typeLabel, typeBadge, statusLabel as getStatusLabel } from '../../utils/task-labels';
 import { formatOdooTicketId, odooTicketUrl } from '../../utils/odoo';
 
 @Component({
@@ -32,7 +32,8 @@ export class TaskCardComponent {
 
   get urgencyLabelText(): string { return urgencyLabel(this.days); }
   get urgencyClassStr(): string  { return urgencyClass(this.days); }
-  get typeLabel(): string        { return typeLabelLong(this.task.type); }
+  get typeLabel(): string        { return typeLabel(this.task.type); }
+  get typeBadgeClass(): string   { return typeBadge(this.task.type); }
 
   get statusLabel(): string { return getStatusLabel(this.task.status); }
 

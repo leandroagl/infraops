@@ -191,6 +191,30 @@ describe('TaskCardComponent', () => {
     });
   });
 
+  // ── typeBadgeClass getter ──────────────────────────────────
+  describe('typeBadgeClass getter', () => {
+    it('devuelve badge--vmware para SERVER_HOST_MAINTENANCE', () => {
+      component.task = makeTask({ type: 'SERVER_HOST_MAINTENANCE' });
+      expect(component.typeBadgeClass).toBe('badge--vmware');
+    });
+
+    it('devuelve badge--bkp para VEEAM_BACKUP', () => {
+      component.task = makeTask({ type: 'VEEAM_BACKUP' });
+      expect(component.typeBadgeClass).toBe('badge--bkp');
+    });
+  });
+
+  describe('template — badge de tipo', () => {
+    it('renderiza un span.badge con la clase del tipo', () => {
+      component.task = makeTask({ type: 'ROUTER_MAINTENANCE' });
+      fixture.detectChanges();
+      const badge = fixture.nativeElement.querySelector('.badge');
+      expect(badge).toBeTruthy();
+      expect(badge.classList).toContain('badge--net');
+      expect(badge.textContent.trim()).toBe('Router / FW');
+    });
+  });
+
   // ── showTechnicianAvatar ───────────────────────────────────
   describe('showTechnicianAvatar', () => {
     it('no renderiza .tc-tech-avatar cuando showTechnicianAvatar es false (default)', () => {

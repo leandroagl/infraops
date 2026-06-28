@@ -58,9 +58,19 @@ export function typeLabelLong(type: TaskType): string {
   return labels[type];
 }
 
-/** Clase CSS badge para un TaskType según si es visita o servicio. */
+/** Clase CSS badge para un TaskType. */
 export function typeBadge(type: TaskType): string {
-  return type === 'TERMINAL_MAINTENANCE' || type === 'SITE_VISIT'
-    ? 'badge--purple'
-    : 'badge--srv';
+  const map: Record<TaskType, string> = {
+    SERVER_HOST_MAINTENANCE:    'badge--vmware',
+    WINDOWS_DOMAIN_MAINTENANCE: 'badge--win',
+    QNAP_MAINTENANCE:           'badge--nas',
+    VEEAM_BACKUP:               'badge--bkp',
+    ROUTER_MAINTENANCE:         'badge--net',
+    TERMINAL_MAINTENANCE:       'badge--purple',
+    SITE_VISIT:                 'badge--purple',
+    AV_CONTROL:                 'badge--neutral',
+    UPS_CONTROL:                'badge--neutral',
+    ENDPOINT_INVENTORY:         'badge--neutral',
+  };
+  return map[type] ?? 'badge--neutral';
 }

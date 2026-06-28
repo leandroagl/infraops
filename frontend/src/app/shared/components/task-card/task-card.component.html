@@ -12,7 +12,7 @@
   <div class="tc-top">
     <div class="tc-top__info">
       <div class="tc-client">{{ task.client?.name ?? task.clientId }}</div>
-      <div class="tc-type">{{ typeLabel }}</div>
+      <span class="badge" [ngClass]="typeBadgeClass">{{ typeLabel }}</span>
     </div>
     <div *ngIf="showTechnicianAvatar && technicianInitial" class="tc-tech-avatar">
       {{ technicianInitial }}
