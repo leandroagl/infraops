@@ -10,6 +10,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { MaintenanceLogsModule } from './maintenance-logs/maintenance-logs.module';
 import { InfradocIntegrationModule } from './integrations/infradoc/infradoc-integration.module';
 import { OdooIntegrationModule } from './integrations/odoo/odoo-integration.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { OdooIntegrationModule } from './integrations/odoo/odoo-integration.modu
     MaintenanceLogsModule,
     InfradocIntegrationModule,
     OdooIntegrationModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}
