@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { AdminTaskDrawerComponent } from './admin-task-drawer.component';
 import { LocalDatePipe } from '../../../../shared/pipes/local-date.pipe';
 import { Task } from '../../../../core/models/task.models';
+import { typeBadge, typeLabel } from '../../../../shared/utils/task-labels';
 
 function mockTask(overrides: Partial<Task> = {}): Task {
   return {
@@ -67,5 +68,15 @@ describe('AdminTaskDrawerComponent', () => {
     component.drawerClosed.subscribe(() => { callCount++; });
     fixture.nativeElement.querySelector('.adr-close').click();
     expect(callCount).toBe(1);
+  });
+
+  it('renderiza el badge de tipo con la clase y el label correctos', () => {
+    const task = mockTask({ type: 'WINDOWS_DOMAIN_MAINTENANCE' });
+    component.task = task;
+    fixture.detectChanges();
+    const badge: HTMLElement = fixture.nativeElement.querySelector('.adr-field .badge');
+    expect(badge).toBeTruthy();
+    expect(badge.classList).toContain(typeBadge(task.type));
+    expect(badge.textContent?.trim()).toBe(typeLabel(task.type));
   });
 });

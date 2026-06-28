@@ -117,4 +117,12 @@ describe('task-labels utils', () => {
     expect(typeLabelLong('ROUTER_MAINTENANCE')).toBe('Mantenimiento de router y firewall');
   });
 
+  it('typeLabel retorna "" para un tipo desconocido', () => {
+    expect(typeLabel('UNKNOWN_TYPE' as any)).toBe('');
+  });
+
+  it('typeLabelLong retorna "" para un tipo desconocido', () => {
+    expect(typeLabelLong('UNKNOWN_TYPE' as any)).toBe('');
+  });
+
 });

@@ -38,7 +38,7 @@ export function typeLabel(type: TaskType): string {
     UPS_CONTROL:                'UPS',
     ENDPOINT_INVENTORY:         'Inventario',
   };
-  return labels[type];
+  return labels[type] ?? '';
 }
 
 /** Label larga en español para un TaskType (uso en drawers y listas). */
@@ -55,7 +55,7 @@ export function typeLabelLong(type: TaskType): string {
     UPS_CONTROL:                'Control UPS',
     ENDPOINT_INVENTORY:         'Inventario',
   };
-  return labels[type];
+  return labels[type] ?? '';
 }
 
 /** Clase CSS badge para un TaskType. */
