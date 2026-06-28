@@ -10,7 +10,7 @@ import { Task } from '../../../../core/models/task.models';
 function mockTask(overrides: Partial<Task> = {}): Task {
   return {
     id: 'task-1', clientId: 'client-1', technicianId: 'tech-1',
-    type: 'SERVER_MAINTENANCE', status: 'PENDING',
+    type: 'WINDOWS_DOMAIN_MAINTENANCE', status: 'PENDING',
     scheduledDate: '2026-06-15', completedDate: null,
     odooTicketId: null, createdAt: '2026-01-01T00:00:00.000Z',
     client: { id: 'client-1', name: 'Acme Corp' },

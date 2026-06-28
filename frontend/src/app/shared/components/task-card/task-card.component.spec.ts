@@ -16,7 +16,7 @@ function dateOffsetDays(offset: number): string {
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
     id: 'task-1', clientId: 'client-1', technicianId: 'tech-1',
-    type: 'SERVER_MAINTENANCE', status: 'PENDING',
+    type: 'WINDOWS_DOMAIN_MAINTENANCE', status: 'PENDING',
     scheduledDate: dateOffsetDays(10), completedDate: null,
     odooTicketId: null, createdAt: '2026-01-01T00:00:00.000Z',
     client: { id: 'client-1', name: 'Empresa Test' },
@@ -64,8 +64,8 @@ describe('TaskCardComponent', () => {
       expect(component.borderClass).toBe('tc-visit');
     });
 
-    it('returns tc-srv when SERVER_MAINTENANCE not overdue', () => {
-      component.task = makeTask({ type: 'SERVER_MAINTENANCE', scheduledDate: dateOffsetDays(10) });
+    it('returns tc-srv when WINDOWS_DOMAIN_MAINTENANCE not overdue', () => {
+      component.task = makeTask({ type: 'WINDOWS_DOMAIN_MAINTENANCE', scheduledDate: dateOffsetDays(10) });
       expect(component.borderClass).toBe('tc-srv');
     });
 

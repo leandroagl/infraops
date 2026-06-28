@@ -16,7 +16,7 @@ function dateOffsetDays(offset: number): string {
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
     id: 'task-1', clientId: 'client-1', technicianId: 'tech-1',
-    type: 'SERVER_MAINTENANCE', status: 'PENDING',
+    type: 'WINDOWS_DOMAIN_MAINTENANCE', status: 'PENDING',
     scheduledDate: dateOffsetDays(10), completedDate: null,
     odooTicketId: null, createdAt: '2026-01-01T00:00:00.000Z',
     ...overrides,

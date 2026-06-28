@@ -27,7 +27,6 @@ export function statusBadge(status: TaskStatus): string {
 /** Label corta en español para un TaskType (uso en tablas). */
 export function typeLabel(type: TaskType): string {
   const labels: Record<TaskType, string> = {
-    SERVER_MAINTENANCE:         'Servidores',
     SERVER_HOST_MAINTENANCE:    'VMware / BMC',
     WINDOWS_DOMAIN_MAINTENANCE: 'Windows / AD',
     QNAP_MAINTENANCE:           'QNAP/NAS',
@@ -45,7 +44,6 @@ export function typeLabel(type: TaskType): string {
 /** Label larga en español para un TaskType (uso en drawers y listas). */
 export function typeLabelLong(type: TaskType): string {
   const labels: Record<TaskType, string> = {
-    SERVER_MAINTENANCE:         'Mantenimiento de servidores',
     SERVER_HOST_MAINTENANCE:    'Mantenimiento de hosts VMware',
     WINDOWS_DOMAIN_MAINTENANCE: 'Mantenimiento Windows y dominios',
     QNAP_MAINTENANCE:           'Mantenimiento QNAP/NAS',

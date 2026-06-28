@@ -35,7 +35,6 @@ describe('task-labels utils', () => {
 
   describe('typeLabel() — labels cortas', () => {
     const cases: [TaskType, string][] = [
-      ['SERVER_MAINTENANCE',   'Servidores'],
       ['ROUTER_MAINTENANCE',   'Router / FW'],
       ['TERMINAL_MAINTENANCE', 'Terminales'],
       ['SITE_VISIT',           'Visita'],
@@ -52,7 +51,6 @@ describe('task-labels utils', () => {
 
   describe('typeLabelLong() — labels largas', () => {
     const cases: [TaskType, string][] = [
-      ['SERVER_MAINTENANCE',   'Mantenimiento de servidores'],
       ['ROUTER_MAINTENANCE',   'Mantenimiento de router y firewall'],
       ['TERMINAL_MAINTENANCE', 'Visita de terminales'],
       ['SITE_VISIT',           'Visita presencial'],
@@ -73,9 +71,6 @@ describe('task-labels utils', () => {
     });
     it('SITE_VISIT → "badge--purple"', () => {
       expect(typeBadge('SITE_VISIT')).toBe('badge--purple');
-    });
-    it('SERVER_MAINTENANCE → "badge--srv"', () => {
-      expect(typeBadge('SERVER_MAINTENANCE')).toBe('badge--srv');
     });
     it('AV_CONTROL → "badge--srv"', () => {
       expect(typeBadge('AV_CONTROL')).toBe('badge--srv');
