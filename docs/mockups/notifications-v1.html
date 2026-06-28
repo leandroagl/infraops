@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notificaciones · InfraOps</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --base:#0f1117;--surface:#161b22;--card:#1e2530;--elevated:#252e3f;--hover:#2a3447;
+  --border:#2d3748;--border-lo:#1e2737;--border-md:#3a4a62;
+  --tx-hi:#f0f4f8;--tx-md:#8b95a6;--tx-lo:#4a5568;
+  --crit:#f87171;--crit-bg:rgba(248,113,113,.10);--crit-bd:rgba(248,113,113,.25);
+  --warn:#fb923c;--warn-bg:rgba(251,146,60,.10);--warn-bd:rgba(251,146,60,.25);
+  --ok:#4ade80;--ok-bg:rgba(74,222,128,.10);--ok-bd:rgba(74,222,128,.25);
+  --neutral:#64748b;--neutral-bg:rgba(100,116,139,.10);--neutral-bd:rgba(100,116,139,.25);
+  --accent:#22d3ee;--accent-bg:rgba(34,211,238,.10);--accent-bd:rgba(34,211,238,.25);
+  --srv:#60a5fa;--srv-bg:rgba(96,165,250,.10);--srv-bd:rgba(96,165,250,.25);
+  --win:#818cf8;--win-bg:rgba(129,140,248,.12);--win-bd:rgba(129,140,248,.25);
+  --bkp:#a3e635;--bkp-bg:rgba(163,230,53,.12);--bkp-bd:rgba(163,230,53,.25);
+  --purple:#c084fc;--purple-bg:rgba(192,132,252,.10);--purple-bd:rgba(192,132,252,.25);
+  --font-mono:'IBM Plex Mono',monospace;
+  --font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --radius:10px;--radius-sm:7px;--radius-xs:5px;
+  --shadow-card:0 1px 3px rgba(0,0,0,.4);
+  --transition:.12s ease;
+}
+body{font-family:var(--font-ui);background:var(--base);color:var(--tx-hi);font-size:13px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Shell ─────────────────────────────────────────── */
+.topbar{height:50px;background:var(--surface);border-bottom:1px solid var(--border-lo);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.topbar__logo{font-size:13px;font-weight:700;font-family:var(--font-mono);color:var(--tx-hi);letter-spacing:-.5px}
+.topbar__sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.topbar__page{font-size:12px;color:var(--tx-lo)}
+
+.shell{display:flex;flex:1;overflow:hidden}
+.sidebar{width:52px;background:var(--surface);border-right:1px solid var(--border-lo);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:4px;flex-shrink:0}
+.nav-item{width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx-lo);border:1px solid transparent}
+.nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nav-item:hover{background:var(--hover);color:var(--tx-md)}
+.nav-item.active{background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)}
+
+.page{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+
+/* ── Page header ───────────────────────────────────── */
+.page-hdr{display:flex;align-items:baseline;justify-content:space-between}
+.page-hdr__left{display:flex;align-items:baseline;gap:10px}
+.page-title{font-size:16px;font-weight:600;color:var(--tx-hi)}
+.page-count{font-size:11px;color:var(--tx-lo);font-family:var(--font-mono)}
+.btn-refresh{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--radius-sm);background:var(--card);border:1px solid var(--border);color:var(--tx-md);font-size:11px;font-family:var(--font-ui);cursor:pointer}
+.btn-refresh svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.btn-refresh:hover{background:var(--elevated);color:var(--tx-hi)}
+
+/* ── KPI strip ─────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--border-lo);border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow-card)}
+.kpi__label{font-size:9px;color:var(--tx-lo);text-transform:uppercase;letter-spacing:.5px;font-family:var(--font-mono);margin-bottom:6px}
+.kpi__value{font-size:26px;font-weight:500;line-height:1;font-family:var(--font-mono)}
+.kpi__sub{font-size:10px;color:var(--tx-lo);margin-top:4px}
+.kpi--vencido .kpi__value{color:var(--crit)}
+.kpi--crit    .kpi__value{color:var(--warn)}
+.kpi--warn    .kpi__value{color:var(--accent)}
+.kpi--total   .kpi__value{color:var(--tx-hi)}
+
+/* ── Filter bar ────────────────────────────────────── */
+.filter-bar{display:flex;align-items:center;gap:8px}
+.filter-select{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--tx-hi);font-size:11px;font-family:var(--font-ui);padding:5px 24px 5px 10px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%234a5568' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 7px center}
+.filter-select:focus{border-color:var(--accent-bd)}
+.filter-sep{flex:1}
+.filter-toggle{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx-lo);cursor:pointer;padding:5px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-lo)}
+.filter-toggle input{accent-color:var(--accent)}
+
+/* ── Table ─────────────────────────────────────────── */
+.exp-table{background:var(--surface);border:1px solid var(--border-lo);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-card)}
+.exp-table__head{display:grid;grid-template-columns:1fr 1.4fr 90px 100px 90px;gap:0;border-bottom:1px solid var(--border-lo);background:var(--card)}
+.exp-table__hcell{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--tx-lo);font-family:var(--font-mono);padding:8px 12px}
+.exp-table__body{display:flex;flex-direction:column}
+.exp-row{display:grid;grid-template-columns:1fr 1.4fr 90px 100px 90px;border-bottom:1px solid var(--border-lo);transition:background var(--transition)}
+.exp-row:last-child{border-bottom:none}
+.exp-row:hover{background:var(--hover)}
+.exp-row--expired{background:rgba(248,113,113,.04)}
+.exp-row--expired:hover{background:rgba(248,113,113,.08)}
+.exp-cell{padding:9px 12px;display:flex;align-items:center;font-size:12px;color:var(--tx-hi);overflow:hidden}
+.exp-cell--client{font-weight:500}
+.exp-cell--name{color:var(--tx-md);font-size:11px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exp-cell--date{font-family:var(--font-mono);font-size:11px;color:var(--tx-md)}
+
+/* ── Badges ────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:100px;font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-family:var(--font-mono)}
+.badge--crit   {background:var(--crit-bg);color:var(--crit);border:1px solid var(--crit-bd)}
+.badge--warn   {background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-bd)}
+.badge--accent {background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-bd)}
+.badge--neutral{background:var(--neutral-bg);color:var(--neutral);border:1px solid var(--neutral-bd)}
+.badge--ok     {background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd)}
+
+/* type badges — font-ui, no uppercase */
+.badge--type{font-family:var(--font-ui);text-transform:none;letter-spacing:0;font-size:10px;font-weight:500}
+.badge--srv   {background:var(--srv-bg);color:var(--srv);border:1px solid var(--srv-bd)}
+.badge--win   {background:var(--win-bg);color:var(--win);border:1px solid var(--win-bd)}
+.badge--bkp   {background:var(--bkp-bg);color:var(--bkp);border:1px solid var(--bkp-bd)}
+.badge--purple{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-bd)}
+
+/* ── Scope note ────────────────────────────────────── */
+.scope-note{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx-lo);padding:6px 0}
+.scope-note svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.6;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <span class="topbar__logo">InfraOps</span>
+  <div class="topbar__sep"></div>
+  <span class="topbar__page">Notificaciones</span>
+</div>
+
+<div class="shell">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <!-- Tasks -->
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    </div>
+    <!-- Notifications (active) -->
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </div>
+    <!-- Clients -->
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
+  </nav>
+
+  <!-- Main page -->
+  <main class="page">
+
+    <!-- Header -->
+    <div class="page-hdr">
+      <div class="page-hdr__left">
+        <span class="page-title">Vencimientos</span>
+        <span class="page-count">12 items · vista 90 días</span>
+      </div>
+      <button class="btn-refresh">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Actualizar
+      </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi kpi--vencido">
+        <div class="kpi__label">Vencidos</div>
+        <div class="kpi__value">3</div>
+        <div class="kpi__sub">requieren acción</div>
+      </div>
+      <div class="kpi kpi--crit">
+        <div class="kpi__label">Esta semana</div>
+        <div class="kpi__value">2</div>
+        <div class="kpi__sub">≤ 7 días</div>
+      </div>
+      <div class="kpi kpi--warn">
+        <div class="kpi__label">Próximamente</div>
+        <div class="kpi__value">4</div>
+        <div class="kpi__sub">8 – 20 días</div>
+      </div>
+      <div class="kpi kpi--total">
+        <div class="kpi__label">En 90 días</div>
+        <div class="kpi__value">12</div>
+        <div class="kpi__sub">todos los tipos</div>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <select class="filter-select">
+        <option>Todos los tipos</option>
+        <option>Garantía de activo</option>
+        <option>Certificado SSL</option>
+        <option>Dominio</option>
+        <option>Licencia</option>
+      </select>
+      <select class="filter-select">
+        <option>Toda urgencia</option>
+        <option>Vencidos</option>
+        <option>Esta semana (≤7d)</option>
+        <option>Próximo (≤20d)</option>
+        <option>Atención (≤45d)</option>
+      </select>
+      <div class="filter-sep"></div>
+      <label class="filter-toggle">
+        <input type="checkbox"> Ver todos los futuros
+      </label>
+    </div>
+
+    <!-- Scope note -->
+    <div class="scope-note">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      Mostrando items vencidos y con vencimiento en los próximos 90 días, ordenados por fecha.
+    </div>
+
+    <!-- Table -->
+    <div class="exp-table">
+      <div class="exp-table__head">
+        <div class="exp-table__hcell">Cliente</div>
+        <div class="exp-table__hcell">Item</div>
+        <div class="exp-table__hcell">Tipo</div>
+        <div class="exp-table__hcell">Vence</div>
+        <div class="exp-table__hcell">Estado</div>
+      </div>
+      <div class="exp-table__body">
+
+        <!-- Expired rows -->
+        <div class="exp-row exp-row--expired">
+          <div class="exp-cell exp-cell--client">Acuaverde SA</div>
+          <div class="exp-cell exp-cell--name">acuaverde.com.ar</div>
+          <div class="exp-cell"><span class="badge badge--type badge--accent">Dominio</span></div>
+          <div class="exp-cell exp-cell--date">2025-05-12</div>
+          <div class="exp-cell"><span class="badge badge--crit">Vencido</span></div>
+        </div>
+
+        <div class="exp-row exp-row--expired">
+          <div class="exp-cell exp-cell--client">Beta Logística</div>
+          <div class="exp-cell exp-cell--name">*.betalogistica.com · SSL Wildcard</div>
+          <div class="exp-cell"><span class="badge badge--type badge--bkp">Certificado</span></div>
+          <div class="exp-cell exp-cell--date">2025-06-01</div>
+          <div class="exp-cell"><span class="badge badge--crit">Vencido</span></div>
+        </div>
+
+        <div class="exp-row exp-row--expired">
+          <div class="exp-cell exp-cell--client">Gamma Construcciones</div>
+          <div class="exp-cell exp-cell--name">Server HP DL380 G10 · Garantía</div>
+          <div class="exp-cell"><span class="badge badge--type badge--srv">Garantía</span></div>
+          <div class="exp-cell exp-cell--date">2025-06-15</div>
+          <div class="exp-cell"><span class="badge badge--crit">Vencido</span></div>
+        </div>
+
+        <!-- ≤7 days -->
+        <div class="exp-row">
+          <div class="exp-cell exp-cell--client">Delta Alimentos</div>
+          <div class="exp-cell exp-cell--name">deltaali.net</div>
+          <div class="exp-cell"><span class="badge badge--type badge--accent">Dominio</span></div>
+          <div class="exp-cell exp-cell--date">2025-07-02</div>
+          <div class="exp-cell"><span class="badge badge--crit">4 días</span></div>
+        </div>
+
+        <div class="exp-row">
+          <div class="exp-cell exp-cell--client">Omega Salud</div>
+          <div class="exp-cell exp-cell--name">Microsoft 365 Business · 5 lic</div>
+          <div class="exp-cell"><span class="badge badge--type badge--win">Licencia</span></div>
+          <div class="exp-cell exp-cell--date">2025-07-05</div>
+          <div class="exp-cell"><span class="badge badge--crit">7 días</span></div>
+        </div>
+
+        <!-- ≤20 days -->
+        <div class="exp-row">
+          <div class="exp-cell exp-cell--client">Acuaverde SA</div>
+          <div class="exp-cell exp-cell--name">mail.acuaverde.com.ar · SSL</div>
+          <div class="exp-cell"><span class="badge badge--type badge--bkp">Certificado</span></div>
+          <div class="exp-cell exp-cell--date">2025-07-14</div>
+          <div class="exp-cell"><span class="badge badge--warn">16 días</span></div>
+        </div>
+
+        <div class="exp-row">
+          <div class="exp-cell exp-cell--client">Nexo Ingeniería</div>
+          <div class="exp-cell exp-cell--name">ESET Endpoint Security · 20 lic</div>
+          <div class="exp-cell"><span class="badge badge--type badge--win">Licencia</span></div>
+          <div class="exp-cell exp-cell--date">2025-07-16</div>
+          <div class="exp-cell"><span class="badge badge--warn">18 días</span></div>
+        </div>
+
+        <div class="exp-row">
+          <div class="exp-cell exp-cell--client">Beta Logística</div>
+          <div class="exp-cell exp-cell--name">nexologistica.com.ar</div>
+          <div class="exp-cell"><span class="badge badge--type badge--accent">Dominio</span></div>
+          <div class="exp-cell exp-cell--date">2025-07-18</div>
+          <div class="exp-cell"><span class="badge badge--warn">20 días</span></div>
+        </div>
+
+        <!-- ≤45 days (attention) -->
+        <div class="exp-row">
+          <div class="exp-cell exp-cell--client">Gamma Construcciones</div>
+          <div class="exp-cell exp-cell--name">Veeam Backup & Replication · 2 lic</div>
+          <div class="exp-cell"><span class="badge badge--type badge--win">Licencia</span></div>
+          <div class="exp-cell exp-cell--date">2025-07-30</div>
+          <div class="exp-cell"><span class="badge badge--neutral" style="background:rgba(34,211,238,.08);color:var(--accent);border-color:rgba(34,211,238,.2)">32 días</span></div>
+        </div>
+
+        <!-- > 45 days (neutral, within 90d) -->
+        <div class="exp-row">
+          <div class="exp-cell exp-cell--client">Delta Alimentos</div>
+          <div class="exp-cell exp-cell--name">Server Dell PowerEdge R540 · Garantía</div>
+          <div class="exp-cell"><span class="badge badge--type badge--srv">Garantía</span></div>
+          <div class="exp-cell exp-cell--date">2025-08-22</div>
+          <div class="exp-cell"><span class="badge badge--neutral">55 días</span></div>
+        </div>
+
+        <div class="exp-row">
+          <div class="exp-cell exp-cell--client">Omega Salud</div>
+          <div class="exp-cell exp-cell--name">omegasalud.com.ar</div>
+          <div class="exp-cell"><span class="badge badge--type badge--accent">Dominio</span></div>
+          <div class="exp-cell exp-cell--date">2025-09-01</div>
+          <div class="exp-cell"><span class="badge badge--neutral">65 días</span></div>
+        </div>
+
+        <div class="exp-row">
+          <div class="exp-cell exp-cell--client">Nexo Ingeniería</div>
+          <div class="exp-cell exp-cell--name">app.nexo.com · SSL</div>
+          <div class="exp-cell"><span class="badge badge--type badge--bkp">Certificado</span></div>
+          <div class="exp-cell exp-cell--date">2025-09-20</div>
+          <div class="exp-cell"><span class="badge badge--neutral">83 días</span></div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
