@@ -61,17 +61,6 @@ export interface BmcEntry {
   alertLogs?: string;
 }
 
-export interface ServerMaintenancePayload {
-  type: 'SERVER_MAINTENANCE';
-  windows: WindowsSection;
-  vmware?: VMwareHostEntry[];
-  qnap?: QNAPSection[];
-  veeam?: VeeamSection;
-  router?: RouterSection;
-  bmc?: BmcEntry[];
-  notes?: string;
-}
-
 export interface ServerHostPayload {
   type: 'SERVER_HOST_MAINTENANCE';
   vmware: VMwareHostEntry[];
@@ -113,7 +102,6 @@ export interface TerminalPayload {
 }
 
 export type MaintenancePayload =
-  | ServerMaintenancePayload
   | ServerHostPayload
   | WindowsDomainPayload
   | RouterMaintenancePayload

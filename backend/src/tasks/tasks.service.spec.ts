@@ -71,7 +71,7 @@ describe('TasksService', () => {
     client: mockClient,
     technicianId: 'tech-1',
     technician: mockTechnician,
-    type: TaskType.SERVER_MAINTENANCE,
+    type: TaskType.WINDOWS_DOMAIN_MAINTENANCE,
     status: TaskStatus.PENDING,
     scheduledDate: '2026-06-01',
     completedDate: null,
@@ -174,11 +174,11 @@ describe('TasksService', () => {
       taskRepository.find.mockResolvedValue([mockTask]);
 
       await service.findAll({
-        type: TaskType.SERVER_MAINTENANCE,
+        type: TaskType.WINDOWS_DOMAIN_MAINTENANCE,
       });
 
       expect(taskRepository.find).toHaveBeenCalledWith({
-        where: { type: TaskType.SERVER_MAINTENANCE },
+        where: { type: TaskType.WINDOWS_DOMAIN_MAINTENANCE },
         relations: ['client', 'technician', 'technician.user'],
         order: { scheduledDate: 'ASC' },
       });
@@ -189,7 +189,7 @@ describe('TasksService', () => {
     const createDto = {
       clientId: 'client-1',
       technicianId: 'tech-1',
-      type: TaskType.SERVER_MAINTENANCE,
+      type: TaskType.WINDOWS_DOMAIN_MAINTENANCE,
       scheduledDate: '2026-06-01',
     };
 
@@ -209,12 +209,12 @@ describe('TasksService', () => {
       expect(odooService.createTicket).toHaveBeenCalledWith(
         'client-1',
         'tech-1',
-        TaskType.SERVER_MAINTENANCE,
+        TaskType.WINDOWS_DOMAIN_MAINTENANCE,
       );
       expect(taskRepository.create).toHaveBeenCalledWith({
         clientId: 'client-1',
         technicianId: 'tech-1',
-        type: TaskType.SERVER_MAINTENANCE,
+        type: TaskType.WINDOWS_DOMAIN_MAINTENANCE,
         scheduledDate: '2026-06-01',
         odooTicketId: 42,
       });

@@ -17,7 +17,6 @@ import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 import { TaskType } from '../../tasks/task-type.enum';
 
 const TICKET_META: Record<TaskType, { name: string; description: string }> = {
-  [TaskType.SERVER_MAINTENANCE]:             { name: 'Mantenimiento de infraestructura',              description: 'Mantenimiento mensual de infraestructura.' },
   [TaskType.SERVER_HOST_MAINTENANCE]:        { name: 'Mantenimiento de hosts VMware/BMC',             description: 'Control mensual de hosts ESXi y BMC.' },
   [TaskType.WINDOWS_DOMAIN_MAINTENANCE]:     { name: 'Mantenimiento Windows y dominios',              description: 'Mantenimiento mensual de servidores Windows y controladores de dominio.' },
   [TaskType.ROUTER_MAINTENANCE]:             { name: 'Mantenimiento de router y firewall',            description: 'Control mensual de firmware y configuración de router/firewall.' },

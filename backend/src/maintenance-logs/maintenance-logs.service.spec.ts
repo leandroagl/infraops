@@ -15,7 +15,7 @@ import { UserRole } from '../users/user-role.enum';
 import { CreateLogDto } from './dto/create-log.dto';
 import { UpdateLogDto } from './dto/update-log.dto';
 import { MaintenanceLog } from './maintenance-log.entity';
-import { ServerMaintenancePayload } from './log-item.interface';
+import { WindowsDomainPayload } from './log-item.interface';
 import { MaintenanceLogsService } from './maintenance-logs.service';
 
 describe('MaintenanceLogsService', () => {
@@ -40,7 +40,7 @@ describe('MaintenanceLogsService', () => {
     client: null as any,
     technicianId: 'tech-1',
     technician: mockTechnician,
-    type: TaskType.SERVER_MAINTENANCE,
+    type: TaskType.WINDOWS_DOMAIN_MAINTENANCE,
     status: TaskStatus.IN_PROGRESS,
     scheduledDate: '2026-06-01',
     completedDate: null,
@@ -62,8 +62,8 @@ describe('MaintenanceLogsService', () => {
     createdAt: new Date('2026-01-01'),
   };
 
-  const mockPayload: ServerMaintenancePayload = {
-    type: 'SERVER_MAINTENANCE',
+  const mockPayload: WindowsDomainPayload = {
+    type: 'WINDOWS_DOMAIN_MAINTENANCE',
     windows: {
       servers: [
         { serverId: 1, serverName: '47DC', rebootScript: 'ok', updates: 'ok' },
@@ -221,8 +221,8 @@ describe('MaintenanceLogsService', () => {
 
   describe('update', () => {
     it('actualiza payload y devuelve el log actualizado', async () => {
-      const updatedPayload: ServerMaintenancePayload = {
-        type: 'SERVER_MAINTENANCE',
+      const updatedPayload: WindowsDomainPayload = {
+        type: 'WINDOWS_DOMAIN_MAINTENANCE',
         windows: {
           servers: [
             {
@@ -249,7 +249,7 @@ describe('MaintenanceLogsService', () => {
         payload: dto.payload,
       });
       expect(
-        (result.payload as ServerMaintenancePayload).windows.servers[0]
+        (result.payload as WindowsDomainPayload).windows.servers[0]
           .rebootScript,
       ).toBe('error');
     });

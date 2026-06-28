@@ -36,7 +36,7 @@ describe('MaintenanceLogsController', () => {
     client: null as any,
     technicianId: 'tech-1',
     technician: mockTechnician,
-    type: TaskType.SERVER_MAINTENANCE,
+    type: TaskType.WINDOWS_DOMAIN_MAINTENANCE,
     status: TaskStatus.IN_PROGRESS,
     scheduledDate: '2026-06-01',
     completedDate: null,

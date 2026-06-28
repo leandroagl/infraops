@@ -391,7 +391,7 @@ describe('OdooService', () => {
   });
 
   describe('createTicket', () => {
-    it('crea un ticket SERVER_MAINTENANCE con título y descripción correctos', async () => {
+    it('crea un ticket WINDOWS_DOMAIN_MAINTENANCE con título y descripción correctos', async () => {
       clientRepo.findOne.mockResolvedValue(
         makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
       );
@@ -404,7 +404,7 @@ describe('OdooService', () => {
       const ticketId = await service.createTicket(
         'client-uuid-1',
         'tech-uuid-1',
-        TaskType.SERVER_MAINTENANCE,
+        TaskType.WINDOWS_DOMAIN_MAINTENANCE,
       );
 
       expect(ticketId).toBe(42);
@@ -413,8 +413,8 @@ describe('OdooService', () => {
         'create',
         [
           expect.objectContaining({
-            name: 'Mantenimiento de infraestructura',
-            description: 'Mantenimiento mensual de infraestructura.',
+            name: 'Mantenimiento Windows y dominios',
+            description: 'Mantenimiento mensual de servidores Windows y controladores de dominio.',
           }),
         ],
         {},
@@ -501,7 +501,7 @@ describe('OdooService', () => {
       expect(tagCalls).toHaveLength(1);
     });
 
-    it('NO incluye tag_ids al crear ticket SERVER_MAINTENANCE', async () => {
+    it('NO incluye tag_ids al crear ticket WINDOWS_DOMAIN_MAINTENANCE', async () => {
       clientRepo.findOne.mockResolvedValue(
         makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
       );
@@ -511,7 +511,7 @@ describe('OdooService', () => {
         .mockResolvedValueOnce([])  // sale.order.line
         .mockResolvedValueOnce(42); // helpdesk.ticket create
 
-      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_MAINTENANCE);
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
 
       const createCall = odooRpc.callKw.mock.calls.find(
         (args: unknown[]) => args[0] === 'helpdesk.ticket',
@@ -612,7 +612,7 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw.mockResolvedValue(99);
 
-      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_MAINTENANCE);
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
 
       expect(odooRpc.callKw).toHaveBeenCalledWith(
         'helpdesk.ticket',
@@ -632,7 +632,7 @@ describe('OdooService', () => {
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce(99);
 
-      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_MAINTENANCE);
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
 
       const createCall = odooRpc.callKw.mock.calls.find(
         (args: unknown[]) => args[0] === 'helpdesk.ticket',
@@ -646,7 +646,7 @@ describe('OdooService', () => {
       );
 
       await expect(
-        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_MAINTENANCE),
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),
       ).rejects.toThrow(BadRequestException);
       expect(odooRpc.callKw).not.toHaveBeenCalled();
     });
@@ -658,7 +658,7 @@ describe('OdooService', () => {
       odooRpc.callKw.mockResolvedValue([]);
 
       await expect(
-        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_MAINTENANCE),
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -671,7 +671,7 @@ describe('OdooService', () => {
       );
 
       await expect(
-        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_MAINTENANCE),
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),
       ).rejects.toThrow(ServiceUnavailableException);
     });
 
@@ -684,7 +684,7 @@ describe('OdooService', () => {
         .mockResolvedValueOnce(false);
 
       await expect(
-        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_MAINTENANCE),
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),
       ).rejects.toThrow(ServiceUnavailableException);
     });
 
@@ -694,7 +694,7 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
 
       await expect(
-        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_MAINTENANCE),
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),
       ).rejects.toThrow('ODOO_HELPDESK_TEAM_ID must be a valid integer');
       expect(odooRpc.callKw).not.toHaveBeenCalled();
     });
@@ -709,7 +709,7 @@ describe('OdooService', () => {
       technicianRepo.findOne.mockResolvedValue(technicianSinUsuario);
 
       await expect(
-        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_MAINTENANCE),
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),
       ).rejects.toThrow(BadRequestException);
       expect(odooRpc.callKw).not.toHaveBeenCalled();
     });

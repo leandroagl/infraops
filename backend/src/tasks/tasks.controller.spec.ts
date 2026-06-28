@@ -53,7 +53,7 @@ describe('TasksController', () => {
     client: mockClient,
     technicianId: 'tech-1',
     technician: mockTechnician,
-    type: TaskType.SERVER_MAINTENANCE,
+    type: TaskType.WINDOWS_DOMAIN_MAINTENANCE,
     status: TaskStatus.PENDING,
     scheduledDate: '2026-06-01',
     completedDate: null,
@@ -102,7 +102,7 @@ describe('TasksController', () => {
     const dto: CreateTaskDto = {
       clientId: 'client-1',
       technicianId: 'tech-1',
-      type: TaskType.SERVER_MAINTENANCE,
+      type: TaskType.WINDOWS_DOMAIN_MAINTENANCE,
       scheduledDate: '2026-06-01',
     };
 
