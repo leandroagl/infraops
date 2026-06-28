@@ -10,7 +10,8 @@ export class NotificationsController {
 
   @Get('expirations')
   getExpirations(@Query('days') days?: string): Promise<ExpirationItemDto[]> {
-    const parsedDays = days !== undefined ? parseInt(days, 10) : undefined;
+    const parsed = days !== undefined ? parseInt(days, 10) : undefined;
+    const parsedDays = parsed !== undefined && isNaN(parsed) ? undefined : parsed;
     return this.notificationsService.getExpirations(parsedDays);
   }
 }
