@@ -8,7 +8,7 @@
   </div>
   <div style="flex:1;min-width:0">
     <div class="d-client">{{ task.client?.name ?? task.clientId }}</div>
-    <span class="badge" [ngClass]="typeBadge(task.type)">{{ typeLabel(task.type) }}</span>
+    <span class="badge badge--type" [ngClass]="typeBadge(task.type)">{{ typeLabel(task.type) }}</span>
     <div class="d-meta">
       <span class="urg" [ngClass]="urgencyClass(daysFromToday(task.scheduledDate))">
         {{ urgencyLabel(daysFromToday(task.scheduledDate)) }}
