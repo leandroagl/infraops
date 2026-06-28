@@ -9,7 +9,7 @@ import { SidenavContextService, ClientSidenavContext } from '../services/sidenav
 interface NavItem {
   route: string;
   label: string;
-  icon: 'dashboard' | 'clients' | 'tasks' | 'admin';
+  icon: 'dashboard' | 'clients' | 'tasks' | 'notifications' | 'admin';
 }
 
 @Component({
@@ -19,10 +19,11 @@ interface NavItem {
 })
 export class ShellComponent implements OnInit {
   readonly navItems: NavItem[] = [
-    { route: '/dashboard', label: 'Dashboard',  icon: 'dashboard' },
-    { route: '/clients',   label: 'Clientes',   icon: 'clients'   },
-    { route: '/tasks',     label: 'Mis tareas', icon: 'tasks'     },
-    { route: '/admin',     label: 'Admin',      icon: 'admin'     },
+    { route: '/dashboard',      label: 'Dashboard',    icon: 'dashboard'     },
+    { route: '/clients',        label: 'Clientes',     icon: 'clients'       },
+    { route: '/tasks',          label: 'Mis tareas',   icon: 'tasks'         },
+    { route: '/notifications',  label: 'Vencimientos', icon: 'notifications' },
+    { route: '/admin',          label: 'Admin',        icon: 'admin'         },
   ];
 
   @ViewChild(MatSidenavContainer) private readonly sidenavContainer!: MatSidenavContainer;

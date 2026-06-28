@@ -31,6 +31,11 @@ const routes: Routes = [
           import('./features/technician/technician.module').then(m => m.TechnicianModule),
       },
       {
+        path: 'notifications',
+        loadChildren: () =>
+          import('./features/notifications/notifications.module').then(m => m.NotificationsModule),
+      },
+      {
         path: 'admin',
         canActivate: [AdminGuard],
         loadChildren: () =>

@@ -1,0 +1,108 @@
+<div class="page">
+
+  <div class="page-hdr">
+    <div class="page-hdr__left">
+      <span class="page-title">Vencimientos</span>
+      <span class="page-count" *ngIf="!loading">{{ totalShown }} items</span>
+    </div>
+    <button mat-stroked-button (click)="load()" [disabled]="loading">Actualizar</button>
+  </div>
+
+  <mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
+
+  <div *ngIf="error" class="error-banner">{{ error }}</div>
+
+  <div class="kpi-row">
+    <div class="kpi kpi--vencido">
+      <div class="kpi__label">Vencidos</div>
+      <div class="kpi__value">{{ expiredCount }}</div>
+      <div class="kpi__sub">requieren acción</div>
+    </div>
+    <div class="kpi kpi--crit">
+      <div class="kpi__label">Esta semana</div>
+      <div class="kpi__value">{{ weekCount }}</div>
+      <div class="kpi__sub">≤ 7 días</div>
+    </div>
+    <div class="kpi kpi--warn">
+      <div class="kpi__label">Próximamente</div>
+      <div class="kpi__value">{{ soonCount }}</div>
+      <div class="kpi__sub">8 – 20 días</div>
+    </div>
+    <div class="kpi kpi--total">
+      <div class="kpi__label">Mostrando</div>
+      <div class="kpi__value">{{ totalShown }}</div>
+      <div class="kpi__sub">{{ showAll ? 'todos' : 'próximos 90 días' }}</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Tipo</mat-label>
+      <mat-select [(ngModel)]="filterType">
+        <mat-option value="">Todos los tipos</mat-option>
+        <mat-option value="asset_warranty">Garantía de activo</mat-option>
+        <mat-option value="certificate">Certificado SSL</mat-option>
+        <mat-option value="domain">Dominio</mat-option>
+        <mat-option value="software">Licencia</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Urgencia</mat-label>
+      <mat-select [(ngModel)]="filterUrgency">
+        <mat-option value="">Toda urgencia</mat-option>
+        <mat-option value="expired">Vencidos</mat-option>
+        <mat-option value="week">Esta semana (≤7d)</mat-option>
+        <mat-option value="soon">Próximo (≤20d)</mat-option>
+        <mat-option value="attention">Atención (≤45d)</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <span class="filter-sep"></span>
+
+    <mat-checkbox [(ngModel)]="showAll" (change)="onShowAllChange()">
+      Ver todos los futuros
+    </mat-checkbox>
+  </div>
+
+  <mat-table [dataSource]="filteredItems" class="exp-table">
+
+    <ng-container matColumnDef="client">
+      <mat-header-cell *matHeaderCellDef>Cliente</mat-header-cell>
+      <mat-cell *matCellDef="let item">{{ item.clientName }}</mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="item">
+      <mat-header-cell *matHeaderCellDef>Item</mat-header-cell>
+      <mat-cell *matCellDef="let item" class="cell--name">{{ item.itemName }}</mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="type">
+      <mat-header-cell *matHeaderCellDef>Tipo</mat-header-cell>
+      <mat-cell *matCellDef="let item">
+        <span class="badge badge--type" [ngClass]="typeClass(item.type)">{{ typeLabel(item.type) }}</span>
+      </mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="expireDate">
+      <mat-header-cell *matHeaderCellDef>Vence</mat-header-cell>
+      <mat-cell *matCellDef="let item" class="cell--mono">{{ item.expireDate }}</mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="status">
+      <mat-header-cell *matHeaderCellDef>Estado</mat-header-cell>
+      <mat-cell *matCellDef="let item">
+        <span class="badge" [ngClass]="urgencyClass(item)">{{ urgencyLabel(item) }}</span>
+      </mat-cell>
+    </ng-container>
+
+    <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+    <mat-row
+      *matRowDef="let row; columns: displayedColumns;"
+      class="exp-row"
+      [class.exp-row--expired]="row.daysUntil < 0">
+    </mat-row>
+
+  </mat-table>
+
+</div>
