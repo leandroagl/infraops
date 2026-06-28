@@ -693,9 +693,9 @@ describe('TaskDrawerComponent — template tests', () => {
       expect(el.textContent).toContain('Acme Corp');
     });
 
-    it('should render type label in .d-sub', () => {
+    it('should render type label as badge chip in header', () => {
       setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
-      const el = fixture.nativeElement.querySelector('.d-sub');
+      const el = fixture.nativeElement.querySelector('.d-hdr .badge');
       expect(el).toBeTruthy();
       // The label for WINDOWS_DOMAIN_MAINTENANCE from task-labels
       expect(el.textContent.trim()).toBeTruthy();

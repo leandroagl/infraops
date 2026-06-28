@@ -35,7 +35,7 @@ import {
   ConfirmMaintenanceDialogData,
 } from './confirm-maintenance-dialog/confirm-maintenance-dialog.component';
 import { TimeSpentDialogComponent } from './time-spent-dialog/time-spent-dialog.component';
-import { statusLabel, statusBadge, typeLabelLong } from '../../../shared/utils/task-labels';
+import { statusLabel, statusBadge, typeLabel, typeBadge } from '../../../shared/utils/task-labels';
 import { daysFromToday, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
 import { formatOdooTicketId, odooTicketUrl } from '../../../shared/utils/odoo';
 
@@ -321,7 +321,8 @@ export class TaskDrawerComponent implements OnChanges {
 
   // ── Labels ──────────────────────────────────────────────────name───────────
 
-  typeLabel(type: TaskType): string   { return typeLabelLong(type); }
+  typeLabel(type: TaskType): string  { return typeLabel(type); }
+  typeBadge(type: TaskType): string  { return typeBadge(type); }
   statusLabel(status: string): string { return statusLabel(status as Parameters<typeof statusLabel>[0]); }
   statusBadge(status: string): string { return statusBadge(status as Parameters<typeof statusBadge>[0]); }
 }

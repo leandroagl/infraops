@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Task } from '../../../../core/models/task.models';
-import { typeLabelLong, statusLabel, statusBadge } from '../../../../shared/utils/task-labels';
+import { typeLabel, typeBadge, statusLabel, statusBadge } from '../../../../shared/utils/task-labels';
 import { formatOdooTicketId, odooTicketUrl } from '../../../../shared/utils/odoo';
 
 @Component({
@@ -13,7 +13,11 @@ export class AdminTaskDrawerComponent {
   @Output() drawerClosed = new EventEmitter<void>();
 
   get typeLabel(): string {
-    return typeLabelLong(this.task.type);
+    return typeLabel(this.task.type);
+  }
+
+  get typeBadgeClass(): string {
+    return typeBadge(this.task.type);
   }
 
   get statusLabel(): string {
