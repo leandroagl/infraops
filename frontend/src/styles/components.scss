@@ -47,6 +47,26 @@
     background: var(--accent-bg);  color: var(--accent);  border: 1px solid var(--accent-bd);
     .dot { background: var(--accent); }
   }
+  &--vmware {
+    background: var(--vmware-bg); color: var(--vmware); border: 1px solid var(--vmware-bd);
+    .dot { background: var(--vmware); }
+  }
+  &--win {
+    background: var(--win-bg);    color: var(--win);    border: 1px solid var(--win-bd);
+    .dot { background: var(--win);    }
+  }
+  &--nas {
+    background: var(--nas-bg);    color: var(--nas);    border: 1px solid var(--nas-bd);
+    .dot { background: var(--nas);    }
+  }
+  &--bkp {
+    background: var(--bkp-bg);   color: var(--bkp);    border: 1px solid var(--bkp-bd);
+    .dot { background: var(--bkp);    }
+  }
+  &--net {
+    background: var(--net-bg);    color: var(--net);    border: 1px solid var(--net-bd);
+    .dot { background: var(--net);    }
+  }
   &--na {
     background: transparent;
     color: var(--tx-lo);
