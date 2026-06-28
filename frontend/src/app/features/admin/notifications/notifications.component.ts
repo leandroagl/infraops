@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription } from 'rxjs';
 import { ExpirationItem, ExpirationType } from '../../../core/models/notification.models';
 import { NotificationsService } from '../../../core/services/notifications.service';
 
@@ -19,6 +20,7 @@ export class NotificationsComponent implements OnInit {
   readonly displayedColumns = ['client', 'item', 'type', 'expireDate', 'status'];
 
   private readonly destroyRef = inject(DestroyRef);
+  private loadSub?: Subscription;
 
   constructor(private notificationsService: NotificationsService) {}
 
@@ -27,10 +29,11 @@ export class NotificationsComponent implements OnInit {
   }
 
   load(): void {
+    this.loadSub?.unsubscribe();
     this.loading = true;
     this.error = '';
     const days = this.showAll ? undefined : 90;
-    this.notificationsService.getExpirations(days)
+    this.loadSub = this.notificationsService.getExpirations(days)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: items => { this.items = items; this.loading = false; },
