@@ -15,6 +15,7 @@ import { MatSortModule } from '@angular/material/sort';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { AdminRoutingModule } from './admin-routing.module';
 import { AdminLayoutComponent } from './admin-layout/admin-layout.component';
 import { UsersComponent } from './users/users.component';
@@ -25,6 +26,7 @@ import { AssignTechnicianDialogComponent } from './technicians/assign-technician
 import { TasksComponent } from './tasks/tasks.component';
 import { TaskCreateDialogComponent } from './tasks/task-create-dialog/task-create-dialog.component';
 import { AdminTaskDrawerComponent } from './tasks/admin-task-drawer/admin-task-drawer.component';
+import { NotificationsComponent } from './notifications/notifications.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
@@ -38,6 +40,7 @@ import { SharedModule } from '../../shared/shared.module';
     TasksComponent,
     TaskCreateDialogComponent,
     AdminTaskDrawerComponent,
+    NotificationsComponent,
   ],
   imports: [
     CommonModule,
@@ -57,6 +60,7 @@ import { SharedModule } from '../../shared/shared.module';
     MatTabsModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    MatCheckboxModule,
     AdminRoutingModule,
     SharedModule,
   ],
