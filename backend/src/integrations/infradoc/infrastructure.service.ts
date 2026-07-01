@@ -47,11 +47,23 @@ export class InfrastructureService {
       string,
       { bmcIp: string | null; bmcType: string | null }
     >();
+    const uriMap = new Map<
+      string,
+      { uri1: string | null; uri2: string | null }
+    >();
     serverIds.forEach((id, i) => {
       bmcMap.set(id, this.resolveBmc(interfaceArrays[i]));
+      uriMap.set(id, this.resolveVmwareUris(interfaceArrays[i]));
     });
 
-    return this.groupAssets(raw, bmcMap);
+    return this.groupAssets(raw, bmcMap, uriMap);
+  }
+
+  private resolveVmwareUris(
+    interfaces: RawInfradocAsset[],
+  ): { uri1: string | null; uri2: string | null } {
+    const best = interfaces.find((i) => i.asset_uri || i.asset_uri_2);
+    return { uri1: best?.asset_uri ?? null, uri2: best?.asset_uri_2 ?? null };
   }
 
   private resolveBmc(interfaces: RawInfradocAsset[]): {
@@ -74,6 +86,7 @@ export class InfrastructureService {
   private groupAssets(
     raw: RawInfradocAsset[],
     bmcMap: Map<string, { bmcIp: string | null; bmcType: string | null }>,
+    uriMap: Map<string, { uri1: string | null; uri2: string | null }>,
   ): ClientInfrastructureDto {
     const result: ClientInfrastructureDto = {
       esxiHosts: [],
@@ -84,13 +97,20 @@ export class InfrastructureService {
       routers: [],
     };
 
+    const seen = new Set<string>();
+
     for (const asset of raw) {
+      if (seen.has(asset.asset_id)) continue;
+      seen.add(asset.asset_id);
+
       const type = (asset.asset_type ?? '').trim().toLowerCase();
       const make = (asset.asset_make ?? '').trim().toLowerCase();
       const os = (asset.asset_os ?? '').trim().toLowerCase();
 
       if (type === 'server') {
-        result.esxiHosts.push(this.mapAsset(asset, bmcMap.get(asset.asset_id)));
+        result.esxiHosts.push(
+          this.mapAsset(asset, bmcMap.get(asset.asset_id), uriMap.get(asset.asset_id)),
+        );
       } else if (
         type === 'virtual machine' &&
         os.startsWith('windows server')
@@ -120,6 +140,7 @@ export class InfrastructureService {
   private mapAsset(
     raw: RawInfradocAsset,
     bmc?: { bmcIp: string | null; bmcType: string | null },
+    uriOverride?: { uri1: string | null; uri2: string | null },
   ): InfraAssetDto {
     return {
       assetId: Number(raw.asset_id),
@@ -129,8 +150,8 @@ export class InfrastructureService {
       bmcType: bmc?.bmcType ?? null,
       os: raw.asset_os || null,
       model: raw.asset_model || null,
-      uri1: raw.uri1 ?? null,
-      uri2: raw.uri2 ?? null,
+      uri1: uriOverride?.uri1 ?? raw.asset_uri ?? null,
+      uri2: uriOverride?.uri2 ?? raw.asset_uri_2 ?? null,
     };
   }
 }

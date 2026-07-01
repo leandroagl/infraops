@@ -128,16 +128,16 @@ describe('InfradocAssetsService', () => {
     expect(result).toEqual([]);
   });
 
-  it('propaga uri1 y uri2 desde la respuesta de InfraDoc', async () => {
+  it('propaga asset_uri y asset_uri_2 desde la respuesta de InfraDoc', async () => {
     httpService.get.mockReturnValue(
       of(axiosRes({
         success: 'True', count: 1,
-        data: [makeRawAsset({ uri1: 'esxi.cliente.com:344', uri2: null })],
+        data: [makeRawAsset({ asset_uri: 'https://esxi.cliente.com:344', asset_uri_2: null })],
       })),
     );
     const result = await service.getAssets(42);
-    expect(result[0].uri1).toBe('esxi.cliente.com:344');
-    expect(result[0].uri2).toBeNull();
+    expect(result[0].asset_uri).toBe('https://esxi.cliente.com:344');
+    expect(result[0].asset_uri_2).toBeNull();
   });
 
   describe('getAssetInterfaces', () => {
