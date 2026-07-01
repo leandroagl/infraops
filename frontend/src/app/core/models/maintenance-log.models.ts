@@ -89,6 +89,45 @@ export interface BmcEntry {
   alertLogs?:         string;
 }
 
+export interface VmwareHealthResult {
+  host: {
+    name: string;
+    esxiVersion: string;
+    uptimeHours: number;
+    cpuUsagePct: number;
+    memUsagePct: number;
+    memOvercommitRatio: number;
+    overallStatus: 'green' | 'yellow' | 'red';
+    hardwareAlerts: string[];
+  };
+  datastores: Array<{
+    name: string;
+    type: string;
+    capacityGb: number;
+    freeGb: number;
+    usedPct: number;
+    accessible: boolean;
+  }>;
+  vms: {
+    poweredOn: number;
+    poweredOff: number;
+    suspended: number;
+    snapshots: Array<{ vmName: string; count: number; oldestDays: number }>;
+    toolsNotOk: number;
+  };
+  network: {
+    vswitchErrors: string[];
+    nicsFailed: string[];
+  };
+  collectedAt: string;
+}
+
+export interface EsxiHostEntry {
+  assetId: number;
+  vmwareCheck: VmwareHealthResult | null;
+  notes?: string;
+}
+
 export interface ServerMaintenancePayload {
   type: 'SERVER_MAINTENANCE';
   windows: WindowsSection;
@@ -102,8 +141,7 @@ export interface ServerMaintenancePayload {
 
 export interface ServerHostPayload {
   type: 'SERVER_HOST_MAINTENANCE';
-  vmware: VMwareHostEntry[];
-  bmc: BmcEntry[];
+  esxiHosts: EsxiHostEntry[];
   notes?: string;
 }
 

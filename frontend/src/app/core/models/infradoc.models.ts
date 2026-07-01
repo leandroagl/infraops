@@ -6,6 +6,8 @@ export interface InfraAsset {
   bmcType: string | null;
   os: string | null;
   model: string | null;
+  uri1: string | null;
+  uri2: string | null;
 }
 
 export interface ClientInfrastructure {
