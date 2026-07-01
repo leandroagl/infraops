@@ -102,6 +102,7 @@ describe('ServerHostFormComponent — pure unit tests', () => {
     it('restaura valores de vmware del payload guardado', () => {
       const payload: ServerHostPayload = {
         type: 'SERVER_HOST_MAINTENANCE',
+        esxiHosts: [],
         vmware: [{ hostId: 1, hostName: 'host1.ondra', cpuUsage: 55, memUsage: 72, storageUsage: 80, snapshotsOk: false }],
         bmc: [{ hostId: 1, hostName: 'host1.ondra', alertStatus: 'ok' }],
       };
@@ -114,6 +115,7 @@ describe('ServerHostFormComponent — pure unit tests', () => {
     it('restaura alertStatus de bmc del payload guardado', () => {
       const payload: ServerHostPayload = {
         type: 'SERVER_HOST_MAINTENANCE',
+        esxiHosts: [],
         vmware: [{ hostId: 1, hostName: 'host1.ondra', cpuUsage: 0, memUsage: 0, storageUsage: 0, snapshotsOk: false }],
         bmc: [{ hostId: 1, hostName: 'host1.ondra', alertStatus: 'alerta', alertCategories: ['fan'] }],
       };

@@ -169,6 +169,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     it('retorna emptyFields para SERVER_HOST_MAINTENANCE con cpuUsage NaN', () => {
       const payload: ServerHostPayload = {
         type: 'SERVER_HOST_MAINTENANCE',
+        esxiHosts: [],
         vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: NaN, memUsage: 50, storageUsage: 40, snapshotsOk: true }],
         bmc: [],
       };
@@ -180,6 +181,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     it('retorna emptyFields para SERVER_HOST_MAINTENANCE con memUsage NaN', () => {
       const payload: ServerHostPayload = {
         type: 'SERVER_HOST_MAINTENANCE',
+        esxiHosts: [],
         vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: 40, memUsage: NaN, storageUsage: 40, snapshotsOk: true }],
         bmc: [],
       };
@@ -191,6 +193,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     it('retorna emptyFields vacío para SERVER_HOST_MAINTENANCE con todas las métricas completas', () => {
       const payload: ServerHostPayload = {
         type: 'SERVER_HOST_MAINTENANCE',
+        esxiHosts: [],
         vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: 40, memUsage: 50, storageUsage: 30, snapshotsOk: true }],
         bmc: [],
       };
@@ -211,6 +214,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     it('retorna todo vacío para SERVER_HOST_MAINTENANCE con un solo host y métricas NaN — emptyFields sin sufijo de host', () => {
       const payload: ServerHostPayload = {
         type: 'SERVER_HOST_MAINTENANCE',
+        esxiHosts: [],
         vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: NaN, memUsage: NaN, storageUsage: NaN, snapshotsOk: true }],
         bmc: [],
       };

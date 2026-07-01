@@ -40,6 +40,7 @@ function makeGroup(overrides: {
 const mockDevice: InfraAsset = {
   assetId: 1, name: 'QNAP – TS-219P+', ip: '192.168.0.132',
   bmcIp: null, bmcType: null, os: null, model: 'TS-219P+',
+  uri1: null, uri2: null,
 };
 
 const meta: Meta<QnapDeviceCardComponent> = {

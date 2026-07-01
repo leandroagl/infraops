@@ -131,6 +131,7 @@ export class ServerHostFormComponent implements OnChanges {
 
     return {
       type: 'SERVER_HOST_MAINTENANCE',
+      esxiHosts: [],
       vmware,
       bmc,
       notes: this.form.value.notes || undefined,
