@@ -25,10 +25,10 @@ function makeProc(opts: { stdout?: string; stderr?: string; exitCode?: number; h
   const proc = {
     stdout: stdoutEm,
     stderr: stderrEm,
-    on: (ev: string, fn: (...args: any[]) => void) => procEm.on(ev, fn),
+    on: (ev: string, fn: (...args: any[]) => void) => procEm.on(ev, fn), // ChildProcess.on has overloaded signatures; any is needed for mock stub
     kill: jest.fn(),
   };
-  mockSpawn.mockReturnValue(proc as any);
+  mockSpawn.mockReturnValue(proc as any); // Partial mock object requires cast to ChildProcess type
   if (!opts.hang) {
     setImmediate(() => {
       if (opts.stdout) stdoutEm.emit('data', Buffer.from(opts.stdout));
