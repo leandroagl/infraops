@@ -12,6 +12,8 @@ export interface RawInfradocAsset {
   asset_description: string | null;
   interface_ip: string | null;
   interface_name: string | null;
+  uri1: string | null;
+  uri2: string | null;
 }
 
 @Injectable()

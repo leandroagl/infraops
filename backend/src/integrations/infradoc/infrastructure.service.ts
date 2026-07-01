@@ -129,6 +129,8 @@ export class InfrastructureService {
       bmcType: bmc?.bmcType ?? null,
       os: raw.asset_os || null,
       model: raw.asset_model || null,
+      uri1: raw.uri1 ?? null,
+      uri2: raw.uri2 ?? null,
     };
   }
 }

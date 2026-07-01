@@ -27,6 +27,8 @@ describe('InfrastructureService', () => {
     interface_name: null,
     asset_os: 'VMware ESXi 7.0.0',
     asset_model: 'ProLiant DL380 Gen10',
+    uri1: null,
+    uri2: null,
     ...override,
   });
 
@@ -87,6 +89,8 @@ describe('InfrastructureService', () => {
       bmcType: null,
       os: 'VMware ESXi 7.0.0',
       model: 'ProLiant DL380 Gen10',
+      uri1: null,
+      uri2: null,
     });
     expect(result.windowsVMs).toHaveLength(0);
     expect(result.nas).toHaveLength(0);
@@ -230,6 +234,26 @@ describe('InfrastructureService', () => {
     expect(result.esxiHosts[0].bmcType).toBeNull();
     expect(result.esxiHosts[0].os).toBeNull();
     expect(result.esxiHosts[0].model).toBeNull();
+  });
+
+  it('propaga uri1 y uri2 al mapear un server asset', async () => {
+    const rawServer = {
+      asset_id: '10', asset_name: 'ESXi-01', asset_type: 'server',
+      asset_make: null, asset_os: null, asset_model: null,
+      asset_description: null, interface_ip: '192.168.1.10',
+      interface_name: null,
+      uri1: 'esxi.cliente.com:344', uri2: 'esxi2.cliente.com:345',
+    };
+
+    // Asumir que infradocAssetsService y clientsService ya están mockeados
+    // siguiendo el patrón del spec existente:
+    infradocAssetsService.getAssets.mockResolvedValue([rawServer]);
+    infradocAssetsService.getAssetInterfaces.mockResolvedValue([]);
+    clientsService.findInfradocId.mockResolvedValue(42);
+
+    const result = await service.getClientInfrastructure('uuid-client');
+    expect(result.esxiHosts[0].uri1).toBe('esxi.cliente.com:344');
+    expect(result.esxiHosts[0].uri2).toBe('esxi2.cliente.com:345');
   });
 
   describe('BMC resolution', () => {
