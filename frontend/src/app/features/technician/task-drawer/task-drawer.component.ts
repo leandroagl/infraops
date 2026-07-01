@@ -15,7 +15,6 @@ import { ClientInfrastructure } from '../../../core/models/infradoc.models';
 import {
   MaintenancePayload,
   RouterMaintenancePayload,
-  ServerHostPayload,
   VeeamBackupPayload,
   WindowsDomainPayload,
 } from '../../../core/models/maintenance-log.models';
@@ -156,20 +155,6 @@ export class TaskDrawerComponent implements OnChanges {
         .flatMap(dc => dc.warnings ?? [])
         .filter(w => w.toUpperCase().startsWith('ERROR'));
       return { dcdiagErrors, veeamMissing: false, emptyFields: [] };
-    }
-
-    if (payload.type === 'SERVER_HOST_MAINTENANCE') {
-      const srv = payload as ServerHostPayload;
-      const emptyFields: string[] = [];
-      if (srv.vmware) {
-        srv.vmware.forEach((host) => {
-          const label = srv.vmware!.length > 1 ? ` (${host.hostName})` : '';
-          if (isNaN(host.cpuUsage))     emptyFields.push(`CPU%${label}`);
-          if (isNaN(host.memUsage))     emptyFields.push(`Memoria%${label}`);
-          if (isNaN(host.storageUsage)) emptyFields.push(`Storage%${label}`);
-        });
-      }
-      return { dcdiagErrors: [], veeamMissing: false, emptyFields };
     }
 
     return { dcdiagErrors: [], veeamMissing: false, emptyFields: [] };

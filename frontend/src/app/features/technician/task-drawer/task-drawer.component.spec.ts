@@ -11,7 +11,6 @@ import { MaintenanceLogsService } from '../../../core/services/maintenance-logs.
 import { TasksService } from '../../../core/services/tasks.service';
 import { Task, TaskType, TaskStatus } from '../../../core/models/task.models';
 import {
-  ServerHostPayload,
   TerminalPayload,
   MaintenancePayload,
   WindowsDomainPayload,
@@ -166,43 +165,6 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(issues.veeamMissing).toBe(false);
     });
 
-    it('retorna emptyFields para SERVER_HOST_MAINTENANCE con cpuUsage NaN', () => {
-      const payload: ServerHostPayload = {
-        type: 'SERVER_HOST_MAINTENANCE',
-        esxiHosts: [],
-        vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: NaN, memUsage: 50, storageUsage: 40, snapshotsOk: true }],
-        bmc: [],
-      };
-      const issues = component.detectIssues(payload);
-      expect(issues.emptyFields.length).toBeGreaterThan(0);
-      expect(issues.emptyFields).toContain('CPU%');
-    });
-
-    it('retorna emptyFields para SERVER_HOST_MAINTENANCE con memUsage NaN', () => {
-      const payload: ServerHostPayload = {
-        type: 'SERVER_HOST_MAINTENANCE',
-        esxiHosts: [],
-        vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: 40, memUsage: NaN, storageUsage: 40, snapshotsOk: true }],
-        bmc: [],
-      };
-      const issues = component.detectIssues(payload);
-      expect(issues.emptyFields.length).toBeGreaterThan(0);
-      expect(issues.emptyFields).toContain('Memoria%');
-    });
-
-    it('retorna emptyFields vacío para SERVER_HOST_MAINTENANCE con todas las métricas completas', () => {
-      const payload: ServerHostPayload = {
-        type: 'SERVER_HOST_MAINTENANCE',
-        esxiHosts: [],
-        vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: 40, memUsage: 50, storageUsage: 30, snapshotsOk: true }],
-        bmc: [],
-      };
-      const issues = component.detectIssues(payload);
-      expect(issues.dcdiagErrors.length).toBe(0);
-      expect(issues.veeamMissing).toBe(false);
-      expect(issues.emptyFields.length).toBe(0);
-    });
-
     it('retorna todo vacío para TerminalPayload (tipo no manejado)', () => {
       const payload = makeTerminalPayload();
       const issues = component.detectIssues(payload);
@@ -211,20 +173,6 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(issues.emptyFields.length).toBe(0);
     });
 
-    it('retorna todo vacío para SERVER_HOST_MAINTENANCE con un solo host y métricas NaN — emptyFields sin sufijo de host', () => {
-      const payload: ServerHostPayload = {
-        type: 'SERVER_HOST_MAINTENANCE',
-        esxiHosts: [],
-        vmware: [{ hostId: 1, hostName: 'host1', cpuUsage: NaN, memUsage: NaN, storageUsage: NaN, snapshotsOk: true }],
-        bmc: [],
-      };
-      const issues = component.detectIssues(payload);
-      // Con un solo host, el label no lleva sufijo de nombre
-      expect(issues.emptyFields).toContain('CPU%');
-      expect(issues.emptyFields).toContain('Memoria%');
-      expect(issues.emptyFields).toContain('Storage%');
-      expect(issues.emptyFields.some(f => f.includes('('))).toBe(false);
-    });
   });
 
   // ── isActiveTask ──────────────────────────────────────────────────────────
