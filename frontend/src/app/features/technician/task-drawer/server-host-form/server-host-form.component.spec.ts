@@ -1,7 +1,8 @@
-import { FormBuilder } from '@angular/forms';
+import { FormControl } from '@angular/forms';
+import { of, Subject, throwError } from 'rxjs';
 import { ServerHostFormComponent } from './server-host-form.component';
 import { ClientInfrastructure, InfraAsset } from '../../../../core/models/infradoc.models';
-import { ServerHostPayload } from '../../../../core/models/maintenance-log.models';
+import { ServerHostPayload, VmwareHealthResult } from '../../../../core/models/maintenance-log.models';
 import { Task } from '../../../../core/models/task.models';
 
 const makeTask = (): Task => ({
@@ -13,199 +14,152 @@ const makeTask = (): Task => ({
 });
 
 const makeHost = (overrides: Partial<InfraAsset> = {}): InfraAsset => ({
-  assetId: 1, name: 'host1.ondra', ip: '192.168.0.104',
-  bmcIp: '192.168.0.200', bmcType: 'iLO',
-  os: 'VMware ESXi 7.0', model: 'HPE DL380',
-  uri1: null, uri2: null,
+  assetId: 1, name: 'esxi01', ip: '192.168.1.10',
+  bmcIp: null, bmcType: null, os: null, model: null,
+  uri1: 'esxi.cliente.com:344', uri2: null,
   ...overrides,
 });
 
 const makeInfra = (hosts: InfraAsset[] = [makeHost()]): ClientInfrastructure => ({
-  esxiHosts: hosts,
-  windowsVMs: [], domainControllers: [], linuxVMs: [], nas: [], routers: [],
+  esxiHosts: hosts, windowsVMs: [], domainControllers: [], linuxVMs: [], nas: [], routers: [],
 });
 
-describe('ServerHostFormComponent — pure unit tests', () => {
+const MOCK_RESULT: VmwareHealthResult = {
+  host: {
+    name: 'esxi01', esxiVersion: '7.0.3', uptimeHours: 100,
+    cpuUsagePct: 20, memUsagePct: 50, memOvercommitRatio: 1.0,
+    overallStatus: 'green', hardwareAlerts: [],
+  },
+  datastores: [],
+  vms: { poweredOn: 1, poweredOff: 0, suspended: 0, snapshots: [], toolsNotOk: 0 },
+  network: { vswitchErrors: [], nicsFailed: [] },
+  collectedAt: '2026-06-29T00:00:00Z',
+};
+
+describe('ServerHostFormComponent', () => {
   let component: ServerHostFormComponent;
+  let mockVmwareApi: { healthCheck: jasmine.Spy };
 
   beforeEach(() => {
-    component = new ServerHostFormComponent(new FormBuilder());
+    mockVmwareApi = { healthCheck: jasmine.createSpy('healthCheck') };
+    component = new ServerHostFormComponent(mockVmwareApi as any);
     component.task = makeTask();
-  });
-
-  describe('buildForm()', () => {
-    it('crea un grupo vmwareHosts y bmcHosts por cada esxiHost', () => {
-      component.infrastructure = makeInfra([makeHost(), makeHost({ assetId: 2, name: 'host2' })]);
-      component.ngOnChanges({ infrastructure: {} as any });
-      expect(component.vmwareHostControls.length).toBe(2);
-      expect(component.bmcHostControls.length).toBe(2);
-    });
-
-    it('inicializa alertStatus en "ok" para cada host', () => {
-      component.infrastructure = makeInfra();
-      component.ngOnChanges({ infrastructure: {} as any });
-      expect(component.bmcHostControls.at(0).get('alertStatus')?.value).toBe('ok');
-    });
+    component.infrastructure = makeInfra();
   });
 
   describe('buildPayload()', () => {
-    beforeEach(() => {
-      component.infrastructure = makeInfra();
-      component.ngOnChanges({ infrastructure: {} as any });
+    it('retorna payload con type SERVER_HOST_MAINTENANCE', () => {
+      expect(component.buildPayload().type).toBe('SERVER_HOST_MAINTENANCE');
     });
 
-    it('retorna payload con type SERVER_HOST_MAINTENANCE', () => {
+    it('incluye vmwareCheck null cuando no se ejecutó el check', () => {
+      const payload = component.buildPayload();
+      expect(payload.esxiHosts[0].vmwareCheck).toBeNull();
+    });
+
+    it('incluye vmwareCheck cuando el resultado está disponible', () => {
+      component.vmwareResults.set(1, MOCK_RESULT);
+      expect(component.buildPayload().esxiHosts[0].vmwareCheck).toEqual(MOCK_RESULT);
+    });
+
+    it('permite completar sin haber ejecutado el check (vmwareCheck null es válido)', () => {
       const payload = component.buildPayload();
       expect(payload.type).toBe('SERVER_HOST_MAINTENANCE');
+      expect(payload.esxiHosts[0].vmwareCheck).toBeNull();
     });
 
-    it('mapea vmware con hostId, hostName y métricas del form', () => {
-      component.vmwareHostControls.at(0).patchValue({ cpuUsage: 45, memUsage: 60, storageUsage: 70, snapshotsOk: true });
-      const payload = component.buildPayload();
-      expect(payload.vmware![0].hostId).toBe(1);
-      expect(payload.vmware![0].hostName).toBe('host1.ondra');
-      expect(payload.vmware![0].cpuUsage).toBe(45);
-      expect(payload.vmware![0].snapshotsOk).toBe(true);
+    it('mapea un entry por cada esxiHost de la infrastructure', () => {
+      component.infrastructure = makeInfra([makeHost(), makeHost({ assetId: 2, name: 'esxi02' })]);
+      expect(component.buildPayload().esxiHosts).toHaveSize(2);
     });
 
-    it('mapea bmc con alertStatus y omite alertCategories si no hay alerta', () => {
-      component.bmcHostControls.at(0).patchValue({ alertStatus: 'ok', firmwareVersion: '2.82' });
-      const payload = component.buildPayload();
-      expect(payload.bmc![0].alertStatus).toBe('ok');
-      expect(payload.bmc![0].firmwareVersion).toBe('2.82');
-      expect(payload.bmc![0].alertCategories).toBeUndefined();
-    });
-
-    it('incluye alertCategories en bmc cuando alertStatus es "alerta"', () => {
-      component.bmcHostControls.at(0).patchValue({ alertStatus: 'alerta', alertCategories: ['fan', 'psu'] });
-      const payload = component.buildPayload();
-      expect(payload.bmc![0].alertCategories).toEqual(['fan', 'psu']);
-    });
-
-    it('incluye notes si no está vacío', () => {
-      component.form.patchValue({ notes: 'revisar próxima semana' });
+    it('incluye notes cuando tiene valor', () => {
+      component.notesControl.setValue('revisar próxima semana');
       expect(component.buildPayload().notes).toBe('revisar próxima semana');
     });
 
-    it('omite notes si está vacío', () => {
-      component.form.patchValue({ notes: '' });
+    it('omite notes cuando está vacío', () => {
+      component.notesControl.setValue('');
       expect(component.buildPayload().notes).toBeUndefined();
     });
   });
 
-  describe('patchFormFromPayload()', () => {
-    beforeEach(() => {
-      component.infrastructure = makeInfra();
-      component.ngOnChanges({ infrastructure: {} as any });
+  describe('onRunCheck()', () => {
+    it('agrega assetId a loadingHosts mientras espera respuesta', () => {
+      mockVmwareApi.healthCheck.and.returnValue(new Subject());
+      component.onRunCheck('esxi.cliente.com:344', 1);
+      expect(component.loadingHosts.has(1)).toBe(true);
     });
 
-    it('restaura valores de vmware del payload guardado', () => {
-      const payload: ServerHostPayload = {
-        type: 'SERVER_HOST_MAINTENANCE',
-        esxiHosts: [],
-        vmware: [{ hostId: 1, hostName: 'host1.ondra', cpuUsage: 55, memUsage: 72, storageUsage: 80, snapshotsOk: false }],
-        bmc: [{ hostId: 1, hostName: 'host1.ondra', alertStatus: 'ok' }],
-      };
-      component.savedPayload = payload;
-      component.ngOnChanges({ infrastructure: {} as any });
-      expect(component.vmwareHostControls.at(0).get('cpuUsage')?.value).toBe(55);
-      expect(component.vmwareHostControls.at(0).get('memUsage')?.value).toBe(72);
+    it('almacena resultado en vmwareResults y elimina de loadingHosts al tener éxito', () => {
+      mockVmwareApi.healthCheck.and.returnValue(of(MOCK_RESULT));
+      component.onRunCheck('esxi.cliente.com:344', 1);
+      expect(component.vmwareResults.get(1)).toEqual(MOCK_RESULT);
+      expect(component.loadingHosts.has(1)).toBe(false);
     });
 
-    it('restaura alertStatus de bmc del payload guardado', () => {
-      const payload: ServerHostPayload = {
+    it('almacena error en hostErrors y elimina de loadingHosts al fallar', () => {
+      mockVmwareApi.healthCheck.and.returnValue(
+        throwError(() => ({ error: { message: 'Host inaccesible' } })),
+      );
+      component.onRunCheck('esxi.cliente.com:344', 1);
+      expect(component.hostErrors.get(1)).toBe('Host inaccesible');
+      expect(component.loadingHosts.has(1)).toBe(false);
+    });
+
+    it('limpia error previo al re-ejecutar', () => {
+      component.hostErrors.set(1, 'error anterior');
+      mockVmwareApi.healthCheck.and.returnValue(new Subject());
+      component.onRunCheck('esxi.cliente.com:344', 1);
+      expect(component.hostErrors.has(1)).toBe(false);
+    });
+  });
+
+  describe('ngOnChanges — restoreFromPayload', () => {
+    it('restaura vmwareResults desde payload guardado', () => {
+      component.savedPayload = {
+        type: 'SERVER_HOST_MAINTENANCE',
+        esxiHosts: [{ assetId: 1, vmwareCheck: MOCK_RESULT }],
+      };
+      component.ngOnChanges({ savedPayload: {} as any });
+      expect(component.vmwareResults.get(1)).toEqual(MOCK_RESULT);
+    });
+
+    it('restaura notes desde payload guardado', () => {
+      component.savedPayload = {
         type: 'SERVER_HOST_MAINTENANCE',
         esxiHosts: [],
-        vmware: [{ hostId: 1, hostName: 'host1.ondra', cpuUsage: 0, memUsage: 0, storageUsage: 0, snapshotsOk: false }],
-        bmc: [{ hostId: 1, hostName: 'host1.ondra', alertStatus: 'alerta', alertCategories: ['fan'] }],
+        notes: 'notas de prueba',
       };
-      component.savedPayload = payload;
-      component.ngOnChanges({ infrastructure: {} as any });
-      expect(component.bmcHostControls.at(0).get('alertStatus')?.value).toBe('alerta');
-      expect(component.bmcHostControls.at(0).get('alertCategories')?.value).toEqual(['fan']);
+      component.ngOnChanges({ savedPayload: {} as any });
+      expect(component.notesControl.value).toBe('notas de prueba');
     });
 
     it('ignora payload de otro tipo', () => {
       component.savedPayload = { type: 'QNAP_MAINTENANCE', qnap: [] };
-      component.ngOnChanges({ infrastructure: {} as any });
-      expect(component.vmwareHostControls.at(0).get('cpuUsage')?.value).toBeNull();
-    });
-  });
-
-  describe('readOnly', () => {
-    it('deshabilita el form cuando readOnly = true', () => {
-      component.infrastructure = makeInfra();
-      component.readOnly = true;
-      component.ngOnChanges({ infrastructure: {} as any });
-      expect(component.form.disabled).toBe(true);
-    });
-
-    it('habilita el form cuando readOnly cambia a false', () => {
-      component.infrastructure = makeInfra();
-      component.readOnly = true;
-      component.ngOnChanges({ infrastructure: {} as any });
-      component.readOnly = false;
-      component.ngOnChanges({ readOnly: {} as any });
-      expect(component.form.disabled).toBe(false);
-    });
-  });
-
-  describe('helpers', () => {
-    beforeEach(() => {
-      component.infrastructure = makeInfra();
-      component.ngOnChanges({ infrastructure: {} as any });
-    });
-
-    it('metricClass retorna "mf-inp--crit" cuando value >= critThreshold', () => {
-      expect(component.metricClass(85, 60, 80)).toBe('mf-inp--crit');
-    });
-
-    it('metricClass retorna "mf-inp--warn" cuando value >= warnThreshold', () => {
-      expect(component.metricClass(65, 60, 80)).toBe('mf-inp--warn');
-    });
-
-    it('metricClass retorna "mf-inp--ok" cuando value < warnThreshold', () => {
-      expect(component.metricClass(40, 60, 80)).toBe('mf-inp--ok');
-    });
-
-    it('metricClass retorna "" para null', () => {
-      expect(component.metricClass(null, 60, 80)).toBe('');
-    });
-
-    it('showHighVMsForHost retorna true cuando cpu >= 60', () => {
-      component.vmwareHostControls.at(0).patchValue({ cpuUsage: 60, memUsage: 0, storageUsage: 0 });
-      expect(component.showHighVMsForHost(0)).toBe(true);
-    });
-
-    it('bmcHasAlert retorna true cuando alertStatus es "alerta"', () => {
-      component.bmcHostControls.at(0).patchValue({ alertStatus: 'alerta' });
-      expect(component.bmcHasAlert(0)).toBe(true);
+      component.ngOnChanges({ savedPayload: {} as any });
+      expect(component.vmwareResults.size).toBe(0);
     });
   });
 
   describe('outputs', () => {
-    beforeEach(() => {
-      component.infrastructure = makeInfra();
-      component.ngOnChanges({ infrastructure: {} as any });
-    });
-
     it('submit() emite requestComplete con el payload', () => {
       let emitted: ServerHostPayload | undefined;
-      component.requestComplete.subscribe(p => emitted = p);
+      component.requestComplete.subscribe(p => (emitted = p));
       component.submit();
       expect(emitted?.type).toBe('SERVER_HOST_MAINTENANCE');
     });
 
     it('save() emite requestSave con el payload', () => {
       let emitted: ServerHostPayload | undefined;
-      component.requestSave.subscribe(p => emitted = p);
+      component.requestSave.subscribe(p => (emitted = p));
       component.save();
       expect(emitted?.type).toBe('SERVER_HOST_MAINTENANCE');
     });
 
     it('submitNotDone() emite requestNotDone', () => {
       let emitted = false;
-      component.requestNotDone.subscribe(() => emitted = true);
+      component.requestNotDone.subscribe(() => (emitted = true));
       component.submitNotDone();
       expect(emitted).toBe(true);
     });
