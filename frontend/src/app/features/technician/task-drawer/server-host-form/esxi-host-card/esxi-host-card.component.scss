@@ -1,0 +1,168 @@
+.ehc {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ehc-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ehc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--srv);
+  flex-shrink: 0;
+}
+
+.ehc-name-block {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.ehc-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tx-hi);
+}
+
+.ehc-ip {
+  font-size: 11px;
+  color: var(--tx-lo);
+}
+
+.ehc-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ehc-spinner {
+  display: inline-block;
+}
+
+.ehc-section-lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--tx-lo);
+  margin-top: 4px;
+}
+
+.ehc-metrics-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.ehc-kv {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ehc-val-sm {
+  font-size: 11px;
+}
+
+.ehc-alerts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ehc-ds-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.ehc-ds-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ehc-bar {
+  width: 80px;
+  height: 6px;
+  background: var(--bg-2);
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ehc-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ok);
+  &.metric--warn { background: var(--warn); }
+  &.metric--crit { background: var(--crit); }
+}
+
+.ehc-ds-pct { font-size: 12px; width: 36px; text-align: right; }
+.ehc-ds-free { font-size: 11px; color: var(--tx-lo); }
+
+.ehc-vms-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ehc-snaps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ehc-snap-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.ehc-snap-name {
+  flex: 1;
+  color: var(--tx-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ehc-net-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ehc-error {
+  color: var(--crit);
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.ehc-footer {
+  font-size: 10px;
+  color: var(--tx-lo);
+  margin-top: 4px;
+}
+
+.metric--crit { color: var(--crit); }
+.metric--warn { color: var(--warn); }
+.metric--ok   { color: var(--ok); }

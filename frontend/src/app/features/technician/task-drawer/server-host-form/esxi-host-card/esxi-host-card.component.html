@@ -1,0 +1,110 @@
+<div class="ehc">
+
+  <!-- Header -->
+  <div class="ehc-hdr">
+    <div class="ehc-dot"></div>
+    <div class="ehc-name-block">
+      <span class="ehc-name">{{ host.name }}</span>
+      <span class="mono ehc-ip">{{ host.ip ?? '—' }}</span>
+    </div>
+    <span *ngIf="!vmwareUri" class="badge badge--neutral ehc-no-vmware">Sin VMware</span>
+    <button mat-flat-button color="primary" class="ehc-btn"
+            [disabled]="!canRun"
+            (click)="onRunClick()">
+      <mat-progress-spinner *ngIf="loading" diameter="14" mode="indeterminate"
+                            class="ehc-spinner"></mat-progress-spinner>
+      {{ result ? 'Re-ejecutar' : 'Ejecutar control VMware' }}
+    </button>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="ehc-error">{{ error }}</div>
+
+  <!-- Results -->
+  <ng-container *ngIf="result">
+
+    <!-- Host -->
+    <div class="ehc-section-lbl">Host</div>
+    <div class="ehc-metrics-row">
+      <div class="ehc-kv">
+        <span class="kpi__label">Versión</span>
+        <span class="mono ehc-val-sm">{{ result.host.esxiVersion }}</span>
+      </div>
+      <div class="ehc-kv">
+        <span class="kpi__label">Uptime</span>
+        <span>{{ result.host.uptimeHours | number:'1.0-0' }} h</span>
+      </div>
+      <div class="ehc-kv" [class.metric--crit]="result.host.cpuUsagePct > 80"
+           [class.metric--warn]="result.host.cpuUsagePct > 60 && result.host.cpuUsagePct <= 80">
+        <span class="kpi__label">CPU</span>
+        <span>{{ result.host.cpuUsagePct }}%</span>
+      </div>
+      <div class="ehc-kv" [class.metric--crit]="result.host.memUsagePct > 85"
+           [class.metric--warn]="result.host.memUsagePct > 70 && result.host.memUsagePct <= 85">
+        <span class="kpi__label">Mem</span>
+        <span>{{ result.host.memUsagePct }}%</span>
+      </div>
+      <div class="ehc-kv">
+        <span class="kpi__label">Overcommit</span>
+        <span>{{ result.host.memOvercommitRatio | number:'1.2-2' }}x</span>
+      </div>
+      <span class="badge" [ngClass]="statusBadgeClass(result.host.overallStatus)">
+        HW: {{ result.host.overallStatus | uppercase }}
+      </span>
+    </div>
+    <div *ngIf="result.host.hardwareAlerts.length" class="ehc-alerts-row">
+      <span *ngFor="let alert of result.host.hardwareAlerts" class="badge badge--crit ehc-alert-badge">
+        {{ alert }}
+      </span>
+    </div>
+
+    <!-- Datastores -->
+    <div class="ehc-section-lbl">Datastores</div>
+    <div *ngFor="let ds of result.datastores" class="ehc-ds-row">
+      <span class="ehc-ds-name">{{ ds.name }}</span>
+      <span class="badge badge--neutral">{{ ds.type }}</span>
+      <span *ngIf="!ds.accessible" class="badge badge--crit">Inaccesible</span>
+      <div class="ehc-bar">
+        <div class="ehc-bar-fill" [ngClass]="datastoreClass(ds.usedPct, ds.accessible)"
+             [style.width.%]="ds.usedPct"></div>
+      </div>
+      <span class="mono ehc-ds-pct" [ngClass]="datastoreClass(ds.usedPct, ds.accessible)">
+        {{ ds.usedPct }}%
+      </span>
+      <span class="ehc-ds-free">{{ ds.freeGb | number:'1.0-1' }} GB libres</span>
+    </div>
+
+    <!-- VMs -->
+    <div class="ehc-section-lbl">VMs</div>
+    <div class="ehc-vms-row">
+      <span class="badge badge--ok">ON: {{ result.vms.poweredOn }}</span>
+      <span class="badge badge--neutral">OFF: {{ result.vms.poweredOff }}</span>
+      <span *ngIf="result.vms.suspended" class="badge badge--warn">SUSP: {{ result.vms.suspended }}</span>
+      <span *ngIf="result.vms.toolsNotOk" class="badge badge--warn">
+        Tools N/A: {{ result.vms.toolsNotOk }}
+      </span>
+    </div>
+    <div *ngIf="result.vms.snapshots.length" class="ehc-snaps">
+      <div *ngFor="let snap of result.vms.snapshots" class="ehc-snap-row">
+        <span class="ehc-snap-name">{{ snap.vmName }}</span>
+        <span class="badge" [ngClass]="snapshotClass(snap.oldestDays)">
+          {{ snap.count }} snap{{ snap.count !== 1 ? 's' : '' }} · {{ snap.oldestDays }}d
+        </span>
+      </div>
+    </div>
+
+    <!-- Red -->
+    <div class="ehc-section-lbl">Red</div>
+    <div class="ehc-net-row">
+      <span *ngIf="!result.network.vswitchErrors.length && !result.network.nicsFailed.length"
+            class="badge badge--ok">OK</span>
+      <span *ngFor="let e of result.network.vswitchErrors" class="badge badge--crit">{{ e }}</span>
+      <span *ngFor="let n of result.network.nicsFailed" class="badge badge--crit">NIC caída: {{ n }}</span>
+    </div>
+
+    <div class="ehc-footer">
+      Recolectado: {{ result.collectedAt | date:'dd/MM/yyyy HH:mm' }}
+    </div>
+
+  </ng-container>
+</div>
