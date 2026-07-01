@@ -15,6 +15,7 @@ const makeTask = (): Task => ({
 const makeRouter = (overrides: Partial<InfraAsset> = {}): InfraAsset => ({
   assetId: 1, name: 'router-mikrotik', ip: '192.168.0.1',
   os: null, model: 'MikroTik RB4011', bmcIp: null, bmcType: null,
+  uri1: null, uri2: null,
   ...overrides,
 });
 

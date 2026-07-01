@@ -29,15 +29,15 @@ const makeInfra = (): ClientInfrastructure => ({
   domainControllers: [],
   linuxVMs: [],
   nas: [
-    { assetId: 10, name: 'QNAP-01', ip: '192.168.1.21', bmcIp: null, bmcType: null, os: null, model: 'QNAP TS-453D' },
-    { assetId: 11, name: 'QNAP-02', ip: '192.168.1.22', bmcIp: null, bmcType: null, os: null, model: 'QNAP TS-653D' },
+    { assetId: 10, name: 'QNAP-01', ip: '192.168.1.21', bmcIp: null, bmcType: null, os: null, model: 'QNAP TS-453D', uri1: null, uri2: null },
+    { assetId: 11, name: 'QNAP-02', ip: '192.168.1.22', bmcIp: null, bmcType: null, os: null, model: 'QNAP TS-653D', uri1: null, uri2: null },
   ],
   routers: [],
 });
 
 const makeSingleNasInfra = (): ClientInfrastructure => ({
   ...makeInfra(),
-  nas: [{ assetId: 10, name: 'QNAP-01', ip: '192.168.1.21', bmcIp: null, bmcType: null, os: null, model: 'QNAP TS-453D' }],
+  nas: [{ assetId: 10, name: 'QNAP-01', ip: '192.168.1.21', bmcIp: null, bmcType: null, os: null, model: 'QNAP TS-453D', uri1: null, uri2: null }],
 });
 
 describe('QnapFormComponent', () => {

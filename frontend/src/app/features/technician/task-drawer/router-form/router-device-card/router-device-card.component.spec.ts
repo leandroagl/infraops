@@ -11,6 +11,7 @@ import { InfraAsset } from '../../../../../core/models/infradoc.models';
 const mockDevice: InfraAsset = {
   assetId: 1, name: 'MikroTik RB4011', ip: '192.168.0.1',
   bmcIp: null, bmcType: null, os: null, model: 'RB4011',
+  uri1: null, uri2: null,
 };
 
 function makeGroup(fb: FormBuilder) {

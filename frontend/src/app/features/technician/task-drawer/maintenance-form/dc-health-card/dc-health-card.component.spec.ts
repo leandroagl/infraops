@@ -23,6 +23,8 @@ const makeDc = (): InfraAsset => ({
   bmcType: null,
   os: 'Windows Server 2022',
   model: null,
+  uri1: null,
+  uri2: null,
 });
 
 const makeSnapshot = (overrides: Partial<DcHealthSnapshot> = {}): DcHealthSnapshot => ({

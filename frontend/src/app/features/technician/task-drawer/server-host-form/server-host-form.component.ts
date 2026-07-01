@@ -177,8 +177,9 @@ export class ServerHostFormComponent implements OnChanges {
     this.form.patchValue({ notes: srv.notes ?? '' });
 
     if (srv.vmware?.length) {
+      const vmware = srv.vmware;
       this.infrastructure.esxiHosts.forEach((host, i) => {
-        const saved = srv.vmware.find(h => h.hostId === host.assetId);
+        const saved = vmware.find(h => h.hostId === host.assetId);
         if (saved) {
           this.vmwareHostControls.at(i).patchValue({
             cpuUsage:     saved.cpuUsage,
@@ -192,8 +193,9 @@ export class ServerHostFormComponent implements OnChanges {
     }
 
     if (srv.bmc?.length) {
+      const bmc = srv.bmc;
       this.infrastructure.esxiHosts.forEach((host, i) => {
-        const saved = srv.bmc.find(b => b.hostId === host.assetId);
+        const saved = bmc.find(b => b.hostId === host.assetId);
         if (saved) {
           this.bmcHostControls.at(i).patchValue({
             firmwareVersion:  saved.firmwareVersion ?? '',

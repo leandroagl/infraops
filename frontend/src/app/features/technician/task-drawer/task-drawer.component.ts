@@ -161,12 +161,14 @@ export class TaskDrawerComponent implements OnChanges {
     if (payload.type === 'SERVER_HOST_MAINTENANCE') {
       const srv = payload as ServerHostPayload;
       const emptyFields: string[] = [];
-      srv.vmware.forEach((host) => {
-        const label = srv.vmware.length > 1 ? ` (${host.hostName})` : '';
-        if (isNaN(host.cpuUsage))     emptyFields.push(`CPU%${label}`);
-        if (isNaN(host.memUsage))     emptyFields.push(`Memoria%${label}`);
-        if (isNaN(host.storageUsage)) emptyFields.push(`Storage%${label}`);
-      });
+      if (srv.vmware) {
+        srv.vmware.forEach((host) => {
+          const label = srv.vmware!.length > 1 ? ` (${host.hostName})` : '';
+          if (isNaN(host.cpuUsage))     emptyFields.push(`CPU%${label}`);
+          if (isNaN(host.memUsage))     emptyFields.push(`Memoria%${label}`);
+          if (isNaN(host.storageUsage)) emptyFields.push(`Storage%${label}`);
+        });
+      }
       return { dcdiagErrors: [], veeamMissing: false, emptyFields };
     }
 

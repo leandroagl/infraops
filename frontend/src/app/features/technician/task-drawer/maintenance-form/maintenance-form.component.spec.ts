@@ -29,12 +29,12 @@ const makeTask = (type = 'WINDOWS_DOMAIN_MAINTENANCE'): Task => ({
 });
 
 const makeInfra = (overrides: Partial<ClientInfrastructure> = {}): ClientInfrastructure => ({
-  esxiHosts: [{ assetId: 2, name: 'host1.kemini', ip: '192.168.0.104', bmcIp: '192.168.0.200', bmcType: 'iLO', os: 'VMware ESXi 7.0', model: 'HPE DL380' }],
-  windowsVMs: [{ assetId: 3, name: '47DC', ip: '192.168.1.18', bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null }],
+  esxiHosts: [{ assetId: 2, name: 'host1.kemini', ip: '192.168.0.104', bmcIp: '192.168.0.200', bmcType: 'iLO', os: 'VMware ESXi 7.0', model: 'HPE DL380', uri1: null, uri2: null }],
+  windowsVMs: [{ assetId: 3, name: '47DC', ip: '192.168.1.18', bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null, uri1: null, uri2: null }],
   domainControllers: [],
   linuxVMs: [],
-  nas: [{ assetId: 10, name: 'QNAP', ip: '192.168.1.21', bmcIp: null, bmcType: null, os: null, model: 'QNAP TS-453D' }],
-  routers: [{ assetId: 1, name: 'MikroTik', ip: '192.168.99.1', bmcIp: null, bmcType: null, os: 'RouterOS', model: 'CCR2004' }],
+  nas: [{ assetId: 10, name: 'QNAP', ip: '192.168.1.21', bmcIp: null, bmcType: null, os: null, model: 'QNAP TS-453D', uri1: null, uri2: null }],
+  routers: [{ assetId: 1, name: 'MikroTik', ip: '192.168.99.1', bmcIp: null, bmcType: null, os: 'RouterOS', model: 'CCR2004', uri1: null, uri2: null }],
   ...overrides,
 });
 
@@ -46,6 +46,8 @@ const makeDcAsset = (overrides: Partial<InfraAsset> = {}): InfraAsset => ({
   bmcType: null,
   os: 'Windows Server 2022',
   model: null,
+  uri1: null,
+  uri2: null,
   ...overrides,
 });
 
@@ -72,6 +74,7 @@ const makeDcSnapshot = (overrides: Partial<DcHealthSnapshot> = {}): DcHealthSnap
 const makeVM = (overrides: Partial<InfraAsset> = {}): InfraAsset => ({
   assetId: 3, name: 'SRV-TEST', ip: null,
   bmcIp: null, bmcType: null, os: null, model: null,
+  uri1: null, uri2: null,
   ...overrides,
 });
 
@@ -248,15 +251,15 @@ describe('MaintenanceFormComponent', () => {
 
   describe('ngOnChanges', () => {
     it('should rebuild serverControls when infrastructure input changes', () => {
-      const infra1 = makeInfra({ windowsVMs: [{ assetId: 1, name: 'VM-A', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null }] });
+      const infra1 = makeInfra({ windowsVMs: [{ assetId: 1, name: 'VM-A', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null, uri1: null, uri2: null }] });
       init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra1);
       expect(component.serverControls.length).toBe(1);
 
       const infra2: ClientInfrastructure = {
         ...infra1,
         windowsVMs: [
-          { assetId: 1, name: 'VM-A', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null },
-          { assetId: 2, name: 'VM-B', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2022', model: null },
+          { assetId: 1, name: 'VM-A', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null, uri1: null, uri2: null },
+          { assetId: 2, name: 'VM-B', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2022', model: null, uri1: null, uri2: null },
         ],
       };
       component.infrastructure = infra2;

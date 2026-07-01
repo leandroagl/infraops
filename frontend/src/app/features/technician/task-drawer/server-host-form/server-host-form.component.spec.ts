@@ -16,6 +16,7 @@ const makeHost = (overrides: Partial<InfraAsset> = {}): InfraAsset => ({
   assetId: 1, name: 'host1.ondra', ip: '192.168.0.104',
   bmcIp: '192.168.0.200', bmcType: 'iLO',
   os: 'VMware ESXi 7.0', model: 'HPE DL380',
+  uri1: null, uri2: null,
   ...overrides,
 });
 
@@ -61,24 +62,24 @@ describe('ServerHostFormComponent — pure unit tests', () => {
     it('mapea vmware con hostId, hostName y métricas del form', () => {
       component.vmwareHostControls.at(0).patchValue({ cpuUsage: 45, memUsage: 60, storageUsage: 70, snapshotsOk: true });
       const payload = component.buildPayload();
-      expect(payload.vmware[0].hostId).toBe(1);
-      expect(payload.vmware[0].hostName).toBe('host1.ondra');
-      expect(payload.vmware[0].cpuUsage).toBe(45);
-      expect(payload.vmware[0].snapshotsOk).toBe(true);
+      expect(payload.vmware![0].hostId).toBe(1);
+      expect(payload.vmware![0].hostName).toBe('host1.ondra');
+      expect(payload.vmware![0].cpuUsage).toBe(45);
+      expect(payload.vmware![0].snapshotsOk).toBe(true);
     });
 
     it('mapea bmc con alertStatus y omite alertCategories si no hay alerta', () => {
       component.bmcHostControls.at(0).patchValue({ alertStatus: 'ok', firmwareVersion: '2.82' });
       const payload = component.buildPayload();
-      expect(payload.bmc[0].alertStatus).toBe('ok');
-      expect(payload.bmc[0].firmwareVersion).toBe('2.82');
-      expect(payload.bmc[0].alertCategories).toBeUndefined();
+      expect(payload.bmc![0].alertStatus).toBe('ok');
+      expect(payload.bmc![0].firmwareVersion).toBe('2.82');
+      expect(payload.bmc![0].alertCategories).toBeUndefined();
     });
 
     it('incluye alertCategories en bmc cuando alertStatus es "alerta"', () => {
       component.bmcHostControls.at(0).patchValue({ alertStatus: 'alerta', alertCategories: ['fan', 'psu'] });
       const payload = component.buildPayload();
-      expect(payload.bmc[0].alertCategories).toEqual(['fan', 'psu']);
+      expect(payload.bmc![0].alertCategories).toEqual(['fan', 'psu']);
     });
 
     it('incluye notes si no está vacío', () => {
