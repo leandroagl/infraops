@@ -10,6 +10,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { MaintenanceLogsModule } from './maintenance-logs/maintenance-logs.module';
 import { InfradocIntegrationModule } from './integrations/infradoc/infradoc-integration.module';
 import { OdooIntegrationModule } from './integrations/odoo/odoo-integration.module';
+import { VmwareIntegrationModule } from './integrations/vmware/vmware-integration.module';
 import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
@@ -35,6 +36,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     MaintenanceLogsModule,
     InfradocIntegrationModule,
     OdooIntegrationModule,
+    VmwareIntegrationModule,
     NotificationsModule,
   ],
 })
