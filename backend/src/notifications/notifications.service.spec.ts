@@ -60,7 +60,7 @@ describe('NotificationsService', () => {
   it('normaliza un asset con warranty_expire a ExpirationItemDto', async () => {
     setupMock([{
       asset_id: '101', asset_name: 'Server Dell R640',
-      asset_warranty_expire: '2026-07-05', client_id: '1',
+      asset_warranty_expire: '2026-07-05', asset_client_id: '1',
     }]);
 
     const result = await service.getExpirations(90);
@@ -77,7 +77,7 @@ describe('NotificationsService', () => {
   });
 
   it('omite assets sin asset_warranty_expire', async () => {
-    setupMock([{ asset_id: '1', asset_name: 'Sin garantía', asset_warranty_expire: null, client_id: '1' }]);
+    setupMock([{ asset_id: '1', asset_name: 'Sin garantía', asset_warranty_expire: null, asset_client_id: '1' }]);
 
     const result = await service.getExpirations(90);
     expect(result).toHaveLength(0);
@@ -85,9 +85,9 @@ describe('NotificationsService', () => {
 
   it('incluye expirados y dentro del horizonte, excluye más allá', async () => {
     setupMock([
-      { asset_id: '1', asset_name: 'Expirado', asset_warranty_expire: '2026-06-27', client_id: '1' },
-      { asset_id: '2', asset_name: 'En 90d',   asset_warranty_expire: '2026-09-26', client_id: '1' },
-      { asset_id: '3', asset_name: 'En 91d',   asset_warranty_expire: '2026-09-27', client_id: '1' },
+      { asset_id: '1', asset_name: 'Expirado', asset_warranty_expire: '2026-06-27', asset_client_id: '1' },
+      { asset_id: '2', asset_name: 'En 90d',   asset_warranty_expire: '2026-09-26', asset_client_id: '1' },
+      { asset_id: '3', asset_name: 'En 91d',   asset_warranty_expire: '2026-09-27', asset_client_id: '1' },
     ]);
 
     const result = await service.getExpirations(90);
@@ -98,8 +98,8 @@ describe('NotificationsService', () => {
 
   it('sin days devuelve todos los items incluyendo futuros lejanos', async () => {
     setupMock([
-      { asset_id: '1', asset_name: 'Lejano',   asset_warranty_expire: '2027-01-01', client_id: '1' },
-      { asset_id: '2', asset_name: 'Expirado', asset_warranty_expire: '2026-05-01', client_id: '1' },
+      { asset_id: '1', asset_name: 'Lejano',   asset_warranty_expire: '2027-01-01', asset_client_id: '1' },
+      { asset_id: '2', asset_name: 'Expirado', asset_warranty_expire: '2026-05-01', asset_client_id: '1' },
     ]);
 
     const result = await service.getExpirations(undefined);
@@ -108,8 +108,8 @@ describe('NotificationsService', () => {
 
   it('ordena por expireDate ASC — expirados primero', async () => {
     setupMock([
-      { asset_id: '1', asset_name: 'Futuro',   asset_warranty_expire: '2026-07-10', client_id: '1' },
-      { asset_id: '2', asset_name: 'Expirado', asset_warranty_expire: '2026-06-20', client_id: '1' },
+      { asset_id: '1', asset_name: 'Futuro',   asset_warranty_expire: '2026-07-10', asset_client_id: '1' },
+      { asset_id: '2', asset_name: 'Expirado', asset_warranty_expire: '2026-06-20', asset_client_id: '1' },
     ]);
 
     const result = await service.getExpirations(90);
@@ -119,11 +119,29 @@ describe('NotificationsService', () => {
 
   it('usa fallback clientName cuando el client_id no está en el mapa', async () => {
     setupMock([{
-      asset_id: '1', asset_name: 'Servidor', asset_warranty_expire: '2026-07-01', client_id: '99',
+      asset_id: '1', asset_name: 'Servidor', asset_warranty_expire: '2026-07-01', asset_client_id: '99',
     }]);
 
     const result = await service.getExpirations(90);
     expect(result[0].clientName).toBe('Cliente 99');
+  });
+
+  it('normaliza un software con software_expire y software_client_id', async () => {
+    setupMock([], [], [], [{
+      software_id: '1', software_name: 'Kaspersky',
+      software_expire: '2026-07-15', software_client_id: '1',
+    }]);
+
+    const result = await service.getExpirations(90);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      type: 'software',
+      clientId: 1,
+      clientName: 'Acme SA',
+      itemName: 'Kaspersky',
+      expireDate: '2026-07-15',
+      daysUntil: 17,
+    });
   });
 
   it('normaliza un dominio con domain_expire', async () => {
@@ -143,7 +161,7 @@ describe('NotificationsService', () => {
       if (url.includes('/assets/'))       return of(axiosRes({ success: 'False', message: 'Error' }));
       if (url.includes('/certificates/')) return of(axiosRes({ success: 'True', data: [{
         certificate_id: '1', certificate_name: 'cert.pem',
-        certificate_expire: '2026-07-05', client_id: '1',
+        certificate_expire: '2026-07-05', certificate_client_id: '1',
       }] }));
       return of(axiosRes({ success: 'True', data: [] }));
     });
