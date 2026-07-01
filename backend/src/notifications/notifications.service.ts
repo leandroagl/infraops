@@ -51,19 +51,19 @@ export class NotificationsService {
     const items: ExpirationItemDto[] = [];
 
     for (const r of this.safe(assetsRes.data)) {
-      if (!r.asset_warranty_expire) continue;
+      if (!r.asset_warranty_expire || !r.client_id) continue;
       items.push(this.toItem('asset_warranty', r.client_id, r.asset_name, r.asset_warranty_expire, clientMap, today));
     }
     for (const r of this.safe(certsRes.data)) {
-      if (!r.certificate_expire) continue;
+      if (!r.certificate_expire || !r.client_id) continue;
       items.push(this.toItem('certificate', r.client_id, r.certificate_name, r.certificate_expire, clientMap, today));
     }
     for (const r of this.safe(domainsRes.data)) {
-      if (!r.domain_expire) continue;
+      if (!r.domain_expire || !r.domain_client_id) continue;
       items.push(this.toItem('domain', r.domain_client_id, r.domain_name, r.domain_expire, clientMap, today));
     }
     for (const r of this.safe(softwareRes.data)) {
-      if (!r.software_expire) continue;
+      if (!r.software_expire || !r.client_id) continue;
       items.push(this.toItem('software', r.client_id, r.software_name, r.software_expire, clientMap, today));
     }
 

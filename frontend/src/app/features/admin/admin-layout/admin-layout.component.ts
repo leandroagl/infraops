@@ -13,10 +13,10 @@ interface AdminTab {
 })
 export class AdminLayoutComponent {
   readonly tabs: AdminTab[] = [
-    { path: '/admin/tasks',         label: 'Tareas'       },
-    { path: '/admin/users',         label: 'Usuarios'     },
-    { path: '/admin/technicians',   label: 'Técnicos'     },
-    { path: '/admin/notifications', label: 'Vencimientos' },
+    { path: '/admin/tasks',       label: 'Tareas'    },
+    { path: '/admin/users',       label: 'Usuarios'  },
+    { path: '/admin/technicians', label: 'Técnicos'  },
+    { path: '/admin/sync',        label: 'Sync'      },
   ];
 
   constructor(private router: Router) {}

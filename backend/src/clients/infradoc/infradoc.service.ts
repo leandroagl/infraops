@@ -95,7 +95,7 @@ export class InfradocService {
       currencyCode: (raw.client_currency_code as string) ?? null,
       netTerms: raw.client_net_terms ? Number(raw.client_net_terms) : null,
       taxIdNumber: this.extractCuit(
-        raw.client_type as string | null | undefined,
+        raw.client_industry as string | null | undefined,
       ),
       isLead: raw.client_is_lead === 1 || raw.client_is_lead === '1',
       notes: (raw.client_notes as string) ?? null,

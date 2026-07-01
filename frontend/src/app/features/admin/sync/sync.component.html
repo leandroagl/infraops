@@ -1,0 +1,75 @@
+<div class="sync-page">
+
+  <div class="sync-header">
+    <span class="page-title">Sincronización</span>
+    <span class="sync-desc">Actualiza los clientes desde InfraDoc y empareja con Odoo.</span>
+  </div>
+
+  <div class="sync-card">
+    <div class="sync-steps">
+      <div class="sync-step" [class.sync-step--active]="currentStep === 'clients'" [class.sync-step--done]="!!clientsResult">
+        <span class="step-num">1</span>
+        <span class="step-label">Clientes ← InfraDoc</span>
+      </div>
+      <div class="sync-step-arrow">→</div>
+      <div class="sync-step" [class.sync-step--active]="currentStep === 'odoo'" [class.sync-step--done]="!!odooResult">
+        <span class="step-num">2</span>
+        <span class="step-label">Partners ← Odoo</span>
+      </div>
+    </div>
+
+    <button mat-flat-button color="primary" (click)="runSync()" [disabled]="loading">
+      <mat-progress-spinner *ngIf="loading" mode="indeterminate" diameter="16" class="btn-spinner"></mat-progress-spinner>
+      <span>{{ loading ? 'Sincronizando…' : 'Sincronizar' }}</span>
+    </button>
+  </div>
+
+  <div *ngIf="error" class="error-banner">{{ error }}</div>
+
+  <div class="results" *ngIf="clientsResult || odooResult">
+
+    <div class="result-card" *ngIf="clientsResult">
+      <div class="result-card__header">
+        <span class="result-card__title">InfraDoc — Clientes</span>
+        <span class="badge badge--ok">OK</span>
+      </div>
+      <div class="result-rows">
+        <div class="result-row">
+          <span class="result-row__label">Creados</span>
+          <span class="result-row__value">{{ clientsResult.created }}</span>
+        </div>
+        <div class="result-row">
+          <span class="result-row__label">Actualizados</span>
+          <span class="result-row__value">{{ clientsResult.updated }}</span>
+        </div>
+        <div class="result-row">
+          <span class="result-row__label">Archivados</span>
+          <span class="result-row__value">{{ clientsResult.archived }}</span>
+        </div>
+        <div class="result-row">
+          <span class="result-row__label">Sin cambios</span>
+          <span class="result-row__value result-row__value--lo">{{ clientsResult.unchanged }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-card" *ngIf="odooResult">
+      <div class="result-card__header">
+        <span class="result-card__title">Odoo — Partners</span>
+        <span class="badge badge--ok">OK</span>
+      </div>
+      <div class="result-rows">
+        <div class="result-row">
+          <span class="result-row__label">Emparejados</span>
+          <span class="result-row__value">{{ odooResult.matched }} / {{ odooResult.total }}</span>
+        </div>
+        <div class="result-row" *ngIf="odooResult.unmatched.length > 0">
+          <span class="result-row__label result-row__label--warn">Sin CUIT en Odoo</span>
+          <span class="result-row__value--unmatched">{{ odooResult.unmatched.join(', ') }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>

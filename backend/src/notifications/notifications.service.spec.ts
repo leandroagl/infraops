@@ -153,6 +153,16 @@ describe('NotificationsService', () => {
     expect(result[0].type).toBe('certificate');
   });
 
+  it('omite items cuyo client_id es null — no genera "Cliente NaN"', async () => {
+    setupMock([], [], [{
+      domain_id: '1', domain_name: 'sincliente.com',
+      domain_expire: '2026-07-05', domain_client_id: null,
+    }]);
+
+    const result = await service.getExpirations(90);
+    expect(result).toHaveLength(0);
+  });
+
   it('lanza Error cuando INFRADOC_URL no está configurado', async () => {
     delete process.env.INFRADOC_URL;
     await expect(service.getExpirations(90)).rejects.toThrow(
