@@ -96,8 +96,7 @@ export interface VmwareHealthResult {
     uptimeHours: number;
     cpuUsagePct: number;
     memUsagePct: number;
-    memOvercommitRatio: number;
-    overallStatus: 'green' | 'yellow' | 'red';
+overallStatus: 'green' | 'yellow' | 'red';
     hardwareAlerts: string[];
   };
   datastores: Array<{
@@ -112,12 +111,14 @@ export interface VmwareHealthResult {
     poweredOn: number;
     poweredOff: number;
     suspended: number;
+    snapshotTotal: number;
     snapshots: Array<{ vmName: string; count: number; oldestDays: number }>;
     toolsNotOk: number;
   };
   network: {
     vswitchErrors: string[];
     nicsFailed: string[];
+    nicsOnline: Array<{ device: string; speedMb: number }>;
   };
   collectedAt: string;
 }

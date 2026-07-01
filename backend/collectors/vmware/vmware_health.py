@@ -61,10 +61,7 @@ def collect(si) -> dict:
     mem_total_mb = hw.memorySize / (1024 * 1024)
     mem_usage_pct = round(quick.overallMemoryUsage / mem_total_mb * 100, 1) if mem_total_mb else 0
 
-    # memory overcommit: sum of all VM configured RAM / physical RAM
     vms_all = host.vm or []
-    total_vm_mem_mb = sum((v.config.hardware.memoryMB for v in vms_all if v.config), 0)
-    mem_overcommit = round(total_vm_mem_mb / mem_total_mb, 2) if mem_total_mb else 0.0
 
     hardware_alerts = [
         s.message for s in (host.configIssue or [])
@@ -80,8 +77,7 @@ def collect(si) -> dict:
                              or 0, 1),
         "cpuUsagePct": cpu_usage_pct,
         "memUsagePct": mem_usage_pct,
-        "memOvercommitRatio": mem_overcommit,
-        "overallStatus": overall_to_str(summary.overallStatus),
+"overallStatus": overall_to_str(summary.overallStatus),
         "hardwareAlerts": hardware_alerts,
     }
 
@@ -141,6 +137,7 @@ def collect(si) -> dict:
         "poweredOn": powered_on,
         "poweredOff": powered_off,
         "suspended": suspended,
+        "snapshotTotal": sum(s["count"] for s in snapshots),
         "snapshots": snapshots,
         "toolsNotOk": tools_not_ok,
     }
@@ -148,13 +145,19 @@ def collect(si) -> dict:
     # ---- network ----
     vswitch_errors = []
     nics_failed = []
+    nics_online = []
     net_config = host.config.network if host.config else None
     if net_config:
         for vswitch in (net_config.vswitch or []):
             if not vswitch.spec.numPorts:
                 vswitch_errors.append(f"{vswitch.name}: sin puertos configurados")
         for pnic in (net_config.pnic or []):
-            if not pnic.linkSpeed:
+            if pnic.linkSpeed:
+                nics_online.append({
+                    "device": pnic.device,
+                    "speedMb": pnic.linkSpeed.speedMb,
+                })
+            else:
                 nics_failed.append(pnic.device)
 
     return {
@@ -164,6 +167,7 @@ def collect(si) -> dict:
         "network": {
             "vswitchErrors": vswitch_errors,
             "nicsFailed": nics_failed,
+            "nicsOnline": nics_online,
         },
         "collectedAt": datetime.now(timezone.utc).isoformat(),
     }

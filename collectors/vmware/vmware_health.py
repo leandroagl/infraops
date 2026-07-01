@@ -76,16 +76,6 @@ def collect_host(host):
     }
 
 
-def collect_mem_overcommit(host, all_vms):
-    host_id = host._moId
-    host_vms = [
-        vm for vm in all_vms
-        if vm.runtime.host and vm.runtime.host._moId == host_id and vm.config
-    ]
-    total_vm_mb = sum(vm.config.hardware.memoryMB for vm in host_vms)
-    host_mb = host.hardware.memorySize / (1024 * 1024)
-    return round(total_vm_mb / host_mb, 2) if host_mb else 0.0
-
 
 def collect_datastores(host):
     result = []
@@ -156,6 +146,7 @@ def collect_vms(host, all_vms):
         'poweredOn': states['poweredOn'],
         'poweredOff': states['poweredOff'],
         'suspended': states['suspended'],
+        'snapshotTotal': sum(s['count'] for s in snapshots),
         'snapshots': snapshots,
         'toolsNotOk': tools_not_ok,
     }
@@ -168,12 +159,21 @@ def collect_network(host):
         for vs in (net.vswitch or [])
         if not vs.pnic
     ]
-    nics_failed = [
-        pnic.device
-        for pnic in (net.pnic or [])
-        if not pnic.linkSpeed
-    ]
-    return {'vswitchErrors': vswitch_errors, 'nicsFailed': nics_failed}
+    nics_failed = []
+    nics_online = []
+    for pnic in (net.pnic or []):
+        if pnic.linkSpeed:
+            nics_online.append({
+                'device': pnic.device,
+                'speedMb': pnic.linkSpeed.speedMb,
+            })
+        else:
+            nics_failed.append(pnic.device)
+    return {
+        'vswitchErrors': vswitch_errors,
+        'nicsFailed': nics_failed,
+        'nicsOnline': nics_online,
+    }
 
 
 def main():
@@ -198,7 +198,6 @@ def main():
 
         host = hosts[0]
         host_data = collect_host(host)
-        host_data['memOvercommitRatio'] = collect_mem_overcommit(host, all_vms)
 
         print(json.dumps({
             'host': host_data,

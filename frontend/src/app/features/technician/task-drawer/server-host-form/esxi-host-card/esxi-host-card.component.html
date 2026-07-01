@@ -44,11 +44,7 @@
         <span class="kpi__label">Mem</span>
         <span>{{ result.host.memUsagePct }}%</span>
       </div>
-      <div class="ehc-kv">
-        <span class="kpi__label">Overcommit</span>
-        <span>{{ result.host.memOvercommitRatio | number:'1.2-2' }}x</span>
-      </div>
-      <span class="badge" [ngClass]="statusBadgeClass(result.host.overallStatus)">
+<span class="badge" [ngClass]="statusBadgeClass(result.host.overallStatus)">
         HW: {{ result.host.overallStatus | uppercase }}
       </span>
     </div>
@@ -83,8 +79,11 @@
       <span *ngIf="result.vms.toolsNotOk" class="badge badge--warn">
         Tools N/A: {{ result.vms.toolsNotOk }}
       </span>
+      <span class="badge" [ngClass]="result.vms.snapshotTotal ? 'badge--warn' : 'badge--ok'">
+        Snaps: {{ result.vms.snapshotTotal }}
+      </span>
     </div>
-    <div *ngIf="result.vms.snapshots.length" class="ehc-snaps">
+    <div *ngIf="result.vms.snapshots?.length" class="ehc-snaps">
       <div *ngFor="let snap of result.vms.snapshots" class="ehc-snap-row">
         <span class="ehc-snap-name">{{ snap.vmName }}</span>
         <span class="badge" [ngClass]="snapshotClass(snap.oldestDays)">
@@ -96,10 +95,11 @@
     <!-- Red -->
     <div class="ehc-section-lbl">Red</div>
     <div class="ehc-net-row">
-      <span *ngIf="!result.network.vswitchErrors.length && !result.network.nicsFailed.length"
-            class="badge badge--ok">OK</span>
+      <span *ngFor="let n of (result.network.nicsOnline ?? [])" class="badge badge--ok">
+        {{ n.device }} {{ n.speedMb >= 1000 ? (n.speedMb / 1000 | number:'1.0-0') + 'G' : n.speedMb + 'M' }}
+      </span>
       <span *ngFor="let e of result.network.vswitchErrors" class="badge badge--crit">{{ e }}</span>
-      <span *ngFor="let n of result.network.nicsFailed" class="badge badge--crit">NIC caída: {{ n }}</span>
+      <span *ngFor="let n of result.network.nicsFailed" class="badge badge--warn">NIC sin link: {{ n }}</span>
     </div>
 
     <div class="ehc-footer">

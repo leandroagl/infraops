@@ -4,8 +4,7 @@ export interface VmwareHostInfo {
   uptimeHours: number;
   cpuUsagePct: number;
   memUsagePct: number;
-  memOvercommitRatio: number;
-  overallStatus: 'green' | 'yellow' | 'red';
+overallStatus: 'green' | 'yellow' | 'red';
   hardwareAlerts: string[];
 }
 
@@ -28,13 +27,20 @@ export interface VmwareVmsInfo {
   poweredOn: number;
   poweredOff: number;
   suspended: number;
+  snapshotTotal: number;
   snapshots: VmwareSnapshot[];
   toolsNotOk: number;
+}
+
+export interface VmwareNicOnline {
+  device: string;
+  speedMb: number;
 }
 
 export interface VmwareNetworkInfo {
   vswitchErrors: string[];
   nicsFailed: string[];
+  nicsOnline: VmwareNicOnline[];
 }
 
 export interface VmwareHealthResult {
