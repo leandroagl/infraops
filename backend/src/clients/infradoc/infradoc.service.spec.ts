@@ -88,13 +88,13 @@ describe('InfradocService', () => {
     expect(result[0].isActive).toBe(false);
   });
 
-  it('mapea client_industry a taxIdNumber cuando tiene formato CUIT', async () => {
+  it('mapea client_type a taxIdNumber cuando tiene formato CUIT', async () => {
     httpService.get.mockReturnValue(
       of(
         axiosRes({
           success: 'True',
           count: 1,
-          data: [makeRaw({ client_industry: '30-50438253-9' })],
+          data: [makeRaw({ client_type: '30-50438253-9' })],
         }),
       ),
     );
@@ -104,13 +104,13 @@ describe('InfradocService', () => {
     expect(result[0].taxIdNumber).toBe('30-50438253-9');
   });
 
-  it('retorna taxIdNumber null cuando client_industry no tiene formato CUIT', async () => {
+  it('retorna taxIdNumber null cuando client_type no tiene formato CUIT', async () => {
     httpService.get.mockReturnValue(
       of(
         axiosRes({
           success: 'True',
           count: 1,
-          data: [makeRaw({ client_industry: 'Tecnología' })],
+          data: [makeRaw({ client_type: 'Tecnología' })],
         }),
       ),
     );
