@@ -391,15 +391,17 @@ describe('OdooService', () => {
   });
 
   describe('createTicket', () => {
-    it('crea un ticket WINDOWS_DOMAIN_MAINTENANCE con título y descripción correctos', async () => {
+    it('crea un ticket WINDOWS_DOMAIN_MAINTENANCE con título correcto', async () => {
       clientRepo.findOne.mockResolvedValue(
         makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
       );
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw
-        .mockResolvedValueOnce([])  // sale.order.line search → sin resultado
-        .mockResolvedValueOnce(42); // helpdesk.ticket create
+        .mockResolvedValueOnce([])             // sale.order.line search → sin resultado
+        .mockResolvedValueOnce([{ id: 10 }])  // Windows AD Domain tag
+        .mockResolvedValueOnce([{ id: 11 }])  // Windows Server tag
+        .mockResolvedValueOnce(42);           // helpdesk.ticket create
 
       const ticketId = await service.createTicket(
         'client-uuid-1',
@@ -413,8 +415,7 @@ describe('OdooService', () => {
         'create',
         [
           expect.objectContaining({
-            name: 'Mantenimiento Windows y dominios',
-            description: 'Mantenimiento mensual de servidores Windows y controladores de dominio.',
+            name: 'Mantenimiento de servidores y dominio Windows',
           }),
         ],
         {},
@@ -501,7 +502,64 @@ describe('OdooService', () => {
       expect(tagCalls).toHaveLength(1);
     });
 
-    it('NO incluye tag_ids al crear ticket WINDOWS_DOMAIN_MAINTENANCE', async () => {
+    it('incluye tag_ids con Windows AD Domain y Windows Server al crear ticket WINDOWS_DOMAIN_MAINTENANCE', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])             // sale.order.line
+        .mockResolvedValueOnce([{ id: 10 }])  // helpdesk.tag → Windows AD Domain
+        .mockResolvedValueOnce([{ id: 11 }])  // helpdesk.tag → Windows Server
+        .mockResolvedValueOnce(42);           // helpdesk.ticket create
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.tag',
+        'search_read',
+        [[['name', '=', 'Windows AD Domain']]],
+        { fields: ['id'], limit: 1 },
+      );
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.tag',
+        'search_read',
+        [[['name', '=', 'Windows Server']]],
+        { fields: ['id'], limit: 1 },
+      );
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [expect.objectContaining({ tag_ids: [[6, 0, [10, 11]]] })],
+        {},
+      );
+    });
+
+    it('cachea los tag_ids de Windows entre llamadas sucesivas', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])             // sale.order.line (1ra)
+        .mockResolvedValueOnce([{ id: 10 }])  // Windows AD Domain (solo 1ra vez)
+        .mockResolvedValueOnce([{ id: 11 }])  // Windows Server (solo 1ra vez)
+        .mockResolvedValueOnce(42)            // helpdesk.ticket create (1ra)
+        .mockResolvedValueOnce([])            // sale.order.line (2da)
+        .mockResolvedValueOnce(43);           // helpdesk.ticket create (2da)
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
+
+      const tagCalls = odooRpc.callKw.mock.calls.filter(
+        (args: unknown[]) => args[0] === 'helpdesk.tag',
+      );
+      expect(tagCalls).toHaveLength(2); // 1 por cada tag, solo en la primera llamada
+    });
+
+    it('lanza ServiceUnavailableException cuando Odoo no encuentra el tag Windows AD Domain', async () => {
       clientRepo.findOne.mockResolvedValue(
         makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
       );
@@ -509,14 +567,27 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw
         .mockResolvedValueOnce([])  // sale.order.line
-        .mockResolvedValueOnce(42); // helpdesk.ticket create
+        .mockResolvedValueOnce([]); // Windows AD Domain tag → no encontrado
 
-      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),
+      ).rejects.toThrow(ServiceUnavailableException);
+    });
 
-      const createCall = odooRpc.callKw.mock.calls.find(
-        (args: unknown[]) => args[0] === 'helpdesk.ticket',
+    it('lanza ServiceUnavailableException cuando Odoo no encuentra el tag Windows Server', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
       );
-      expect(createCall![2][0]).not.toHaveProperty('tag_ids');
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])             // sale.order.line
+        .mockResolvedValueOnce([{ id: 10 }])  // Windows AD Domain → encontrado
+        .mockResolvedValueOnce([]);            // Windows Server tag → no encontrado
+
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
 
     it('lanza ServiceUnavailableException cuando Odoo no encuentra el tag Backups (NAS)', async () => {
@@ -610,7 +681,10 @@ describe('OdooService', () => {
       );
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
-      odooRpc.callKw.mockResolvedValue(99);
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 10 }])  // Windows AD Domain tag
+        .mockResolvedValueOnce([{ id: 11 }])  // Windows Server tag
+        .mockResolvedValueOnce(99);           // helpdesk.ticket create
 
       await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
 
@@ -629,8 +703,10 @@ describe('OdooService', () => {
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce(99);
+        .mockResolvedValueOnce([])             // sale.order.line
+        .mockResolvedValueOnce([{ id: 10 }])  // Windows AD Domain tag
+        .mockResolvedValueOnce([{ id: 11 }])  // Windows Server tag
+        .mockResolvedValueOnce(99);           // helpdesk.ticket create
 
       await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
 
@@ -680,8 +756,10 @@ describe('OdooService', () => {
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce(false);
+        .mockResolvedValueOnce([])             // sale.order.line
+        .mockResolvedValueOnce([{ id: 10 }])  // Windows AD Domain tag
+        .mockResolvedValueOnce([{ id: 11 }])  // Windows Server tag
+        .mockResolvedValueOnce(false);        // helpdesk.ticket create → false
 
       await expect(
         service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),

@@ -16,9 +16,23 @@ import { OdooSyncResult } from './dto/odoo-sync-result.dto';
 import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 import { TaskType } from '../../tasks/task-type.enum';
 
+const WINDOWS_DOMAIN_DESCRIPTION = `
+<p>Control mensual preventivo sobre la infraestructura de servidores Windows.</p>
+<p>Se verifican los siguientes puntos:</p>
+<ul>
+  <li>Estado de actualizaciones del sistema operativo (Windows Updates) en cada servidor</li>
+  <li>Revisión de logs de eventos: errores y advertencias críticas</li>
+  <li>Replicación de Active Directory y salud general de controladores de dominio</li>
+  <li>Estado del servicio DNS: resolución, SRV records y zonas configuradas</li>
+  <li>Consistencia de SYSVOL / DFSR</li>
+  <li>Espacio en disco y rendimiento general del sistema</li>
+</ul>
+<p>Ante cualquier anomalía detectada, se creará un ticket de soporte para su seguimiento y resolución.</p>
+`.trim();
+
 const TICKET_META: Record<TaskType, { name: string; description: string }> = {
   [TaskType.SERVER_HOST_MAINTENANCE]:        { name: 'Mantenimiento de hosts VMware/BMC',             description: 'Control mensual de hosts ESXi y BMC.' },
-  [TaskType.WINDOWS_DOMAIN_MAINTENANCE]:     { name: 'Mantenimiento Windows y dominios',              description: 'Mantenimiento mensual de servidores Windows y controladores de dominio.' },
+  [TaskType.WINDOWS_DOMAIN_MAINTENANCE]:     { name: 'Mantenimiento de servidores y dominio Windows', description: WINDOWS_DOMAIN_DESCRIPTION },
   [TaskType.ROUTER_MAINTENANCE]:             { name: 'Mantenimiento de router y firewall',            description: 'Control mensual de firmware y configuración de router/firewall.' },
   [TaskType.QNAP_MAINTENANCE]:     { name: 'Mantenimiento repositorio de backups QNAP/NAS', description: 'Control de estado de discos, volumen y actualizaciones' },
   [TaskType.VEEAM_BACKUP]:         { name: 'Mantenimiento de backups Veeam',                  description: 'Control de jobs de backup, puntos de restauración y cobertura de VMs.' },
@@ -34,6 +48,8 @@ export class OdooService {
   private doneStageId: number | null = null;
   private inProgressStageId: number | null = null;
   private qnapTagId: number | null = null;
+  private windowsAdDomainTagId: number | null = null;
+  private windowsServerTagId: number | null = null;
 
   constructor(
     private readonly odooRpc: OdooRpcService,
@@ -338,6 +354,46 @@ export class OdooService {
     return this.qnapTagId;
   }
 
+  private async resolveWindowsAdDomainTagId(): Promise<number> {
+    if (this.windowsAdDomainTagId !== null) return this.windowsAdDomainTagId;
+
+    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
+      'helpdesk.tag',
+      'search_read',
+      [[['name', '=', 'Windows AD Domain']]],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (tags.length === 0) {
+      throw new ServiceUnavailableException(
+        'No se encontró el tag "Windows AD Domain" en Odoo',
+      );
+    }
+
+    this.windowsAdDomainTagId = tags[0].id;
+    return this.windowsAdDomainTagId;
+  }
+
+  private async resolveWindowsServerTagId(): Promise<number> {
+    if (this.windowsServerTagId !== null) return this.windowsServerTagId;
+
+    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
+      'helpdesk.tag',
+      'search_read',
+      [[['name', '=', 'Windows Server']]],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (tags.length === 0) {
+      throw new ServiceUnavailableException(
+        'No se encontró el tag "Windows Server" en Odoo',
+      );
+    }
+
+    this.windowsServerTagId = tags[0].id;
+    return this.windowsServerTagId;
+  }
+
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 
@@ -436,6 +492,11 @@ export class OdooService {
     if (saleLineId !== null) {
       payload['sale_line_id'] = saleLineId;
     }
+    if (taskType === TaskType.WINDOWS_DOMAIN_MAINTENANCE) {
+      const adDomainTagId = await this.resolveWindowsAdDomainTagId();
+      const serverTagId = await this.resolveWindowsServerTagId();
+      payload['tag_ids'] = [[6, 0, [adDomainTagId, serverTagId]]];
+    }
     if (taskType === TaskType.QNAP_MAINTENANCE) {
       const tagId = await this.resolveQnapTagId();
       payload['tag_ids'] = [[6, 0, [tagId]]];
@@ -457,5 +518,18 @@ export class OdooService {
       );
     }
     return ticketId;
+  }
+
+  async postInternalNote(ticketId: number, note: string): Promise<void> {
+    await this.odooRpc.callKw(
+      'helpdesk.ticket',
+      'message_post',
+      [[ticketId]],
+      {
+        body: note,
+        message_type: 'comment',
+        subtype_xmlid: 'mail.mt_note',
+      },
+    );
   }
 }
