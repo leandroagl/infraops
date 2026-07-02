@@ -27,6 +27,7 @@ export class QnapFormComponent implements OnChanges {
   @Input() readOnly = false;
 
   @Output() requestComplete = new EventEmitter<QnapPayload>();
+  @Output() requestSave     = new EventEmitter<QnapPayload>();
   @Output() requestNotDone  = new EventEmitter<void>();
 
   form!: FormGroup;
@@ -57,6 +58,10 @@ export class QnapFormComponent implements OnChanges {
 
   submit(): void {
     this.requestComplete.emit(this.buildPayload());
+  }
+
+  save(): void {
+    this.requestSave.emit(this.buildPayload());
   }
 
   submitNotDone(): void {

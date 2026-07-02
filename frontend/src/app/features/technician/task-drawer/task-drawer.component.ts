@@ -197,6 +197,14 @@ export class TaskDrawerComponent implements OnChanges {
     this.routerForm?.save();
   }
 
+  triggerQnapSave(): void {
+    this.qnapForm?.save();
+  }
+
+  triggerVeeamSave(): void {
+    this.veeamForm?.save();
+  }
+
   onRequestSave(payload: MaintenancePayload): void {
     this.saveProgressMsg = '';
     this.saveProgressError = '';

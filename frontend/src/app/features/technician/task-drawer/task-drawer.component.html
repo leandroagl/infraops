@@ -50,6 +50,7 @@
     [savedPayload]="savedPayload"
     [readOnly]="!isActiveTask"
     (requestComplete)="onRequestComplete($event)"
+    (requestSave)="onRequestSave($event)"
     (requestNotDone)="onRequestNotDone()">
   </app-qnap-form>
 
@@ -60,6 +61,7 @@
     [existingPayload]="veeamPayload"
     [readOnly]="!isActiveTask"
     (saved)="onRequestComplete($event)"
+    (requestSave)="onRequestSave($event)"
     (cancelled)="drawerClosed.emit()">
   </app-veeam-form>
 
@@ -138,7 +140,7 @@
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Marcar visita como realizada</span>
       </button>
-      <button mat-flat-button color="warn" (click)="onRequestNotDone()" [disabled]="completing">No concretada</button>
+      <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
     <!-- QNAP_MAINTENANCE -->
@@ -147,7 +149,7 @@
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button color="warn" (click)="onRequestNotDone()" [disabled]="completing">No concretada</button>
+      <button mat-stroked-button (click)="triggerQnapSave()" [disabled]="completing">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
@@ -157,7 +159,7 @@
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button color="warn" (click)="onRequestNotDone()" [disabled]="completing">No concretada</button>
+      <button mat-stroked-button (click)="triggerVeeamSave()" [disabled]="completing">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 

@@ -25,8 +25,9 @@ export class VeeamFormComponent implements OnChanges {
   @Input() existingPayload?: VeeamBackupPayload;
   @Input() readOnly = false;
 
-  @Output() saved    = new EventEmitter<VeeamBackupPayload>();
-  @Output() cancelled = new EventEmitter<void>();
+  @Output() saved       = new EventEmitter<VeeamBackupPayload>();
+  @Output() requestSave = new EventEmitter<VeeamBackupPayload>();
+  @Output() cancelled   = new EventEmitter<void>();
 
   form!: FormGroup;
 
@@ -129,6 +130,10 @@ export class VeeamFormComponent implements OnChanges {
 
   submit(): void {
     this.saved.emit(this.buildPayload());
+  }
+
+  save(): void {
+    this.requestSave.emit(this.buildPayload());
   }
 
   private buildForm(): void {
