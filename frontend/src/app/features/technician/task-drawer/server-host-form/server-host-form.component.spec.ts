@@ -27,12 +27,12 @@ const makeInfra = (hosts: InfraAsset[] = [makeHost()]): ClientInfrastructure => 
 const MOCK_RESULT: VmwareHealthResult = {
   host: {
     name: 'esxi01', esxiVersion: '7.0.3', uptimeHours: 100,
-    cpuUsagePct: 20, memUsagePct: 50, memOvercommitRatio: 1.0,
+    cpuUsagePct: 20, memUsagePct: 50,
     overallStatus: 'green', hardwareAlerts: [],
   },
   datastores: [],
-  vms: { poweredOn: 1, poweredOff: 0, suspended: 0, snapshots: [], toolsNotOk: 0 },
-  network: { vswitchErrors: [], nicsFailed: [] },
+  vms: { poweredOn: 1, poweredOff: 0, suspended: 0, snapshotTotal: 0, snapshots: [], toolsNotOk: 0 },
+  network: { vswitchErrors: [], nicsFailed: [], nicsOnline: [] },
   collectedAt: '2026-06-29T00:00:00Z',
 };
 

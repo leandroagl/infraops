@@ -16,6 +16,11 @@
       </mat-select>
     </mat-form-field>
 
+    <div *ngIf="loadingInfra" style="color:var(--tx-lo);font-size:12px;padding:2px 0 6px">
+      Verificando infraestructura...
+    </div>
+    <div *ngIf="infraError" class="error-banner" style="margin-bottom:8px">{{ infraError }}</div>
+
     <mat-form-field appearance="outline" subscriptSizing="dynamic">
       <mat-label>Técnico</mat-label>
       <mat-select formControlName="technicianId">
@@ -27,7 +32,7 @@
     <mat-form-field appearance="outline" subscriptSizing="dynamic">
       <mat-label>Tipo de tarea</mat-label>
       <mat-select formControlName="type">
-        <mat-option *ngFor="let t of taskTypes" [value]="t.value">{{ t.label }}</mat-option>
+        <mat-option *ngFor="let t of availableTaskTypes" [value]="t.value">{{ t.label }}</mat-option>
       </mat-select>
     </mat-form-field>
 
@@ -47,7 +52,7 @@
 <mat-dialog-actions align="end">
   <button mat-button (click)="cancel()">Cancelar</button>
   <button mat-flat-button color="primary"
-          [disabled]="!form || form.invalid || saving"
+          [disabled]="!form || form.invalid || saving || loadingInfra || !!infraError"
           (click)="confirm()">
     <mat-spinner *ngIf="saving" diameter="16" style="display:inline-block;margin-right:6px"></mat-spinner>
     {{ saving ? 'Creando...' : 'Crear tarea' }}

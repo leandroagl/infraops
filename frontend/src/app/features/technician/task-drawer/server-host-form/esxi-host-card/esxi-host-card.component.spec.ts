@@ -11,11 +11,11 @@ const MOCK_RESULT: VmwareHealthResult = {
   host: {
     name: 'esxi01', esxiVersion: 'VMware ESXi 7.0.3 build-21930508',
     uptimeHours: 120, cpuUsagePct: 25, memUsagePct: 60,
-    memOvercommitRatio: 1.3, overallStatus: 'green', hardwareAlerts: [],
+    overallStatus: 'green', hardwareAlerts: [],
   },
   datastores: [{ name: 'datastore1', type: 'VMFS', capacityGb: 500, freeGb: 200, usedPct: 60, accessible: true }],
-  vms: { poweredOn: 3, poweredOff: 1, suspended: 0, snapshots: [], toolsNotOk: 0 },
-  network: { vswitchErrors: [], nicsFailed: [] },
+  vms: { poweredOn: 3, poweredOff: 1, suspended: 0, snapshotTotal: 0, snapshots: [], toolsNotOk: 0 },
+  network: { vswitchErrors: [], nicsFailed: [], nicsOnline: [] },
   collectedAt: '2026-06-29T10:00:00.000Z',
 };
 
