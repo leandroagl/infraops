@@ -1,162 +1,281 @@
 # InfraOps
 
-Sistema de orquestación de trabajo técnico recurrente para **ONDRA MSP**.
-Reemplaza planillas Excel para coordinar mantenimientos de servidores, visitas a clientes,
-controles de UPS e inventario de parque informático.
-
----
+Sistema de orquestación de trabajo interno de ONDRA. Reemplaza planillas Excel para coordinar tareas técnicas recurrentes: mantenimientos de servidores, visitas a clientes, controles de UPS y antivirus, inventario de parque.
 
 ## Stack
 
-| Capa | Tecnología |
-|---|---|
-| Backend | NestJS · TypeORM · PostgreSQL |
-| Frontend | Angular 17 · Angular Material · Ag-Grid |
-| Auth | JWT · Guards por rol |
-| Tests | Jest (backend) · Karma/Jasmine (frontend) |
+- **Backend:** NestJS · TypeORM · PostgreSQL
+- **Frontend:** Angular 17
+- **Infraestructura:** Docker Compose · nginx
+
+## Entornos y ramas
+
+| Entorno | Rama | Acceso | SSL |
+|---|---|---|---|
+| Local (desarrollo) | `feature/*` | `localhost:4200` / `localhost:3000` | No |
+| Test | `develop` | IP del servidor, puerto 80 | No |
+| Producción | `main` | Dominio propio, puerto 443 | Let's Encrypt |
+
+**Ciclo de vida:**
+```
+feature/* → develop (test server) → main (producción)
+```
+
+Cada release a producción se tagea: `git tag v1.x && git push origin v1.x`
 
 ---
 
-## Requisitos previos
+## Requisitos del servidor (test y producción)
 
-- **Node.js** >= 20
-- **npm** >= 10
-- **Docker Desktop** (Windows) — para la base de datos
-- **Angular CLI**: `npm install -g @angular/cli`
+```bash
+# Ubuntu 22.04+
+sudo apt update && sudo apt install -y docker.io docker-compose-plugin git
+sudo usermod -aG docker $USER
+# Cerrar sesión y volver a entrar para que aplique el grupo
+```
 
 ---
 
-## Levantar el entorno de desarrollo
-
-### 1. Base de datos (Docker)
-
-Levantar un contenedor de PostgreSQL con volumen persistente:
+## Configuración inicial (ambos entornos)
 
 ```bash
-docker run -d --name infraops-db -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=infraops -p 5432:5432 -v infraops-db-data:/var/lib/postgresql/data postgres:15
-```
+git clone <repo-url> infraops
+cd infraops
 
-Para detener / reiniciar el contenedor sin perder datos:
-
-```bash
-docker stop infraops-db
-docker start infraops-db
-```
-
-### 2. Backend
-
-```bash
-cd backend
-
-# Instalar dependencias
-npm install
-
-# Copiar variables de entorno y completarlas
+# Variables de entorno para docker-compose
 cp .env.example .env
+nano .env   # setear DB_PASSWORD (y DOMAIN solo en producción)
+
+# Variables del backend
+cp backend/.env.example backend/.env
+nano backend/.env   # setear DB_PASSWORD, JWT_SECRET y resto
 ```
 
-Editar `backend/.env` con los valores reales:
+### Variables requeridas
 
-```env
-PORT=3000
-NODE_ENV=development
+**`.env` (raíz):**
 
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=infraops
+| Variable | Descripción | Ejemplo |
+|---|---|---|
+| `DB_PASSWORD` | Password de PostgreSQL | cadena aleatoria larga |
+| `DOMAIN` | Solo producción: dominio de la app | `infraops.tudominio.com` |
 
-JWT_SECRET=cadena_aleatoria_de_al_menos_32_caracteres
+**`backend/.env`:**
 
-INFRADOC_URL=https://infradoc.ondra.com.ar
-INFRADOC_API_KEY=tu_api_key
-```
-
-Levantar en modo watch (TypeORM sincroniza el schema automáticamente en desarrollo):
-
-```bash
-npm run start:dev
-```
-
-El backend queda en `http://localhost:3000`.
-
-Opcionalmente, crear el usuario admin inicial:
-
-```bash
-npm run db:seed
-```
-
-### 3. Frontend
-
-```bash
-cd frontend
-
-# Instalar dependencias
-npm install
-
-# Levantar en modo desarrollo
-npm start
-```
-
-El frontend queda en `http://localhost:4200` con proxy al backend configurado.
-
----
-
-## Scripts útiles
-
-### Backend (`backend/`)
-
-| Comando | Descripción |
+| Variable | Descripción |
 |---|---|
-| `npm run start:dev` | Watch mode (recarga automática) |
-| `npm run test` | Tests unitarios |
-| `npm run test:watch` | Tests en modo watch |
-| `npm run test:cov` | Coverage |
-| `npm run test:e2e` | Tests end-to-end |
-| `npm run db:seed` | Crea usuario admin inicial |
-| `npm run lint` | Lint + autofix |
-
-### Frontend (`frontend/`)
-
-| Comando | Descripción |
-|---|---|
-| `npm start` | Dev server en puerto 4200 |
-| `npm test` | Tests con Karma |
-| `npm run build` | Build de producción |
+| `DB_HOST` | Nombre del servicio DB en compose (`db`) |
+| `DB_PORT` | Puerto PostgreSQL (`5432`) |
+| `DB_NAME` | Nombre de la base (`infraops`) |
+| `DB_USER` | Usuario PostgreSQL (`infraops`) |
+| `DB_PASSWORD` | Debe coincidir con el `.env` raíz |
+| `JWT_SECRET` | Secreto para tokens JWT |
+| `PORT` | Puerto del backend (`3000`) |
 
 ---
 
-## Estructura del proyecto
+## Test Server
+
+### Setup inicial
+
+```bash
+git checkout develop
+docker compose up --build -d
+```
+
+La primera vez tarda más (compila Angular + TypeScript + corre migraciones).
+
+Verificar que está corriendo:
+
+```bash
+docker compose ps
+curl http://localhost       # debe devolver HTML del frontend
+curl http://localhost/api/  # debe responder (401 o similar, no 502)
+```
+
+La app queda disponible en `http://<IP-del-servidor>`.
+
+### Actualizar
+
+```bash
+git pull
+docker compose up --build -d
+```
+
+Las migraciones de base de datos corren automáticamente al reiniciar el backend.
+
+---
+
+## Producción
+
+### Setup inicial (primera vez)
+
+**Prerequisito:** el dominio debe apuntar a la IP del servidor antes de este paso.
+
+```bash
+git checkout main
+
+# 1. Configurar .env con DOMAIN=infraops.tudominio.com
+nano .env
+
+# 2. Crear directorios para los certs
+mkdir -p certbot/conf certbot/www
+
+# 3. Obtener certificado (nginx NO debe estar corriendo)
+docker run --rm \
+  -p 80:80 \
+  -v $(pwd)/certbot/conf:/etc/letsencrypt \
+  certbot/certbot certonly --standalone \
+  --email admin@ondra.com \
+  --agree-tos \
+  --no-eff-email \
+  -d $(grep ^DOMAIN .env | cut -d= -f2)
+
+# 4. Levantar el stack completo con HTTPS
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+```
+
+Verificar:
+
+```bash
+curl https://infraops.tudominio.com       # HTML del frontend
+curl https://infraops.tudominio.com/api/  # respuesta del backend
+```
+
+### Configurar renovación automática de certificados
+
+Los certs de Let's Encrypt duran 90 días. El contenedor `certbot` intenta renovar cada 12 horas automáticamente. Sin embargo, nginx necesita reiniciarse para cargar el nuevo cert.
+
+Agregar este cron en el servidor (como el usuario que corre docker):
+
+```bash
+crontab -e
+```
 
 ```
-infraops/
-├── backend/        # NestJS API
-│   ├── src/
-│   │   ├── auth/
-│   │   ├── users/
-│   │   ├── clients/
-│   │   ├── technicians/
-│   │   ├── tasks/
-│   │   ├── maintenance-logs/
-│   │   └── common/
-│   └── .env.example
-├── frontend/       # Angular app
-│   └── src/
-├── docs/
-│   ├── domain-model.md
-│   ├── flows/
-│   └── mockups/    # HTML de referencia visual
-└── CLAUDE.md       # Guía de desarrollo para Claude Code
+# Reinicia nginx los domingos a medianoche para cargar certs renovados
+0 0 * * 0 cd /ruta/a/infraops && docker compose -f docker-compose.yml -f docker-compose.prod.yml restart frontend
+```
+
+### Actualizar
+
+```bash
+git pull
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+```
+
+Antes de actualizar producción, siempre validar primero en el test server.
+
+### Rollback
+
+```bash
+# Ver versiones disponibles
+git tag
+
+# Volver a una versión anterior
+git checkout v1.1
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+```
+
+Si la versión anterior tenía migraciones de base de datos diferentes:
+
+```bash
+docker compose exec backend npm run migration:revert
+```
+
+Ejecutar una vez por cada migración a revertir.
+
+---
+
+## Nginx — Configuración
+
+### Test server (HTTP)
+
+La configuración está en `frontend/nginx.conf` y se incluye en la imagen al buildear. No requiere intervención en el servidor.
+
+Comportamiento:
+- `/` → sirve `index.html` de Angular (con SPA fallback para rutas del router)
+- `/assets/*`, `*.js`, `*.css` → archivos estáticos con cache largo
+- `/api/*` → proxy hacia `http://backend:3000/` (el prefijo `/api` se stripea)
+
+### Producción (HTTPS)
+
+La configuración en `frontend/nginx-prod.conf.template` se monta sobre la imagen vía volume override en `docker-compose.prod.yml`. El contenedor aplica `envsubst` automáticamente reemplazando `${DOMAIN}`.
+
+Comportamiento adicional:
+- Puerto 80 redirige a HTTPS (excepto el endpoint `/.well-known/acme-challenge/` para renovación)
+- Puerto 443 con TLS 1.2/1.3
+- Certs desde `/etc/letsencrypt/live/${DOMAIN}/`
+
+Para modificar la configuración de nginx en producción:
+
+```bash
+# Editar el template
+nano frontend/nginx-prod.conf.template
+
+# Reiniciar nginx (sin rebuild de imagen)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml restart frontend
 ```
 
 ---
 
-## Convenciones
+## Logs y troubleshooting
 
-- **Código:** inglés (variables, clases, archivos)
-- **Docs y commits:** español
-- **TDD obligatorio:** test antes que implementación
-- **Un archivo a la vez:** confirmar antes de generar múltiples archivos
+```bash
+# Ver logs de todos los servicios
+docker compose logs -f
 
-Ver [CLAUDE.md](CLAUDE.md) para el contexto completo del proyecto.
+# Ver logs de un servicio específico
+docker compose logs -f backend
+docker compose logs -f frontend
+
+# Estado de los contenedores
+docker compose ps
+
+# Entrar al contenedor del backend
+docker compose exec backend sh
+
+# Ver logs de nginx (accesos)
+docker compose exec frontend cat /var/log/nginx/access.log
+
+# Correr migraciones manualmente
+docker compose exec backend npm run migration:run:prod
+
+# Ver migraciones aplicadas
+docker compose exec backend npm run migration:show
+```
+
+### El backend no levanta
+
+1. Verificar logs: `docker compose logs backend`
+2. Verificar que `backend/.env` existe y tiene todas las variables
+3. Verificar que la DB está up: `docker compose ps db`
+4. Verificar conexión: `docker compose exec backend sh -c "nc -zv db 5432"`
+
+### nginx devuelve 502 Bad Gateway en `/api/`
+
+El backend no está respondiendo. Verificar:
+
+```bash
+docker compose ps backend
+docker compose logs backend
+```
+
+### Certificado SSL vencido
+
+```bash
+# Forzar renovación manual
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec certbot \
+  certbot renew --force-renewal --webroot -w /var/www/certbot
+
+# Reiniciar nginx para cargar el nuevo cert
+docker compose -f docker-compose.yml -f docker-compose.prod.yml restart frontend
+```
+
+---
+
+## Pendiente (fuera de scope v1)
+
+- Backups automáticos de la base de datos
+- Monitoreo del servidor (uptime, alertas)
+- CI/CD automatizado (GitHub Actions)
