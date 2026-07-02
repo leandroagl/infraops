@@ -25,6 +25,7 @@ export interface WindowsServerEntry {
   serverId: number;
   serverName: string;
   updates: 'ok' | 'pending' | 'failed';
+  restartScript: 'ok' | 'error' | 'no_task';
   notes?: string;
 }
 
