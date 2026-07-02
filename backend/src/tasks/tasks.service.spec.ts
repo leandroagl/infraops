@@ -7,6 +7,8 @@ import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Client } from '../clients/client.entity';
 import { OdooService } from '../integrations/odoo/odoo.service';
+import { InfrastructureService } from '../integrations/infradoc/infrastructure.service';
+import { ClientInfrastructureDto } from '../integrations/infradoc/dto/client-infrastructure.dto';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
 import { User } from '../users/user.entity';
@@ -28,12 +30,23 @@ describe('TasksService', () => {
   };
   let clientRepository: { findOne: jest.Mock };
   let technicianRepository: { findOne: jest.Mock };
-  let logRepository: { delete: jest.Mock };
+  let logRepository: { delete: jest.Mock; findOne: jest.Mock };
   let odooService: {
     createTicket: jest.Mock;
     closeTicket: jest.Mock;
     resolveEmployeeId: jest.Mock;
     markTicketInProgress: jest.Mock;
+    postInternalNote: jest.Mock;
+  };
+  let infrastructureService: { getClientInfrastructure: jest.Mock };
+
+  const emptyInfra: ClientInfrastructureDto = {
+    esxiHosts: [], windowsVMs: [], domainControllers: [], linuxVMs: [], nas: [], routers: [],
+  };
+
+  const infraWithWindows: ClientInfrastructureDto = {
+    ...emptyInfra,
+    windowsVMs: [{ assetId: 1, name: 'WS-01', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null, uri1: null, uri2: null }],
   };
 
   const mockClient: Client = {
@@ -90,28 +103,25 @@ describe('TasksService', () => {
     };
     clientRepository = { findOne: jest.fn() };
     technicianRepository = { findOne: jest.fn() };
-    logRepository = { delete: jest.fn() };
+    logRepository = { delete: jest.fn(), findOne: jest.fn().mockResolvedValue(null) };
     odooService = {
       createTicket: jest.fn(),
       closeTicket: jest.fn(),
       resolveEmployeeId: jest.fn(),
       markTicketInProgress: jest.fn(),
+      postInternalNote: jest.fn().mockResolvedValue(undefined),
     };
+    infrastructureService = { getClientInfrastructure: jest.fn() };
 
     const module = await Test.createTestingModule({
       providers: [
         TasksService,
-        { provide: getRepositoryToken(Task), useValue: taskRepository },
-        { provide: getRepositoryToken(Client), useValue: clientRepository },
-        {
-          provide: getRepositoryToken(Technician),
-          useValue: technicianRepository,
-        },
-        {
-          provide: getRepositoryToken(MaintenanceLog),
-          useValue: logRepository,
-        },
-        { provide: OdooService, useValue: odooService },
+        { provide: getRepositoryToken(Task),           useValue: taskRepository },
+        { provide: getRepositoryToken(Client),         useValue: clientRepository },
+        { provide: getRepositoryToken(Technician),     useValue: technicianRepository },
+        { provide: getRepositoryToken(MaintenanceLog), useValue: logRepository },
+        { provide: OdooService,                        useValue: odooService },
+        { provide: InfrastructureService,             useValue: infrastructureService },
       ],
     }).compile();
 
@@ -196,13 +206,11 @@ describe('TasksService', () => {
     it('crea y devuelve la tarea con cliente y técnico cargados', async () => {
       clientRepository.findOne.mockResolvedValue(mockClient);
       technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      infrastructureService.getClientInfrastructure.mockResolvedValue(infraWithWindows);
       odooService.createTicket.mockResolvedValue(42);
       taskRepository.create.mockReturnValue({ ...mockTask, odooTicketId: 42 });
       taskRepository.save.mockResolvedValue({ ...mockTask, odooTicketId: 42 });
-      taskRepository.findOne.mockResolvedValue({
-        ...mockTask,
-        odooTicketId: 42,
-      });
+      taskRepository.findOne.mockResolvedValue({ ...mockTask, odooTicketId: 42 });
 
       const result = await service.create(createDto);
 
@@ -225,14 +233,12 @@ describe('TasksService', () => {
     it('no guarda la tarea si Odoo falla al crear el ticket', async () => {
       clientRepository.findOne.mockResolvedValue(mockClient);
       technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      infrastructureService.getClientInfrastructure.mockResolvedValue(infraWithWindows);
       odooService.createTicket.mockRejectedValue(
         new ServiceUnavailableException('Odoo no disponible'),
       );
 
-      await expect(service.create(createDto)).rejects.toThrow(
-        ServiceUnavailableException,
-      );
-
+      await expect(service.create(createDto)).rejects.toThrow(ServiceUnavailableException);
       expect(taskRepository.save).not.toHaveBeenCalled();
     });
 
@@ -251,6 +257,86 @@ describe('TasksService', () => {
       await expect(service.create(createDto)).rejects.toThrow(
         'Técnico no encontrado',
       );
+    });
+
+    it('lanza BadRequestException si cliente sin VMs Windows para WINDOWS_DOMAIN_MAINTENANCE', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      infrastructureService.getClientInfrastructure.mockResolvedValue(emptyInfra);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        'El cliente no tiene VMs Windows ni controladores de dominio en InfraDoc',
+      );
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+    });
+
+    it('lanza BadRequestException si cliente sin esxiHosts para SERVER_HOST_MAINTENANCE', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      infrastructureService.getClientInfrastructure.mockResolvedValue(emptyInfra);
+
+      await expect(
+        service.create({ ...createDto, type: TaskType.SERVER_HOST_MAINTENANCE }),
+      ).rejects.toThrow('El cliente no tiene servidores ESXi/BMC registrados en InfraDoc');
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+    });
+
+    it('lanza BadRequestException si cliente sin routers para ROUTER_MAINTENANCE', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      infrastructureService.getClientInfrastructure.mockResolvedValue(emptyInfra);
+
+      await expect(
+        service.create({ ...createDto, type: TaskType.ROUTER_MAINTENANCE }),
+      ).rejects.toThrow('El cliente no tiene routers/firewalls registrados en InfraDoc');
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+    });
+
+    it('lanza BadRequestException si cliente sin NAS para QNAP_MAINTENANCE', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      infrastructureService.getClientInfrastructure.mockResolvedValue(emptyInfra);
+
+      await expect(
+        service.create({ ...createDto, type: TaskType.QNAP_MAINTENANCE }),
+      ).rejects.toThrow('El cliente no tiene dispositivos NAS/QNAP registrados en InfraDoc');
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+    });
+
+    it('lanza BadRequestException si cliente sin NAS para VEEAM_BACKUP', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      infrastructureService.getClientInfrastructure.mockResolvedValue(emptyInfra);
+
+      await expect(
+        service.create({ ...createDto, type: TaskType.VEEAM_BACKUP }),
+      ).rejects.toThrow('El cliente no tiene dispositivos NAS/QNAP registrados en InfraDoc (requerido para Veeam)');
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+    });
+
+    it('no llama a InfrastructureService y crea tarea para SITE_VISIT', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      odooService.createTicket.mockResolvedValue(null);
+      taskRepository.create.mockReturnValue({ ...mockTask, type: TaskType.SITE_VISIT, odooTicketId: null });
+      taskRepository.save.mockResolvedValue({ ...mockTask, type: TaskType.SITE_VISIT, odooTicketId: null });
+      taskRepository.findOne.mockResolvedValue({ ...mockTask, type: TaskType.SITE_VISIT, odooTicketId: null });
+
+      await service.create({ ...createDto, type: TaskType.SITE_VISIT });
+
+      expect(infrastructureService.getClientInfrastructure).not.toHaveBeenCalled();
+      expect(taskRepository.save).toHaveBeenCalled();
+    });
+
+    it('propaga ServiceUnavailableException cuando InfraDoc no está disponible', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      infrastructureService.getClientInfrastructure.mockRejectedValue(
+        new ServiceUnavailableException('InfraDoc no disponible'),
+      );
+
+      await expect(service.create(createDto)).rejects.toThrow(ServiceUnavailableException);
+      expect(odooService.createTicket).not.toHaveBeenCalled();
     });
   });
 
@@ -610,6 +696,106 @@ describe('TasksService', () => {
         service.updateStatus('task-1', TaskStatus.IN_PROGRESS),
       ).rejects.toThrow(ServiceUnavailableException);
       expect(taskRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('postea nota interna en Odoo al completar DONE cuando el log tiene notes', async () => {
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+        technician: { user: { id: 'user-1' } },
+      };
+      taskRepository.findOne
+        .mockResolvedValueOnce(inProgressTask)
+        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
+      odooService.resolveEmployeeId.mockResolvedValue(22);
+      odooService.closeTicket.mockResolvedValue(undefined);
+      taskRepository.update.mockResolvedValue({ affected: 1 });
+      logRepository.findOne.mockResolvedValue({ notes: 'Se detectó disco con advertencia.' });
+
+      await service.updateStatus('task-1', TaskStatus.DONE, 90);
+
+      expect(odooService.postInternalNote).toHaveBeenCalledWith(42, 'Se detectó disco con advertencia.');
+    });
+
+    it('no postea nota interna cuando el log no tiene notes', async () => {
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+        technician: { user: { id: 'user-1' } },
+      };
+      taskRepository.findOne
+        .mockResolvedValueOnce(inProgressTask)
+        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
+      odooService.resolveEmployeeId.mockResolvedValue(22);
+      odooService.closeTicket.mockResolvedValue(undefined);
+      taskRepository.update.mockResolvedValue({ affected: 1 });
+      logRepository.findOne.mockResolvedValue({ notes: null });
+
+      await service.updateStatus('task-1', TaskStatus.DONE, 90);
+
+      expect(odooService.postInternalNote).not.toHaveBeenCalled();
+    });
+
+    it('no postea nota interna cuando no existe log para la tarea', async () => {
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+        technician: { user: { id: 'user-1' } },
+      };
+      taskRepository.findOne
+        .mockResolvedValueOnce(inProgressTask)
+        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
+      odooService.resolveEmployeeId.mockResolvedValue(22);
+      odooService.closeTicket.mockResolvedValue(undefined);
+      taskRepository.update.mockResolvedValue({ affected: 1 });
+      logRepository.findOne.mockResolvedValue(null);
+
+      await service.updateStatus('task-1', TaskStatus.DONE, 90);
+
+      expect(odooService.postInternalNote).not.toHaveBeenCalled();
+    });
+
+    it('no postea nota interna al transicionar a NOT_DONE', async () => {
+      const taskWithTicket = {
+        ...mockTask,
+        status: TaskStatus.PENDING,
+        odooTicketId: 55,
+        technician: { user: { id: 'user-1' } },
+      };
+      taskRepository.findOne
+        .mockResolvedValueOnce(taskWithTicket)
+        .mockResolvedValueOnce({ ...taskWithTicket, status: TaskStatus.NOT_DONE });
+      odooService.resolveEmployeeId.mockResolvedValue(22);
+      odooService.closeTicket.mockResolvedValue(undefined);
+      taskRepository.update.mockResolvedValue({ affected: 1 });
+      logRepository.findOne.mockResolvedValue({ notes: 'Nota que no debe enviarse.' });
+
+      await service.updateStatus('task-1', TaskStatus.NOT_DONE, 0);
+
+      expect(odooService.postInternalNote).not.toHaveBeenCalled();
+    });
+
+    it('completa la transición a DONE aunque postInternalNote falle', async () => {
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+        technician: { user: { id: 'user-1' } },
+      };
+      taskRepository.findOne
+        .mockResolvedValueOnce(inProgressTask)
+        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
+      odooService.resolveEmployeeId.mockResolvedValue(22);
+      odooService.closeTicket.mockResolvedValue(undefined);
+      taskRepository.update.mockResolvedValue({ affected: 1 });
+      logRepository.findOne.mockResolvedValue({ notes: 'Nota.' });
+      odooService.postInternalNote.mockRejectedValue(new Error('Odoo caído'));
+
+      await expect(service.updateStatus('task-1', TaskStatus.DONE, 90)).resolves.not.toThrow();
+      expect(taskRepository.update).toHaveBeenCalledWith('task-1', expect.objectContaining({ status: TaskStatus.DONE }));
     });
   });
 

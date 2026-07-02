@@ -15,5 +15,6 @@ import { InfrastructureService } from './infrastructure.service';
   ],
   controllers: [InfrastructureController],
   providers: [InfrastructureService, InfradocAssetsService],
+  exports: [InfrastructureService],
 })
 export class InfradocIntegrationModule {}

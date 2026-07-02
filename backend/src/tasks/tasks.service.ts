@@ -10,11 +10,22 @@ import { Client } from '../clients/client.entity';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
 import { OdooService } from '../integrations/odoo/odoo.service';
+import { InfrastructureService } from '../integrations/infradoc/infrastructure.service';
+import { ClientInfrastructureDto } from '../integrations/infradoc/dto/client-infrastructure.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskStatus } from './task-status.enum';
+import { TaskType } from './task-type.enum';
 import { Task } from './task.entity';
+
+const INFRA_ERROR_MESSAGES: Partial<Record<TaskType, string>> = {
+  [TaskType.SERVER_HOST_MAINTENANCE]:    'El cliente no tiene servidores ESXi/BMC registrados en InfraDoc',
+  [TaskType.WINDOWS_DOMAIN_MAINTENANCE]: 'El cliente no tiene VMs Windows ni controladores de dominio en InfraDoc',
+  [TaskType.ROUTER_MAINTENANCE]:         'El cliente no tiene routers/firewalls registrados en InfraDoc',
+  [TaskType.QNAP_MAINTENANCE]:           'El cliente no tiene dispositivos NAS/QNAP registrados en InfraDoc',
+  [TaskType.VEEAM_BACKUP]:               'El cliente no tiene dispositivos NAS/QNAP registrados en InfraDoc (requerido para Veeam)',
+};
 
 const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   [TaskStatus.PENDING]: [TaskStatus.IN_PROGRESS, TaskStatus.NOT_DONE],
@@ -32,6 +43,14 @@ const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
 export class TasksService {
   private readonly logger = new Logger(TasksService.name);
 
+  private readonly INFRA_REQUIREMENTS: Partial<Record<TaskType, (i: ClientInfrastructureDto) => boolean>> = {
+    [TaskType.SERVER_HOST_MAINTENANCE]:    (i) => i.esxiHosts.length > 0,
+    [TaskType.WINDOWS_DOMAIN_MAINTENANCE]: (i) => i.windowsVMs.length > 0 || i.domainControllers.length > 0,
+    [TaskType.ROUTER_MAINTENANCE]:         (i) => i.routers.length > 0,
+    [TaskType.QNAP_MAINTENANCE]:           (i) => i.nas.length > 0,
+    [TaskType.VEEAM_BACKUP]:               (i) => i.nas.length > 0,
+  };
+
   constructor(
     @InjectRepository(Task)
     private readonly taskRepository: Repository<Task>,
@@ -42,6 +61,7 @@ export class TasksService {
     @InjectRepository(MaintenanceLog)
     private readonly logRepository: Repository<MaintenanceLog>,
     private readonly odooService: OdooService,
+    private readonly infrastructureService: InfrastructureService,
   ) {}
 
   async findAll(filters: FilterTasksDto): Promise<Task[]> {
@@ -68,6 +88,8 @@ export class TasksService {
       where: { id: dto.technicianId },
     });
     if (!technician) throw new NotFoundException('Técnico no encontrado');
+
+    await this.validateInfrastructure(dto.clientId, dto.type);
 
     const odooTicketId = await this.odooService.createTicket(
       dto.clientId,
@@ -170,6 +192,18 @@ export class TasksService {
     }
 
     await this.taskRepository.update(id, { status: newStatus, completedDate });
+
+    if (newStatus === TaskStatus.DONE && task.odooTicketId !== null) {
+      const log = await this.logRepository.findOne({ where: { taskId: id } });
+      if (log?.notes) {
+        try {
+          await this.odooService.postInternalNote(task.odooTicketId, log.notes);
+        } catch (err) {
+          this.logger.warn(`No se pudo postear nota interna en Odoo: ${(err as Error).message}`);
+        }
+      }
+    }
+
     return this.loadTask(id);
   }
 
@@ -179,6 +213,16 @@ export class TasksService {
 
     await this.logRepository.delete({ taskId: id });
     await this.taskRepository.delete(id);
+  }
+
+  private async validateInfrastructure(clientId: string, type: TaskType): Promise<void> {
+    const predicate = this.INFRA_REQUIREMENTS[type];
+    if (!predicate) return;
+
+    const infra = await this.infrastructureService.getClientInfrastructure(clientId);
+    if (!predicate(infra)) {
+      throw new BadRequestException(INFRA_ERROR_MESSAGES[type]);
+    }
   }
 
   private async loadTask(id: string): Promise<Task> {

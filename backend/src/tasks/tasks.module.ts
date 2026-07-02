@@ -6,6 +6,7 @@ import { ClientsModule } from '../clients/clients.module';
 import { TechniciansModule } from '../technicians/technicians.module';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { OdooIntegrationModule } from '../integrations/odoo/odoo-integration.module';
+import { InfradocIntegrationModule } from '../integrations/infradoc/infradoc-integration.module';
 import { Task } from './task.entity';
 import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
@@ -16,6 +17,7 @@ import { TasksService } from './tasks.service';
     ClientsModule,
     TechniciansModule,
     OdooIntegrationModule,
+    InfradocIntegrationModule,
   ],
   controllers: [TasksController],
   providers: [TasksService, JwtAuthGuard, RolesGuard],
