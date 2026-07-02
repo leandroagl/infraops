@@ -227,6 +227,7 @@ mat-form-field.mf-srv-ff {
 
   --mat-form-field-container-height:           28px;
   --mat-form-field-container-vertical-padding: 4px;
+  --mdc-outlined-text-field-container-color:        var(--card);
   --mdc-outlined-text-field-outline-color:          var(--border);
   --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
   --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
@@ -240,6 +241,7 @@ mat-form-field.mf-srv-rs-ff {
 
   --mat-form-field-container-height:           28px;
   --mat-form-field-container-vertical-padding: 4px;
+  --mdc-outlined-text-field-container-color:        var(--card);
   --mdc-outlined-text-field-outline-color:          var(--border);
   --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
   --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);

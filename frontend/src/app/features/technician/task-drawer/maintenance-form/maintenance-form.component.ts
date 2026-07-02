@@ -94,17 +94,17 @@ export class MaintenanceFormComponent implements OnChanges {
 
   get summaryOk(): number {
     return this.infrastructure?.windowsVMs?.reduce((n, _, i) =>
-      n + (this.serverRowState(i) === 'ok' ? 1 : 0), 0) ?? 0;
+      i < this.serverControls.length && this.serverRowState(i) === 'ok' ? n + 1 : n, 0) ?? 0;
   }
 
   get summaryWarn(): number {
     return this.infrastructure?.windowsVMs?.reduce((n, _, i) =>
-      n + (this.serverRowState(i) === 'warn' ? 1 : 0), 0) ?? 0;
+      i < this.serverControls.length && this.serverRowState(i) === 'warn' ? n + 1 : n, 0) ?? 0;
   }
 
   get summaryCrit(): number {
     return this.infrastructure?.windowsVMs?.reduce((n, _, i) =>
-      n + (this.serverRowState(i) === 'crit' ? 1 : 0), 0) ?? 0;
+      i < this.serverControls.length && this.serverRowState(i) === 'crit' ? n + 1 : n, 0) ?? 0;
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
