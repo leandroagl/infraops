@@ -1,0 +1,10 @@
+# Entornos
+.env
+backend/.env
+
+# Certs Let's Encrypt (producción)
+certbot/
+
+# OS
+.DS_Store
+Thumbs.db
