@@ -5,46 +5,47 @@
 
     <div class="mf-section-lbl">Servidores</div>
 
-    <div class="mf-srv-table">
-      <div class="mf-srv-head">
-        <span></span>
-        <span class="mf-srv-th" style="padding-left:8px">Servidor</span>
-        <span class="mf-srv-th">Win Updates</span>
-        <span></span>
-      </div>
+    <div class="mf-srv-summary">
+      <span class="mf-srv-pill" [class.p-ok]="summaryOk > 0">{{ summaryOk }} OK</span>
+      <span class="mf-srv-pill" [class.p-warn]="summaryWarn > 0">{{ summaryWarn }} Advertencia</span>
+      <span class="mf-srv-pill" [class.p-crit]="summaryCrit > 0">{{ summaryCrit }} Error</span>
+    </div>
 
-      <ng-container formArrayName="servers">
-        <ng-container *ngFor="let _ of serverControls.controls; let i = index"
-                      [formGroupName]="i">
+    <div class="mf-srv-list" formArrayName="servers">
+      <div
+        *ngFor="let _ of serverControls.controls; let i = index"
+        class="mf-srv-row"
+        [ngClass]="'st-' + serverRowState(i)"
+        [formGroupName]="i">
 
-          <div class="mf-srv-row"
-               [ngClass]="'st-' + serverRowState(i)">
+        <div class="mf-srv-stripe"></div>
 
-            <div class="mf-srv-icon">
-              <svg viewBox="0 0 24 24" style="width:8px;height:8px;stroke:var(--srv);fill:none;stroke-width:1.8;stroke-linecap:round">
-                <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-              </svg>
-            </div>
-
-            <div class="mf-srv-name-cell">
-              <div class="mf-srv-name">{{ infrastructure.windowsVMs[i].name }}</div>
-              <div class="mf-srv-access">{{ infrastructure.windowsVMs[i].ip ?? '—' }}</div>
-            </div>
-
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-srv-ff"
-                            [ngClass]="selectClass(getServerGroup(i).get('updates')?.value)">
-              <mat-select formControlName="updates">
-                <mat-option value="ok">Al día</mat-option>
-                <mat-option value="pending">Pendientes</mat-option>
-                <mat-option value="failed">Error</mat-option>
-              </mat-select>
-            </mat-form-field>
-
-
+        <div class="mf-srv-inner">
+          <div class="mf-srv-name-cell">
+            <span class="mf-srv-name">{{ infrastructure.windowsVMs[i].name }}</span>
+            <span class="mf-srv-ip">{{ infrastructure.windowsVMs[i].ip ?? '—' }}</span>
           </div>
 
-        </ng-container>
-      </ng-container>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                          class="mf-srv-ff" [ngClass]="selectClass(getServerGroup(i).get('updates')?.value)">
+            <mat-select formControlName="updates">
+              <mat-option value="ok">Al día</mat-option>
+              <mat-option value="pending">Pendientes</mat-option>
+              <mat-option value="failed">Error</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                          class="mf-srv-rs-ff" [ngClass]="selectClass(getServerGroup(i).get('restartScript')?.value)">
+            <mat-select formControlName="restartScript">
+              <mat-option value="ok">Ejecutándose ✓</mat-option>
+              <mat-option value="no_task">Sin tarea</mat-option>
+              <mat-option value="error">Error de ejecución</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+      </div>
     </div>
 
   </ng-container>
