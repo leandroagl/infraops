@@ -18,8 +18,7 @@
                       [formGroupName]="i">
 
           <div class="mf-srv-row"
-               [class.mf-srv-row--expanded]="getServerGroup(i).get('expanded')?.value"
-               [ngClass]="serverRowClass(i)">
+               [ngClass]="'st-' + serverRowState(i)">
 
             <div class="mf-srv-icon">
               <svg viewBox="0 0 24 24" style="width:8px;height:8px;stroke:var(--srv);fill:none;stroke-width:1.8;stroke-linecap:round">
@@ -41,24 +40,7 @@
               </mat-select>
             </mat-form-field>
 
-            <button mat-icon-button type="button" class="mf-expand-btn" (click)="toggleExpand(i)">
-              <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round">
-                <polyline *ngIf="!getServerGroup(i).get('expanded')?.value" points="6 9 12 15 18 9"/>
-                <polyline *ngIf="getServerGroup(i).get('expanded')?.value"  points="18 15 12 9 6 15"/>
-              </svg>
-            </button>
 
-          </div>
-
-          <div class="mf-expand-panel" [class.mf-expand-panel--open]="getServerGroup(i).get('expanded')?.value">
-            <div class="mf-expand-detail">
-              <span class="mf-lbl">S.O.</span>
-              <span class="mf-expand-os">{{ infrastructure.windowsVMs[i].os ?? '—' }}</span>
-            </div>
-            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field" style="margin-top:6px">
-              <mat-label>Nota</mat-label>
-              <input matInput formControlName="notes" placeholder="Detalles, error puntual, acción tomada..." />
-            </mat-form-field>
           </div>
 
         </ng-container>

@@ -16,6 +16,8 @@ import {
   WindowsDomainPayload,
 } from '../../../../core/models/maintenance-log.models';
 
+type ServerRowState = 'ok' | 'warn' | 'crit';
+
 @Component({
   selector: 'app-maintenance-form',
   templateUrl: './maintenance-form.component.html',
@@ -88,6 +90,49 @@ export class MaintenanceFormComponent implements OnChanges {
       || this.task?.type === 'ENDPOINT_INVENTORY';
   }
 
+  // ── Summary getters ──────────────────────────────────────────────────────────
+
+  get summaryOk(): number {
+    return this.infrastructure?.windowsVMs?.reduce((n, _, i) =>
+      n + (this.serverRowState(i) === 'ok' ? 1 : 0), 0) ?? 0;
+  }
+
+  get summaryWarn(): number {
+    return this.infrastructure?.windowsVMs?.reduce((n, _, i) =>
+      n + (this.serverRowState(i) === 'warn' ? 1 : 0), 0) ?? 0;
+  }
+
+  get summaryCrit(): number {
+    return this.infrastructure?.windowsVMs?.reduce((n, _, i) =>
+      n + (this.serverRowState(i) === 'crit' ? 1 : 0), 0) ?? 0;
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  selectClass(value: string): string {
+    if (!value) return 'mf-sel--na';
+    if (value === 'ok' || value === 'OK') return 'mf-sel--ok';
+    if (value === 'pending' || value === 'degraded' || value === 'falta_configurar'
+        || value === 'ERROR Systemlog' || value === 'no_task') return 'mf-sel--warn';
+    if (value === 'error' || value === 'failed' || value === 'ERROR' || value === 'alerta') return 'mf-sel--crit';
+    return 'mf-sel--na';
+  }
+
+  serverRowState(i: number): ServerRowState {
+    const group = this.getServerGroup(i);
+    const updates      = group.get('updates')?.value      ?? 'ok';
+    const restartScript = group.get('restartScript')?.value ?? 'ok';
+    const isCrit = updates === 'failed' || restartScript === 'error';
+    const isWarn = updates === 'pending' || restartScript === 'no_task';
+    if (isCrit) return 'crit';
+    if (isWarn) return 'warn';
+    return 'ok';
+  }
+
+  getServerGroup(index: number): FormGroup {
+    return this.serverControls.at(index) as FormGroup;
+  }
+
   // ── Read-only state ─────────────────────────────────────────────────────────
 
   private applyReadOnlyState(): void {
@@ -105,9 +150,8 @@ export class MaintenanceFormComponent implements OnChanges {
     this.form = this.fb.group({
       servers: this.fb.array(
         this.infrastructure.windowsVMs.map(() => this.fb.group({
-          updates:  ['ok'],
-          notes:    [''],
-          expanded: [false],
+          updates:       ['ok'],
+          restartScript: ['ok'],
         }))
       ),
       domainControllers: this.fb.array(
@@ -125,33 +169,6 @@ export class MaintenanceFormComponent implements OnChanges {
       observations: [''],
       notes: [''],
     });
-  }
-
-  // ── Helpers ─────────────────────────────────────────────────────────────────
-
-  selectClass(value: string): string {
-    if (!value) return 'mf-sel--na';
-    if (value === 'ok' || value === 'OK') return 'mf-sel--ok';
-    if (value === 'pending' || value === 'degraded' || value === 'falta_configurar' || value === 'ERROR Systemlog') return 'mf-sel--warn';
-    if (value === 'error' || value === 'failed' || value === 'ERROR' || value === 'alerta') return 'mf-sel--crit';
-    return 'mf-sel--na';
-  }
-
-  serverRowClass(i: number): string {
-    const group = this.getServerGroup(i);
-    const sc = this.selectClass(group.get('updates')?.value);
-    if (sc === 'mf-sel--crit') return 'mf-srv-row--crit';
-    if (sc === 'mf-sel--warn') return 'mf-srv-row--warn';
-    return '';
-  }
-
-  toggleExpand(index: number): void {
-    const ctrl = this.serverControls.at(index).get('expanded');
-    ctrl?.setValue(!ctrl.value);
-  }
-
-  getServerGroup(index: number): FormGroup {
-    return this.serverControls.at(index) as FormGroup;
   }
 
   // ── Payload construction ────────────────────────────────────────────────────
@@ -180,10 +197,10 @@ export class MaintenanceFormComponent implements OnChanges {
     }
 
     const servers = this.infrastructure.windowsVMs.map((vm, i) => ({
-      serverId:   vm.assetId,
-      serverName: vm.name,
-      updates:    v.servers[i]?.updates ?? 'ok',
-      notes:      v.servers[i]?.notes || undefined,
+      serverId:      vm.assetId,
+      serverName:    vm.name,
+      updates:       v.servers[i]?.updates       ?? 'ok',
+      restartScript: v.servers[i]?.restartScript ?? 'ok',
     }));
 
     const payload: WindowsDomainPayload = {
@@ -215,8 +232,8 @@ export class MaintenanceFormComponent implements OnChanges {
           const saved = srv.windows.servers.find(s => s.serverId === vm.assetId);
           if (saved) {
             this.serverControls.at(i).patchValue({
-              updates: saved.updates,
-              notes:   saved.notes ?? '',
+              updates:       saved.updates,
+              restartScript: saved.restartScript ?? 'ok',
             });
           }
         });

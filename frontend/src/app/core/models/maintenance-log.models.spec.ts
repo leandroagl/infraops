@@ -22,7 +22,7 @@ describe('maintenance-log.models', () => {
         type: 'SERVER_MAINTENANCE',
         windows: {
           servers: [
-            { serverId: 1, serverName: '47DC', updates: 'ok' },
+            { serverId: 1, serverName: '47DC', updates: 'ok', restartScript: 'ok' },
           ],
           domainControllers: [],
         },
@@ -37,7 +37,7 @@ describe('maintenance-log.models', () => {
         const p: ServerMaintenancePayload = {
           type: 'SERVER_MAINTENANCE',
           windows: {
-            servers: [{ serverId: 1, serverName: '47DC', updates }],
+            servers: [{ serverId: 1, serverName: '47DC', updates, restartScript: 'ok' }],
             domainControllers: [],
           },
         };

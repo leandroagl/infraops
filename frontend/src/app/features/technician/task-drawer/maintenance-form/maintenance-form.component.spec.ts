@@ -157,14 +157,15 @@ describe('MaintenanceFormComponent', () => {
       expect(payload.type).toBe('WINDOWS_DOMAIN_MAINTENANCE');
     });
 
-    it('should include windows.servers with updates per VM', () => {
+    it('should include windows.servers with updates and restartScript per VM', () => {
       const infra = makeInfra({ esxiHosts: [], nas: [], routers: [] });
       init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), infra);
-      component.serverControls.at(0).patchValue({ updates: 'ok' });
+      component.serverControls.at(0).patchValue({ updates: 'ok', restartScript: 'error' });
       const payload = component.buildPayload() as WindowsDomainPayload;
       expect(payload.windows.servers.length).toBe(1);
       expect(payload.windows.servers[0].serverName).toBe('47DC');
       expect(payload.windows.servers[0].updates).toBe('ok');
+      expect(payload.windows.servers[0].restartScript).toBe('error');
     });
 
     it('should capture updates pending value', () => {
@@ -306,6 +307,11 @@ describe('MaintenanceFormComponent', () => {
       init(makeTask(), makeInfra());
       expect(component.selectClass('failed')).toBe('mf-sel--crit');
     });
+
+    it('should return mf-sel--warn for "no_task"', () => {
+      init(makeTask(), makeInfra());
+      expect(component.selectClass('no_task')).toBe('mf-sel--warn');
+    });
   });
 
   // ── readOnly input ───────────────────────────────────────────────────────────
@@ -406,25 +412,82 @@ describe('MaintenanceFormComponent', () => {
     });
   });
 
-  // ── serverRowClass ───────────────────────────────────────────────────────────
+  // ── serverRowState ───────────────────────────────────────────────────────────
 
-  describe('serverRowClass', () => {
-    it('should return empty string when updates is ok', () => {
+  describe('serverRowState', () => {
+    it('retorna ok cuando updates y restartScript son ok', () => {
       init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      component.serverControls.at(0).patchValue({ updates: 'ok' });
-      expect(component.serverRowClass(0)).toBe('');
+      component.serverControls.at(0).patchValue({ updates: 'ok', restartScript: 'ok' });
+      expect(component.serverRowState(0)).toBe('ok');
     });
 
-    it('should return mf-srv-row--crit when updates is failed', () => {
+    it('retorna warn cuando updates es pending y restartScript es ok', () => {
       init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      component.serverControls.at(0).patchValue({ updates: 'failed' });
-      expect(component.serverRowClass(0)).toBe('mf-srv-row--crit');
+      component.serverControls.at(0).patchValue({ updates: 'pending', restartScript: 'ok' });
+      expect(component.serverRowState(0)).toBe('warn');
     });
 
-    it('should return mf-srv-row--warn when updates is pending', () => {
+    it('retorna warn cuando updates es ok y restartScript es no_task', () => {
       init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      component.serverControls.at(0).patchValue({ updates: 'pending' });
-      expect(component.serverRowClass(0)).toBe('mf-srv-row--warn');
+      component.serverControls.at(0).patchValue({ updates: 'ok', restartScript: 'no_task' });
+      expect(component.serverRowState(0)).toBe('warn');
+    });
+
+    it('retorna crit cuando updates es failed', () => {
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      component.serverControls.at(0).patchValue({ updates: 'failed', restartScript: 'ok' });
+      expect(component.serverRowState(0)).toBe('crit');
+    });
+
+    it('retorna crit cuando restartScript es error', () => {
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      component.serverControls.at(0).patchValue({ updates: 'ok', restartScript: 'error' });
+      expect(component.serverRowState(0)).toBe('crit');
+    });
+
+    it('retorna crit cuando ambos son crit', () => {
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
+      component.serverControls.at(0).patchValue({ updates: 'failed', restartScript: 'error' });
+      expect(component.serverRowState(0)).toBe('crit');
+    });
+  });
+
+  // ── summary getters ──────────────────────────────────────────────────────────
+
+  describe('summary getters', () => {
+    function makeMultiVMInfra(): ClientInfrastructure {
+      return makeInfra({
+        esxiHosts: [], nas: [], routers: [],
+        windowsVMs: [
+          { assetId: 1, name: 'SRV-A', ip: null, bmcIp: null, bmcType: null, os: null, model: null, uri1: null, uri2: null },
+          { assetId: 2, name: 'SRV-B', ip: null, bmcIp: null, bmcType: null, os: null, model: null, uri1: null, uri2: null },
+          { assetId: 3, name: 'SRV-C', ip: null, bmcIp: null, bmcType: null, os: null, model: null, uri1: null, uri2: null },
+        ],
+      });
+    }
+
+    it('summaryOk cuenta servidores con ambos campos en ok', () => {
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeMultiVMInfra());
+      component.serverControls.at(0).patchValue({ updates: 'ok',     restartScript: 'ok'   });
+      component.serverControls.at(1).patchValue({ updates: 'ok',     restartScript: 'ok'   });
+      component.serverControls.at(2).patchValue({ updates: 'pending', restartScript: 'ok'  });
+      expect(component.summaryOk).toBe(2);
+    });
+
+    it('summaryWarn cuenta servidores con estado warn', () => {
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeMultiVMInfra());
+      component.serverControls.at(0).patchValue({ updates: 'ok',      restartScript: 'ok'      });
+      component.serverControls.at(1).patchValue({ updates: 'pending', restartScript: 'ok'      });
+      component.serverControls.at(2).patchValue({ updates: 'ok',      restartScript: 'no_task' });
+      expect(component.summaryWarn).toBe(2);
+    });
+
+    it('summaryCrit cuenta servidores con estado crit', () => {
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeMultiVMInfra());
+      component.serverControls.at(0).patchValue({ updates: 'failed', restartScript: 'ok'   });
+      component.serverControls.at(1).patchValue({ updates: 'ok',     restartScript: 'error' });
+      component.serverControls.at(2).patchValue({ updates: 'ok',     restartScript: 'ok'   });
+      expect(component.summaryCrit).toBe(2);
     });
   });
 
@@ -557,7 +620,7 @@ describe('MaintenanceFormComponent', () => {
       const saved: WindowsDomainPayload = {
         type: 'WINDOWS_DOMAIN_MAINTENANCE',
         windows: {
-          servers: [{ serverId: 3, serverName: '47DC', updates: 'pending' }],
+          servers: [{ serverId: 3, serverName: '47DC', updates: 'pending', restartScript: 'ok' }],
           domainControllers: [],
         },
       };
@@ -571,7 +634,7 @@ describe('MaintenanceFormComponent', () => {
       const saved: WindowsDomainPayload = {
         type: 'WINDOWS_DOMAIN_MAINTENANCE',
         windows: {
-          servers: [{ serverId: 999, serverName: 'OldServer', updates: 'failed' }],
+          servers: [{ serverId: 999, serverName: 'OldServer', updates: 'failed', restartScript: 'ok' }],
           domainControllers: [],
         },
       };
@@ -606,6 +669,38 @@ describe('MaintenanceFormComponent', () => {
 
       // defaults intactos
       expect(component.serverControls.at(0).get('updates')?.value).toBe('ok');
+    });
+
+    it('parchea restartScript del servidor desde payload guardado', () => {
+      const saved: WindowsDomainPayload = {
+        type: 'WINDOWS_DOMAIN_MAINTENANCE',
+        windows: {
+          servers: [{ serverId: 3, serverName: '47DC', updates: 'ok', restartScript: 'no_task' }],
+          domainControllers: [],
+        },
+      };
+      initWithSavedPayload(
+        makeTask('WINDOWS_DOMAIN_MAINTENANCE'),
+        makeInfra({ esxiHosts: [], nas: [], routers: [] }),
+        saved,
+      );
+      expect(component.serverControls.at(0).get('restartScript')?.value).toBe('no_task');
+    });
+
+    it('usa ok como default de restartScript cuando no está en el payload guardado', () => {
+      const saved: WindowsDomainPayload = {
+        type: 'WINDOWS_DOMAIN_MAINTENANCE',
+        windows: {
+          servers: [{ serverId: 3, serverName: '47DC', updates: 'pending', restartScript: undefined as any }],
+          domainControllers: [],
+        },
+      };
+      initWithSavedPayload(
+        makeTask('WINDOWS_DOMAIN_MAINTENANCE'),
+        makeInfra({ esxiHosts: [], nas: [], routers: [] }),
+        saved,
+      );
+      expect(component.serverControls.at(0).get('restartScript')?.value).toBe('ok');
     });
   });
 
