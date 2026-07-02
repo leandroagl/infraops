@@ -73,19 +73,7 @@ mat-form-field.mf-form-field {
   --mat-select-trigger-text-size:                   11px;
 }
 
-// ── Compact form field for server table selects ──────────────────────────────
-mat-form-field.mf-srv-ff {
-  width: 100%;
-  --mat-form-field-container-height:           32px;
-  --mat-form-field-container-vertical-padding: 6px;
-  --mdc-outlined-text-field-container-color:        var(--elevated);
-  --mdc-outlined-text-field-outline-color:          var(--border);
-  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
-  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
-  --mdc-outlined-text-field-label-text-color:       var(--tx-lo);
-  --mat-select-trigger-text-color:                  var(--tx-hi);
-  --mat-select-trigger-text-size:                   10px;
-}
+// ── Compact form field for server cards (moved to server styles section) ──────
 
 // ── Compact metric form field (number inputs with %) ─────────────────────────
 mat-form-field.mf-metric-ff {
@@ -146,74 +134,80 @@ mat-form-field {
   }
 }
 
-// ── Server table ─────────────────────────────────────────────────────────────
-.mf-srv-table {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
+// ── Server summary pills ────────────────────────────────────────────────────────
+.mf-srv-summary {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: -4px;
 }
 
-.mf-srv-head {
-  display: grid;
-  grid-template-columns: 14px 1fr 1fr 1fr 32px;
-  align-items: center;
-  padding: 5px 10px;
-  gap: 6px;
-  background: var(--elevated);
-  border-bottom: 1px solid var(--border);
-}
-
-.mf-srv-th {
+.mf-srv-pill {
+  padding: 3px 10px;
+  border-radius: 20px;
   font-size: 9px;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  border: 1px solid var(--border);
   color: var(--tx-lo);
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  background: var(--card);
+
+  &.p-ok   { background: var(--ok-bg);   border-color: var(--ok-bd);   color: var(--ok);   }
+  &.p-warn { background: var(--warn-bg); border-color: var(--warn-bd); color: var(--warn); }
+  &.p-crit { background: var(--crit-bg); border-color: var(--crit-bd); color: var(--crit); }
+}
+
+// ── Server list (Veeam-style cards) ────────────────────────────────────────
+.mf-srv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: -4px;
 }
 
 .mf-srv-row {
-  display: grid;
-  grid-template-columns: 14px 1fr 1fr 1fr 32px;
-  align-items: center;
-  padding: 6px 10px;
-  gap: 6px;
-  border-bottom: 1px solid var(--border-lo);
-  transition: background 0.1s;
-
-  &:last-of-type { border-bottom: none; }
-  &:hover { background: var(--elevated); }
-  &.mf-srv-row--expanded { background: var(--elevated); border-bottom: none; }
-
-  &.mf-srv-row--warn {
-    background: color-mix(in srgb, var(--warn) 5%, transparent);
-    box-shadow: inset 2px 0 0 var(--warn-bd);
-  }
-  &.mf-srv-row--crit {
-    background: color-mix(in srgb, var(--crit) 5%, transparent);
-    box-shadow: inset 2px 0 0 var(--crit-bd);
-  }
-}
-
-.mf-srv-icon {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  background: var(--srv-bg);
-  border: 1px solid var(--srv-bd);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  overflow: hidden;
+
+  &.st-ok   { border-color: var(--ok-bd); }
+  &.st-warn { border-color: var(--warn-bd); background: color-mix(in srgb, var(--warn) 5%, transparent); }
+  &.st-crit { border-color: var(--crit-bd); background: color-mix(in srgb, var(--crit) 5%, transparent); }
 }
 
-.mf-srv-name-cell {
-  padding: 0 4px;
+.mf-srv-stripe {
+  width: 3px;
+  align-self: stretch;
+  flex-shrink: 0;
+  background: var(--border-md);
+
+  .st-ok   & { background: var(--ok);   }
+  .st-warn & { background: var(--warn); }
+  .st-crit & { background: var(--crit); }
+}
+
+.mf-srv-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  flex: 1;
   min-width: 0;
 }
 
+.mf-srv-name-cell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
 .mf-srv-name {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--tx-hi);
   white-space: nowrap;
@@ -221,43 +215,36 @@ mat-form-field {
   text-overflow: ellipsis;
 }
 
-.mf-srv-access {
+.mf-srv-ip {
   font-size: 9px;
-  color: var(--tx-md);
-  font-family: var(--font-mono);
-}
-
-// mat-icon-button for expand
-button.mf-expand-btn[mat-icon-button] {
-  --mdc-icon-button-state-layer-size: 32px;
-  width: 32px;
-  height: 32px;
-  line-height: 32px;
   color: var(--tx-lo);
-
-  &:hover { color: var(--tx-md); }
-}
-
-.mf-expand-panel {
-  background: var(--elevated);
-  border-bottom: 1px solid var(--border-lo);
-  padding: 8px 10px 10px 34px;
-  display: none;
-  &.mf-expand-panel--open { display: block; }
-}
-
-.mf-expand-detail {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  color: var(--tx-hi);
-}
-
-.mf-expand-os {
-  font-size: 10px;
   font-family: var(--font-mono);
-  color: var(--tx-md);
+}
+
+mat-form-field.mf-srv-ff {
+  width: 110px;
+  flex-shrink: 0;
+
+  --mat-form-field-container-height:           28px;
+  --mat-form-field-container-vertical-padding: 4px;
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mat-select-trigger-text-color:                  var(--tx-hi);
+  --mat-select-trigger-text-size:                   10px;
+}
+
+mat-form-field.mf-srv-rs-ff {
+  width: 140px;
+  flex-shrink: 0;
+
+  --mat-form-field-container-height:           28px;
+  --mat-form-field-container-vertical-padding: 4px;
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mat-select-trigger-text-color:                  var(--tx-hi);
+  --mat-select-trigger-text-size:                   10px;
 }
 
 // ── DCDIAG row ───────────────────────────────────────────────────────────────
