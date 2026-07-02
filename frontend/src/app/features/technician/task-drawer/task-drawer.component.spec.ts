@@ -263,6 +263,25 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(saveComponent.saveProgressError).toBe('');
     });
 
+    it('emite taskStatusChanged con IN_PROGRESS cuando transiciona desde PENDING', () => {
+      const emitted: string[] = [];
+      saveComponent.taskStatusChanged.subscribe(s => emitted.push(s));
+
+      saveComponent.onRequestSave(makeWindowsDomainPayload());
+
+      expect(emitted).toEqual(['IN_PROGRESS']);
+    });
+
+    it('no emite taskStatusChanged si la tarea ya está en IN_PROGRESS', () => {
+      saveComponent.task = makeTask({ status: 'IN_PROGRESS' });
+      const emitted: string[] = [];
+      saveComponent.taskStatusChanged.subscribe(s => emitted.push(s));
+
+      saveComponent.onRequestSave(makeWindowsDomainPayload());
+
+      expect(emitted).toEqual([]);
+    });
+
     it('establece saveProgressError si create falla con error distinto de 409', () => {
       createSpy.and.returnValue(throwError(() => ({ status: 500 })));
 

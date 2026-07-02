@@ -84,6 +84,10 @@ export class TaskListComponent implements OnInit {
     this.closeDrawer();
   }
 
+  onTaskStatusChanged(status: TaskStatus): void {
+    this.updateTaskStatusLocally(this.selectedTask?.id, status);
+  }
+
   private updateTaskStatusLocally(taskId: string | undefined, status: TaskStatus): void {
     if (!taskId) return;
     const idx = this.tasks.findIndex(t => t.id === taskId);

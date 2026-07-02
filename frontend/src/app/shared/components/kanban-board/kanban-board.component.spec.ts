@@ -36,8 +36,8 @@ describe('KanbanBoardComponent', () => {
     fixture.detectChanges();
   });
 
-  describe('kanbanPending', () => {
-    it('incluye PENDING e IN_PROGRESS, excluye terminales', () => {
+  describe('kanbanBacklog', () => {
+    it('incluye solo PENDING, excluye IN_PROGRESS y terminales', () => {
       component.tasks = [
         makeTask({ id: 't1', status: 'PENDING'     }),
         makeTask({ id: 't2', status: 'IN_PROGRESS' }),
@@ -45,9 +45,9 @@ describe('KanbanBoardComponent', () => {
         makeTask({ id: 't4', status: 'ESCALATED'   }),
         makeTask({ id: 't5', status: 'NOT_DONE'    }),
       ];
-      const ids = component.kanbanPending.map(t => t.id);
+      const ids = component.kanbanBacklog.map(t => t.id);
       expect(ids).toContain('t1');
-      expect(ids).toContain('t2');
+      expect(ids).not.toContain('t2');
       expect(ids).not.toContain('t3');
       expect(ids).not.toContain('t4');
       expect(ids).not.toContain('t5');
@@ -59,38 +59,56 @@ describe('KanbanBoardComponent', () => {
         makeTask({ id: 'past',   status: 'PENDING', scheduledDate: dateOffsetDays(-3) }),
         makeTask({ id: 'week',   status: 'PENDING', scheduledDate: dateOffsetDays(3)  }),
       ];
-      const ids = component.kanbanPending.map(t => t.id);
+      const ids = component.kanbanBacklog.map(t => t.id);
       expect(ids[0]).toBe('past');
       expect(ids[1]).toBe('week');
       expect(ids[2]).toBe('future');
     });
   });
 
-  describe('kanbanDone', () => {
-    it('incluye solo tareas DONE', () => {
+  describe('kanbanInProgress', () => {
+    it('incluye solo IN_PROGRESS, excluye PENDING y terminales', () => {
       component.tasks = [
-        makeTask({ id: 't1', status: 'DONE'      }),
-        makeTask({ id: 't2', status: 'ESCALATED' }),
-        makeTask({ id: 't3', status: 'PENDING'   }),
+        makeTask({ id: 't1', status: 'PENDING'     }),
+        makeTask({ id: 't2', status: 'IN_PROGRESS' }),
+        makeTask({ id: 't3', status: 'DONE'        }),
+        makeTask({ id: 't4', status: 'ESCALATED'   }),
+        makeTask({ id: 't5', status: 'NOT_DONE'    }),
       ];
-      expect(component.kanbanDone.length).toBe(1);
-      expect(component.kanbanDone[0].id).toBe('t1');
-    });
-  });
-
-  describe('kanbanClosed', () => {
-    it('incluye ESCALATED y NOT_DONE, excluye DONE y activas', () => {
-      component.tasks = [
-        makeTask({ id: 't1', status: 'ESCALATED' }),
-        makeTask({ id: 't2', status: 'NOT_DONE'  }),
-        makeTask({ id: 't3', status: 'DONE'      }),
-        makeTask({ id: 't4', status: 'PENDING'   }),
-      ];
-      const ids = component.kanbanClosed.map(t => t.id);
-      expect(ids).toContain('t1');
+      const ids = component.kanbanInProgress.map(t => t.id);
+      expect(ids).not.toContain('t1');
       expect(ids).toContain('t2');
       expect(ids).not.toContain('t3');
       expect(ids).not.toContain('t4');
+      expect(ids).not.toContain('t5');
+    });
+
+    it('ordena overdue primero', () => {
+      component.tasks = [
+        makeTask({ id: 'future', status: 'IN_PROGRESS', scheduledDate: dateOffsetDays(10) }),
+        makeTask({ id: 'past',   status: 'IN_PROGRESS', scheduledDate: dateOffsetDays(-3) }),
+      ];
+      const ids = component.kanbanInProgress.map(t => t.id);
+      expect(ids[0]).toBe('past');
+      expect(ids[1]).toBe('future');
+    });
+  });
+
+  describe('kanbanDone', () => {
+    it('incluye DONE, ESCALATED y NOT_DONE', () => {
+      component.tasks = [
+        makeTask({ id: 't1', status: 'DONE'        }),
+        makeTask({ id: 't2', status: 'ESCALATED'   }),
+        makeTask({ id: 't3', status: 'NOT_DONE'    }),
+        makeTask({ id: 't4', status: 'PENDING'     }),
+        makeTask({ id: 't5', status: 'IN_PROGRESS' }),
+      ];
+      const ids = component.kanbanDone.map(t => t.id);
+      expect(ids).toContain('t1');
+      expect(ids).toContain('t2');
+      expect(ids).toContain('t3');
+      expect(ids).not.toContain('t4');
+      expect(ids).not.toContain('t5');
     });
   });
 
@@ -112,10 +130,6 @@ describe('KanbanBoardComponent', () => {
       component.tasks = [t1, t2];
       component.selectedTaskId = 'selected';
       fixture.detectChanges();
-      // With NO_ERRORS_SCHEMA we verify binding via the [active] attribute rendered
-      const cards = fixture.nativeElement.querySelectorAll('app-task-card');
-      // Cards are rendered — we can't access @Input directly via NO_ERRORS_SCHEMA
-      // But we can verify the component's logic produces correct boolean
       expect(component.selectedTaskId === t1.id).toBeTrue();
       expect(component.selectedTaskId === t2.id).toBeFalse();
     });
@@ -125,9 +139,9 @@ describe('KanbanBoardComponent', () => {
     it('renderiza las 3 columnas con sus headers', () => {
       fixture.detectChanges();
       const text: string = fixture.nativeElement.textContent;
-      expect(text).toContain('Pendientes');
+      expect(text).toContain('Backlog');
+      expect(text).toContain('En curso');
       expect(text).toContain('Completadas');
-      expect(text).toContain('Cerradas');
     });
   });
 });

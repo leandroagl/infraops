@@ -62,12 +62,9 @@ mat-card.task-card {
   display: flex; align-items: center; justify-content: space-between;
 }
 
-.tc-status {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 10px; color: var(--tx-lo);
+.tc-chips {
+  display: flex; align-items: center; gap: 6px;
 }
-
-.sdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
 
 .urg {
   display: inline-flex; align-items: center;
@@ -79,11 +76,3 @@ mat-card.task-card {
 .urg-warn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-bd); }
 .urg-ok   { background: var(--ok-bg);   color: var(--ok);   border-color: var(--ok-bd);   }
 
-.badge {
-  display: inline-flex; align-items: center;
-  padding: 2px 8px; border-radius: 10px;
-  font-size: 10px; font-weight: 500; border: 1px solid;
-}
-
-.badge--ok    { background: var(--ok-bg);  color: var(--ok);    border-color: var(--ok-bd);     }
-.badge--muted { background: var(--card);   color: var(--tx-lo); border-color: var(--border-lo); }

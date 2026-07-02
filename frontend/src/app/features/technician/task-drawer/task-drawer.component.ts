@@ -10,7 +10,7 @@ import {
 import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, map, of, switchMap, tap, throwError } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
-import { Task, TaskType } from '../../../core/models/task.models';
+import { Task, TaskStatus, TaskType } from '../../../core/models/task.models';
 import { ClientInfrastructure } from '../../../core/models/infradoc.models';
 import {
   MaintenancePayload,
@@ -48,6 +48,7 @@ export class TaskDrawerComponent implements OnChanges {
 
   @Output() taskCompleted = new EventEmitter<void>();
   @Output() taskNotDone = new EventEmitter<void>();
+  @Output() taskStatusChanged = new EventEmitter<TaskStatus>();
   @Output() drawerClosed = new EventEmitter<void>();
 
   @ViewChild(MaintenanceFormComponent) maintenanceForm?: MaintenanceFormComponent;
@@ -199,10 +200,11 @@ export class TaskDrawerComponent implements OnChanges {
   onRequestSave(payload: MaintenancePayload): void {
     this.saveProgressMsg = '';
     this.saveProgressError = '';
+    const wasInPending = this.effectiveStatus === 'PENDING';
 
     this.upsertLog(payload).pipe(
       switchMap(() => {
-        if (this.effectiveStatus === 'PENDING') {
+        if (wasInPending) {
           return this.tasksService.updateStatus(this.task.id, { status: 'IN_PROGRESS' }).pipe(
             tap(() => { this._currentStatus = 'IN_PROGRESS'; }),
           );
@@ -210,7 +212,10 @@ export class TaskDrawerComponent implements OnChanges {
         return of(null as unknown as Task);
       })
     ).subscribe({
-      next: () => { this.saveProgressMsg = 'Progreso guardado.'; },
+      next: () => {
+        this.saveProgressMsg = 'Progreso guardado.';
+        if (wasInPending) this.taskStatusChanged.emit('IN_PROGRESS');
+      },
       error: () => { this.saveProgressError = 'No se pudo guardar el progreso. Intentá de nuevo.'; },
     });
   }
@@ -270,10 +275,11 @@ export class TaskDrawerComponent implements OnChanges {
   // ── Private helpers ──────────────────────────────────────────────────────────
 
   private upsertLog(payload: MaintenancePayload): Observable<MaintenanceLog> {
-    return this.logsService.create(this.task.id, { payload }).pipe(
+    const notes = payload.notes ?? undefined;
+    return this.logsService.create(this.task.id, { payload, notes }).pipe(
       catchError((err: HttpErrorResponse) => {
         if (err.status === 409) {
-          return this.logsService.update(this.task.id, { payload });
+          return this.logsService.update(this.task.id, { payload, notes });
         }
         return throwError(() => err);
       })

@@ -13,21 +13,13 @@ export class KanbanBoardComponent {
   @Input() selectedTaskId: string | null = null;
   @Output() taskSelected = new EventEmitter<Task>();
 
-  private get activeTasks(): Task[] {
-    return this.tasks.filter(
-      t => t.status !== 'DONE' && t.status !== 'ESCALATED' && t.status !== 'NOT_DONE',
-    );
+  private sortByDate(tasks: Task[]): Task[] {
+    return [...tasks].sort((a, b) => daysFromToday(a.scheduledDate) - daysFromToday(b.scheduledDate));
   }
 
-  // "Pendientes" includes both PENDING and IN_PROGRESS (active work) — single active column by design
-  get kanbanPending(): Task[] {
-    return [...this.activeTasks].sort(
-      (a, b) => daysFromToday(a.scheduledDate) - daysFromToday(b.scheduledDate),
-    );
-  }
-
-  get kanbanDone(): Task[]   { return this.tasks.filter(t => t.status === 'DONE'); }
-  get kanbanClosed(): Task[] { return this.tasks.filter(t => t.status === 'ESCALATED' || t.status === 'NOT_DONE'); }
+  get kanbanBacklog(): Task[]     { return this.sortByDate(this.tasks.filter(t => t.status === 'PENDING')); }
+  get kanbanInProgress(): Task[]  { return this.sortByDate(this.tasks.filter(t => t.status === 'IN_PROGRESS')); }
+  get kanbanDone(): Task[]        { return this.tasks.filter(t => t.status === 'DONE' || t.status === 'ESCALATED' || t.status === 'NOT_DONE'); }
 
   onTaskSelected(task: Task): void { this.taskSelected.emit(task); }
 }

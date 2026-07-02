@@ -135,24 +135,24 @@ describe('TaskCardComponent', () => {
     });
   });
 
-  // ── status badge (terminales) ──────────────────────────────
-  describe('status badge para tareas terminales', () => {
-    it('muestra "Listo" para DONE', () => {
+  // ── no se muestra el estado en la card ────────────────────
+  describe('estado no visible en la card', () => {
+    it('no muestra texto de estado para DONE', () => {
       component.task = makeTask({ status: 'DONE' });
       fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain('Listo');
+      expect(fixture.nativeElement.textContent).not.toContain('Listo');
     });
 
-    it('muestra "Escalado" para ESCALATED', () => {
+    it('no muestra texto de estado para ESCALATED', () => {
       component.task = makeTask({ status: 'ESCALATED' });
       fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain('Escalado');
+      expect(fixture.nativeElement.textContent).not.toContain('Escalado');
     });
 
-    it('muestra "No hecho" para NOT_DONE', () => {
-      component.task = makeTask({ status: 'NOT_DONE' });
+    it('no muestra .tc-status para tareas activas', () => {
+      component.task = makeTask({ status: 'PENDING' });
       fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain('No hecho');
+      expect(fixture.nativeElement.querySelector('.tc-status')).toBeNull();
     });
   });
 
@@ -205,13 +205,23 @@ describe('TaskCardComponent', () => {
   });
 
   describe('template — badge de tipo', () => {
-    it('renderiza un span.badge con la clase del tipo', () => {
+    it('renderiza el badge de tipo en tc-chips con la clase del tipo', () => {
       component.task = makeTask({ type: 'ROUTER_MAINTENANCE' });
       fixture.detectChanges();
-      const badge = fixture.nativeElement.querySelector('.badge');
+      const badge = fixture.nativeElement.querySelector('.tc-chips .badge--type');
       expect(badge).toBeTruthy();
       expect(badge.classList).toContain('badge--net');
       expect(badge.textContent.trim()).toBe('Router / FW');
+    });
+
+    it('renderiza el badge de tipo para tareas completadas (sin chip de urgencia)', () => {
+      component.task = makeTask({ type: 'VEEAM_BACKUP', status: 'DONE' });
+      fixture.detectChanges();
+      const badge = fixture.nativeElement.querySelector('.tc-chips .badge--type');
+      expect(badge).toBeTruthy();
+      expect(badge.classList).toContain('badge--bkp');
+      const urg = fixture.nativeElement.querySelector('.urg');
+      expect(urg).toBeNull();
     });
   });
 

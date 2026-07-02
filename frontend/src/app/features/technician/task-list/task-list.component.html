@@ -54,6 +54,7 @@
     [task]="selectedTask"
     (taskCompleted)="onTaskCompleted()"
     (taskNotDone)="onTaskNotDone()"
+    (taskStatusChanged)="onTaskStatusChanged($event)"
     (drawerClosed)="closeDrawer()">
   </app-task-drawer>
 </div>

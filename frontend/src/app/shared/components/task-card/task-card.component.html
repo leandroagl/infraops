@@ -12,7 +12,6 @@
   <div class="tc-top">
     <div class="tc-top__info">
       <div class="tc-client">{{ task.client?.name ?? task.clientId }}</div>
-      <span class="badge badge--type" [ngClass]="typeBadgeClass">{{ typeLabel }}</span>
     </div>
     <div *ngIf="showTechnicianAvatar && technicianInitial" class="tc-tech-avatar">
       {{ technicianInitial }}
@@ -20,18 +19,10 @@
   </div>
 
   <div class="tc-bottom">
-    <ng-container *ngIf="isActive">
-      <span class="urg" [ngClass]="urgencyClassStr">{{ urgencyLabelText }}</span>
-      <div class="tc-status">
-        <span class="sdot" [style.background]="statusDotColor"></span>
-        {{ statusLabel }}
-      </div>
-    </ng-container>
-    <ng-container *ngIf="!isActive">
-      <span class="badge" [ngClass]="task.status === 'DONE' ? 'badge--ok' : 'badge--muted'">
-        {{ statusLabel }}
-      </span>
-    </ng-container>
+    <div class="tc-chips">
+      <span *ngIf="isActive" class="urg" [ngClass]="urgencyClassStr">{{ urgencyLabelText }}</span>
+      <span class="badge badge--type" [ngClass]="typeBadgeClass">{{ typeLabel }}</span>
+    </div>
     <a
       *ngIf="odooLink"
       [href]="odooLink"

@@ -154,6 +154,25 @@ describe('TaskListComponent', () => {
 
   });
 
+  // ── onTaskStatusChanged ──────────────────────────────────────
+  describe('onTaskStatusChanged()', () => {
+    it('actualiza el status localmente sin cerrar el drawer', () => {
+      const task = makeTask({ id: 'task-1', status: 'PENDING', scheduledDate: dateOffsetDays(5) });
+      component.tasks = [task];
+      component.selectedTask = task;
+      component.onTaskStatusChanged('IN_PROGRESS');
+      expect(component.tasks[0].status).toBe('IN_PROGRESS');
+      expect(component.selectedTask).toBe(task);
+    });
+
+    it('no modifica tasks cuando selectedTask es null', () => {
+      component.tasks = [makeTask({ id: 't1' })];
+      component.selectedTask = null;
+      component.onTaskStatusChanged('IN_PROGRESS');
+      expect(component.tasks[0].status).toBe('PENDING');
+    });
+  });
+
   // ── Drawer ───────────────────────────────────────────────────
   describe('drawer', () => {
     it('selectTask() asigna selectedTask', () => {
