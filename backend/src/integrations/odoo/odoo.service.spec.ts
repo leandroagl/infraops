@@ -446,7 +446,7 @@ describe('OdooService', () => {
         [
           expect.objectContaining({
             name: 'Mantenimiento repositorio de backups QNAP/NAS',
-            description: 'Control de estado de discos, volumen y actualizaciones',
+            description: expect.stringContaining('Estado del volumen RAID'),
           }),
         ],
         {},
@@ -628,6 +628,7 @@ describe('OdooService', () => {
         'create',
         [expect.objectContaining({
           name: 'Mantenimiento de backups Veeam',
+          description: expect.stringContaining('Cobertura de backup por máquina virtual'),
         })],
         {},
       );
@@ -673,6 +674,152 @@ describe('OdooService', () => {
       await expect(
         service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.VEEAM_BACKUP),
       ).rejects.toThrow(ServiceUnavailableException);
+    });
+
+    it('crea un ticket SERVER_HOST_MAINTENANCE con descripción de controles ESXi', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])             // sale.order.line
+        .mockResolvedValueOnce([{ id: 20 }])  // helpdesk.tag → Virtualización
+        .mockResolvedValueOnce([{ id: 21 }])  // helpdesk.tag → Gestión de servidores
+        .mockResolvedValueOnce(88);           // helpdesk.ticket create
+
+      const ticketId = await service.createTicket(
+        'client-uuid-1',
+        'tech-uuid-1',
+        TaskType.SERVER_HOST_MAINTENANCE,
+      );
+
+      expect(ticketId).toBe(88);
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [expect.objectContaining({
+          name: 'Mantenimiento de hosts VMware/BMC',
+          description: expect.stringContaining('Estado de datastores'),
+        })],
+        {},
+      );
+    });
+
+    it('incluye tag_ids con Virtualización y Gestión de servidores al crear ticket SERVER_HOST_MAINTENANCE', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])             // sale.order.line
+        .mockResolvedValueOnce([{ id: 20 }])  // helpdesk.tag → Virtualización
+        .mockResolvedValueOnce([{ id: 21 }])  // helpdesk.tag → Gestión de servidores
+        .mockResolvedValueOnce(88);           // helpdesk.ticket create
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_HOST_MAINTENANCE);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.tag',
+        'search_read',
+        [[['name', '=', 'Virtualización']]],
+        { fields: ['id'], limit: 1 },
+      );
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.tag',
+        'search_read',
+        [[['name', '=', 'Gestión de servidores']]],
+        { fields: ['id'], limit: 1 },
+      );
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [expect.objectContaining({ tag_ids: [[6, 0, [20, 21]]] })],
+        {},
+      );
+    });
+
+    it('cachea los tag_ids de VMware entre llamadas sucesivas', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])             // sale.order.line (1ra)
+        .mockResolvedValueOnce([{ id: 20 }])  // Virtualización (solo 1ra vez)
+        .mockResolvedValueOnce([{ id: 21 }])  // Gestión de servidores (solo 1ra vez)
+        .mockResolvedValueOnce(88)            // helpdesk.ticket create (1ra)
+        .mockResolvedValueOnce([])            // sale.order.line (2da)
+        .mockResolvedValueOnce(89);           // helpdesk.ticket create (2da)
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_HOST_MAINTENANCE);
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_HOST_MAINTENANCE);
+
+      const tagCalls = odooRpc.callKw.mock.calls.filter(
+        (args: unknown[]) => args[0] === 'helpdesk.tag',
+      );
+      expect(tagCalls).toHaveLength(2); // 1 por tag, solo en la primera llamada
+    });
+
+    it('lanza ServiceUnavailableException cuando Odoo no encuentra el tag Virtualización', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])  // sale.order.line
+        .mockResolvedValueOnce([]); // Virtualización tag → no encontrado
+
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_HOST_MAINTENANCE),
+      ).rejects.toThrow(ServiceUnavailableException);
+    });
+
+    it('lanza ServiceUnavailableException cuando Odoo no encuentra el tag Gestión de servidores', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])             // sale.order.line
+        .mockResolvedValueOnce([{ id: 20 }])  // Virtualización → encontrado
+        .mockResolvedValueOnce([]);            // Gestión de servidores → no encontrado
+
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.SERVER_HOST_MAINTENANCE),
+      ).rejects.toThrow(ServiceUnavailableException);
+    });
+
+    it('crea un ticket ROUTER_MAINTENANCE con descripción de controles de router', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])   // sale.order.line
+        .mockResolvedValueOnce(66);  // helpdesk.ticket create
+
+      const ticketId = await service.createTicket(
+        'client-uuid-1',
+        'tech-uuid-1',
+        TaskType.ROUTER_MAINTENANCE,
+      );
+
+      expect(ticketId).toBe(66);
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [expect.objectContaining({
+          name: 'Mantenimiento de router y firewall',
+          description: expect.stringContaining('backup de configuración'),
+        })],
+        {},
+      );
     });
 
     it('incluye sale_line_id en el payload cuando el cliente tiene odooSaleLineId', async () => {

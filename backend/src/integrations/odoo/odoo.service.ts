@@ -16,6 +16,8 @@ import { OdooSyncResult } from './dto/odoo-sync-result.dto';
 import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 import { TaskType } from '../../tasks/task-type.enum';
 
+const CLOSING_NOTE = '<p>Ante cualquier anomalía detectada, se creará un ticket de soporte para su seguimiento y resolución.</p>';
+
 const WINDOWS_DOMAIN_DESCRIPTION = `
 <p>Control mensual preventivo sobre la infraestructura de servidores Windows.</p>
 <p>Se verifican los siguientes puntos:</p>
@@ -27,20 +29,66 @@ const WINDOWS_DOMAIN_DESCRIPTION = `
   <li>Consistencia de SYSVOL / DFSR</li>
   <li>Espacio en disco y rendimiento general del sistema</li>
 </ul>
-<p>Ante cualquier anomalía detectada, se creará un ticket de soporte para su seguimiento y resolución.</p>
+${CLOSING_NOTE}
+`.trim();
+
+const SERVER_HOST_DESCRIPTION = `
+<p>Control mensual preventivo sobre los hosts de virtualización ESXi y su infraestructura asociada.</p>
+<p>Se verifican los siguientes puntos:</p>
+<ul>
+  <li>Estado general del host: versión de ESXi, uptime y alertas de hardware</li>
+  <li>Consumo de recursos: uso de CPU y memoria</li>
+  <li>Estado de datastores: capacidad total, espacio libre y accesibilidad</li>
+  <li>Máquinas virtuales: estado de encendido, snapshots acumulados y antigüedad, estado de VMware Tools</li>
+  <li>Red: estado de vSwitches y NICs, velocidades de enlace</li>
+</ul>
+${CLOSING_NOTE}
+`.trim();
+
+const QNAP_DESCRIPTION = `
+<p>Control mensual preventivo sobre el repositorio de backups QNAP/NAS.</p>
+<p>Se verifican los siguientes puntos:</p>
+<ul>
+  <li>Estado de los discos físicos: cantidad instalada y detección de fallas o alertas por unidad</li>
+  <li>Estado del volumen RAID: degradación, falta de sincronización o error crítico</li>
+  <li>Capacidad de almacenamiento: espacio utilizado sobre el total disponible</li>
+  <li>Versión de firmware del dispositivo y aplicación de actualizaciones disponibles</li>
+</ul>
+${CLOSING_NOTE}
+`.trim();
+
+const VEEAM_DESCRIPTION = `
+<p>Control mensual preventivo sobre los trabajos de backup administrados con Veeam Backup &amp; Replication.</p>
+<p>Se verifican los siguientes puntos:</p>
+<ul>
+  <li>Cobertura de backup por máquina virtual: job de Veeam, agente instalado o exclusión justificada</li>
+  <li>Cantidad de backups completos (full) realizados en el mes por cada VM</li>
+  <li>Identificación de VMs sin cobertura o con cadena de incrementales sin full base reciente</li>
+</ul>
+${CLOSING_NOTE}
+`.trim();
+
+const ROUTER_DESCRIPTION = `
+<p>Control mensual preventivo sobre routers y firewalls de la infraestructura del cliente.</p>
+<p>Se verifican los siguientes puntos:</p>
+<ul>
+  <li>Versión de firmware instalada y aplicación de actualizaciones disponibles</li>
+  <li>Generación de backup de configuración del dispositivo</li>
+</ul>
+${CLOSING_NOTE}
 `.trim();
 
 const TICKET_META: Record<TaskType, { name: string; description: string }> = {
-  [TaskType.SERVER_HOST_MAINTENANCE]:        { name: 'Mantenimiento de hosts VMware/BMC',             description: 'Control mensual de hosts ESXi y BMC.' },
+  [TaskType.SERVER_HOST_MAINTENANCE]:        { name: 'Mantenimiento de hosts VMware/BMC',             description: SERVER_HOST_DESCRIPTION },
   [TaskType.WINDOWS_DOMAIN_MAINTENANCE]:     { name: 'Mantenimiento de servidores y dominio Windows', description: WINDOWS_DOMAIN_DESCRIPTION },
-  [TaskType.ROUTER_MAINTENANCE]:             { name: 'Mantenimiento de router y firewall',            description: 'Control mensual de firmware y configuración de router/firewall.' },
-  [TaskType.QNAP_MAINTENANCE]:     { name: 'Mantenimiento repositorio de backups QNAP/NAS', description: 'Control de estado de discos, volumen y actualizaciones' },
-  [TaskType.VEEAM_BACKUP]:         { name: 'Mantenimiento de backups Veeam',                  description: 'Control de jobs de backup, puntos de restauración y cobertura de VMs.' },
-  [TaskType.TERMINAL_MAINTENANCE]: { name: 'Mantenimiento de terminales',                   description: 'Mantenimiento mensual de terminales.' },
-  [TaskType.SITE_VISIT]:           { name: 'Visita técnica presencial',                     description: 'Visita técnica al cliente.' },
-  [TaskType.AV_CONTROL]:           { name: 'Control de antivirus',                          description: 'Control mensual de antivirus.' },
-  [TaskType.UPS_CONTROL]:          { name: 'Control de UPS',                                description: 'Control mensual de equipos UPS.' },
-  [TaskType.ENDPOINT_INVENTORY]:   { name: 'Inventario de endpoints',                       description: 'Relevamiento de endpoints.' },
+  [TaskType.ROUTER_MAINTENANCE]:             { name: 'Mantenimiento de router y firewall',            description: ROUTER_DESCRIPTION },
+  [TaskType.QNAP_MAINTENANCE]:               { name: 'Mantenimiento repositorio de backups QNAP/NAS', description: QNAP_DESCRIPTION },
+  [TaskType.VEEAM_BACKUP]:                   { name: 'Mantenimiento de backups Veeam',                description: VEEAM_DESCRIPTION },
+  [TaskType.TERMINAL_MAINTENANCE]:           { name: 'Mantenimiento de terminales',                   description: 'Mantenimiento mensual de terminales.' },
+  [TaskType.SITE_VISIT]:                     { name: 'Visita técnica presencial',                     description: 'Visita técnica al cliente.' },
+  [TaskType.AV_CONTROL]:                     { name: 'Control de antivirus',                          description: 'Control mensual de antivirus.' },
+  [TaskType.UPS_CONTROL]:                    { name: 'Control de UPS',                                description: 'Control mensual de equipos UPS.' },
+  [TaskType.ENDPOINT_INVENTORY]:             { name: 'Inventario de endpoints',                       description: 'Relevamiento de endpoints.' },
 };
 
 @Injectable()
@@ -50,6 +98,8 @@ export class OdooService {
   private qnapTagId: number | null = null;
   private windowsAdDomainTagId: number | null = null;
   private windowsServerTagId: number | null = null;
+  private virtualizationTagId: number | null = null;
+  private serverManagementTagId: number | null = null;
 
   constructor(
     private readonly odooRpc: OdooRpcService,
@@ -394,6 +444,46 @@ export class OdooService {
     return this.windowsServerTagId;
   }
 
+  private async resolveVirtualizationTagId(): Promise<number> {
+    if (this.virtualizationTagId !== null) return this.virtualizationTagId;
+
+    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
+      'helpdesk.tag',
+      'search_read',
+      [[['name', '=', 'Virtualización']]],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (tags.length === 0) {
+      throw new ServiceUnavailableException(
+        'No se encontró el tag "Virtualización" en Odoo',
+      );
+    }
+
+    this.virtualizationTagId = tags[0].id;
+    return this.virtualizationTagId;
+  }
+
+  private async resolveServerManagementTagId(): Promise<number> {
+    if (this.serverManagementTagId !== null) return this.serverManagementTagId;
+
+    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
+      'helpdesk.tag',
+      'search_read',
+      [[['name', '=', 'Gestión de servidores']]],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (tags.length === 0) {
+      throw new ServiceUnavailableException(
+        'No se encontró el tag "Gestión de servidores" en Odoo',
+      );
+    }
+
+    this.serverManagementTagId = tags[0].id;
+    return this.serverManagementTagId;
+  }
+
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 
@@ -496,6 +586,11 @@ export class OdooService {
       const adDomainTagId = await this.resolveWindowsAdDomainTagId();
       const serverTagId = await this.resolveWindowsServerTagId();
       payload['tag_ids'] = [[6, 0, [adDomainTagId, serverTagId]]];
+    }
+    if (taskType === TaskType.SERVER_HOST_MAINTENANCE) {
+      const virtualizationId = await this.resolveVirtualizationTagId();
+      const serverMgmtId = await this.resolveServerManagementTagId();
+      payload['tag_ids'] = [[6, 0, [virtualizationId, serverMgmtId]]];
     }
     if (taskType === TaskType.QNAP_MAINTENANCE) {
       const tagId = await this.resolveQnapTagId();
