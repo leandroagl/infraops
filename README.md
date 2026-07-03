@@ -28,10 +28,21 @@ Cada release a producción se tagea: `git tag v1.x && git push origin v1.x`
 ## Requisitos del servidor (test y producción)
 
 ```bash
-# Ubuntu 22.04+
-sudo apt update && sudo apt install -y docker.io docker-compose-plugin git
+# Ubuntu 22.04+ — instalar desde el repo oficial de Docker (no usar docker.io)
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg git
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
 sudo usermod -aG docker $USER
-# Cerrar sesión y volver a entrar para que aplique el grupo
+# Cerrar sesión y volver a entrar (o ejecutar newgrp docker) para que aplique el grupo
 ```
 
 ---
@@ -71,6 +82,8 @@ nano backend/.env   # setear DB_PASSWORD, JWT_SECRET y resto
 | `DB_PASSWORD` | Debe coincidir con el `.env` raíz |
 | `JWT_SECRET` | Secreto para tokens JWT |
 | `PORT` | Puerto del backend (`3000`) |
+| `INFRADOC_URL` | URL base de InfraDoc (ej: `http://192.168.1.x`) — **requerido**, el backend crashea sin esto |
+| `INFRADOC_API_KEY` | API key de InfraDoc — **requerido** |
 
 ---
 
@@ -94,6 +107,17 @@ curl http://localhost/api/  # debe responder (401 o similar, no 502)
 ```
 
 La app queda disponible en `http://<IP-del-servidor>`.
+
+### Crear usuario admin inicial
+
+Solo la primera vez, una vez que el backend está corriendo:
+
+```bash
+docker compose exec backend node dist/scripts/seed-admin.js
+```
+
+Imprime el email y la contraseña generada. **Guardar la contraseña — no se vuelve a mostrar.**
+El usuario tiene `mustChangePassword: true`, así que pedirá cambiarla al primer login.
 
 ### Actualizar
 

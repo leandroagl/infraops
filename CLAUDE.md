@@ -108,7 +108,8 @@ scheduledDate, completedDate, odooTicketId?, createdAt
 
 ### TaskType (enum)
 ```typescript
-SERVER_MAINTENANCE | TERMINAL_MAINTENANCE | SITE_VISIT | 
+SERVER_HOST_MAINTENANCE | WINDOWS_DOMAIN_MAINTENANCE | QNAP_MAINTENANCE |
+VEEAM_BACKUP | ROUTER_MAINTENANCE | TERMINAL_MAINTENANCE | SITE_VISIT |
 AV_CONTROL | UPS_CONTROL | ENDPOINT_INVENTORY
 ```
 
@@ -339,6 +340,16 @@ docs/
 # HTML mockups de referencia visual
 └── REVIEW_RULES.md         # Criterios de revisión de código
 ```
+
+---
+
+## Workflow de branches — regla de inicio de sesión
+
+**Antes del primer edit de código, proponer crear un branch nuevo si se está sobre `develop`.**
+
+- Proponer el nombre del branch según la feature/fix ya definida en la conversación (ej. `feature/users-abm`, `fix/task-status-update`)
+- No hacer el primer edit de código sin antes acordar el branch con el usuario
+- Excepción: cambios de documentación, memoria o CLAUDE.md pueden ir directo a develop
 
 ---
 
