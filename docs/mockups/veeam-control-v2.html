@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veeam Control · Drawer</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --base:#0f1117;--surface:#161b22;--card:#1e2530;--elevated:#252e3f;--hover:#2a3447;
+  --border:#2d3748;--border-lo:#1e2737;--border-md:#3a4a62;
+  --tx-hi:#f0f4f8;--tx-md:#8b95a6;--tx-lo:#4a5568;
+  --crit:#f87171;--crit-bg:#450a0a;--crit-bd:#7f1d1d;
+  --warn:#fb923c;--warn-bg:#431407;--warn-bd:#7c2d12;
+  --ok:#4ade80;--ok-bg:#052e16;--ok-bd:#166534;
+  --srv:#60a5fa;--srv-bg:#0c1a3a;--srv-bd:#1e3a8a;
+  --mono:'IBM Plex Mono',monospace;
+  --ui:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;
+  --radius:10px;--radius-sm:7px;--radius-xs:5px;
+}
+body{font-family:var(--ui);background:var(--base);color:var(--tx-hi);font-size:13px;line-height:1.4;min-height:100vh;display:flex}
+.shell{display:flex;min-height:100vh;width:100%}
+.drawer{width:420px;min-height:100vh;background:var(--surface);border-left:1px solid var(--border-lo);display:flex;flex-direction:column;overflow-y:auto;margin-left:auto}
+
+.d-hdr{padding:16px 18px 14px;border-bottom:1px solid var(--border-lo);display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;background:var(--surface)}
+.d-ico{width:36px;height:36px;border-radius:8px;background:var(--srv-bg);border:1px solid var(--srv-bd);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.d-ico svg{width:16px;height:16px;stroke:var(--srv);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.d-title{font-size:13px;font-weight:600;color:var(--tx-hi)}
+.d-sub{font-size:10px;color:var(--tx-lo);font-family:var(--mono);margin-top:2px}
+.d-close{margin-left:auto;width:26px;height:26px;border-radius:6px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx-md)}
+.d-close svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+
+.d-body{padding:16px 18px;display:flex;flex-direction:column;gap:20px;flex:1}
+
+.section-label{font-size:9px;font-weight:600;color:var(--tx-lo);letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border-lo)}
+
+.vm-list{display:flex;flex-direction:column;gap:5px}
+
+.vm-row{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;overflow:hidden;transition:border-color .12s}
+.vm-row.st-ok{border-color:var(--ok-bd)}
+.vm-row.st-warn{border-color:var(--warn-bd)}
+.vm-row.st-no{border-color:var(--crit-bd)}
+
+.vm-stripe{width:3px;align-self:stretch;flex-shrink:0;background:var(--border-md);transition:background .15s}
+.vm-row.st-ok  .vm-stripe{background:var(--ok)}
+.vm-row.st-warn .vm-stripe{background:var(--warn)}
+.vm-row.st-no  .vm-stripe{background:var(--crit)}
+
+.vm-inner{display:flex;align-items:center;gap:8px;padding:7px 11px;flex:1;min-width:0}
+
+.vm-name{font-size:11px;font-weight:600;font-family:var(--mono);color:var(--tx-hi);min-width:90px;flex-shrink:0}
+.vm-os{font-size:9px;color:var(--tx-lo);font-family:var(--mono);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.cov-select{background:var(--elevated);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--tx-hi);font-size:10px;font-family:var(--mono);padding:3px 20px 3px 7px;outline:none;cursor:pointer;transition:border-color .12s,color .12s;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%234a5568' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 5px center;flex-shrink:0}
+.cov-select:focus{border-color:var(--srv-bd)}
+.cov-select.s-ok{border-color:var(--ok-bd);color:var(--ok)}
+.cov-select.s-warn{border-color:var(--warn-bd);color:var(--warn)}
+.cov-select.s-no{border-color:var(--crit-bd);color:var(--crit)}
+
+.fulls-wrap{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.fulls-lbl{font-size:9px;color:var(--tx-lo);white-space:nowrap}
+.fulls-input{width:36px;background:var(--elevated);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--tx-hi);font-size:11px;font-family:var(--mono);padding:3px 5px;outline:none;text-align:center;transition:border-color .12s,color .12s}
+.fulls-input:focus{border-color:var(--srv-bd)}
+.fulls-input.f-ok{border-color:var(--ok-bd);color:var(--ok)}
+.fulls-input.f-warn{border-color:var(--warn-bd);color:var(--warn)}
+.fulls-input.f-no{border-color:var(--crit-bd);color:var(--crit)}
+
+.chain-hint{font-size:9px;font-family:var(--mono);color:var(--tx-lo);white-space:nowrap;flex-shrink:0}
+.chain-hint.h-ok{color:var(--ok)}
+.chain-hint.h-warn{color:var(--warn)}
+.chain-hint.h-no{color:var(--crit)}
+
+.obs-area{background:var(--elevated);border:1px solid var(--border);border-radius:var(--radius-xs);color:var(--tx-hi);font-size:11px;font-family:var(--mono);padding:8px 10px;outline:none;resize:vertical;min-height:56px;width:100%;line-height:1.5}
+.obs-area:focus{border-color:var(--srv-bd)}
+.obs-area::placeholder{color:var(--tx-lo)}
+
+.summary{display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap}
+.sum-pill{padding:3px 10px;border-radius:20px;font-size:9px;font-family:var(--mono);font-weight:500;border:1px solid var(--border);color:var(--tx-lo);background:var(--card)}
+.sum-pill.p-ok{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)}
+.sum-pill.p-warn{background:var(--warn-bg);border-color:var(--warn-bd);color:var(--warn)}
+.sum-pill.p-crit{background:var(--crit-bg);border-color:var(--crit-bd);color:var(--crit)}
+
+.d-footer{padding:12px 18px;border-top:1px solid var(--border-lo);display:flex;gap:8px;background:var(--surface);position:sticky;bottom:0}
+.btn{padding:7px 16px;border-radius:var(--radius-xs);font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--tx-md);transition:background .12s,color .12s;font-family:var(--ui)}
+.btn:hover{background:var(--hover);color:var(--tx-hi)}
+.btn-primary{background:var(--srv-bg);border-color:var(--srv-bd);color:var(--srv);margin-left:auto}
+.btn-primary:hover{background:#0f2050;color:var(--tx-hi)}
+</style>
+</head>
+<body>
+<div class="shell">
+<div style="flex:1;background:var(--base);display:flex;align-items:center;justify-content:center">
+  <span style="font-size:11px;color:var(--tx-lo);font-family:'IBM Plex Mono',monospace">← panel de tareas</span>
+</div>
+
+<div class="drawer">
+  <div class="d-hdr">
+    <div class="d-ico">
+      <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    </div>
+    <div>
+      <div class="d-title">Veeam Backup</div>
+      <div class="d-sub">Acme Corp · Control mensual</div>
+    </div>
+    <div class="d-close"><svg viewBox="0 0 14 14"><path d="M1 1l12 12M13 1L1 13"/></svg></div>
+  </div>
+
+  <div class="d-body">
+    <div>
+      <div class="section-label">VMs del entorno</div>
+      <div class="summary" id="summary">
+        <span class="sum-pill" id="s-ok">— OK</span>
+        <span class="sum-pill" id="s-warn">— Advertencia</span>
+        <span class="sum-pill" id="s-crit">— Sin cobertura</span>
+      </div>
+      <div class="vm-list" id="vm-list"></div>
+    </div>
+
+    <div>
+      <div class="section-label">Observaciones</div>
+      <textarea class="obs-area" placeholder="Notas del control, problemas detectados, acciones pendientes..."></textarea>
+    </div>
+  </div>
+
+  <div class="d-footer">
+    <button class="btn">Cancelar</button>
+    <button class="btn btn-primary">Guardar control</button>
+  </div>
+</div>
+</div>
+
+<script>
+const VMS = [
+  {name:'TS',          os:'Windows Server 2022',  cov:'job',   fulls:4},
+  {name:'BACKUPS',     os:'Windows Server 2019',  cov:'job',   fulls:4},
+  {name:'ATALAYASIS',  os:'Windows Server 2012R2',cov:'no',    fulls:0},
+  {name:'VM002',       os:'Windows Server 2022',  cov:'job',   fulls:4},
+  {name:'VM001',       os:'Windows Server 2022',  cov:'job',   fulls:4},
+  {name:'VM004',       os:'Windows Server 2022',  cov:'job',   fulls:3},
+  {name:'FS',          os:'Windows Server 2022',  cov:'job',   fulls:2},
+  {name:'Veeam_Proxy', os:'Windows Server 2022',  cov:'agent', fulls:4},
+  {name:'PRTG_Monitor',os:'Windows Server 2022',  cov:'agent', fulls:4},
+  {name:'DC',          os:'Windows Server 2022',  cov:'job',   fulls:4},
+  {name:'DC2',         os:'Windows Server 2022',  cov:'job',   fulls:4},
+];
+
+const FULLS_OK   = 4;
+const FULLS_WARN = 3;
+
+function getState(cov, fulls) {
+  if (cov==='no')   return 'no';
+  if (cov==='excl') return 'ok';
+  const f = parseInt(fulls)||0;
+  if (f>=FULLS_OK)   return 'ok';
+  if (f>=FULLS_WARN) return 'warn';
+  if (f>0)           return 'warn';
+  return 'no';
+}
+
+function chainHint(cov, fulls) {
+  if (cov==='no')   return {txt:'sin cobertura',     cls:'h-no'};
+  if (cov==='excl') return {txt:'excluida ✓',        cls:'h-ok'};
+  const f = parseInt(fulls)||0;
+  if (f===0) return {txt:'0 fulls — revisar',        cls:'h-no'};
+  if (f===1) return {txt:'1 full — cadena larga',    cls:'h-warn'};
+  if (f===2) return {txt:'2 fulls — insuficiente',   cls:'h-warn'};
+  if (f===3) return {txt:'3 fulls — aceptable',      cls:'h-warn'};
+  return           {txt:`${f} fulls ✓`,              cls:'h-ok'};
+}
+
+function renderRow(vm, idx) {
+  const state = getState(vm.cov, vm.fulls);
+  const hint  = chainHint(vm.cov, vm.fulls);
+  const showF = vm.cov!=='no' && vm.cov!=='excl';
+  const f     = parseInt(vm.fulls)||0;
+  const fCls  = !showF?'':f>=FULLS_OK?'f-ok':f>=FULLS_WARN?'f-warn':'f-no';
+  const sCls  = state==='ok'?'s-ok':state==='warn'?'s-warn':'s-no';
+
+  return `<div class="vm-row st-${state}" id="vmrow-${idx}">
+    <div class="vm-stripe"></div>
+    <div class="vm-inner">
+      <span class="vm-name">${vm.name}</span>
+      <span class="vm-os">${vm.os}</span>
+      <select class="cov-select ${sCls}" id="cov-${idx}" onchange="onCovChange(${idx},this.value)">
+        <option value="job"  ${vm.cov==='job'  ?'selected':''}>Job</option>
+        <option value="agent"${vm.cov==='agent'?'selected':''}>Agent</option>
+        <option value="excl" ${vm.cov==='excl' ?'selected':''}>Excluida</option>
+        <option value="no"   ${vm.cov==='no'   ?'selected':''}>Sin backup</option>
+      </select>
+      <div class="fulls-wrap" id="fw-${idx}" style="display:${showF?'flex':'none'}">
+        <span class="fulls-lbl">fulls</span>
+        <input class="fulls-input ${fCls}" id="fi-${idx}" type="number" min="0" max="9" value="${showF?vm.fulls:''}" oninput="onFullsChange(${idx},this.value)">
+      </div>
+      <span class="chain-hint ${hint.cls}" id="hint-${idx}">${hint.txt}</span>
+    </div>
+  </div>`;
+}
+
+function render() {
+  document.getElementById('vm-list').innerHTML = VMS.map((v,i)=>renderRow(v,i)).join('');
+  updateSummary();
+}
+
+function onCovChange(idx, val) {
+  VMS[idx].cov = val;
+  if (val==='no'||val==='excl') VMS[idx].fulls=0;
+  refresh(idx);
+  updateSummary();
+}
+
+function onFullsChange(idx, val) {
+  VMS[idx].fulls = parseInt(val)||0;
+  refresh(idx);
+  updateSummary();
+}
+
+function refresh(idx) {
+  const vm    = VMS[idx];
+  const state = getState(vm.cov, vm.fulls);
+  const hint  = chainHint(vm.cov, vm.fulls);
+  const showF = vm.cov!=='no' && vm.cov!=='excl';
+  const f     = parseInt(vm.fulls)||0;
+  const fCls  = !showF?'':f>=FULLS_OK?'f-ok':f>=FULLS_WARN?'f-warn':'f-no';
+  const sCls  = state==='ok'?'s-ok':state==='warn'?'s-warn':'s-no';
+
+  const row = document.getElementById('vmrow-'+idx);
+  if(row) row.className = `vm-row st-${state}`;
+
+  const sel = document.getElementById('cov-'+idx);
+  if(sel) sel.className = `cov-select ${sCls}`;
+
+  const fw = document.getElementById('fw-'+idx);
+  if(fw) fw.style.display = showF?'flex':'none';
+
+  const fi = document.getElementById('fi-'+idx);
+  if(fi) fi.className = `fulls-input ${fCls}`;
+
+  const hn = document.getElementById('hint-'+idx);
+  if(hn){ hn.className=`chain-hint ${hint.cls}`; hn.textContent=hint.txt; }
+}
+
+function updateSummary() {
+  let ok=0,warn=0,crit=0;
+  VMS.forEach(v=>{
+    const s=getState(v.cov,v.fulls);
+    if(s==='ok') ok++; else if(s==='warn') warn++; else crit++;
+  });
+  const so=document.getElementById('s-ok');
+  const sw=document.getElementById('s-warn');
+  const sc=document.getElementById('s-crit');
+  so.textContent=`${ok} OK`;
+  sw.textContent=`${warn} advertencia`;
+  sc.textContent=`${crit} sin cobertura`;
+  so.className='sum-pill'+(ok  ?' p-ok':'');
+  sw.className='sum-pill'+(warn?' p-warn':'');
+  sc.className='sum-pill'+(crit?' p-crit':'');
+}
+
+render();
+</script>
+</body>
+</html>
