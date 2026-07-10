@@ -15,6 +15,10 @@ export class AuthGuard implements CanActivate {
       this.router.navigate(['/login/change-password']);
       return false;
     }
+    if (this.auth.mustOdooSetup()) {
+      this.router.navigate(['/login/odoo-setup']);
+      return false;
+    }
     return true;
   }
 }

@@ -7,7 +7,7 @@ import { AuthService } from '../services/auth.service';
 
 describe('AuthGuard', () => {
   let guard: AuthGuard;
-  let authService: AuthService;
+  let auth: AuthService;
   let router: Router;
 
   beforeEach(() => {
@@ -15,24 +15,42 @@ describe('AuthGuard', () => {
       imports: [RouterTestingModule, HttpClientTestingModule],
       providers: [AuthGuard, AuthService],
     });
-    guard = TestBed.inject(AuthGuard);
-    authService = TestBed.inject(AuthService);
+    guard  = TestBed.inject(AuthGuard);
+    auth   = TestBed.inject(AuthService);
     router = TestBed.inject(Router);
     localStorage.clear();
   });
 
   afterEach(() => localStorage.clear());
 
-  it('should allow access when authenticated', () => {
-    spyOn(authService, 'isAuthenticated').and.returnValue(true);
+  it('permite acceso cuando está autenticado y todo configurado', () => {
+    spyOn(auth, 'isAuthenticated').and.returnValue(true);
+    spyOn(auth, 'mustChangePassword').and.returnValue(false);
+    spyOn(auth, 'mustOdooSetup').and.returnValue(false);
     expect(guard.canActivate()).toBeTrue();
   });
 
-  it('should redirect to /login and deny access when not authenticated', () => {
-    spyOn(authService, 'isAuthenticated').and.returnValue(false);
-    const navigateSpy = spyOn(router, 'navigate');
-
+  it('redirige a /login cuando no está autenticado', () => {
+    spyOn(auth, 'isAuthenticated').and.returnValue(false);
+    const nav = spyOn(router, 'navigate');
     expect(guard.canActivate()).toBeFalse();
-    expect(navigateSpy).toHaveBeenCalledWith(['/login']);
+    expect(nav).toHaveBeenCalledWith(['/login']);
+  });
+
+  it('redirige a /login/change-password cuando mustChangePassword es true', () => {
+    spyOn(auth, 'isAuthenticated').and.returnValue(true);
+    spyOn(auth, 'mustChangePassword').and.returnValue(true);
+    const nav = spyOn(router, 'navigate');
+    expect(guard.canActivate()).toBeFalse();
+    expect(nav).toHaveBeenCalledWith(['/login/change-password']);
+  });
+
+  it('redirige a /login/odoo-setup cuando mustOdooSetup es true', () => {
+    spyOn(auth, 'isAuthenticated').and.returnValue(true);
+    spyOn(auth, 'mustChangePassword').and.returnValue(false);
+    spyOn(auth, 'mustOdooSetup').and.returnValue(true);
+    const nav = spyOn(router, 'navigate');
+    expect(guard.canActivate()).toBeFalse();
+    expect(nav).toHaveBeenCalledWith(['/login/odoo-setup']);
   });
 });

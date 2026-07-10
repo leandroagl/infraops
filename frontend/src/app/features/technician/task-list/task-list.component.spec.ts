@@ -37,6 +37,7 @@ describe('TaskListComponent', () => {
     authServiceSpy.getCurrentUser.and.returnValue({
       id: 'user-1', email: 'valen@ondra.com.ar',
       role: 'TECHNICIAN', technicianId: 'tech-1',
+      odooKeyValid: false, odooExempt: false,
     });
 
     await TestBed.configureTestingModule({
