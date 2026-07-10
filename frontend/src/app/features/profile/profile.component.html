@@ -1,0 +1,84 @@
+<!-- frontend/src/app/features/profile/profile.component.html -->
+<div class="profile-page" *ngIf="me">
+  <div class="page-header">
+    <h2>Mi perfil</h2>
+    <p class="subtitle">Configuración de tu cuenta y credenciales de integración</p>
+  </div>
+
+  <!-- Cuenta InfraOps -->
+  <div class="profile-section">
+    <div class="section-header">
+      <span class="section-title">Cuenta InfraOps</span>
+    </div>
+    <div class="section-body">
+      <div class="kv-row"><span class="kv-label">Nombre</span><span class="kv-value">{{ me.name }}</span></div>
+      <div class="kv-row"><span class="kv-label">Email</span><span class="kv-value">{{ me.email }}</span></div>
+      <div class="kv-row"><span class="kv-label">Rol</span><span class="kv-value">{{ me.role }}</span></div>
+    </div>
+  </div>
+
+  <!-- Integración Odoo — estado activo -->
+  <div class="profile-section" *ngIf="me.odooKeyValid && !editing">
+    <div class="section-header">
+      <span class="section-title">Integración Odoo</span>
+      <span class="status-chip ok">Activa</span>
+    </div>
+    <div class="section-body">
+      <div class="kv-row">
+        <span class="kv-label">Email Odoo</span>
+        <span class="kv-value">{{ me.odooApiEmail }}</span>
+      </div>
+      <div class="kv-row">
+        <span class="kv-label">API Key</span>
+        <span class="kv-value mono">••••••••••••••••<span *ngIf="me.odooApiEmail">{{ me.odooApiEmail.slice(-4) }}</span></span>
+      </div>
+      <div class="validated-at" *ngIf="me.odooKeyValidatedAt">
+        Última validación: {{ me.odooKeyValidatedAt | localDate }}
+      </div>
+      <div class="section-actions">
+        <button mat-flat-button color="primary" (click)="startEdit()">Actualizar credenciales</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Integración Odoo — sin configurar -->
+  <div class="profile-section" *ngIf="!me.odooKeyValid && !editing">
+    <div class="section-header">
+      <span class="section-title">Integración Odoo</span>
+      <span class="status-chip crit">Sin configurar</span>
+    </div>
+    <div class="section-body">
+      <p class="empty-msg">Sin credenciales Odoo no podés acceder a los módulos de tarea.</p>
+      <button mat-flat-button color="primary" (click)="startEdit()">Configurar ahora →</button>
+    </div>
+  </div>
+
+  <!-- Formulario de edición -->
+  <div class="profile-section" *ngIf="editing && editForm">
+    <div class="section-header">
+      <span class="section-title">Actualizar credenciales Odoo</span>
+    </div>
+    <div class="section-body">
+      <form [formGroup]="editForm" (ngSubmit)="saveCredentials()" class="edit-form">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Email de Odoo</mat-label>
+          <input matInput formControlName="odooApiEmail" type="email" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Nueva API Key</mat-label>
+          <input matInput formControlName="odooApiKey" type="password" />
+        </mat-form-field>
+
+        <div *ngIf="saveError" class="error-message">{{ saveError }}</div>
+
+        <div class="form-actions">
+          <button mat-flat-button color="primary" type="submit" [disabled]="editForm.invalid || saving">
+            {{ saving ? 'Validando...' : 'Guardar' }}
+          </button>
+          <button mat-stroked-button type="button" (click)="cancelEdit()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

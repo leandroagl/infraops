@@ -1,0 +1,75 @@
+/* frontend/src/app/features/profile/profile.component.scss */
+.profile-page { max-width: 640px; }
+
+.page-header {
+  margin-bottom: 24px;
+  h2 { font-size: 18px; font-weight: 600; color: var(--tx); margin: 0 0 4px; }
+  .subtitle { font-size: 12px; color: var(--tx-lo); margin: 0; }
+}
+
+.profile-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.section-header {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--tx);
+}
+
+.section-body { padding: 18px; }
+
+.kv-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  &:last-child { margin-bottom: 0; }
+}
+.kv-label { width: 110px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--tx-lo); flex-shrink: 0; }
+.kv-value { font-size: 13px; color: var(--tx); }
+.kv-value.mono { font-family: var(--font-mono); color: var(--accent); }
+
+.status-chip {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  &.ok   { background: var(--ok-bg);   color: var(--ok);   border: 1px solid var(--ok); }
+  &.crit { background: var(--crit-bg); color: var(--crit); border: 1px solid var(--crit); }
+}
+
+.validated-at { font-size: 11px; color: var(--tx-lo); margin: 12px 0 0; }
+
+.section-actions { margin-top: 16px; }
+
+.empty-msg { font-size: 12px; color: var(--tx-lo); margin: 0 0 14px; }
+
+.edit-form { display: flex; flex-direction: column; gap: 14px; }
+
+.error-message {
+  font-size: 12px;
+  color: var(--crit);
+  background: var(--crit-bg);
+  border: 1px solid var(--crit);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.form-actions { display: flex; gap: 8px; }
