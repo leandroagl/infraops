@@ -10,6 +10,7 @@ import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
 import { OdooSystemRpcService } from './odoo-system-rpc.service';
+import { OdooUserRpcService, OdooUserCredentials } from './odoo-user-rpc.service';
 import { OdooPartner } from './dto/odoo-partner.dto';
 import { OdooUser } from './dto/odoo-user.dto';
 import { OdooSyncResult } from './dto/odoo-sync-result.dto';
@@ -102,7 +103,8 @@ export class OdooService {
   private serverManagementTagId: number | null = null;
 
   constructor(
-    private readonly odooRpc: OdooSystemRpcService,
+    private readonly systemRpc: OdooSystemRpcService,
+    private readonly userRpc: OdooUserRpcService,
     private readonly configService: ConfigService,
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,
@@ -114,7 +116,7 @@ export class OdooService {
 
   async syncPartners(): Promise<OdooSyncResult> {
     const [odooPartners, localClients] = await Promise.all([
-      this.odooRpc.callKw<OdooPartner[]>(
+      this.systemRpc.callKw<OdooPartner[]>(
         'res.partner',
         'search_read',
         [
@@ -162,7 +164,7 @@ export class OdooService {
 
   async syncUsers(): Promise<OdooSyncResult> {
     const [odooUsers, localUsers] = await Promise.all([
-      this.odooRpc.callKw<OdooUser[]>(
+      this.systemRpc.callKw<OdooUser[]>(
         'res.users',
         'search_read',
         [[['active', '=', true]]],
@@ -193,7 +195,7 @@ export class OdooService {
     }
 
     if (matchedPairs.length > 0) {
-      const employees = await this.odooRpc.callKw<
+      const employees = await this.systemRpc.callKw<
         Array<{ id: number; user_id: [number, string] }>
       >(
         'hr.employee',
@@ -231,7 +233,7 @@ export class OdooService {
     if (client.odooPartnerId !== null) return client.odooPartnerId;
     if (!client.taxIdNumber) return null;
 
-    const partners = await this.odooRpc.callKw<OdooPartner[]>(
+    const partners = await this.systemRpc.callKw<OdooPartner[]>(
       'res.partner',
       'search_read',
       [
@@ -257,7 +259,7 @@ export class OdooService {
     if (!user) return null;
     if (user.odooUserId !== null) return user.odooUserId;
 
-    const odooUsers = await this.odooRpc.callKw<OdooUser[]>(
+    const odooUsers = await this.systemRpc.callKw<OdooUser[]>(
       'res.users',
       'search_read',
       [[['login', '=', user.email]]],
@@ -279,7 +281,7 @@ export class OdooService {
     if (user.odooEmployeeId !== null) return user.odooEmployeeId;
     if (user.odooUserId === null) return null;
 
-    const employees = await this.odooRpc.callKw<Array<{ id: number }>>(
+    const employees = await this.systemRpc.callKw<Array<{ id: number }>>(
       'hr.employee',
       'search_read',
       [[['user_id', '=', user.odooUserId]]],
@@ -301,7 +303,7 @@ export class OdooService {
     if (client.odooSaleLineId !== null) return client.odooSaleLineId;
     if (client.odooPartnerId === null) return null;
 
-    const lines = await this.odooRpc.callKw<Array<{ id: number }>>(
+    const lines = await this.systemRpc.callKw<Array<{ id: number }>>(
       'sale.order.line',
       'search_read',
       [
@@ -323,12 +325,14 @@ export class OdooService {
     return lines[0].id;
   }
 
-  async logTimesheet(
+  private async logTimesheet(
     odooTicketId: number,
     employeeId: number,
     unitAmount: number,
+    creds: OdooUserCredentials,
   ): Promise<void> {
-    await this.odooRpc.callKw<number>(
+    await this.userRpc.callKw<number>(
+      creds,
       'account.analytic.line',
       'create',
       [
@@ -352,7 +356,7 @@ export class OdooService {
       10,
     );
 
-    const stages = await this.odooRpc.callKw<Array<{ id: number }>>(
+    const stages = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.stage',
       'search_read',
       [
@@ -374,9 +378,10 @@ export class OdooService {
     return this.inProgressStageId;
   }
 
-  async markTicketInProgress(odooTicketId: number): Promise<void> {
+  async markTicketInProgress(odooTicketId: number, creds: OdooUserCredentials): Promise<void> {
     const stageId = await this.resolveInProgressStageId();
-    await this.odooRpc.callKw<boolean>(
+    await this.userRpc.callKw<boolean>(
+      creds,
       'helpdesk.ticket',
       'write',
       [[odooTicketId], { stage_id: stageId }],
@@ -387,7 +392,7 @@ export class OdooService {
   private async resolveQnapTagId(): Promise<number> {
     if (this.qnapTagId !== null) return this.qnapTagId;
 
-    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
+    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.tag',
       'search_read',
       [[['name', '=', 'Backups (NAS)']]],
@@ -407,7 +412,7 @@ export class OdooService {
   private async resolveWindowsAdDomainTagId(): Promise<number> {
     if (this.windowsAdDomainTagId !== null) return this.windowsAdDomainTagId;
 
-    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
+    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.tag',
       'search_read',
       [[['name', '=', 'Windows AD Domain']]],
@@ -427,7 +432,7 @@ export class OdooService {
   private async resolveWindowsServerTagId(): Promise<number> {
     if (this.windowsServerTagId !== null) return this.windowsServerTagId;
 
-    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
+    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.tag',
       'search_read',
       [[['name', '=', 'Windows Server']]],
@@ -447,7 +452,7 @@ export class OdooService {
   private async resolveVirtualizationTagId(): Promise<number> {
     if (this.virtualizationTagId !== null) return this.virtualizationTagId;
 
-    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
+    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.tag',
       'search_read',
       [[['name', '=', 'Virtualización']]],
@@ -467,7 +472,7 @@ export class OdooService {
   private async resolveServerManagementTagId(): Promise<number> {
     if (this.serverManagementTagId !== null) return this.serverManagementTagId;
 
-    const tags = await this.odooRpc.callKw<Array<{ id: number }>>(
+    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.tag',
       'search_read',
       [[['name', '=', 'Gestión de servidores']]],
@@ -492,7 +497,7 @@ export class OdooService {
       10,
     );
 
-    const stages = await this.odooRpc.callKw<Array<{ id: number }>>(
+    const stages = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.stage',
       'search_read',
       [
@@ -518,10 +523,12 @@ export class OdooService {
     odooTicketId: number,
     employeeId: number,
     unitAmount: number,
+    creds: OdooUserCredentials,
   ): Promise<void> {
     const stageId = await this.resolveDoneStageId();
-    await this.logTimesheet(odooTicketId, employeeId, unitAmount);
-    await this.odooRpc.callKw<boolean>(
+    await this.logTimesheet(odooTicketId, employeeId, unitAmount, creds);
+    await this.userRpc.callKw<boolean>(
+      creds,
       'helpdesk.ticket',
       'write',
       [[odooTicketId], { stage_id: stageId }],
@@ -601,7 +608,7 @@ export class OdooService {
       payload['tag_ids'] = [[6, 0, [tagId]]];
     }
 
-    const ticketId = await this.odooRpc.callKw<number>(
+    const ticketId = await this.systemRpc.callKw<number>(
       'helpdesk.ticket',
       'create',
       [payload],
@@ -616,7 +623,7 @@ export class OdooService {
   }
 
   async postInternalNote(ticketId: number, note: string): Promise<void> {
-    await this.odooRpc.callKw(
+    await this.systemRpc.callKw(
       'helpdesk.ticket',
       'message_post',
       [[ticketId]],
