@@ -1,0 +1,44 @@
+<div class="setup-container">
+  <div class="setup-card">
+    <div class="step-dots">
+      <span class="dot done"></span>
+      <span class="dot active"></span>
+      <span class="dot pending"></span>
+    </div>
+
+    <div class="badge">Paso requerido</div>
+    <h1>Conectá tu cuenta de Odoo</h1>
+    <p class="subtitle">
+      InfraOps registra el tiempo en Odoo bajo tu nombre en cada ticket.
+      Sin esta configuración no podés acceder a los módulos de tarea.
+    </p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Email de Odoo</mat-label>
+        <input matInput formControlName="odooApiEmail" type="email" autocomplete="email" />
+        <mat-hint>Usualmente el mismo que tu usuario de InfraOps</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>API Key de Odoo</mat-label>
+        <input matInput formControlName="odooApiKey" type="password" autocomplete="off" />
+        <mat-hint>Settings → Cuenta → API Keys en tu Odoo</mat-hint>
+      </mat-form-field>
+
+      <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+
+      <button
+        mat-flat-button
+        color="primary"
+        type="submit"
+        [disabled]="form.invalid || loading"
+        class="submit-btn">
+        <mat-spinner *ngIf="loading" diameter="16" class="btn-spinner"></mat-spinner>
+        <span *ngIf="!loading">Validar y continuar →</span>
+      </button>
+    </form>
+
+    <button mat-button (click)="logout()" class="logout-link" type="button">Cerrar sesión</button>
+  </div>
+</div>
