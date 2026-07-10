@@ -9,7 +9,7 @@ import { IsNull, Repository } from 'typeorm';
 import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
-import { OdooRpcService } from './odoo-rpc.service';
+import { OdooSystemRpcService } from './odoo-system-rpc.service';
 import { OdooPartner } from './dto/odoo-partner.dto';
 import { OdooUser } from './dto/odoo-user.dto';
 import { OdooSyncResult } from './dto/odoo-sync-result.dto';
@@ -102,7 +102,7 @@ export class OdooService {
   private serverManagementTagId: number | null = null;
 
   constructor(
-    private readonly odooRpc: OdooRpcService,
+    private readonly odooRpc: OdooSystemRpcService,
     private readonly configService: ConfigService,
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,

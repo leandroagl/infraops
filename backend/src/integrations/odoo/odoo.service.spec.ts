@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
-import { OdooRpcService } from './odoo-rpc.service';
+import { OdooSystemRpcService } from './odoo-system-rpc.service';
 import { OdooService } from './odoo.service';
 import { OdooPartner } from './dto/odoo-partner.dto';
 import { OdooUser } from './dto/odoo-user.dto';
@@ -101,7 +101,7 @@ describe('OdooService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OdooService,
-        { provide: OdooRpcService, useValue: odooRpc },
+        { provide: OdooSystemRpcService, useValue: odooRpc },
         { provide: getRepositoryToken(Client), useValue: clientRepo },
         { provide: getRepositoryToken(User), useValue: userRepo },
         { provide: ConfigService, useValue: configService },
