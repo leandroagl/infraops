@@ -5,11 +5,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { Not, Repository } from 'typeorm';
 import { generateRandomPassword } from '../common/utils/password.util';
+import { encrypt } from '../common/utils/crypto.util';
+import { OdooUserRpcService } from '../integrations/odoo/odoo-user-rpc.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateOdooCredentialsDto } from './dto/update-odoo-credentials.dto';
+import { MeResponseDto } from './dto/me-response.dto';
 import { User } from './user.entity';
 
 export type UserResponse = Omit<
@@ -23,6 +28,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly odooUserRpc: OdooUserRpcService,
+    private readonly configService: ConfigService,
   ) {}
 
   async findAll(): Promise<UserResponse[]> {
@@ -121,6 +128,51 @@ export class UsersService {
       mustChangePassword: true,
     });
     return { plainPassword };
+  }
+
+  async getMe(userId: string): Promise<MeResponseDto> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      technicianId: user.technicianId,
+      odooKeyValid: user.odooKeyValid,
+      odooKeyValidatedAt: user.odooKeyValidatedAt,
+      odooApiEmail: user.odooApiEmail,
+      odooExempt: user.odooExempt,
+    };
+  }
+
+  async updateOdooCredentials(
+    userId: string,
+    dto: UpdateOdooCredentialsDto,
+  ): Promise<void> {
+    await this.odooUserRpc.validateCredentials(dto.odooApiEmail, dto.odooApiKey);
+
+    const encryptKey = this.configService.getOrThrow<string>('ODOO_ENCRYPT_KEY');
+    const odooApiKeyEnc = encrypt(dto.odooApiKey, encryptKey);
+
+    await this.userRepository.update(userId, {
+      odooApiEmail: dto.odooApiEmail,
+      odooApiKeyEnc,
+      odooKeyValid: true,
+      odooKeyValidatedAt: new Date(),
+    });
+  }
+
+  async updateOdooExempt(
+    id: string,
+    currentUserId: string,
+    odooExempt: boolean,
+  ): Promise<UserResponse> {
+    if (id === currentUserId) throw new ForbiddenException('No podés editar tu propio usuario');
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    await this.userRepository.update(id, { odooExempt });
+    return this.toResponse({ ...user, odooExempt });
   }
 
   private toResponse(user: User): UserResponse {

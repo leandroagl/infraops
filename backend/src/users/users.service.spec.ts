@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
@@ -7,14 +8,19 @@ import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import * as passwordUtil from '../common/utils/password.util';
+import * as cryptoUtil from '../common/utils/crypto.util';
+import { OdooUserRpcService } from '../integrations/odoo/odoo-user-rpc.service';
+import { ConfigService } from '@nestjs/config';
 import { User } from './user.entity';
 import { UserRole } from './user-role.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateOdooCredentialsDto } from './dto/update-odoo-credentials.dto';
 import { UsersService } from './users.service';
 
 jest.mock('bcrypt');
 jest.mock('../common/utils/password.util');
+jest.mock('../common/utils/crypto.util');
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -25,6 +31,8 @@ describe('UsersService', () => {
     save: jest.Mock;
     update: jest.Mock;
   };
+  let odooUserRpc: { validateCredentials: jest.Mock };
+  let configService: { getOrThrow: jest.Mock };
 
   const mockUser: User = {
     id: 'user-1',
@@ -37,6 +45,14 @@ describe('UsersService', () => {
     isActive: true,
     technicianId: null,
     technician: null,
+    odooUserId: null,
+    odooSyncedAt: null,
+    odooEmployeeId: null,
+    odooApiEmail: null,
+    odooApiKeyEnc: null,
+    odooKeyValid: false,
+    odooKeyValidatedAt: null,
+    odooExempt: false,
     createdAt: new Date('2026-01-01'),
   };
 
@@ -48,6 +64,14 @@ describe('UsersService', () => {
     mustChangePassword: false,
     isActive: true,
     technicianId: null,
+    odooUserId: null,
+    odooSyncedAt: null,
+    odooEmployeeId: null,
+    odooApiEmail: null,
+    odooApiKeyEnc: null,
+    odooKeyValid: false,
+    odooKeyValidatedAt: null,
+    odooExempt: false,
     createdAt: mockUser.createdAt,
   };
 
@@ -60,10 +84,15 @@ describe('UsersService', () => {
       update: jest.fn(),
     };
 
+    odooUserRpc = { validateCredentials: jest.fn() };
+    configService = { getOrThrow: jest.fn().mockReturnValue('a'.repeat(64)) };
+
     const module = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: getRepositoryToken(User), useValue: userRepository },
+        { provide: OdooUserRpcService, useValue: odooUserRpc },
+        { provide: ConfigService, useValue: configService },
       ],
     }).compile();
 
@@ -231,6 +260,100 @@ describe('UsersService', () => {
 
       await expect(
         service.resetPassword('nonexistent', 'admin-id'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getMe', () => {
+    it('devuelve MeResponseDto sin datos sensibles', async () => {
+      userRepository.findOne.mockResolvedValue(mockUser);
+
+      const result = await service.getMe('user-1');
+
+      expect(result).toEqual({
+        id: 'user-1',
+        name: 'Lea Aguilera',
+        email: 'lea@ondra.com',
+        role: UserRole.TL,
+        technicianId: null,
+        odooKeyValid: false,
+        odooKeyValidatedAt: null,
+        odooApiEmail: null,
+        odooExempt: false,
+      });
+      expect(result).not.toHaveProperty('passwordHash');
+      expect(result).not.toHaveProperty('odooApiKeyEnc');
+    });
+
+    it('lanza NotFoundException si el usuario no existe', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.getMe('nonexistent')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('updateOdooCredentials', () => {
+    const dto: UpdateOdooCredentialsDto = {
+      odooApiEmail: 'lea@ondra.com',
+      odooApiKey: 'api-key-123',
+    };
+
+    it('valida credenciales, cifra la key y actualiza el usuario', async () => {
+      odooUserRpc.validateCredentials.mockResolvedValue(undefined);
+      configService.getOrThrow.mockReturnValue('a'.repeat(64));
+      (cryptoUtil.encrypt as jest.Mock).mockReturnValue('iv:encrypted');
+      userRepository.update.mockResolvedValue({ affected: 1 });
+
+      await service.updateOdooCredentials('user-1', dto);
+
+      expect(odooUserRpc.validateCredentials).toHaveBeenCalledWith(
+        'lea@ondra.com',
+        'api-key-123',
+      );
+      expect(cryptoUtil.encrypt).toHaveBeenCalledWith('api-key-123', 'a'.repeat(64));
+      expect(userRepository.update).toHaveBeenCalledWith('user-1', {
+        odooApiEmail: 'lea@ondra.com',
+        odooApiKeyEnc: 'iv:encrypted',
+        odooKeyValid: true,
+        odooKeyValidatedAt: expect.any(Date),
+      });
+    });
+
+    it('propaga la excepción si validateCredentials falla', async () => {
+      odooUserRpc.validateCredentials.mockRejectedValue(
+        new BadRequestException('Credenciales Odoo inválidas'),
+      );
+
+      await expect(
+        service.updateOdooCredentials('user-1', dto),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(userRepository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateOdooExempt', () => {
+    it('actualiza odooExempt y devuelve el usuario actualizado', async () => {
+      userRepository.findOne.mockResolvedValue(mockUser);
+      userRepository.update.mockResolvedValue({ affected: 1 });
+
+      const result = await service.updateOdooExempt('user-1', 'admin-id', true);
+
+      expect(result.odooExempt).toBe(true);
+      expect(userRepository.update).toHaveBeenCalledWith('user-1', { odooExempt: true });
+    });
+
+    it('lanza ForbiddenException si el id coincide con el usuario actual', async () => {
+      await expect(
+        service.updateOdooExempt('user-1', 'user-1', true),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('lanza NotFoundException si el usuario no existe', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.updateOdooExempt('nonexistent', 'admin-id', true),
       ).rejects.toThrow(NotFoundException);
     });
   });
