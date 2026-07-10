@@ -41,11 +41,14 @@ export class AuthService {
     return {
       accessToken: this.jwtService.sign(payload),
       mustChangePassword: user.mustChangePassword,
+      mustOdooSetup: !user.odooKeyValid && !user.odooExempt,
       user: {
         id: user.id,
         email: user.email,
         role: user.role,
         technicianId: user.technicianId ?? null,
+        odooKeyValid: user.odooKeyValid,
+        odooExempt: user.odooExempt,
       },
     };
   }

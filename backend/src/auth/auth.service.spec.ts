@@ -27,6 +27,15 @@ describe('AuthService', () => {
     isActive: true,
     technicianId: null,
     createdAt: new Date(),
+    odooUserId: null,
+    odooSyncedAt: null,
+    odooEmployeeId: null,
+    odooApiEmail: null,
+    odooApiKeyEnc: null,
+    odooKeyValid: false,
+    odooKeyValidatedAt: null,
+    odooExempt: false,
+    technician: null,
   };
 
   beforeEach(async () => {
@@ -62,6 +71,8 @@ describe('AuthService', () => {
         email: 'lea@ondra.com',
         role: UserRole.TL,
         technicianId: null,
+        odooKeyValid: false,
+        odooExempt: false,
       });
       expect(jwtService.sign).toHaveBeenCalledWith({
         sub: 'user-1',
@@ -101,6 +112,36 @@ describe('AuthService', () => {
       userRepository.findOne.mockResolvedValue(null); // isActive:true filter returns null
 
       await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('incluye mustOdooSetup=true cuando el usuario no tiene key y no es exento', async () => {
+      userRepository.findOne.mockResolvedValue(mockUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      jwtService.sign.mockReturnValue('jwt-token');
+
+      const result = await service.login(dto);
+
+      expect(result.mustOdooSetup).toBe(true);
+    });
+
+    it('incluye mustOdooSetup=false cuando el usuario es exento', async () => {
+      userRepository.findOne.mockResolvedValue({ ...mockUser, odooExempt: true });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      jwtService.sign.mockReturnValue('jwt-token');
+
+      const result = await service.login(dto);
+
+      expect(result.mustOdooSetup).toBe(false);
+    });
+
+    it('incluye mustOdooSetup=false cuando ya tiene key válida', async () => {
+      userRepository.findOne.mockResolvedValue({ ...mockUser, odooKeyValid: true });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      jwtService.sign.mockReturnValue('jwt-token');
+
+      const result = await service.login(dto);
+
+      expect(result.mustOdooSetup).toBe(false);
     });
   });
 
