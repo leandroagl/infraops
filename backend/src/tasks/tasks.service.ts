@@ -4,14 +4,17 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Client } from '../clients/client.entity';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
 import { OdooService } from '../integrations/odoo/odoo.service';
+import { OdooUserCredentials } from '../integrations/odoo/odoo-user-rpc.service';
 import { InfrastructureService } from '../integrations/infradoc/infrastructure.service';
 import { ClientInfrastructureDto } from '../integrations/infradoc/dto/client-infrastructure.dto';
+import { decrypt } from '../common/utils/crypto.util';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -62,6 +65,7 @@ export class TasksService {
     private readonly logRepository: Repository<MaintenanceLog>,
     private readonly odooService: OdooService,
     private readonly infrastructureService: InfrastructureService,
+    private readonly configService: ConfigService,
   ) {}
 
   async findAll(filters: FilterTasksDto): Promise<Task[]> {
@@ -154,7 +158,8 @@ export class TasksService {
     }
 
     if (newStatus === TaskStatus.IN_PROGRESS && task.odooTicketId !== null) {
-      await this.odooService.markTicketInProgress(task.odooTicketId);
+      const creds = this.getOdooCredentials(task);
+      await this.odooService.markTicketInProgress(task.odooTicketId, creds);
     }
 
     const isTerminal = VALID_TRANSITIONS[newStatus].length === 0;
@@ -165,11 +170,11 @@ export class TasksService {
       task.odooTicketId !== null;
 
     if (shouldCloseTicket) {
+      const creds = this.getOdooCredentials(task);
+
       const userId = task.technician?.user?.id;
       if (!userId)
-        throw new BadRequestException(
-          'La tarea no tiene técnico con usuario asociado',
-        );
+        throw new BadRequestException('La tarea no tiene técnico con usuario asociado');
 
       const employeeId = await this.odooService.resolveEmployeeId(userId);
       if (employeeId === null) {
@@ -188,6 +193,7 @@ export class TasksService {
         task.odooTicketId!,
         employeeId,
         unitAmount,
+        creds,
       );
     }
 
@@ -213,6 +219,17 @@ export class TasksService {
 
     await this.logRepository.delete({ taskId: id });
     await this.taskRepository.delete(id);
+  }
+
+  private getOdooCredentials(task: Task): OdooUserCredentials {
+    const user = task.technician?.user;
+    if (!user?.odooKeyValid || !user.odooApiKeyEnc || !user.odooApiEmail) {
+      throw new BadRequestException(
+        'El técnico asignado no tiene credenciales Odoo configuradas',
+      );
+    }
+    const encryptKey = this.configService.getOrThrow<string>('ODOO_ENCRYPT_KEY');
+    return { email: user.odooApiEmail, apiKey: decrypt(user.odooApiKeyEnc, encryptKey) };
   }
 
   private async validateInfrastructure(clientId: string, type: TaskType): Promise<void> {
