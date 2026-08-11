@@ -54,11 +54,12 @@ describe('SchedulesService', () => {
 
   describe('upsert', () => {
     it('crea la regla si no existe', async () => {
-      scheduleRepo.findOne.mockResolvedValue(null);
       const created = { id: 'new', clientId: 'c-1', scheduleGroup: ScheduleGroup.BIMONTHLY_EVEN };
+      scheduleRepo.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(created);
       scheduleRepo.create.mockReturnValue(created);
       scheduleRepo.save.mockResolvedValue(created);
-      scheduleRepo.find.mockResolvedValue([created]);
 
       const dto = { scheduleGroup: ScheduleGroup.BIMONTHLY_EVEN, technicianId: null };
       const result = await service.upsert('c-1', dto);
@@ -68,9 +69,11 @@ describe('SchedulesService', () => {
 
     it('actualiza la regla si ya existe', async () => {
       const existing = { id: 'ex-1', clientId: 'c-1', scheduleGroup: ScheduleGroup.BIMONTHLY_ODD };
-      scheduleRepo.findOne.mockResolvedValue(existing);
-      scheduleRepo.save.mockResolvedValue({ ...existing, scheduleGroup: ScheduleGroup.BIMONTHLY_EVEN });
-      scheduleRepo.find.mockResolvedValue([]);
+      const updated = { ...existing, scheduleGroup: ScheduleGroup.BIMONTHLY_EVEN };
+      scheduleRepo.findOne
+        .mockResolvedValueOnce(existing)
+        .mockResolvedValueOnce(updated);
+      scheduleRepo.save.mockResolvedValue(updated);
 
       const dto = { scheduleGroup: ScheduleGroup.BIMONTHLY_EVEN, technicianId: null };
       await service.upsert('c-1', dto);

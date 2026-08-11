@@ -29,7 +29,11 @@ export class SchedulesService {
     } else {
       Object.assign(rule, dto);
     }
-    return this.scheduleRepo.save(rule);
+    await this.scheduleRepo.save(rule);
+    return this.scheduleRepo.findOne({
+      where: { clientId },
+      relations: ['client', 'technician', 'technician.user'],
+    }) as Promise<ClientSchedule>;
   }
 
   async getRotationConfig(): Promise<RotationConfig> {
