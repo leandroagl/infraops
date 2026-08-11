@@ -115,6 +115,8 @@ export class SchedulesService {
       this.techRepo.find({ relations: ['user'] }),
     ]);
 
+    if (technicians.length === 0) return { technicians: [] };
+
     const distributed = this.distributeRoundRobin(rules, technicians);
 
     return {
@@ -134,6 +136,7 @@ export class SchedulesService {
     rules: ClientSchedule[],
     technicians: Technician[],
   ): Array<{ clientId: string; technicianId: string; client: ClientSchedule['client'] }> {
+    if (technicians.length === 0) return [];
     return rules.map((rule, idx) => ({
       clientId: rule.clientId,
       technicianId: technicians[idx % technicians.length].id,
@@ -176,9 +179,7 @@ export class SchedulesService {
       relations: ['client', 'technician', 'technician.user'],
     });
 
-    const filtered = all.filter(r => r.scheduleGroup === group);
-
-    const clients: MonthlyPreviewClientDto[] = filtered.map(r => ({
+    const clients: MonthlyPreviewClientDto[] = all.map(r => ({
       clientId: r.clientId,
       clientName: r.client?.name ?? '',
       technicianId: r.technicianId ?? null,

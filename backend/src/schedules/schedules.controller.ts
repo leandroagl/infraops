@@ -21,14 +21,6 @@ export class SchedulesController {
     return this.schedulesService.findAll();
   }
 
-  @Put(':clientId')
-  upsert(
-    @Param('clientId', ParseUUIDPipe) clientId: string,
-    @Body() dto: UpsertClientScheduleDto,
-  ): Promise<ClientSchedule> {
-    return this.schedulesService.upsert(clientId, dto);
-  }
-
   @Get('rotation')
   getRotationConfig(): Promise<RotationConfig> {
     return this.schedulesService.getRotationConfig();
@@ -55,5 +47,13 @@ export class SchedulesController {
   @Post('generate')
   generateMonth(@Body() dto: GenerateMonthDto) {
     return this.schedulesService.generateMonth(dto.year, dto.month);
+  }
+
+  @Put(':clientId')
+  upsert(
+    @Param('clientId', ParseUUIDPipe) clientId: string,
+    @Body() dto: UpsertClientScheduleDto,
+  ): Promise<ClientSchedule> {
+    return this.schedulesService.upsert(clientId, dto);
   }
 }

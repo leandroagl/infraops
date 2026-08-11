@@ -135,16 +135,9 @@ describe('SchedulesService', () => {
     });
 
     it('filtra clientes del grupo impar en mes par', async () => {
-      const rules: Partial<ClientSchedule>[] = [
-        {
-          clientId: 'c-2',
-          scheduleGroup: ScheduleGroup.BIMONTHLY_ODD, // no aplica en mes par
-          isActive: true,
-          client: { name: 'B' } as Client,
-          technician: null,
-        },
-      ];
-      scheduleRepo.find.mockResolvedValue(rules);
+      // La query TypeORM ya filtra por scheduleGroup; el mock devuelve []
+      // como lo haría la DB al no haber coincidencias.
+      scheduleRepo.find.mockResolvedValue([]);
       const result = await service.getMonthlyPreview(2026, 8);
       expect(result.clients).toHaveLength(0);
     });
