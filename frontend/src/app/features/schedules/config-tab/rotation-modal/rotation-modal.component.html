@@ -1,1 +1,51 @@
-<p>RotationModal</p>
+<h2 mat-dialog-title>↺ Rotación automática</h2>
+
+<mat-dialog-content>
+  <div class="toggle-row">
+    <div>
+      <div class="toggle-label">Rotación automática</div>
+      <div class="toggle-sub">Al generar cada mes, rota los técnicos automáticamente</div>
+    </div>
+    <mat-slide-toggle [(ngModel)]="isActive" color="primary"></mat-slide-toggle>
+  </div>
+
+  <ng-container *ngIf="isActive">
+    <div class="section-label">Frecuencia de rotación</div>
+    <mat-button-toggle-group [(value)]="frequency" class="freq-toggle">
+      <mat-button-toggle value="EVERY_GENERATION">
+        Cada generación<br><small>Rota todos los meses</small>
+      </mat-button-toggle>
+      <mat-button-toggle value="EVERY_TWO_GENERATIONS">
+        Cada 2 generaciones<br><small>Mismo técnico por 4 meses</small>
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <div class="section-label">Distribución propuesta</div>
+    <div *ngIf="loading" class="load-center"><mat-spinner diameter="28"></mat-spinner></div>
+    <div *ngIf="!loading && preview">
+      <div *ngFor="let t of preview.technicians" class="tech-row">
+        <div class="tech-avatar">{{ t.name.slice(0,2).toUpperCase() }}</div>
+        <div class="tech-info">
+          <div class="tech-top">
+            <span class="tech-name">{{ t.name }}</span>
+            <span class="tech-count">{{ t.clientCount }} clientes</span>
+          </div>
+          <mat-progress-bar mode="determinate" [value]="barWidth(t.clientCount)"></mat-progress-bar>
+        </div>
+      </div>
+    </div>
+
+    <div class="hint-box">
+      💡 La rotación se aplica a partir de la próxima generación. Podés ajustar manualmente cualquier cliente después.
+    </div>
+  </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions>
+  <button mat-button color="warn" (click)="deactivateAndClose()">Desactivar y cerrar</button>
+  <span class="spacer"></span>
+  <button mat-stroked-button (click)="close()">Cancelar</button>
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving">
+    {{ saving ? 'Guardando...' : 'Guardar configuración' }}
+  </button>
+</mat-dialog-actions>
