@@ -12,6 +12,7 @@ import { InfradocIntegrationModule } from './integrations/infradoc/infradoc-inte
 import { OdooIntegrationModule } from './integrations/odoo/odoo-integration.module';
 import { VmwareIntegrationModule } from './integrations/vmware/vmware-integration.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SchedulesModule } from './schedules/schedules.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     OdooIntegrationModule,
     VmwareIntegrationModule,
     NotificationsModule,
+    SchedulesModule,
   ],
 })
 export class AppModule {}
