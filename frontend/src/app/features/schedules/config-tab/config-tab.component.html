@@ -38,15 +38,15 @@
     <ng-container matColumnDef="group">
       <mat-header-cell *matHeaderCellDef>Grupo</mat-header-cell>
       <mat-cell *matCellDef="let rule">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic"
-          class="grp-select"
-          [ngClass]="groupClass(rule.scheduleGroup)">
-          <mat-select [value]="rule.scheduleGroup" (selectionChange)="onGroupChange(rule, $event.value)">
-            <mat-option [value]="null">Sin grupo</mat-option>
-            <mat-option value="BIMONTHLY_EVEN">A · Par</mat-option>
-            <mat-option value="BIMONTHLY_ODD">B · Impar</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <mat-button-toggle-group
+          [value]="rule.scheduleGroup"
+          (change)="onGroupChange(rule, $event.value)"
+          class="grp-inline"
+          [ngClass]="groupToggleClass(rule.scheduleGroup)">
+          <mat-button-toggle value="BIMONTHLY_EVEN">A · Par</mat-button-toggle>
+          <mat-button-toggle value="BIMONTHLY_ODD">B · Impar</mat-button-toggle>
+          <mat-button-toggle [value]="null">—</mat-button-toggle>
+        </mat-button-toggle-group>
       </mat-cell>
     </ng-container>
 

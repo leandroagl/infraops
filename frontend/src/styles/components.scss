@@ -394,3 +394,10 @@
     font-family: var(--font-mono);
   }
 }
+
+// ── Snackbar semántico ────────────────────────────────────────
+.snack--ok {
+  --mdc-snackbar-container-color: var(--ok-bg);
+  --mdc-snackbar-supporting-text-color: var(--ok);
+  border: 1px solid var(--ok-bd);
+}

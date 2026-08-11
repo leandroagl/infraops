@@ -50,7 +50,7 @@ export class ConfigTabComponent implements OnInit, OnDestroy {
       next: updated => {
         const idx = this.rules.findIndex(r => r.clientId === updated.clientId);
         if (idx !== -1) this.rules[idx] = updated;
-        this.snack.open('Guardado', undefined, { duration: 1500 });
+        this.snack.open('✓ Guardado', undefined, { duration: 1500, panelClass: ['snack--ok'] });
       },
       error: () => this.snack.open('Error al guardar', 'OK', { duration: 3000 }),
     });
@@ -113,9 +113,9 @@ export class ConfigTabComponent implements OnInit, OnDestroy {
     this.saveSubject.next({ clientId: rule.clientId, scheduleGroup: rule.scheduleGroup, technicianId });
   }
 
-  groupClass(group: ScheduleGroup): string {
-    if (group === 'BIMONTHLY_EVEN') return 'mf-sel--ok';
-    if (group === 'BIMONTHLY_ODD')  return 'mf-sel--warn';
+  groupToggleClass(group: ScheduleGroup): string {
+    if (group === 'BIMONTHLY_EVEN') return 'grp--ok';
+    if (group === 'BIMONTHLY_ODD')  return 'grp--warn';
     return '';
   }
 
