@@ -130,14 +130,18 @@ export class SchedulesService {
     });
 
     const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDay  = new Date(year, month, 0).toISOString().slice(0, 10);
+    const lastDayNum = new Date(year, month, 0).getDate();
+    const lastDay    = `${year}-${String(month).padStart(2, '0')}-${String(lastDayNum).padStart(2, '0')}`;
 
     let tasksCreated = 0;
     let tasksSkipped = 0;
     const errors: GenerationResultDto['errors'] = [];
 
     for (const rule of rules) {
-      if (!rule.technicianId) continue;
+      if (!rule.technicianId) {
+        tasksSkipped += V1_TASK_TYPES.length;
+        continue;
+      }
 
       for (const type of V1_TASK_TYPES) {
         const exists = await this.taskRepo.findOne({
@@ -158,6 +162,7 @@ export class SchedulesService {
             scheduledDate: firstDay,
           });
           tasksCreated++;
+          await new Promise(r => setTimeout(r, THROTTLE_MS));
         } catch (err) {
           if (err instanceof BadRequestException) {
             // InfraDoc: cliente no tiene infra para este tipo → skip silencioso
@@ -167,8 +172,6 @@ export class SchedulesService {
             errors.push({ clientId: rule.clientId, taskType: type, error: (err as Error).message });
           }
         }
-
-        await new Promise(r => setTimeout(r, THROTTLE_MS));
       }
     }
 

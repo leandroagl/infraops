@@ -168,7 +168,7 @@ describe('SchedulesService', () => {
       jest.useRealTimers();
     });
 
-    it('es idempotente: no duplica tarea existente', async () => {
+    it('es idempotente: no duplica tarea existente y cuenta todas como omitidas', async () => {
       const rules: Partial<ClientSchedule>[] = [
         {
           clientId: 'c-1',
@@ -180,12 +180,32 @@ describe('SchedulesService', () => {
         },
       ];
       scheduleRepo.find.mockResolvedValue(rules);
-      // Tarea ya existe → skip
+      // Todas las tareas ya existen → skip sin throttle
       taskRepo.findOne.mockResolvedValue({ id: 'existing-task' });
 
       const result = await service.generateMonth(2026, 8);
       expect(tasksService.create).not.toHaveBeenCalled();
-      expect(result.tasksSkipped).toBeGreaterThan(0);
+      expect(result.tasksSkipped).toBe(5); // V1_TASK_TYPES.length
+      expect(result.tasksCreated).toBe(0);
+    });
+
+    it('cuenta todas las tareas como omitidas si el cliente no tiene técnico asignado', async () => {
+      const rules: Partial<ClientSchedule>[] = [
+        {
+          clientId: 'c-2',
+          scheduleGroup: ScheduleGroup.BIMONTHLY_EVEN,
+          technicianId: null,
+          isActive: true,
+          client: { name: 'Sin Técnico' } as Client,
+          technician: null,
+        },
+      ];
+      scheduleRepo.find.mockResolvedValue(rules);
+
+      const result = await service.generateMonth(2026, 8);
+      expect(tasksService.create).not.toHaveBeenCalled();
+      expect(result.tasksSkipped).toBe(5); // V1_TASK_TYPES.length
+      expect(result.tasksCreated).toBe(0);
     });
   });
 });
