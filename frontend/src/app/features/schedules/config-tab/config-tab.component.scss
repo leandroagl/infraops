@@ -1,0 +1,67 @@
+.cfg-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-field {
+  max-width: 200px;
+}
+
+.rotation-area {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rot-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--purple);
+  background: rgba(167, 139, 250, 0.1);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  border-radius: 5px;
+  padding: 4px 10px;
+}
+
+.rot-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--purple);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.months-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--tx-lo);
+}
+
+.grp-inline {
+  font-size: 11px;
+}
+
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
+.cfg-table {
+  width: 100%;
+}
+
+.tech-field {
+  width: 180px;
+}

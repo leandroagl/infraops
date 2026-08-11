@@ -1,1 +1,66 @@
-<p>ConfigTab</p>
+<div class="cfg-toolbar">
+  <mat-button-toggle-group [(value)]="filterGroup" class="grp-toggle">
+    <mat-button-toggle value="ALL">Todos</mat-button-toggle>
+    <mat-button-toggle value="BIMONTHLY_EVEN">Grupo A · Par</mat-button-toggle>
+    <mat-button-toggle value="BIMONTHLY_ODD">Grupo B · Impar</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
+    <mat-label>Buscar cliente</mat-label>
+    <input matInput [(ngModel)]="searchTerm" />
+  </mat-form-field>
+
+  <div class="rotation-area">
+    <span *ngIf="rotationConfig?.isActive" class="rot-badge">
+      <span class="rot-dot"></span> Rotación activa
+    </span>
+    <button mat-stroked-button (click)="openRotationModal()">↺ Configurar rotación</button>
+  </div>
+</div>
+
+<div *ngIf="loading" class="loading-wrap">
+  <mat-spinner diameter="32"></mat-spinner>
+</div>
+
+<table mat-table [dataSource]="filteredRules" *ngIf="!loading" class="cfg-table">
+  <ng-container matColumnDef="client">
+    <th mat-header-cell *matHeaderCellDef>Cliente</th>
+    <td mat-cell *matCellDef="let rule">{{ rule.client.name }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="group">
+    <th mat-header-cell *matHeaderCellDef>Grupo</th>
+    <td mat-cell *matCellDef="let rule">
+      <mat-button-toggle-group
+        [value]="rule.scheduleGroup"
+        (change)="onGroupChange(rule, $event.value)"
+        class="grp-inline">
+        <mat-button-toggle value="BIMONTHLY_EVEN">A · Par</mat-button-toggle>
+        <mat-button-toggle value="BIMONTHLY_ODD">B · Impar</mat-button-toggle>
+        <mat-button-toggle [value]="null">—</mat-button-toggle>
+      </mat-button-toggle-group>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="months">
+    <th mat-header-cell *matHeaderCellDef>Meses activos</th>
+    <td mat-cell *matCellDef="let rule" class="months-hint">{{ monthsLabel(rule.scheduleGroup) }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="technician">
+    <th mat-header-cell *matHeaderCellDef>Técnico asignado</th>
+    <td mat-cell *matCellDef="let rule">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tech-field">
+        <mat-select
+          [value]="rule.technicianId"
+          (selectionChange)="onTechnicianChange(rule, $event.value)">
+          <mat-option [value]="null">— Sin asignar —</mat-option>
+          <mat-option *ngFor="let tech of technicians" [value]="tech.id">{{ tech.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+</table>
