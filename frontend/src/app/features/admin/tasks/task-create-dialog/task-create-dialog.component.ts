@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
@@ -131,7 +132,10 @@ export class TaskCreateDialogComponent implements OnInit, OnDestroy {
 
     this.tasksService.create({ clientId, technicianId, type, scheduledDate: dateStr }).subscribe({
       next: task => this.dialogRef.close(task),
-      error: () => { this.error = 'No se pudo crear la tarea.'; this.saving = false; },
+      error: (err: HttpErrorResponse) => {
+        this.error = err?.error?.message ?? 'No se pudo crear la tarea.';
+        this.saving = false;
+      },
     });
   }
 

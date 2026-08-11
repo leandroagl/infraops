@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -94,6 +95,7 @@ const TICKET_META: Record<TaskType, { name: string; description: string }> = {
 
 @Injectable()
 export class OdooService {
+  private readonly logger = new Logger(OdooService.name);
   private doneStageId: number | null = null;
   private inProgressStageId: number | null = null;
   private qnapTagId: number | null = null;
@@ -132,7 +134,9 @@ export class OdooService {
     ]);
 
     const clientByCuit = new Map(
-      localClients.filter((c) => c.taxIdNumber).map((c) => [c.taxIdNumber!, c]),
+      localClients
+        .filter((c) => c.taxIdNumber)
+        .map((c) => [c.taxIdNumber!.replace(/-/g, ''), c]),
     );
 
     let matched = 0;
@@ -233,12 +237,13 @@ export class OdooService {
     if (client.odooPartnerId !== null) return client.odooPartnerId;
     if (!client.taxIdNumber) return null;
 
+    const normalizedVat = client.taxIdNumber.replace(/-/g, '');
     const partners = await this.systemRpc.callKw<OdooPartner[]>(
       'res.partner',
       'search_read',
       [
         [
-          ['vat', '=', client.taxIdNumber],
+          ['vat', '=', normalizedVat],
           ['is_company', '=', true],
         ],
       ],
