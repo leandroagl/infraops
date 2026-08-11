@@ -22,7 +22,7 @@ export class GenerationTabComponent implements OnInit {
   get monthName(): string { return MONTH_NAMES[this.month]; }
   get isEvenGroup(): boolean { return this.preview?.group === 'BIMONTHLY_EVEN'; }
   get canGenerate(): boolean {
-    return !!this.preview && this.preview.clientsWithoutTechnician === 0 && !this.generating;
+    return !!this.preview && this.preview.clientsWithoutTechnician === 0 && this.preview.clients.length > 0 && !this.generating;
   }
 
   constructor(

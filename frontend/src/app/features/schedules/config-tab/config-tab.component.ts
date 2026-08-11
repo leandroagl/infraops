@@ -3,6 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject } from 'rxjs';
 import { debounceTime, switchMap, takeUntil } from 'rxjs/operators';
+import { forkJoin } from 'rxjs';
 import {
   ClientSchedule, RotationConfig, ScheduleGroup, SchedulesService,
 } from '../schedules.service';
@@ -37,6 +38,7 @@ export class ConfigTabComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.load();
+    this.schedulesService.getRotationConfig().subscribe(cfg => { this.rotationConfig = cfg; });
     this.saveSubject.pipe(
       debounceTime(300),
       switchMap(change => this.schedulesService.upsert(change.clientId, {
@@ -61,13 +63,28 @@ export class ConfigTabComponent implements OnInit, OnDestroy {
 
   private load(): void {
     this.loading = true;
-    this.schedulesService.findAll().subscribe({
-      next: rules => { this.rules = rules; this.loading = false; },
+    forkJoin({
+      schedules: this.schedulesService.findAll(),
+      clients: this.schedulesService.getClients(),
+      technicians: this.schedulesService.getTechnicians(),
+    }).subscribe({
+      next: ({ schedules, clients, technicians }) => {
+        const scheduleMap = new Map(schedules.map(s => [s.clientId, s]));
+        this.rules = clients
+          .filter(c => c.isActive)
+          .map(c => scheduleMap.get(c.id) ?? {
+            id: '',
+            clientId: c.id,
+            client: { id: c.id, name: c.name },
+            scheduleGroup: null,
+            technicianId: null,
+            technician: null,
+            isActive: true,
+          } as ClientSchedule);
+        this.technicians = technicians.map(t => ({ id: t.id, name: t.user?.name ?? t.id }));
+        this.loading = false;
+      },
       error: () => { this.loading = false; },
-    });
-    this.schedulesService.getRotationConfig().subscribe(cfg => { this.rotationConfig = cfg; });
-    this.schedulesService.getTechnicians().subscribe(techs => {
-      this.technicians = techs.map(t => ({ id: t.id, name: t.user.name }));
     });
   }
 

@@ -93,4 +93,8 @@ export class SchedulesService {
   getTechnicians(): Observable<Array<{ id: string; user: { name: string } }>> {
     return this.http.get<Array<{ id: string; user: { name: string } }>>(`${environment.apiUrl}/technicians`);
   }
+
+  getClients(): Observable<Array<{ id: string; name: string; isActive: boolean }>> {
+    return this.http.get<Array<{ id: string; name: string; isActive: boolean }>>(`${environment.apiUrl}/clients`);
+  }
 }
