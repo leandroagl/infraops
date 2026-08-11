@@ -1,1 +1,65 @@
-<p>CalendarTab</p>
+<div class="cal-wrap">
+  <div class="year-nav">
+    <button mat-icon-button (click)="prevYear()"><mat-icon>chevron_left</mat-icon></button>
+    <span class="year-label">{{ year }}</span>
+    <button mat-icon-button (click)="nextYear()"><mat-icon>chevron_right</mat-icon></button>
+    <span class="legend">
+      <span class="leg-item leg-a">● Grupo A · Par</span>
+      <span class="leg-item leg-b">● Grupo B · Impar</span>
+    </span>
+  </div>
+
+  <div *ngIf="loading" class="load-center">
+    <mat-spinner diameter="32"></mat-spinner>
+  </div>
+
+  <div class="cal-grid" *ngIf="!loading">
+    <div *ngFor="let card of cards"
+         class="cal-card"
+         [class.group-a]="card.group === 'BIMONTHLY_EVEN'"
+         [class.group-b]="card.group === 'BIMONTHLY_ODD'"
+         [class.current]="card.isCurrentMonth">
+
+      <!-- Header siempre visible y clickeable -->
+      <div class="card-head" (click)="toggle(card)">
+        <div class="head-left">
+          <span class="month-name" [class.future-text]="card.isFuture && !card.isCurrentMonth">
+            {{ card.name }}<span *ngIf="card.isCurrentMonth" class="now-tag"> ← hoy</span>
+          </span>
+          <span class="grp-badge"
+                [class.badge-a]="card.group === 'BIMONTHLY_EVEN'"
+                [class.badge-b]="card.group === 'BIMONTHLY_ODD'">
+            {{ groupLabel(card.group) }}
+          </span>
+        </div>
+        <div class="head-right">
+          <span class="status-badge"
+                [class.s-future]="card.isFuture"
+                [class.s-current]="card.isCurrentMonth">
+            {{ card.isFuture ? 'Futuro' : card.isCurrentMonth ? 'Este mes' : 'Pasado' }}
+          </span>
+          <mat-icon class="chev" [class.open]="card.expanded">chevron_right</mat-icon>
+        </div>
+      </div>
+
+      <!-- Summary siempre visible -->
+      <div class="card-summary" [class.has-border]="card.expanded">
+        <span class="client-count">
+          <b>{{ card.preview?.clients?.length ?? 0 }}</b>
+          {{ card.isFuture ? 'estimados' : 'clientes' }}
+        </span>
+      </div>
+
+      <!-- Body desplegable -->
+      <div class="card-body" *ngIf="card.expanded">
+        <div *ngIf="!card.preview?.clients?.length" class="no-clients">Sin clientes configurados</div>
+        <div *ngFor="let c of card.preview?.clients" class="client-row">
+          <span class="c-name">{{ c.clientName }}</span>
+          <span class="c-tech" [class.no-tech]="!c.technicianName">
+            {{ c.technicianName ?? '⚠ Sin técnico' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
