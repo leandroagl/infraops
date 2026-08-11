@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './core/guards/auth.guard';
 import { AdminGuard } from './core/guards/admin.guard';
+import { AdminOrTlGuard } from './core/guards/admin-or-tl.guard';
 import { ShellComponent } from './core/shell/shell.component';
 
 const routes: Routes = [
@@ -40,6 +41,12 @@ const routes: Routes = [
         canActivate: [AdminGuard],
         loadChildren: () =>
           import('./features/admin/admin.module').then(m => m.AdminModule),
+      },
+      {
+        path: 'schedules',
+        canActivate: [AdminOrTlGuard],
+        loadChildren: () =>
+          import('./features/schedules/schedules.module').then(m => m.SchedulesModule),
       },
       {
         path: 'profile',
