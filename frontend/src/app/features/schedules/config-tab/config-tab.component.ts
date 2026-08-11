@@ -113,6 +113,12 @@ export class ConfigTabComponent implements OnInit, OnDestroy {
     this.saveSubject.next({ clientId: rule.clientId, scheduleGroup: rule.scheduleGroup, technicianId });
   }
 
+  groupClass(group: ScheduleGroup): string {
+    if (group === 'BIMONTHLY_EVEN') return 'mf-sel--ok';
+    if (group === 'BIMONTHLY_ODD')  return 'mf-sel--warn';
+    return '';
+  }
+
   openRotationModal(): void {
     const ref = this.dialog.open(RotationModalComponent, {
       width: '540px',

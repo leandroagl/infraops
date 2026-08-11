@@ -1,22 +1,51 @@
-.cfg-toolbar {
+:host { display: block; }
+
+.page {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.page-hdr {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 24px;
-  border-bottom: 1px solid var(--border);
+  justify-content: space-between;
 }
 
-.search-field {
-  max-width: 200px;
+.page-hdr__left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
 }
 
-.rotation-area {
-  margin-left: auto;
+.page-hdr__right {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
+.page-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tx-hi);
+}
+
+.page-count {
+  font-size: 11px;
+  color: var(--tx-lo);
+  font-family: var(--font-mono);
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-field { max-width: 220px; }
+
+// Rotation badge
 .rot-badge {
   display: flex;
   align-items: center;
@@ -39,29 +68,48 @@
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50%       { opacity: 0.4; }
 }
 
-.months-hint {
+// Table — mismo estándar que exp-table en notifications
+.cfg-table {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border-lo);
+  border-radius: var(--radius);
+}
+
+// Anchos de columna fijos → evita el cambio de layout al seleccionar grupo
+.mat-column-client     { flex: 1; min-width: 140px; }
+.mat-column-group      { flex: 0 0 156px; }
+.mat-column-months     { flex: 0 0 230px; }
+.mat-column-technician { flex: 0 0 200px; }
+
+.cell--months {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--tx-lo);
 }
 
-.grp-inline {
-  font-size: 11px;
+// Selects dentro de celdas — ancho fijo interno para que no cause reflow
+.grp-select  { width: 136px; }
+.tech-select { width: 180px; }
+
+// Coloring semántico del grupo — criterio del design system
+// A · Par  → verde  (ok)
+// B · Impar → ámbar (warn)
+mat-form-field.mf-sel--ok {
+  --mdc-outlined-text-field-container-color: var(--ok-bg);
+  --mat-select-trigger-text-color: var(--ok);
+  --mdc-outlined-text-field-outline-color: var(--ok-bd);
+  --mdc-outlined-text-field-hover-outline-color: var(--ok);
+  --mdc-outlined-text-field-focus-outline-color: var(--ok);
 }
 
-.loading-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 40px;
-}
-
-.cfg-table {
-  width: 100%;
-}
-
-.tech-field {
-  width: 180px;
+mat-form-field.mf-sel--warn {
+  --mdc-outlined-text-field-container-color: var(--warn-bg);
+  --mat-select-trigger-text-color: var(--warn);
+  --mdc-outlined-text-field-outline-color: var(--warn-bd);
+  --mdc-outlined-text-field-hover-outline-color: var(--warn);
+  --mdc-outlined-text-field-focus-outline-color: var(--warn);
 }
