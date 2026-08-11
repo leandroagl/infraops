@@ -5,6 +5,9 @@ import { RotationConfig, RotationFrequency } from './rotation-config.entity';
 import { ScheduleGroup } from './schedule-group.enum';
 import { SchedulesService } from './schedules.service';
 import { Technician } from '../technicians/technician.entity';
+import { Client } from '../clients/client.entity';
+import { Task } from '../tasks/task.entity';
+import { TasksService } from '../tasks/tasks.service';
 
 describe('SchedulesService', () => {
   let service: SchedulesService;
@@ -20,19 +23,24 @@ describe('SchedulesService', () => {
     save: jest.Mock;
   };
   let techRepo: { find: jest.Mock };
+  let tasksService: { create: jest.Mock };
+  let taskRepo: { findOne: jest.Mock };
 
   beforeEach(async () => {
     scheduleRepo = { find: jest.fn(), findOne: jest.fn(), create: jest.fn(), save: jest.fn() };
     rotationRepo = { findOne: jest.fn(), create: jest.fn(), save: jest.fn() };
     techRepo = { find: jest.fn() };
+    tasksService = { create: jest.fn() };
+    taskRepo = { findOne: jest.fn() };
 
     const module = await Test.createTestingModule({
       providers: [
         SchedulesService,
         { provide: getRepositoryToken(ClientSchedule), useValue: scheduleRepo },
         { provide: getRepositoryToken(RotationConfig),  useValue: rotationRepo },
-        // TasksService y TechnicianRepository inyectados después en Task 3/4
+        { provide: getRepositoryToken(Task), useValue: taskRepo },
         { provide: getRepositoryToken(Technician), useValue: techRepo },
+        { provide: TasksService, useValue: tasksService },
       ],
     }).compile();
 
@@ -95,6 +103,89 @@ describe('SchedulesService', () => {
       rotationRepo.save.mockResolvedValue(def);
       await service.getRotationConfig();
       expect(rotationRepo.create).toHaveBeenCalled();
+    });
+  });
+
+  describe('getMonthlyPreview', () => {
+    it('devuelve clientes del grupo par para mes par', async () => {
+      const rules: Partial<ClientSchedule>[] = [
+        {
+          clientId: 'c-1',
+          scheduleGroup: ScheduleGroup.BIMONTHLY_EVEN,
+          technicianId: 't-1',
+          client: { name: 'Cliente A' } as Client,
+          technician: { user: { name: 'Enzo' } } as Technician,
+          isActive: true,
+        },
+      ];
+      scheduleRepo.find.mockResolvedValue(rules);
+
+      const result = await service.getMonthlyPreview(2026, 8); // agosto = par
+      expect(result.group).toBe(ScheduleGroup.BIMONTHLY_EVEN);
+      expect(result.clients).toHaveLength(1);
+      expect(result.clientsWithoutTechnician).toBe(0);
+    });
+
+    it('filtra clientes del grupo impar en mes par', async () => {
+      const rules: Partial<ClientSchedule>[] = [
+        {
+          clientId: 'c-2',
+          scheduleGroup: ScheduleGroup.BIMONTHLY_ODD, // no aplica en mes par
+          isActive: true,
+          client: { name: 'B' } as Client,
+          technician: null,
+        },
+      ];
+      scheduleRepo.find.mockResolvedValue(rules);
+      const result = await service.getMonthlyPreview(2026, 8);
+      expect(result.clients).toHaveLength(0);
+    });
+  });
+
+  describe('generateMonth', () => {
+    it('crea tareas y respeta throttle', async () => {
+      jest.useFakeTimers();
+      const rules: Partial<ClientSchedule>[] = [
+        {
+          clientId: 'c-1',
+          scheduleGroup: ScheduleGroup.BIMONTHLY_EVEN,
+          technicianId: 't-1',
+          isActive: true,
+          client: { name: 'A' } as Client,
+          technician: {} as Technician,
+        },
+      ];
+      scheduleRepo.find.mockResolvedValue(rules);
+      taskRepo.findOne.mockResolvedValue(null); // no existe tarea previa
+      tasksService.create.mockResolvedValue({ id: 'task-1' });
+
+      const promise = service.generateMonth(2026, 8);
+      jest.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result.tasksCreated).toBeGreaterThanOrEqual(0);
+      expect(result.errors).toBeDefined();
+      jest.useRealTimers();
+    });
+
+    it('es idempotente: no duplica tarea existente', async () => {
+      const rules: Partial<ClientSchedule>[] = [
+        {
+          clientId: 'c-1',
+          scheduleGroup: ScheduleGroup.BIMONTHLY_EVEN,
+          technicianId: 't-1',
+          isActive: true,
+          client: { name: 'A' } as Client,
+          technician: {} as Technician,
+        },
+      ];
+      scheduleRepo.find.mockResolvedValue(rules);
+      // Tarea ya existe → skip
+      taskRepo.findOne.mockResolvedValue({ id: 'existing-task' });
+
+      const result = await service.generateMonth(2026, 8);
+      expect(tasksService.create).not.toHaveBeenCalled();
+      expect(result.tasksSkipped).toBeGreaterThan(0);
     });
   });
 });
