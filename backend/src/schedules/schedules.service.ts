@@ -9,6 +9,7 @@ import { SaveRotationConfigDto } from './dto/save-rotation-config.dto';
 import { TasksService } from '../tasks/tasks.service';
 import { TaskType } from '../tasks/task-type.enum';
 import { Task } from '../tasks/task.entity';
+import { Technician } from '../technicians/technician.entity';
 
 export interface MonthlyPreviewClientDto {
   clientId: string;
@@ -29,6 +30,15 @@ export interface GenerationResultDto {
   tasksCreated: number;
   tasksSkipped: number;
   errors: Array<{ clientId: string; taskType: string; error: string }>;
+}
+
+export interface RotationPreviewDto {
+  technicians: Array<{
+    technicianId: string;
+    name: string;
+    clientCount: number;
+    clients: string[];
+  }>;
 }
 
 const V1_TASK_TYPES: TaskType[] = [
@@ -52,6 +62,8 @@ export class SchedulesService {
     private readonly rotationRepo: Repository<RotationConfig>,
     @InjectRepository(Task)
     private readonly taskRepo: Repository<Task>,
+    @InjectRepository(Technician)
+    private readonly techRepo: Repository<Technician>,
     private readonly tasksService: TasksService,
   ) {}
 
@@ -93,8 +105,68 @@ export class SchedulesService {
     return this.rotationRepo.save(cfg);
   }
 
-  previewRotation(): Promise<ClientSchedule[]> {
-    return Promise.resolve([]);
+  async previewRotation(): Promise<RotationPreviewDto> {
+    const [rules, technicians] = await Promise.all([
+      this.scheduleRepo.find({
+        where: { isActive: true },
+        relations: ['client'],
+        order: { clientId: 'ASC' },
+      }),
+      this.techRepo.find({ relations: ['user'] }),
+    ]);
+
+    const distributed = this.distributeRoundRobin(rules, technicians);
+
+    return {
+      technicians: technicians.map((t) => {
+        const assigned = distributed.filter((d) => d.technicianId === t.id);
+        return {
+          technicianId: t.id,
+          name: t.user?.name ?? t.id,
+          clientCount: assigned.length,
+          clients: assigned.map((d) => (d.client as ClientSchedule['client'])?.name ?? d.clientId),
+        };
+      }),
+    };
+  }
+
+  private distributeRoundRobin(
+    rules: ClientSchedule[],
+    technicians: Technician[],
+  ): Array<{ clientId: string; technicianId: string; client: ClientSchedule['client'] }> {
+    return rules.map((rule, idx) => ({
+      clientId: rule.clientId,
+      technicianId: technicians[idx % technicians.length].id,
+      client: rule.client,
+    }));
+  }
+
+  private async applyRotationIfNeeded(): Promise<void> {
+    const cfg = await this.getRotationConfig();
+    if (!cfg.isActive) return;
+
+    if (cfg.frequency === RotationFrequency.EVERY_TWO_GENERATIONS) {
+      cfg.generationsSinceLastRotation += 1;
+      if (cfg.generationsSinceLastRotation < 2) {
+        await this.rotationRepo.save(cfg);
+        return;
+      }
+      cfg.generationsSinceLastRotation = 0;
+    }
+
+    const [rules, technicians] = await Promise.all([
+      this.scheduleRepo.find({ where: { isActive: true }, order: { clientId: 'ASC' } }),
+      this.techRepo.find(),
+    ]);
+
+    const distributed = this.distributeRoundRobin(rules, technicians);
+    await Promise.all(
+      distributed.map((d) =>
+        this.scheduleRepo.update({ clientId: d.clientId }, { technicianId: d.technicianId }),
+      ),
+    );
+
+    await this.rotationRepo.save(cfg);
   }
 
   async getMonthlyPreview(year: number, month: number): Promise<MonthlyPreviewDto> {
@@ -123,6 +195,7 @@ export class SchedulesService {
   }
 
   async generateMonth(year: number, month: number): Promise<GenerationResultDto> {
+    await this.applyRotationIfNeeded();
     const group = MONTH_TO_GROUP[month];
     const rules = await this.scheduleRepo.find({
       where: { isActive: true, scheduleGroup: group },
