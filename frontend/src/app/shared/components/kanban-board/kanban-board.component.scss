@@ -50,3 +50,17 @@
   text-align: center; color: var(--tx-lo);
   font-size: 11px; padding: 20px 0;
 }
+
+.kanban--scrollable {
+  align-items: stretch;
+
+  .kanban__col {
+    min-height: 0;
+  }
+
+  .kanban__col-body {
+    overflow-y: auto;
+    max-height: calc(100vh - 300px);
+    min-height: 80px;
+  }
+}

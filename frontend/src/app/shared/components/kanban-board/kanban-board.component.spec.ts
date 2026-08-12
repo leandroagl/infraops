@@ -144,4 +144,19 @@ describe('KanbanBoardComponent', () => {
       expect(text).toContain('Completadas');
     });
   });
+
+  describe('scrollable input', () => {
+    it('agrega clase kanban--scrollable cuando scrollable es true', () => {
+      component.scrollable = true;
+      fixture.detectChanges();
+      const kanban: HTMLElement = fixture.nativeElement.querySelector('.kanban');
+      expect(kanban.classList.contains('kanban--scrollable')).toBe(true);
+    });
+
+    it('NO agrega clase kanban--scrollable cuando scrollable es false (default)', () => {
+      fixture.detectChanges();
+      const kanban: HTMLElement = fixture.nativeElement.querySelector('.kanban');
+      expect(kanban.classList.contains('kanban--scrollable')).toBe(false);
+    });
+  });
 });

@@ -11,6 +11,7 @@ export class KanbanBoardComponent {
   @Input() tasks: Task[] = [];
   @Input() showTechnicianAvatar = false;
   @Input() selectedTaskId: string | null = null;
+  @Input() scrollable = false;
   @Output() taskSelected = new EventEmitter<Task>();
 
   private sortByDate(tasks: Task[]): Task[] {
