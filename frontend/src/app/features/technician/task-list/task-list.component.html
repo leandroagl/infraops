@@ -29,6 +29,35 @@
     <button mat-button (click)="load()">Reintentar</button>
   </div>
 
+  <!-- ── Filtros ───────────────────────────────────────────── -->
+  <div class="filter-bar" *ngIf="!loading">
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Cliente</mat-label>
+      <input matInput
+             [formControl]="clientSearchCtrl"
+             [matAutocomplete]="autoCliente"
+             placeholder="Todos los clientes" />
+      <mat-autocomplete #autoCliente="matAutocomplete"
+                        (optionSelected)="onClientSelected($event)">
+        <mat-option *ngFor="let c of clientOptions" [value]="c.id">{{ c.name }}</mat-option>
+      </mat-autocomplete>
+      <button *ngIf="selectedClientId" matSuffix mat-icon-button
+              aria-label="Limpiar cliente" (click)="clearClientFilter()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Tipo de tarea</mat-label>
+      <mat-select [formControl]="typeCtrl">
+        <mat-option [value]="null">Todos los tipos</mat-option>
+        <mat-option *ngFor="let t of taskTypes" [value]="t.value">{{ t.label }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+  </div>
+
   <!-- ── Loading ───────────────────────────────────────────── -->
   <ng-container *ngIf="loading">
     <div class="kanban kanban--loading">
@@ -40,7 +69,8 @@
 
   <app-kanban-board
     *ngIf="!loading"
-    [tasks]="tasks"
+    [tasks]="filteredTasks"
+    [scrollable]="true"
     [selectedTaskId]="selectedTask?.id ?? null"
     (taskSelected)="selectTask($event)">
   </app-kanban-board>

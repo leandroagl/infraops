@@ -72,6 +72,17 @@ mat-card.greeting {
 .kv-warn { color: var(--warn); }
 .kv-ok   { color: var(--ok);   }
 
+// ── Barra de filtros ─────────────────────────────────────────
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+
+  mat-form-field {
+    width: 220px;
+  }
+}
+
 // ── Kanban board ─────────────────────────────────────────────
 .kanban {
   &--loading {

@@ -1,6 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
 import { TaskListComponent } from './task-list.component';
 import { TasksService } from '../../../core/services/tasks.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -42,6 +49,15 @@ describe('TaskListComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [TaskListComponent],
+      imports: [
+        NoopAnimationsModule,
+        ReactiveFormsModule,
+        MatAutocompleteModule,
+        MatFormFieldModule,
+        MatInputModule,
+        MatSelectModule,
+        MatIconModule,
+      ],
       providers: [
         { provide: TasksService, useValue: tasksServiceSpy },
         { provide: AuthService,  useValue: authServiceSpy  },
