@@ -196,6 +196,85 @@ describe('TaskListComponent', () => {
     });
   });
 
+  // ── filteredTasks ─────────────────────────────────────────────
+  describe('filteredTasks', () => {
+    beforeEach(() => {
+      component.tasks = [
+        makeTask({ id: 't1', clientId: 'c1', type: 'QNAP_MAINTENANCE',
+                   client: { id: 'c1', name: 'ACME SA' } }),
+        makeTask({ id: 't2', clientId: 'c2', type: 'VEEAM_BACKUP',
+                   client: { id: 'c2', name: 'Beta Corp' } }),
+        makeTask({ id: 't3', clientId: 'c1', type: 'VEEAM_BACKUP',
+                   client: { id: 'c1', name: 'ACME SA' } }),
+      ];
+    });
+
+    it('sin filtros retorna todas las tareas', () => {
+      expect(component.filteredTasks.length).toBe(3);
+    });
+
+    it('filtra por cliente cuando selectedClientId está seteado', () => {
+      component.selectedClientId = 'c1';
+      const ids = component.filteredTasks.map(t => t.id);
+      expect(ids).toContain('t1');
+      expect(ids).toContain('t3');
+      expect(ids).not.toContain('t2');
+    });
+
+    it('filtra por tipo cuando typeCtrl tiene valor', () => {
+      component.typeCtrl.setValue('VEEAM_BACKUP');
+      const ids = component.filteredTasks.map(t => t.id);
+      expect(ids).toContain('t2');
+      expect(ids).toContain('t3');
+      expect(ids).not.toContain('t1');
+    });
+
+    it('aplica ambos filtros simultáneamente (AND)', () => {
+      component.selectedClientId = 'c1';
+      component.typeCtrl.setValue('VEEAM_BACKUP');
+      const ids = component.filteredTasks.map(t => t.id);
+      expect(ids).toEqual(['t3']);
+    });
+
+    it('con ambos filtros en null retorna todas (equivalente a sin filtros)', () => {
+      component.selectedClientId = null;
+      component.typeCtrl.setValue(null);
+      expect(component.filteredTasks.length).toBe(3);
+    });
+  });
+
+  // ── clientOptions ─────────────────────────────────────────────
+  describe('clientOptions', () => {
+    beforeEach(() => {
+      component.tasks = [
+        makeTask({ id: 't1', clientId: 'c1', client: { id: 'c1', name: 'Zeta SA' } }),
+        makeTask({ id: 't2', clientId: 'c2', client: { id: 'c2', name: 'ACME Corp' } }),
+        makeTask({ id: 't3', clientId: 'c1', client: { id: 'c1', name: 'Zeta SA' } }),
+        makeTask({ id: 't4', clientId: 'c3' }), // sin client — debe excluirse
+      ];
+    });
+
+    it('retorna clientes únicos ordenados alfabéticamente', () => {
+      const names = component.clientOptions.map(c => c.name);
+      expect(names).toEqual(['ACME Corp', 'Zeta SA']);
+    });
+
+    it('excluye tasks sin client', () => {
+      expect(component.clientOptions.length).toBe(2);
+    });
+
+    it('filtra por texto de búsqueda (case-insensitive)', () => {
+      component.clientSearchCtrl.setValue('acme', { emitEvent: false });
+      const names = component.clientOptions.map(c => c.name);
+      expect(names).toEqual(['ACME Corp']);
+    });
+
+    it('retorna todos cuando la búsqueda está vacía', () => {
+      component.clientSearchCtrl.setValue('', { emitEvent: false });
+      expect(component.clientOptions.length).toBe(2);
+    });
+  });
+
   // ── Template ─────────────────────────────────────────────────
   describe('template', () => {
     it('renderiza KPI label "Vencidas"', () => {

@@ -1,8 +1,11 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Task, TaskStatus } from '../../../core/models/task.models';
+import { FormControl } from '@angular/forms';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { Task, TaskStatus, TaskType } from '../../../core/models/task.models';
 import { AuthService } from '../../../core/services/auth.service';
 import { TasksService } from '../../../core/services/tasks.service';
+import { typeLabel } from '../../../shared/utils/task-labels';
 import { daysFromToday } from '../../../shared/utils/urgency';
 
 @Component({
@@ -16,6 +19,24 @@ export class TaskListComponent implements OnInit {
   loading = false;
   error = '';
 
+  // ── Filtros ───────────────────────────────────────────────────
+  selectedClientId: string | null = null;
+  clientSearchCtrl = new FormControl<string>('', { nonNullable: true });
+  typeCtrl = new FormControl<TaskType | null>(null);
+
+  readonly taskTypes: { value: TaskType; label: string }[] = [
+    { value: 'SERVER_HOST_MAINTENANCE',    label: typeLabel('SERVER_HOST_MAINTENANCE')    },
+    { value: 'WINDOWS_DOMAIN_MAINTENANCE', label: typeLabel('WINDOWS_DOMAIN_MAINTENANCE') },
+    { value: 'QNAP_MAINTENANCE',           label: typeLabel('QNAP_MAINTENANCE')           },
+    { value: 'VEEAM_BACKUP',              label: typeLabel('VEEAM_BACKUP')               },
+    { value: 'ROUTER_MAINTENANCE',         label: typeLabel('ROUTER_MAINTENANCE')         },
+    { value: 'TERMINAL_MAINTENANCE',       label: typeLabel('TERMINAL_MAINTENANCE')       },
+    { value: 'SITE_VISIT',               label: typeLabel('SITE_VISIT')                  },
+    { value: 'AV_CONTROL',              label: typeLabel('AV_CONTROL')                   },
+    { value: 'UPS_CONTROL',             label: typeLabel('UPS_CONTROL')                  },
+    { value: 'ENDPOINT_INVENTORY',       label: typeLabel('ENDPOINT_INVENTORY')           },
+  ];
+
   private readonly destroyRef = inject(DestroyRef);
 
   constructor(
@@ -25,7 +46,7 @@ export class TaskListComponent implements OnInit {
 
   get currentUser() { return this.authService.getCurrentUser(); }
 
-  // ── KPI getters ───────────────────────────────────────────────────────────
+  // ── KPI getters (sobre tasks sin filtrar) ─────────────────────
 
   private get activeTasks(): Task[] {
     return this.tasks.filter(
@@ -54,9 +75,49 @@ export class TaskListComponent implements OnInit {
     return this.currentUser?.email?.split('@')[0] ?? '';
   }
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  // ── Filtros ───────────────────────────────────────────────────
 
-  ngOnInit(): void { this.load(); }
+  get filteredTasks(): Task[] {
+    return this.tasks.filter(t =>
+      (!this.selectedClientId || t.clientId === this.selectedClientId) &&
+      (!this.typeCtrl.value   || t.type     === this.typeCtrl.value),
+    );
+  }
+
+  get clientOptions(): { id: string; name: string }[] {
+    const search = this.clientSearchCtrl.value.toLowerCase();
+    const seen = new Set<string>();
+    const all = this.tasks
+      .filter(t => t.client)
+      .reduce<{ id: string; name: string }[]>((acc, t) => {
+        if (!seen.has(t.clientId)) {
+          seen.add(t.clientId);
+          acc.push({ id: t.clientId, name: t.client!.name });
+        }
+        return acc;
+      }, [])
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return search ? all.filter(c => c.name.toLowerCase().includes(search)) : all;
+  }
+
+  onClientSelected(event: MatAutocompleteSelectedEvent): void {
+    this.selectedClientId = event.option.value as string;
+    this.clientSearchCtrl.setValue(event.option.viewValue, { emitEvent: false });
+  }
+
+  clearClientFilter(): void {
+    this.selectedClientId = null;
+    this.clientSearchCtrl.setValue('');
+  }
+
+  // ── Lifecycle ─────────────────────────────────────────────────
+
+  ngOnInit(): void {
+    this.load();
+    this.clientSearchCtrl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => { this.selectedClientId = null; });
+  }
 
   load(): void {
     const user = this.currentUser;
