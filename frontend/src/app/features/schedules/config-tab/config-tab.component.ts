@@ -18,6 +18,7 @@ export class ConfigTabComponent implements OnInit, OnDestroy {
   rules: ClientSchedule[] = [];
   rotationConfig: RotationConfig | null = null;
   filterGroup: ScheduleGroup | 'ALL' = 'ALL';
+  filterTechnicianId: string | 'ALL' = 'ALL';
   searchTerm = '';
   displayedColumns = ['client', 'group', 'months', 'technician'];
   loading = false;
@@ -90,10 +91,11 @@ export class ConfigTabComponent implements OnInit, OnDestroy {
 
   get filteredRules(): ClientSchedule[] {
     return this.rules.filter(r => {
-      const matchGroup = this.filterGroup === 'ALL' || r.scheduleGroup === this.filterGroup;
-      const matchSearch = !this.searchTerm ||
+      const matchGroup      = this.filterGroup === 'ALL' || r.scheduleGroup === this.filterGroup;
+      const matchTechnician = this.filterTechnicianId === 'ALL' || r.technicianId === this.filterTechnicianId;
+      const matchSearch     = !this.searchTerm ||
         r.client.name.toLowerCase().includes(this.searchTerm.toLowerCase());
-      return matchGroup && matchSearch;
+      return matchGroup && matchTechnician && matchSearch;
     });
   }
 
@@ -116,7 +118,7 @@ export class ConfigTabComponent implements OnInit, OnDestroy {
   groupToggleClass(group: ScheduleGroup): string {
     if (group === 'BIMONTHLY_EVEN') return 'grp--ok';
     if (group === 'BIMONTHLY_ODD')  return 'grp--warn';
-    return '';
+    return 'grp--neutral';
   }
 
   openRotationModal(): void {

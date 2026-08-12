@@ -36,9 +36,9 @@ export class InfradocAssetsService {
     );
 
     if (response.data.success !== 'True') {
-      throw new ServiceUnavailableException(
-        `InfraDoc API error: ${response.data.message}`,
-      );
+      const msg: string = response.data.message ?? '';
+      if (msg.includes('No resource')) return [];
+      throw new ServiceUnavailableException(`InfraDoc API error: ${msg}`);
     }
 
     const data = response.data.data;

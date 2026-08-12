@@ -20,6 +20,14 @@
       <mat-button-toggle value="BIMONTHLY_ODD">B · Impar</mat-button-toggle>
     </mat-button-toggle-group>
 
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tech-filter">
+      <mat-label>Técnico</mat-label>
+      <mat-select [(value)]="filterTechnicianId">
+        <mat-option value="ALL">Todos</mat-option>
+        <mat-option *ngFor="let tech of technicians" [value]="tech.id">{{ tech.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
       <mat-label>Buscar cliente</mat-label>
       <input matInput [(ngModel)]="searchTerm" />
