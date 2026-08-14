@@ -259,6 +259,15 @@ describe('TaskListComponent', () => {
     });
   });
 
+  // ── onClientSearch ────────────────────────────────────────────
+  describe('onClientSearch()', () => {
+    it('limpia selectedClientId', () => {
+      component.selectedClientId = 'c1';
+      component.onClientSearch();
+      expect(component.selectedClientId).toBeNull();
+    });
+  });
+
   // ── clientOptions ─────────────────────────────────────────────
   describe('clientOptions', () => {
     beforeEach(() => {

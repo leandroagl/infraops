@@ -105,6 +105,10 @@ export class TaskListComponent implements OnInit {
     this.clientSearchCtrl.setValue(event.option.viewValue, { emitEvent: false });
   }
 
+  onClientSearch(): void {
+    this.selectedClientId = null;
+  }
+
   clearClientFilter(): void {
     this.selectedClientId = null;
     this.clientSearchCtrl.setValue('');
@@ -114,9 +118,6 @@ export class TaskListComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
-    this.clientSearchCtrl.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => { this.selectedClientId = null; });
   }
 
   load(): void {

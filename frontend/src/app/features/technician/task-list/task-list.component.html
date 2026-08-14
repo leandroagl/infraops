@@ -37,6 +37,7 @@
       <input matInput
              [formControl]="clientSearchCtrl"
              [matAutocomplete]="autoCliente"
+             (input)="onClientSearch()"
              placeholder="Todos los clientes" />
       <mat-autocomplete #autoCliente="matAutocomplete"
                         (optionSelected)="onClientSelected($event)">
