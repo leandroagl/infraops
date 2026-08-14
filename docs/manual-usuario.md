@@ -60,8 +60,16 @@ Al ingresar, el técnico ve su panel personal con:
 - **Esta semana:** tareas con vencimiento en los próximos 7 días
 - **Al día:** tareas con fecha más lejana
 
+**Filtros de tareas:**
+- **Cliente:** campo de búsqueda con autocompletado. Al seleccionar un cliente, el kanban muestra solo sus tareas. Borrar el texto limpia el filtro.
+- **Tipo de tarea:** select para filtrar por tipo (ESXi, Dominio, QNAP, Veeam, etc.).
+
+Ambos filtros se combinan. El botón **"Limpiar"** restablece los dos a la vez.
+
 **Kanban de tareas** organizado por estado:
 - `Pendiente` → `En curso` → `Completado / Escalado / No realizado`
+
+Cada columna es scrolleable de forma independiente cuando hay muchas tareas.
 
 Cada card muestra: cliente, tipo de tarea, fecha programada y urgencia visual (rojo = vencida, amarillo = esta semana, verde = al día).
 
@@ -190,6 +198,68 @@ Lista de todos los ítems con fecha de vencimiento próxima o ya vencida en toda
 **Filtros:** por tipo de alerta y por urgencia.
 
 Por defecto muestra los próximos 90 días. El botón "Ver todos" quita ese límite.
+
+### Programación de mantenimientos
+
+Accesible para roles **ADMIN** y **TL**. Permite configurar y generar las tareas de mantenimiento mensual de toda la cartera de clientes de forma centralizada.
+
+El módulo se organiza en tres pestañas:
+
+---
+
+#### Pestaña Configuración
+
+Tabla con todos los clientes activos. Para cada cliente se define:
+
+- **Grupo bimestral:** determina en qué meses se le genera tarea de mantenimiento.
+  - **Grupo A (Par):** Feb · Abr · Jun · Ago · Oct · Dic
+  - **Grupo B (Impar):** Ene · Mar · May · Jul · Sep · Nov
+- **Técnico asignado:** técnico por defecto para ese cliente en las generaciones automáticas.
+
+Los cambios se guardan automáticamente al seleccionar. Una confirmación verde (`✓ Guardado`) aparece brevemente al guardar cada línea.
+
+**Filtros disponibles:**
+- Por grupo (A / B / Todos)
+- Por técnico
+- Búsqueda por nombre de cliente
+
+**Rotación automática** (botón "Configurar rotación"):
+
+Abre un modal para activar la rotación automática de técnicos entre clientes. Cuando está activa, cada generación redistribuye los clientes en round-robin equilibrado entre los técnicos disponibles.
+
+El modal muestra una barra de distribución actual (cuántos clientes tiene asignado cada técnico) para verificar el balance antes de guardar.
+
+---
+
+#### Pestaña Generación
+
+Permite generar las tareas de mantenimiento para un mes concreto.
+
+**Flujo:**
+
+1. Seleccionar el mes y año con las flechas de navegación.
+2. El sistema carga el **preview**: qué clientes corresponden ese mes según su grupo, con el técnico asignado a cada uno.
+3. Revisar que no haya clientes sin técnico asignado (el botón de generar se deshabilita si los hay).
+4. Presionar **"Generar tareas"**.
+5. El sistema crea una tarea por cliente correspondiente y muestra cuántas fueron creadas y cuántas omitidas (porque ya existían).
+
+> Los clientes sin grupo asignado no aparecen en el preview y no reciben tarea.
+
+---
+
+#### Pestaña Historial / Calendario
+
+Vista anual navegable con una card por cada mes del año.
+
+Cada card muestra:
+- El grupo que corresponde ese mes (A · Par o B · Impar)
+- Si el mes ya fue generado o es futuro
+
+Al hacer clic en una card se expande para ver el listado de clientes y técnicos que correspondían a ese mes. Los meses futuros aparecen diferenciados visualmente.
+
+Las flechas de año permiten navegar al historial de años anteriores.
+
+---
 
 ### Sincronización InfraDoc
 
