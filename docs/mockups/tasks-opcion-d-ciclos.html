@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tareas · Opción D (Ciclos · Vista unificada) · InfraOps</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --base:#0f1117;--surface:#161b22;--card:#1e2530;--elevated:#252e3f;--hover:#2a3447;
+  --border:#2d3748;--border-lo:#1e2737;--border-md:#3a4a62;
+  --tx-hi:#f0f4f8;--tx-md:#8b95a6;--tx-lo:#4a5568;
+  --crit:#f87171;--crit-bg:rgba(248,113,113,.10);--crit-bd:rgba(248,113,113,.25);
+  --warn:#fb923c;--warn-bg:rgba(251,146,60,.10);--warn-bd:rgba(251,146,60,.25);
+  --ok:#4ade80;--ok-bg:rgba(74,222,128,.10);--ok-bd:rgba(74,222,128,.25);
+  --neutral:#64748b;--neutral-bg:rgba(100,116,139,.10);--neutral-bd:rgba(100,116,139,.25);
+  --accent:#22d3ee;--accent-bg:rgba(34,211,238,.10);--accent-bd:rgba(34,211,238,.25);
+  --srv:#60a5fa;--srv-bg:rgba(96,165,250,.10);--srv-bd:rgba(96,165,250,.25);
+  --win:#818cf8;--win-bg:rgba(129,140,248,.12);--win-bd:rgba(129,140,248,.25);
+  --bkp:#a3e635;--bkp-bg:rgba(163,230,53,.12);--bkp-bd:rgba(163,230,53,.25);
+  --purple:#c084fc;--purple-bg:rgba(192,132,252,.10);--purple-bd:rgba(192,132,252,.25);
+  --router:#f59e0b;--router-bg:rgba(245,158,11,.10);--router-bd:rgba(245,158,11,.25);
+  --font-mono:'IBM Plex Mono',monospace;
+  --font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --radius:10px;--radius-sm:7px;--radius-xs:5px;
+  --shadow-card:0 1px 3px rgba(0,0,0,.4);
+  --transition:.12s ease;
+}
+body{font-family:var(--font-ui);background:var(--base);color:var(--tx-hi);font-size:13px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Topbar ─────────────────────────────────────────── */
+.topbar{height:50px;background:var(--surface);border-bottom:1px solid var(--border-lo);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.topbar__logo{font-size:13px;font-weight:700;font-family:var(--font-mono);color:var(--tx-hi);letter-spacing:-.5px}
+.topbar__sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.topbar__page{font-size:12px;color:var(--tx-lo)}
+.topbar__spacer{flex:1}
+
+/* ── Role switcher ──────────────────────────────────── */
+.role-switcher{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:var(--radius-sm);background:var(--card);border:1px solid var(--border);font-size:11px;color:var(--tx-md);cursor:pointer;position:relative;user-select:none}
+.role-switcher__dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.role-switcher__name{color:var(--tx-hi);font-weight:500}
+.role-switcher__role{color:var(--tx-lo)}
+.role-switcher svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;margin-left:2px}
+.role-dropdown{position:absolute;top:calc(100% + 6px);right:0;background:var(--elevated);border:1px solid var(--border-md);border-radius:var(--radius-sm);min-width:210px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:100;display:none}
+.role-dropdown.open{display:block}
+.role-dropdown__label{font-size:9px;color:var(--tx-lo);text-transform:uppercase;letter-spacing:.6px;font-family:var(--font-mono);padding:8px 12px 4px;border-bottom:1px solid var(--border-lo)}
+.role-option{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;transition:background var(--transition)}
+.role-option:hover{background:var(--hover)}
+.role-option__dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.role-option__name{font-size:12px;color:var(--tx-hi)}
+.role-option__badge{font-size:9px;padding:1px 6px;border-radius:10px;margin-left:auto;font-family:var(--font-mono)}
+.b-admin{background:var(--accent-bg);border:1px solid var(--accent-bd);color:var(--accent)}
+.b-tl{background:var(--win-bg);border:1px solid var(--win-bd);color:var(--win)}
+.b-tech{background:var(--srv-bg);border:1px solid var(--srv-bd);color:var(--srv)}
+.b-coord{background:var(--purple-bg);border:1px solid var(--purple-bd);color:var(--purple)}
+
+.btn-new{display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:var(--radius-sm);background:var(--accent-bg);border:1px solid var(--accent-bd);color:var(--accent);font-size:12px;cursor:pointer;font-weight:500}
+.btn-new svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round}
+.btn-new:hover{background:rgba(34,211,238,.18)}
+.btn-new.hidden{display:none}
+
+/* ── Shell ──────────────────────────────────────────── */
+.shell{display:flex;flex:1;overflow:hidden}
+.sidebar{width:52px;background:var(--surface);border-right:1px solid var(--border-lo);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:4px;flex-shrink:0}
+.nav-item{width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx-lo);border:1px solid transparent}
+.nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nav-item:hover{background:var(--hover);color:var(--tx-md)}
+.nav-item.active{background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── Controls bar (month-nav + filters) ─────────────── */
+.controls-bar{display:flex;align-items:center;gap:16px;padding:10px 24px;background:var(--surface);border-bottom:1px solid var(--border-lo);flex-shrink:0}
+
+/* Month nav — mismo patrón que schedules */
+.month-nav{display:flex;align-items:center;gap:4px}
+.month-nav-btn{width:28px;height:28px;border-radius:var(--radius-sm);background:transparent;border:1px solid var(--border-lo);color:var(--tx-md);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background var(--transition)}
+.month-nav-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round}
+.month-nav-btn:hover{background:var(--elevated);border-color:var(--border-md);color:var(--tx-hi)}
+.month-label{font-size:15px;font-weight:600;min-width:164px;text-align:center;color:var(--tx-hi);font-family:var(--font-ui)}
+
+.controls-sep{width:1px;height:22px;background:var(--border-lo)}
+
+/* Filter chips */
+.filter-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:var(--card);border:1px solid var(--border-lo);color:var(--tx-md);font-size:11px;cursor:pointer;transition:background var(--transition)}
+.filter-chip svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.filter-chip:hover{background:var(--elevated);color:var(--tx-hi)}
+.filter-chip.applied{background:var(--srv-bg);border-color:var(--srv-bd);color:var(--srv)}
+.filter-chip__clear{display:none;align-items:center;justify-content:center;width:12px;height:12px;border-radius:50%;background:rgba(96,165,250,.2);margin-left:2px}
+.filter-chip.applied .filter-chip__clear{display:inline-flex}
+.filter-chip__clear svg{width:8px;height:8px;stroke-width:3}
+.controls-spacer{flex:1}
+.filter-search{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--tx-hi);font-size:11px;padding:5px 12px;outline:none;width:180px}
+.filter-search::placeholder{color:var(--tx-lo)}
+.filter-search:focus{border-color:var(--accent-bd)}
+.cycle-count{font-size:11px;color:var(--tx-lo);font-family:var(--font-mono);white-space:nowrap}
+
+/* ── KPI strip ──────────────────────────────────────── */
+.kpi-strip{display:flex;align-items:center;gap:0;padding:0 24px;background:var(--card);border-bottom:1px solid var(--border-lo);flex-shrink:0;height:62px}
+.kpi-block{display:flex;flex-direction:column;justify-content:center;padding:0 20px;border-right:1px solid var(--border-lo)}
+.kpi-block:first-child{padding-left:0}
+.kpi-label{font-size:9px;color:var(--tx-lo);text-transform:uppercase;letter-spacing:.6px;font-family:var(--font-mono);margin-bottom:3px}
+.kpi-val{font-family:var(--font-mono);font-size:22px;font-weight:500;line-height:1}
+.kpi-val--assigned{color:var(--tx-hi)}
+.kpi-val--inprogress{color:var(--accent)}
+.kpi-val--pending{color:var(--warn)}
+.kpi-val--done{color:var(--ok)}
+.kpi-progress{flex:1;padding:0 24px;display:flex;flex-direction:column;justify-content:center;gap:5px}
+.kpi-progress-row{display:flex;justify-content:space-between;align-items:baseline}
+.kpi-progress-title{font-size:10px;color:var(--tx-lo);text-transform:uppercase;letter-spacing:.5px;font-family:var(--font-mono)}
+.kpi-progress-pct{font-size:13px;font-weight:600;font-family:var(--font-mono);color:var(--tx-hi)}
+.kpi-progress-bar{height:5px;border-radius:3px;background:var(--border);overflow:hidden}
+.kpi-progress-fill{height:100%;border-radius:3px;background:var(--ok);transition:width .4s}
+.kpi-cycle-badge{padding:3px 10px;border-radius:20px;font-size:10px;font-family:var(--font-mono);font-weight:600;letter-spacing:.3px;white-space:nowrap}
+.kpi-cycle-badge--open{background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn)}
+.kpi-cycle-badge--closed{background:var(--ok-bg);border:1px solid var(--ok-bd);color:var(--ok)}
+
+/* ── Closed banner ──────────────────────────────────── */
+.cycle-closed-banner{display:none;align-items:center;gap:10px;padding:7px 24px;background:var(--ok-bg);border-bottom:1px solid var(--ok-bd);font-size:11px;color:var(--ok);flex-shrink:0}
+.cycle-closed-banner.visible{display:flex}
+.cycle-closed-banner svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+
+/* ── Table ──────────────────────────────────────────── */
+.page{flex:1;overflow-y:auto;padding:0}
+.cycle-table{width:100%;border-collapse:collapse}
+.cycle-table thead tr{background:var(--card);border-bottom:1px solid var(--border-lo);position:sticky;top:0;z-index:10}
+.cycle-table thead th{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--tx-lo);font-family:var(--font-mono);padding:9px 14px;text-align:left;white-space:nowrap}
+
+.group-row td{padding:9px 14px 5px;background:var(--base);border-top:2px solid var(--border)}
+.group-row:first-child td{border-top:none}
+.group-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--tx-lo);font-family:var(--font-mono);display:flex;align-items:center;gap:8px}
+.group-label__client{color:var(--tx-md)}
+.group-label__count{font-size:9px;padding:1px 6px;border-radius:10px;background:var(--card);border:1px solid var(--border-lo);color:var(--tx-lo)}
+.group-label__mine{font-size:9px;padding:1px 6px;border-radius:10px;background:var(--srv-bg);border:1px solid var(--srv-bd);color:var(--srv)}
+.group-label__progress{display:flex;align-items:center;gap:6px;margin-left:auto}
+.group-progress-bar{width:64px;height:3px;border-radius:2px;background:var(--border);overflow:hidden}
+.group-progress-fill{height:100%;border-radius:2px;background:var(--ok)}
+.group-progress-text{font-size:9px;color:var(--tx-lo);font-family:var(--font-mono)}
+
+.task-row{border-bottom:1px solid var(--border-lo);cursor:pointer;transition:background var(--transition)}
+.task-row:hover{background:var(--hover)}
+.task-row.cancelled-row td{opacity:.5}
+.task-row.mine-row{border-left:2px solid var(--srv-bd)}
+.task-row td{padding:9px 14px;vertical-align:middle}
+.task-row td:first-child{padding-left:28px}
+.task-row.mine-row td:first-child{padding-left:26px}
+
+.col-type{display:flex;align-items:center;gap:6px}
+.col-tech{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--tx-md)}
+.col-tech.highlighted{color:var(--srv)}
+.col-ticket{font-family:var(--font-mono);font-size:11px;color:var(--accent);cursor:pointer}
+.col-ticket:hover{text-decoration:underline}
+.col-ticket.none{color:var(--tx-lo);font-style:italic;cursor:default}
+.col-ticket.none:hover{text-decoration:none}
+.col-notes{font-size:11px;color:var(--tx-lo);font-style:italic;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── Badges ─────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:600;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.4px;padding:2px 6px;border-radius:4px}
+.badge--srv{background:var(--srv-bg);border:1px solid var(--srv-bd);color:var(--srv)}
+.badge--win{background:var(--win-bg);border:1px solid var(--win-bd);color:var(--win)}
+.badge--bkp{background:var(--bkp-bg);border:1px solid var(--bkp-bd);color:var(--bkp)}
+.badge--router{background:var(--router-bg);border:1px solid var(--router-bd);color:var(--router)}
+.badge--qnap{background:var(--neutral-bg);border:1px solid var(--neutral-bd);color:var(--neutral)}
+.badge--visit{background:var(--purple-bg);border:1px solid var(--purple-bd);color:var(--purple)}
+.badge--av{background:var(--ok-bg);border:1px solid var(--ok-bd);color:var(--ok)}
+.badge--pending{background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn)}
+.badge--inprogress{background:var(--accent-bg);border:1px solid var(--accent-bd);color:var(--accent)}
+.badge--done{background:var(--ok-bg);border:1px solid var(--ok-bd);color:var(--ok)}
+.badge--escalated{background:var(--crit-bg);border:1px solid var(--crit-bd);color:var(--crit)}
+.badge--notdone{background:var(--neutral-bg);border:1px solid var(--neutral-bd);color:var(--neutral)}
+.badge--cancelled{background:var(--neutral-bg);border:1px solid var(--neutral-bd);color:var(--tx-lo)}
+
+/* ── Avatar ─────────────────────────────────────────── */
+.avatar{width:18px;height:18px;border-radius:50%;background:var(--elevated);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--tx-md);font-family:var(--font-mono);flex-shrink:0}
+.avatar.mine{background:var(--srv-bg);border-color:var(--srv-bd);color:var(--srv)}
+
+/* ── Empty state ────────────────────────────────────── */
+.empty-state{padding:60px 24px;text-align:center;color:var(--tx-lo);font-size:12px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.empty-state svg{width:32px;height:32px;stroke:currentColor;fill:none;stroke-width:1.2;stroke-linecap:round;opacity:.4}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <span class="topbar__logo">InfraOps</span>
+  <span class="topbar__sep"></span>
+  <span class="topbar__page">Tareas de mantenimiento</span>
+  <div class="topbar__spacer"></div>
+
+  <div class="role-switcher" onclick="toggleRoleDropdown()" id="role-switcher">
+    <div class="role-switcher__dot" id="role-dot"></div>
+    <span class="role-switcher__name" id="role-name"></span>
+    <span class="role-switcher__role" id="role-label"></span>
+    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    <div class="role-dropdown" id="role-dropdown">
+      <div class="role-dropdown__label">Cambiar usuario (demo)</div>
+      <div class="role-option" onclick="selectRole('valen');event.stopPropagation()">
+        <div class="role-option__dot" style="background:var(--srv)"></div>
+        <span class="role-option__name">Valen</span>
+        <span class="role-option__badge b-tech">TECHNICIAN</span>
+      </div>
+      <div class="role-option" onclick="selectRole('enzo');event.stopPropagation()">
+        <div class="role-option__dot" style="background:var(--srv)"></div>
+        <span class="role-option__name">Enzo</span>
+        <span class="role-option__badge b-tech">TECHNICIAN</span>
+      </div>
+      <div class="role-option" onclick="selectRole('pana');event.stopPropagation()">
+        <div class="role-option__dot" style="background:var(--win)"></div>
+        <span class="role-option__name">El Pana</span>
+        <span class="role-option__badge b-tl">TL</span>
+      </div>
+      <div class="role-option" onclick="selectRole('lau');event.stopPropagation()">
+        <div class="role-option__dot" style="background:var(--purple)"></div>
+        <span class="role-option__name">Lau</span>
+        <span class="role-option__badge b-coord">COORDINATOR</span>
+      </div>
+      <div class="role-option" onclick="selectRole('omar');event.stopPropagation()">
+        <div class="role-option__dot" style="background:var(--accent)"></div>
+        <span class="role-option__name">Omar</span>
+        <span class="role-option__badge b-admin">ADMIN</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="width:8px"></div>
+  <button class="btn-new hidden" id="btn-new">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Nueva tarea
+  </button>
+</div>
+
+<div class="shell">
+  <nav class="sidebar">
+    <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div>
+    <div class="nav-item active"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></div>
+  </nav>
+
+  <div class="main">
+
+    <!-- Controls bar: month nav + filtros -->
+    <div class="controls-bar">
+      <div class="month-nav">
+        <div class="month-nav-btn" onclick="shiftPeriod(-1)">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </div>
+        <span class="month-label" id="month-label">Agosto 2026</span>
+        <div class="month-nav-btn" onclick="shiftPeriod(1)">
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+
+      <div class="controls-sep"></div>
+
+      <div class="filter-chip" id="chip-tech" onclick="toggleTechFilter()">
+        <svg viewBox="0 0 24 24"><path d="M20 7H4M16 12H8M12 17h0"/></svg>
+        <span id="chip-tech-label">Técnico: Todos</span>
+        <span class="filter-chip__clear" id="chip-tech-clear">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </span>
+      </div>
+      <div class="filter-chip">
+        <svg viewBox="0 0 24 24"><path d="M20 7H4M16 12H8M12 17h0"/></svg>
+        Tipo: Todos
+      </div>
+      <div class="filter-chip">Estado: Todos</div>
+
+      <div class="controls-spacer"></div>
+      <input class="filter-search" placeholder="Buscar cliente&#8230;" />
+      <span class="cycle-count" id="cycle-count"></span>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="kpi-strip" id="kpi-strip"></div>
+
+    <!-- Closed banner -->
+    <div class="cycle-closed-banner" id="closed-banner">
+      <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Ciclo cerrado &#8212; solo lectura
+    </div>
+
+    <!-- Table -->
+    <div class="page">
+      <table class="cycle-table">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>T&#233;cnico</th>
+            <th>Estado</th>
+            <th>Ticket Odoo</th>
+            <th>Notas</th>
+          </tr>
+        </thead>
+        <tbody id="cycle-body"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const MONTHS_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTH_KEYS  = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+const ROLES = {
+  valen: { name:'Valen',    role:'TECHNICIAN',  label:'Técnico',      color:'var(--srv)',    canCreate:false, defaultTech:'valen' },
+  enzo:  { name:'Enzo',     role:'TECHNICIAN',  label:'Técnico',      color:'var(--srv)',    canCreate:false, defaultTech:'enzo'  },
+  pana:  { name:'El Pana',  role:'TL',          label:'Team Leader',  color:'var(--win)',    canCreate:true,  defaultTech:null    },
+  lau:   { name:'Lau',      role:'COORDINATOR', label:'Coordinadora', color:'var(--purple)', canCreate:false, defaultTech:null    },
+  omar:  { name:'Omar',     role:'ADMIN',       label:'Admin',        color:'var(--accent)', canCreate:true,  defaultTech:null    },
+};
+
+const CYCLES = {
+  'jul-2026': {
+    closed: true,
+    stats: { assigned:34, inprogress:0, pending:0, done:32 },
+    groups: [
+      { client:'ACME S.A.', tasks:[
+        { type:'srv',    label:'Server Host',    tech:'valen', techName:'Valen',   status:'done',      ticket:'3710', notes:'' },
+        { type:'bkp',    label:'Veeam',          tech:'valen', techName:'Valen',   status:'done',      ticket:'3711', notes:'' },
+        { type:'router', label:'Router',          tech:'valen', techName:'Valen',   status:'done',      ticket:'3712', notes:'Firmware actualizado' },
+      ]},
+      { client:'Distribuidora Norte', tasks:[
+        { type:'srv',    label:'Server Host',    tech:'enzo',  techName:'Enzo',    status:'done',      ticket:'3718', notes:'' },
+        { type:'qnap',   label:'QNAP',           tech:'enzo',  techName:'Enzo',    status:'done',      ticket:'3719', notes:'' },
+        { type:'visit',  label:'Visita terminal', tech:'gian',  techName:'Gian',    status:'notdone',   ticket:'3724', notes:'Cliente canceló' },
+      ]},
+      { client:'Librería Nórdica', tasks:[
+        { type:'srv',    label:'Server Host',    tech:'tow',   techName:'Tow',     status:'done',      ticket:'3726', notes:'' },
+        { type:'visit',  label:'Visita terminal', tech:'gian',  techName:'Gian',    status:'done',      ticket:'3728', notes:'4 terminales' },
+      ]},
+      { client:'Colegios Unidos', tasks:[
+        { type:'srv',    label:'Server Host',    tech:'santi', techName:'Santi',   status:'done',      ticket:'3730', notes:'' },
+        { type:'win',    label:'Windows Dom.',   tech:'santi', techName:'Santi',   status:'done',      ticket:'3731', notes:'' },
+        { type:'bkp',    label:'Veeam',          tech:'santi', techName:'Santi',   status:'done',      ticket:'3732', notes:'' },
+        { type:'visit',  label:'Visita terminal', tech:'tow',   techName:'Tow',     status:'cancelled', ticket:'',     notes:'Eliminada por admin' },
+      ]},
+      { client:'Farmacia Centrale', tasks:[
+        { type:'router', label:'Router',          tech:'valen', techName:'Valen',   status:'done',      ticket:'3740', notes:'' },
+        { type:'av',     label:'AV Control',      tech:'enzo',  techName:'Enzo',    status:'done',      ticket:'3741', notes:'' },
+      ]},
+    ]
+  },
+  'ago-2026': {
+    closed: false,
+    stats: { assigned:24, inprogress:4, pending:10, done:8 },
+    groups: [
+      { client:'ACME S.A.', tasks:[
+        { type:'srv',    label:'Server Host',    tech:'valen', techName:'Valen',   status:'done',      ticket:'3810', notes:'' },
+        { type:'bkp',    label:'Veeam',          tech:'valen', techName:'Valen',   status:'done',      ticket:'3811', notes:'' },
+        { type:'srv',    label:'Server Host',    tech:'valen', techName:'Valen',   status:'pending',   ticket:'3812', notes:'' },
+      ]},
+      { client:'Distribuidora Norte', tasks:[
+        { type:'srv',    label:'Server Host',    tech:'enzo',  techName:'Enzo',    status:'done',      ticket:'3820', notes:'' },
+        { type:'qnap',   label:'QNAP',           tech:'enzo',  techName:'Enzo',    status:'inprogress',ticket:'3821', notes:'' },
+        { type:'router', label:'Router',          tech:'enzo',  techName:'Enzo',    status:'pending',   ticket:'3822', notes:'' },
+      ]},
+      { client:'Librería Nórdica', tasks:[
+        { type:'visit',  label:'Visita terminal', tech:'gian',  techName:'Gian',    status:'pending',   ticket:'3830', notes:'Coord. con Lau' },
+      ]},
+      { client:'Colegios Unidos', tasks:[
+        { type:'bkp',    label:'Veeam',          tech:'tow',   techName:'Tow',     status:'pending',   ticket:'3840', notes:'' },
+        { type:'win',    label:'Windows Dom.',   tech:'santi', techName:'Santi',   status:'pending',   ticket:'3841', notes:'' },
+      ]},
+      { client:'Farmacia Centrale', tasks:[
+        { type:'router', label:'Router',          tech:'pana',  techName:'El Pana', status:'escalated', ticket:'3850', notes:'Sin acceso remoto al equipo' },
+        { type:'av',     label:'AV Control',      tech:'enzo',  techName:'Enzo',    status:'cancelled', ticket:'',     notes:'Eliminada por admin' },
+      ]},
+      { client:'Maderas del Sur', tasks:[
+        { type:'srv',    label:'Server Host',    tech:'tow',   techName:'Tow',     status:'inprogress',ticket:'3860', notes:'' },
+        { type:'bkp',    label:'Veeam',          tech:'tow',   techName:'Tow',     status:'done',      ticket:'3861', notes:'' },
+      ]},
+      { client:'Constructora Omega', tasks:[
+        { type:'visit',  label:'Visita terminal', tech:'gian',  techName:'Gian',    status:'inprogress',ticket:'3870', notes:'' },
+        { type:'visit',  label:'Visita terminal', tech:'santi', techName:'Santi',   status:'notdone',   ticket:'3871', notes:'Sin horas disponibles' },
+      ]},
+      { client:'Alimentos Tres Ríos', tasks:[
+        { type:'bkp',    label:'Veeam',          tech:'santi', techName:'Santi',   status:'inprogress',ticket:'3880', notes:'' },
+        { type:'srv',    label:'Server Host',    tech:'enzo',  techName:'Enzo',    status:'pending',   ticket:'3881', notes:'' },
+      ]},
+    ]
+  },
+  'sep-2026': {
+    closed: false,
+    stats: { assigned:0, inprogress:0, pending:0, done:0 },
+    groups: []
+  }
+};
+
+const STATUS_CFG = {
+  done:       { label:'Completada',    cls:'done'      },
+  inprogress: { label:'En curso',      cls:'inprogress'},
+  pending:    { label:'Pendiente',     cls:'pending'   },
+  escalated:  { label:'Escalada',      cls:'escalated' },
+  notdone:    { label:'No realizada',  cls:'notdone'   },
+  cancelled:  { label:'Cancelada',     cls:'cancelled' },
+};
+
+const PERIOD_ORDER = ['jul-2026','ago-2026','sep-2026'];
+let currentIdx  = 1;
+let currentRole = 'omar';
+let techFilter  = null;
+
+/* ── Role ───────────────────────────────────────────── */
+function selectRole(key) {
+  currentRole = key;
+  document.getElementById('role-dropdown').classList.remove('open');
+  var r = ROLES[key];
+  document.getElementById('role-dot').style.background   = r.color;
+  document.getElementById('role-name').textContent        = r.name + ' ';
+  document.getElementById('role-label').textContent       = '· ' + r.label;
+  document.getElementById('btn-new').classList.toggle('hidden', !r.canCreate);
+  techFilter = r.defaultTech;
+  renderAll();
+}
+
+function toggleRoleDropdown() {
+  document.getElementById('role-dropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#role-switcher')) {
+    document.getElementById('role-dropdown').classList.remove('open');
+  }
+});
+
+/* ── Tech filter ────────────────────────────────────── */
+function toggleTechFilter() {
+  var r = ROLES[currentRole];
+  if (!r.defaultTech) return;
+  techFilter = techFilter ? null : r.defaultTech;
+  renderFilterChip();
+  renderTable();
+  renderCount();
+}
+
+function renderFilterChip() {
+  var chip  = document.getElementById('chip-tech');
+  var label = document.getElementById('chip-tech-label');
+  var clear = document.getElementById('chip-tech-clear');
+  if (techFilter) {
+    chip.classList.add('applied');
+    label.textContent = 'Técnico: ' + ROLES[techFilter].name;
+    clear.style.display = 'inline-flex';
+  } else {
+    chip.classList.remove('applied');
+    label.textContent = 'Técnico: Todos';
+    clear.style.display = 'none';
+  }
+}
+
+/* ── Period nav ─────────────────────────────────────── */
+function shiftPeriod(dir) {
+  var next = currentIdx + dir;
+  if (next >= 0 && next < PERIOD_ORDER.length) {
+    currentIdx = next;
+    renderAll();
+  }
+}
+
+function renderMonthLabel() {
+  var key   = PERIOD_ORDER[currentIdx];
+  var parts = key.split('-');
+  var m     = MONTH_KEYS.indexOf(parts[0]);
+  document.getElementById('month-label').textContent = MONTHS_FULL[m] + ' ' + parts[1];
+}
+
+/* ── KPI strip ──────────────────────────────────────── */
+function renderKPIs() {
+  var key  = PERIOD_ORDER[currentIdx];
+  var s    = CYCLES[key].stats;
+  var pct  = s.assigned > 0 ? Math.round((s.done / s.assigned) * 100) : 0;
+  var closed = CYCLES[key].closed;
+  var badgeCls = closed ? 'kpi-cycle-badge--closed' : 'kpi-cycle-badge--open';
+  var badgeTxt = closed ? '&#10003; Ciclo cerrado' : '&#9679; Ciclo abierto';
+
+  document.getElementById('kpi-strip').innerHTML =
+    '<div class="kpi-block">'
+    + '<div class="kpi-label">Asignadas</div>'
+    + '<div class="kpi-val kpi-val--assigned">' + s.assigned + '</div>'
+    + '</div>'
+    + '<div class="kpi-block">'
+    + '<div class="kpi-label">En curso</div>'
+    + '<div class="kpi-val kpi-val--inprogress">' + s.inprogress + '</div>'
+    + '</div>'
+    + '<div class="kpi-block">'
+    + '<div class="kpi-label">Pendientes</div>'
+    + '<div class="kpi-val kpi-val--pending">' + s.pending + '</div>'
+    + '</div>'
+    + '<div class="kpi-block">'
+    + '<div class="kpi-label">Completadas</div>'
+    + '<div class="kpi-val kpi-val--done">' + s.done + '</div>'
+    + '</div>'
+    + '<div class="kpi-progress">'
+    + '<div class="kpi-progress-row">'
+    + '<span class="kpi-progress-title">Avance del ciclo</span>'
+    + '<span class="kpi-progress-pct">' + pct + '%</span>'
+    + '</div>'
+    + '<div class="kpi-progress-bar"><div class="kpi-progress-fill" style="width:' + pct + '%"></div></div>'
+    + '</div>'
+    + '<span class="kpi-cycle-badge ' + badgeCls + '">' + badgeTxt + '</span>';
+}
+
+/* ── Closed banner ──────────────────────────────────── */
+function renderBanner() {
+  var key = PERIOD_ORDER[currentIdx];
+  document.getElementById('closed-banner').classList.toggle('visible', CYCLES[key].closed);
+}
+
+/* ── Table ──────────────────────────────────────────── */
+function getGroups() {
+  var key    = PERIOD_ORDER[currentIdx];
+  var groups = CYCLES[key].groups;
+  if (!techFilter) return groups;
+  return groups.map(function(g) {
+    return { client: g.client, tasks: g.tasks.filter(function(t) { return t.tech === techFilter; }) };
+  }).filter(function(g) { return g.tasks.length > 0; });
+}
+
+function renderTable() {
+  var tbody  = document.getElementById('cycle-body');
+  tbody.innerHTML = '';
+  var groups = getGroups();
+
+  if (groups.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">'
+      + '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>'
+      + 'Sin tareas para este ciclo con los filtros actuales'
+      + '</div></td></tr>';
+    return;
+  }
+
+  groups.forEach(function(group) {
+    var done  = group.tasks.filter(function(t) { return t.status === 'done'; }).length;
+    var pct   = Math.round((done / group.tasks.length) * 100);
+    var mine  = techFilter ? group.tasks.filter(function(t) { return t.tech === techFilter; }).length : 0;
+    var mineBadge = (techFilter && mine > 0)
+      ? '<span class="group-label__mine">' + mine + ' mías</span>'
+      : '';
+
+    var groupTr = document.createElement('tr');
+    groupTr.className = 'group-row';
+    groupTr.innerHTML = '<td colspan="5"><div class="group-label">'
+      + '<span class="group-label__client">' + group.client + '</span>'
+      + '<span class="group-label__count">' + group.tasks.length + ' tareas</span>'
+      + mineBadge
+      + '<span class="group-label__progress">'
+      + '<div class="group-progress-bar"><div class="group-progress-fill" style="width:' + pct + '%"></div></div>'
+      + '<span class="group-progress-text">' + done + '/' + group.tasks.length + '</span>'
+      + '</span></div></td>';
+    tbody.appendChild(groupTr);
+
+    group.tasks.forEach(function(task) {
+      var sc      = STATUS_CFG[task.status];
+      var isMyTask = !!(techFilter && task.tech === techFilter);
+      var tr = document.createElement('tr');
+      tr.className = 'task-row'
+        + (task.status === 'cancelled' ? ' cancelled-row' : '')
+        + (isMyTask ? ' mine-row' : '');
+
+      var techHtml = '<span class="avatar ' + (isMyTask ? 'mine' : '') + '">'
+        + task.techName.slice(0, 1) + '</span> ' + task.techName
+        + (isMyTask ? ' <span style="font-size:9px;color:var(--srv)">(vos)</span>' : '');
+
+      var ticketHtml = task.ticket
+        ? '<span class="col-ticket">#' + task.ticket + '</span>'
+        : '<span class="col-ticket none">&#8212;</span>';
+
+      tr.innerHTML =
+          '<td><div class="col-type"><span class="badge badge--' + task.type + '">' + task.label + '</span></div></td>'
+        + '<td><div class="col-tech ' + (isMyTask ? 'highlighted' : '') + '">' + techHtml + '</div></td>'
+        + '<td><span class="badge badge--' + sc.cls + '">' + sc.label + '</span></td>'
+        + '<td>' + ticketHtml + '</td>'
+        + '<td><div class="col-notes">' + (task.notes || '&#8212;') + '</div></td>';
+
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+function renderCount() {
+  var groups = getGroups();
+  var total  = groups.reduce(function(acc, g) { return acc + g.tasks.length; }, 0);
+  document.getElementById('cycle-count').textContent = total > 0 ? total + ' tareas' : '';
+}
+
+function renderAll() {
+  renderMonthLabel();
+  renderKPIs();
+  renderBanner();
+  renderFilterChip();
+  renderTable();
+  renderCount();
+}
+
+selectRole('omar');
+</script>
+</body>
+</html>
