@@ -1,5 +1,7 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subject } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { Task, TaskGroup, TaskStatus, CycleStats } from '../../core/models/task.models';
 import { TasksService, TaskFilters } from '../../core/services/tasks.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -20,6 +22,7 @@ export class TasksUnifiedComponent implements OnInit {
   techFilter: string | null = null;
 
   private readonly destroyRef = inject(DestroyRef);
+  private readonly load$ = new Subject<void>();
 
   constructor(
     private tasksService: TasksService,
@@ -82,22 +85,30 @@ export class TasksUnifiedComponent implements OnInit {
     if (user?.role === 'TECHNICIAN' && user.technicianId) {
       this.techFilter = user.technicianId;
     }
-    this.load();
-  }
 
-  /** Carga las tareas del ciclo seleccionado con los filtros activos */
-  load(): void {
-    this.loading = true;
-    this.error   = '';
-    const filters: TaskFilters = {
-      month: this.currentMonth,
-      year:  this.currentYear,
-    };
-    if (this.techFilter) filters.technicianId = this.techFilter;
-    this.tasksService.getAll(filters).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.load$.pipe(
+      switchMap(() => {
+        this.loading = true;
+        this.error   = '';
+        const filters: TaskFilters = {
+          month: this.currentMonth,
+          year:  this.currentYear,
+        };
+        if (this.techFilter) filters.technicianId = this.techFilter;
+        return this.tasksService.getAll(filters);
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
       next:  tasks => { this.tasks = tasks; this.loading = false; },
       error: ()    => { this.error = 'No se pudieron cargar las tareas.'; this.loading = false; },
     });
+
+    this.load$.next(); // dispara la carga inicial
+  }
+
+  /** Dispara una recarga del ciclo seleccionado con los filtros activos */
+  load(): void {
+    this.load$.next();
   }
 
   /** Navega al mes anterior y recarga */
