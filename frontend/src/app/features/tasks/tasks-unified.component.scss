@@ -1,0 +1,118 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.controls-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-lo);
+  flex-shrink: 0;
+}
+
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.month-label {
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 164px;
+  text-align: center;
+  color: var(--tx-hi);
+}
+
+.controls-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--border-lo);
+}
+
+.controls-spacer { flex: 1; }
+
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--card);
+  border: 1px solid var(--border-lo);
+  color: var(--tx-md);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background .12s;
+
+  &:hover {
+    background: var(--elevated);
+    color: var(--tx-hi);
+  }
+
+  &.applied {
+    background: var(--srv-bg);
+    border-color: var(--srv-bd);
+    color: var(--srv);
+  }
+}
+
+.cycle-closed-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 24px;
+  background: var(--ok-bg);
+  border-bottom: 1px solid var(--ok-bd);
+  font-size: 11px;
+  color: var(--ok);
+  flex-shrink: 0;
+}
+
+.error-banner {
+  margin: 12px 24px;
+  padding: 10px 14px;
+  background: var(--crit-bg);
+  border: 1px solid var(--crit-bd);
+  border-radius: var(--radius-sm);
+  color: var(--crit);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-row {
+  padding: 24px;
+  font-size: 12px;
+  color: var(--tx-lo);
+}
+
+.table-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 520px;
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--border-lo);
+  transform: translateX(100%);
+  transition: transform .2s ease;
+  overflow-y: auto;
+  z-index: 20;
+
+  &.open {
+    transform: translateX(0);
+  }
+}

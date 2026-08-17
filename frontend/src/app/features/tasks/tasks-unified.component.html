@@ -1,1 +1,59 @@
-<p>Tareas — en construcción</p>
+<!-- Barra de controles: navegación de mes, filtro técnico, botón nueva tarea -->
+<div class="controls-bar">
+  <div class="month-nav">
+    <button mat-icon-button (click)="prevMonth()">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <span class="month-label">{{ monthLabel }}</span>
+    <button mat-icon-button (click)="nextMonth()">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+
+  <div class="controls-sep"></div>
+
+  <div class="filter-chip"
+       [class.applied]="!!techFilter"
+       (click)="toggleTechFilter()">
+    Técnico: {{ techFilter ? currentUser?.email?.split('@')[0] : 'Todos' }}
+  </div>
+
+  <div class="controls-spacer"></div>
+
+  <button *ngIf="canCreateTask" mat-flat-button color="primary">
+    <mat-icon>add</mat-icon>
+    Nueva tarea
+  </button>
+</div>
+
+<!-- KPI strip del ciclo actual -->
+<app-kpi-strip [stats]="stats" [closed]="cycleClosed"></app-kpi-strip>
+
+<!-- Banner de ciclo cerrado -->
+<div class="cycle-closed-banner" *ngIf="cycleClosed">
+  <mat-icon style="font-size:14px;height:14px;width:14px">check_circle</mat-icon>
+  Ciclo cerrado — solo lectura
+</div>
+
+<!-- Error de carga -->
+<div *ngIf="error" class="error-banner">
+  {{ error }}
+  <button mat-button (click)="load()">Reintentar</button>
+</div>
+
+<!-- Indicador de carga -->
+<div *ngIf="loading" class="loading-row">Cargando…</div>
+
+<!-- Tabla de tareas agrupadas por cliente -->
+<div class="table-scroll" *ngIf="!loading">
+  <app-cycle-table
+    [groups]="groups"
+    [selectedTaskId]="selectedTask?.id ?? null"
+    (taskSelected)="selectTask($event)">
+  </app-cycle-table>
+</div>
+
+<!-- Drawer de detalle de tarea — Task 5 lo monta aquí -->
+<div class="drawer" [class.open]="selectedTask !== null">
+  <!-- Task 5 lo monta aquí -->
+</div>
