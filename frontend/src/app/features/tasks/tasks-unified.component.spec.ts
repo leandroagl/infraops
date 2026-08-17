@@ -5,6 +5,8 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { TasksUnifiedComponent } from './tasks-unified.component';
 import { TasksService } from '../../core/services/tasks.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -43,10 +45,12 @@ describe('TasksUnifiedComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [TasksUnifiedComponent],
-      imports: [NoopAnimationsModule, ReactiveFormsModule, MatButtonModule, MatIconModule],
+      imports: [NoopAnimationsModule, ReactiveFormsModule, MatButtonModule, MatIconModule, MatDialogModule, MatSnackBarModule],
       providers: [
         { provide: TasksService, useValue: tasksServiceSpy },
         { provide: AuthService,  useValue: authServiceSpy  },
+        { provide: MatDialog,    useValue: jasmine.createSpyObj('MatDialog', ['open']) },
+        { provide: MatSnackBar,  useValue: jasmine.createSpyObj('MatSnackBar', ['open']) },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();

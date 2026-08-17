@@ -1,11 +1,14 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subject } from 'rxjs';
+import { EMPTY, Subject } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { Task, TaskGroup, TaskStatus, CycleStats } from '../../core/models/task.models';
 import { TasksService, TaskFilters } from '../../core/services/tasks.service';
 import { AuthService } from '../../core/services/auth.service';
 import { UserRole } from '../../core/models/auth.models';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-tasks-unified',
@@ -27,6 +30,8 @@ export class TasksUnifiedComponent implements OnInit {
   constructor(
     private tasksService: TasksService,
     private authService: AuthService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar,
   ) {
     const now = new Date();
     this.currentMonth = now.getMonth() + 1;
@@ -157,7 +162,22 @@ export class TasksUnifiedComponent implements OnInit {
 
   onTaskDeleted(): void {
     if (!this.selectedTask) return;
-    this.tasks = this.tasks.filter(t => t.id !== this.selectedTask!.id);
-    this.closeDrawer();
+    const task = this.selectedTask;
+    this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Eliminar tarea',
+        message: `¿Eliminar la tarea de ${task.client?.name ?? 'este cliente'}? Esta acción no se puede deshacer.`,
+      },
+    }).afterClosed().pipe(
+      takeUntilDestroyed(this.destroyRef),
+      switchMap(confirmed => confirmed ? this.tasksService.delete(task.id) : EMPTY),
+    ).subscribe({
+      next: () => {
+        this.tasks = this.tasks.filter(t => t.id !== task.id);
+        this.closeDrawer();
+        this.snackBar.open('Tarea eliminada', 'Cerrar', { duration: 3000 });
+      },
+      error: () => this.snackBar.open('No se pudo eliminar la tarea', 'Cerrar', { duration: 4000 }),
+    });
   }
 }

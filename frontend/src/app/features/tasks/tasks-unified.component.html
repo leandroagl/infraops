@@ -15,7 +15,7 @@
   <div class="filter-chip"
        [class.applied]="!!techFilter"
        (click)="toggleTechFilter()">
-    Técnico: {{ techFilter ? currentUser?.email?.split('@')[0] : 'Todos' }}
+    Técnico: {{ techFilter ? (currentUser?.email ?? '').split('@')[0] : 'Todos' }}
   </div>
 
   <div class="controls-spacer"></div>
@@ -53,7 +53,17 @@
   </app-cycle-table>
 </div>
 
-<!-- Drawer de detalle de tarea — Task 5 lo monta aquí -->
+<!-- Drawer de detalle de tarea -->
 <div class="drawer" [class.open]="selectedTask !== null">
-  <!-- Task 5 lo monta aquí -->
+  <app-task-drawer
+    *ngIf="selectedTask"
+    [task]="selectedTask"
+    [userRole]="userRole"
+    [cycleClosed]="cycleClosed"
+    (taskCompleted)="onTaskCompleted()"
+    (taskNotDone)="onTaskNotDone()"
+    (taskStatusChanged)="onTaskStatusChanged($event)"
+    (taskDeleted)="onTaskDeleted()"
+    (drawerClosed)="closeDrawer()">
+  </app-task-drawer>
 </div>
