@@ -9,7 +9,6 @@ import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
 import { OdooSystemRpcService } from './odoo-system-rpc.service';
-import { OdooUserRpcService, OdooUserCredentials } from './odoo-user-rpc.service';
 import { OdooService } from './odoo.service';
 import { OdooPartner } from './dto/odoo-partner.dto';
 import { OdooUser } from './dto/odoo-user.dto';
@@ -18,7 +17,6 @@ import { TaskType } from '../../tasks/task-type.enum';
 describe('OdooService', () => {
   let service: OdooService;
   let odooRpc: { callKw: jest.Mock };
-  let userRpc: { callKw: jest.Mock };
   let clientRepo: {
     find: jest.Mock;
     findOne: jest.Mock;
@@ -33,8 +31,6 @@ describe('OdooService', () => {
   };
   let technicianRepo: { findOne: jest.Mock };
   let configService: { getOrThrow: jest.Mock };
-
-  const testCreds: OdooUserCredentials = { email: 'tecnico@ondra.com', apiKey: 'test-api-key' };
 
   const makeClient = (override: Partial<Client> = {}): Client =>
     ({
@@ -54,7 +50,7 @@ describe('OdooService', () => {
   ): OdooPartner => ({
     id: 101,
     name: 'ACME Corp',
-    vat: '20-12345678-0',
+    vat: '20123456780',
     ...override,
   });
 
@@ -85,7 +81,6 @@ describe('OdooService', () => {
 
   beforeEach(async () => {
     odooRpc = { callKw: jest.fn() };
-    userRpc = { callKw: jest.fn() };
     clientRepo = {
       find: jest.fn(),
       findOne: jest.fn(),
@@ -107,7 +102,6 @@ describe('OdooService', () => {
       providers: [
         OdooService,
         { provide: OdooSystemRpcService, useValue: odooRpc },
-        { provide: OdooUserRpcService, useValue: userRpc },
         { provide: getRepositoryToken(Client), useValue: clientRepo },
         { provide: getRepositoryToken(User), useValue: userRepo },
         { provide: ConfigService, useValue: configService },
@@ -948,27 +942,28 @@ describe('OdooService', () => {
 
   describe('closeTicket', () => {
     it('llama logTimesheet y luego escribe stage_id en el ticket', async () => {
-      odooRpc.callKw.mockResolvedValueOnce([{ id: 99 }]); // helpdesk.stage search_read
-      userRpc.callKw
-        .mockResolvedValueOnce(88)   // account.analytic.line create
-        .mockResolvedValueOnce(true); // helpdesk.ticket write
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage search_read
+        .mockResolvedValueOnce(88)            // account.analytic.line create
+        .mockResolvedValueOnce(true);         // helpdesk.ticket write
 
-      await service.closeTicket(42, 22, 1.5, testCreds);
+      await service.closeTicket(42, 22, 1.5);
 
-      const userCalls = userRpc.callKw.mock.calls;
-      expect(userCalls[0][1]).toBe('account.analytic.line');
-      expect(userCalls[0][2]).toBe('create');
-      expect(userCalls[1][1]).toBe('helpdesk.ticket');
-      expect(userCalls[1][2]).toBe('write');
-      expect(userCalls[1][3]).toEqual([[42], { stage_id: 99 }]);
+      const calls = odooRpc.callKw.mock.calls;
+      expect(calls[1][0]).toBe('account.analytic.line');
+      expect(calls[1][1]).toBe('create');
+      expect(calls[2][0]).toBe('helpdesk.ticket');
+      expect(calls[2][1]).toBe('write');
+      expect(calls[2][2]).toEqual([[42], { stage_id: 99 }]);
     });
 
     it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
-      odooRpc.callKw.mockResolvedValueOnce([{ id: 99 }]); // primera llamada: resuelve stage
-      userRpc.callKw.mockResolvedValue(true);
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }]) // primera llamada: resuelve stage
+        .mockResolvedValue(true);
 
-      await service.closeTicket(42, 22, 1.5, testCreds);
-      await service.closeTicket(43, 22, 0.5, testCreds);
+      await service.closeTicket(42, 22, 1.5);
+      await service.closeTicket(43, 22, 0.5);
 
       const stageCalls = odooRpc.callKw.mock.calls.filter(
         (args: unknown[]) => args[0] === 'helpdesk.stage',
@@ -979,33 +974,33 @@ describe('OdooService', () => {
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage de cierre', async () => {
       odooRpc.callKw.mockResolvedValueOnce([]);
 
-      await expect(service.closeTicket(42, 22, 1.5, testCreds)).rejects.toThrow(
+      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(
         ServiceUnavailableException,
       );
     });
 
     it('no escribe stage_id si logTimesheet falla', async () => {
-      odooRpc.callKw.mockResolvedValueOnce([{ id: 99 }]);
-      userRpc.callKw.mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }])
+        .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.closeTicket(42, 22, 1.5, testCreds)).rejects.toThrow(
+      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(
         ServiceUnavailableException,
       );
 
-      const writeCalls = userRpc.callKw.mock.calls.filter(
-        (args: unknown[]) =>
-          args[1] === 'helpdesk.ticket' && args[2] === 'write',
+      const writeCalls = odooRpc.callKw.mock.calls.filter(
+        (args: unknown[]) => args[0] === 'helpdesk.ticket' && args[1] === 'write',
       );
       expect(writeCalls).toHaveLength(0);
     });
 
     it('propaga ServiceUnavailableException cuando Odoo falla al ejecutar write', async () => {
-      odooRpc.callKw.mockResolvedValueOnce([{ id: 99 }]);
-      userRpc.callKw
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }])
         .mockResolvedValueOnce(88)
         .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.closeTicket(42, 22, 1.5, testCreds)).rejects.toThrow(
+      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(
         ServiceUnavailableException,
       );
     });
@@ -1077,15 +1072,14 @@ describe('OdooService', () => {
 
   describe('logTimesheet (via closeTicket)', () => {
     it('crea entrada en account.analytic.line con los campos correctos al cerrar ticket', async () => {
-      odooRpc.callKw.mockResolvedValueOnce([{ id: 99 }]); // helpdesk.stage
-      userRpc.callKw
-        .mockResolvedValueOnce(88)   // account.analytic.line create
-        .mockResolvedValueOnce(true); // helpdesk.ticket write
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(88)            // account.analytic.line create
+        .mockResolvedValueOnce(true);         // helpdesk.ticket write
 
-      await service.closeTicket(42, 22, 1.5, testCreds);
+      await service.closeTicket(42, 22, 1.5);
 
-      expect(userRpc.callKw).toHaveBeenCalledWith(
-        testCreds,
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
         'account.analytic.line',
         'create',
         [
@@ -1102,12 +1096,11 @@ describe('OdooService', () => {
     });
 
     it('propaga ServiceUnavailableException cuando Odoo falla al crear el timesheet', async () => {
-      odooRpc.callKw.mockResolvedValueOnce([{ id: 99 }]); // helpdesk.stage
-      userRpc.callKw.mockRejectedValueOnce(
-        new ServiceUnavailableException('Odoo caído'),
-      );
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.closeTicket(42, 22, 1.5, testCreds)).rejects.toThrow(
+      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(
         ServiceUnavailableException,
       );
     });
@@ -1115,10 +1108,11 @@ describe('OdooService', () => {
 
   describe('markTicketInProgress', () => {
     it('resuelve stage "En Curso" por nombre y escribe stage_id en el ticket', async () => {
-      odooRpc.callKw.mockResolvedValueOnce([{ id: 77 }]); // helpdesk.stage search_read → "En Curso"
-      userRpc.callKw.mockResolvedValueOnce(true); // helpdesk.ticket write
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 77 }]) // helpdesk.stage search_read
+        .mockResolvedValueOnce(true);         // helpdesk.ticket write
 
-      await service.markTicketInProgress(42, testCreds);
+      await service.markTicketInProgress(42);
 
       expect(odooRpc.callKw.mock.calls[0]).toEqual([
         'helpdesk.stage',
@@ -1131,8 +1125,7 @@ describe('OdooService', () => {
         ],
         { fields: ['id'], limit: 1 },
       ]);
-      expect(userRpc.callKw.mock.calls[0]).toEqual([
-        testCreds,
+      expect(odooRpc.callKw.mock.calls[1]).toEqual([
         'helpdesk.ticket',
         'write',
         [[42], { stage_id: 77 }],
@@ -1141,11 +1134,12 @@ describe('OdooService', () => {
     });
 
     it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
-      odooRpc.callKw.mockResolvedValueOnce([{ id: 77 }]); // primera llamada: resuelve stage
-      userRpc.callKw.mockResolvedValue(true); // subsiguientes: write
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 77 }]) // primera llamada: resuelve stage
+        .mockResolvedValue(true);
 
-      await service.markTicketInProgress(42, testCreds);
-      await service.markTicketInProgress(43, testCreds);
+      await service.markTicketInProgress(42);
+      await service.markTicketInProgress(43);
 
       const stageCalls = odooRpc.callKw.mock.calls.filter(
         (args: unknown[]) => args[0] === 'helpdesk.stage',
@@ -1156,16 +1150,17 @@ describe('OdooService', () => {
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage "En Curso"', async () => {
       odooRpc.callKw.mockResolvedValueOnce([]);
 
-      await expect(service.markTicketInProgress(42, testCreds)).rejects.toThrow(
+      await expect(service.markTicketInProgress(42)).rejects.toThrow(
         ServiceUnavailableException,
       );
     });
 
     it('propaga ServiceUnavailableException cuando Odoo falla al ejecutar write', async () => {
-      odooRpc.callKw.mockResolvedValueOnce([{ id: 77 }]);
-      userRpc.callKw.mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 77 }])
+        .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.markTicketInProgress(42, testCreds)).rejects.toThrow(
+      await expect(service.markTicketInProgress(42)).rejects.toThrow(
         ServiceUnavailableException,
       );
     });

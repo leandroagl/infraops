@@ -17,7 +17,6 @@ import { UserRole } from './user-role.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
-import { UpdateOdooExemptDto } from './dto/update-odoo-exempt.dto';
 import {
   CreateUserResponse,
   UserResponse,
@@ -66,12 +65,4 @@ export class UsersController {
     return this.usersService.resetPassword(id, currentUser.sub);
   }
 
-  @Patch(':id/odoo-exempt')
-  updateOdooExempt(
-    @Param('id', ParseUUIDPipe) id: string,
-    @CurrentUser() currentUser: JwtPayload,
-    @Body() dto: UpdateOdooExemptDto,
-  ): Promise<UserResponse> {
-    return this.usersService.updateOdooExempt(id, currentUser.sub, dto.odooExempt);
-  }
 }

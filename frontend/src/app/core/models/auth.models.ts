@@ -5,14 +5,11 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   technicianId?: string | null;
-  odooKeyValid: boolean;
-  odooExempt: boolean;
 }
 
 export interface LoginResponse {
   accessToken: string;
   mustChangePassword: boolean;
-  mustOdooSetup: boolean;
   user: AuthUser;
 }
 

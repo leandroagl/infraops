@@ -3,7 +3,6 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Client } from '../clients/client.entity';
@@ -40,7 +39,6 @@ describe('TasksService', () => {
     postInternalNote: jest.Mock;
   };
   let infrastructureService: { getClientInfrastructure: jest.Mock };
-  let configService: { getOrThrow: jest.Mock };
 
   const emptyInfra: ClientInfrastructureDto = {
     esxiHosts: [], windowsVMs: [], domainControllers: [], linuxVMs: [], nas: [], routers: [],
@@ -51,36 +49,7 @@ describe('TasksService', () => {
     windowsVMs: [{ assetId: 1, name: 'WS-01', ip: null, bmcIp: null, bmcType: null, os: 'Windows Server 2019', model: null, uri1: null, uri2: null }],
   };
 
-  // Usuario con credenciales Odoo válidas (usadas en mocks de tareas con odooTicketId)
-  const MOCK_ENCRYPT_KEY = 'a'.repeat(64); // 32 bytes en hex
-  const mockUserWithCreds = {
-    id: 'user-1',
-    odooKeyValid: true,
-    odooApiEmail: 'tech@ondra.com',
-    // iv:encrypted — valor arbitrario; el mock de configService devuelve la clave correcta
-    // pero decrypt puede fallar si el formato es inválido, así que mockeamos decrypt indirectamente
-    // via configService. En realidad el mock de configService devuelve MOCK_ENCRYPT_KEY,
-    // y decrypt se llama con este valor; como odooApiKeyEnc es un string de formato válido,
-    // usamos un valor pre-encriptado generado con esa clave.
-    // Para simplificar los tests, usamos jest.spyOn sobre el módulo crypto.util en los tests
-    // que lo necesitan, o bien proveemos un valor que decrypt pueda procesar.
-    // Dado que el crypto.util real usa AES-256-CBC, necesitamos un valor válido O
-    // podemos mockear el import. La opción más simple: usar encrypt() en tiempo de test.
-    // Pero como no queremos importar encrypt acá, usamos un approach diferente:
-    // el valor 'iv:enc' con el MOCK_ENCRYPT_KEY (64 hex chars = 32 bytes). Lo generamos
-    // con node crypto directamente en el valor constante o simplemente aceptamos que
-    // getOdooCredentials devuelve lo que devuelve y solo verificamos que se pasó creds
-    // a los métodos de odooService — el valor exacto no importa para estos tests.
-    // Por simplicidad, generamos el valor cifrado aquí mismo:
-    odooApiKeyEnc: (() => {
-      const { createCipheriv, randomBytes } = require('crypto');
-      const key = Buffer.from(MOCK_ENCRYPT_KEY, 'hex');
-      const iv = randomBytes(16);
-      const cipher = createCipheriv('aes-256-cbc', key, iv);
-      const enc = Buffer.concat([cipher.update('test-api-key', 'utf8'), cipher.final()]);
-      return `${iv.toString('hex')}:${enc.toString('hex')}`;
-    })(),
-  };
+  const mockUserWithOdooId = { id: 'user-1' };
 
   const mockClient: Client = {
     id: 'client-1',
@@ -145,7 +114,6 @@ describe('TasksService', () => {
       postInternalNote: jest.fn().mockResolvedValue(undefined),
     };
     infrastructureService = { getClientInfrastructure: jest.fn() };
-    configService = { getOrThrow: jest.fn().mockReturnValue(MOCK_ENCRYPT_KEY) };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -156,7 +124,6 @@ describe('TasksService', () => {
         { provide: getRepositoryToken(MaintenanceLog), useValue: logRepository },
         { provide: OdooService,                        useValue: odooService },
         { provide: InfrastructureService,              useValue: infrastructureService },
-        { provide: ConfigService,                      useValue: configService },
       ],
     }).compile();
 
@@ -543,7 +510,7 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.IN_PROGRESS,
         odooTicketId: 42,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
@@ -551,12 +518,10 @@ describe('TasksService', () => {
       odooService.resolveEmployeeId.mockResolvedValue(22);
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await service.updateStatus('task-1', TaskStatus.DONE, 90);
 
       expect(odooService.resolveEmployeeId).toHaveBeenCalledWith('user-1');
-      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5, expect.any(Object));
+      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5);
     });
 
     it('llama closeTicket al transicionar a NOT_DONE cuando la tarea tiene odooTicketId', async () => {
@@ -564,7 +529,7 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.PENDING,
         odooTicketId: 55,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne
         .mockResolvedValueOnce(taskWithTicket)
@@ -575,26 +540,9 @@ describe('TasksService', () => {
       odooService.resolveEmployeeId.mockResolvedValue(22);
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await service.updateStatus('task-1', TaskStatus.NOT_DONE, 60);
 
-      expect(odooService.closeTicket).toHaveBeenCalledWith(55, 22, 1.0, expect.any(Object));
-    });
-
-    it('lanza BadRequestException cuando el técnico no tiene credenciales Odoo configuradas', async () => {
-      const taskWithoutCreds = {
-        ...mockTask,
-        status: TaskStatus.IN_PROGRESS,
-        odooTicketId: 42,
-        technician: { user: { id: 'user-1', odooKeyValid: false, odooApiKeyEnc: null, odooApiEmail: null } },
-      };
-      taskRepository.findOne.mockResolvedValueOnce(taskWithoutCreds);
-
-      await expect(
-        service.updateStatus('task-1', TaskStatus.DONE, 60),
-      ).rejects.toThrow(BadRequestException);
-      expect(taskRepository.update).not.toHaveBeenCalled();
+      expect(odooService.closeTicket).toHaveBeenCalledWith(55, 22, 1.0);
     });
 
     it('no actualiza el status en DB si Odoo falla al cerrar el ticket (atomicidad)', async () => {
@@ -602,15 +550,13 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.IN_PROGRESS,
         odooTicketId: 42,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne.mockResolvedValueOnce(inProgressTask);
       odooService.resolveEmployeeId.mockResolvedValue(22);
       odooService.closeTicket.mockRejectedValue(
         new ServiceUnavailableException('Odoo down'),
       );
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await expect(
         service.updateStatus('task-1', TaskStatus.DONE, 60),
       ).rejects.toThrow(ServiceUnavailableException);
@@ -658,15 +604,13 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.IN_PROGRESS,
         odooTicketId: 42,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne.mockResolvedValueOnce(inProgressTask);
       odooService.resolveEmployeeId.mockResolvedValue(22);
       odooService.closeTicket.mockRejectedValue(
         new ServiceUnavailableException('Odoo caído'),
       );
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await expect(
         service.updateStatus('task-1', TaskStatus.DONE, 90),
       ).rejects.toThrow(ServiceUnavailableException);
@@ -678,12 +622,10 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.IN_PROGRESS,
         odooTicketId: 42,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne.mockResolvedValueOnce(inProgressTask);
       odooService.resolveEmployeeId.mockResolvedValue(null);
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await expect(
         service.updateStatus('task-1', TaskStatus.DONE, 90),
       ).rejects.toThrow(BadRequestException);
@@ -710,7 +652,7 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.PENDING,
         odooTicketId: 42,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne
         .mockResolvedValueOnce(pendingTaskWithTicket)
@@ -720,11 +662,9 @@ describe('TasksService', () => {
         });
       odooService.markTicketInProgress.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await service.updateStatus('task-1', TaskStatus.IN_PROGRESS);
 
-      expect(odooService.markTicketInProgress).toHaveBeenCalledWith(42, expect.any(Object));
+      expect(odooService.markTicketInProgress).toHaveBeenCalledWith(42);
     });
 
     it('no llama markTicketInProgress al transicionar a IN_PROGRESS cuando odooTicketId es null', async () => {
@@ -743,7 +683,7 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.IN_PROGRESS,
         odooTicketId: 42,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
@@ -751,8 +691,6 @@ describe('TasksService', () => {
       odooService.resolveEmployeeId.mockResolvedValue(22);
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await service.updateStatus('task-1', TaskStatus.DONE, 90);
 
       expect(odooService.markTicketInProgress).not.toHaveBeenCalled();
@@ -763,14 +701,12 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.PENDING,
         odooTicketId: 42,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne.mockResolvedValueOnce(pendingTaskWithTicket);
       odooService.markTicketInProgress.mockRejectedValue(
         new ServiceUnavailableException('Odoo caído'),
       );
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await expect(
         service.updateStatus('task-1', TaskStatus.IN_PROGRESS),
       ).rejects.toThrow(ServiceUnavailableException);
@@ -782,7 +718,7 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.IN_PROGRESS,
         odooTicketId: 42,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
@@ -791,11 +727,9 @@ describe('TasksService', () => {
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
       logRepository.findOne.mockResolvedValue({ notes: 'Se detectó disco con advertencia.' });
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await service.updateStatus('task-1', TaskStatus.DONE, 90);
 
-      expect(odooService.postInternalNote).toHaveBeenCalledWith(42, 'Se detectó disco con advertencia.');
+      expect(odooService.postInternalNote).toHaveBeenCalledWith(42, 'Se detectó disco con advertencia.', 'user-1');
     });
 
     it('no postea nota interna cuando el log no tiene notes', async () => {
@@ -803,7 +737,7 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.IN_PROGRESS,
         odooTicketId: 42,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
@@ -812,8 +746,6 @@ describe('TasksService', () => {
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
       logRepository.findOne.mockResolvedValue({ notes: null });
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await service.updateStatus('task-1', TaskStatus.DONE, 90);
 
       expect(odooService.postInternalNote).not.toHaveBeenCalled();
@@ -824,7 +756,7 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.IN_PROGRESS,
         odooTicketId: 42,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
@@ -833,8 +765,6 @@ describe('TasksService', () => {
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
       logRepository.findOne.mockResolvedValue(null);
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await service.updateStatus('task-1', TaskStatus.DONE, 90);
 
       expect(odooService.postInternalNote).not.toHaveBeenCalled();
@@ -845,7 +775,7 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.PENDING,
         odooTicketId: 55,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne
         .mockResolvedValueOnce(taskWithTicket)
@@ -854,8 +784,6 @@ describe('TasksService', () => {
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
       logRepository.findOne.mockResolvedValue({ notes: 'Nota que no debe enviarse.' });
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await service.updateStatus('task-1', TaskStatus.NOT_DONE, 0);
 
       expect(odooService.postInternalNote).not.toHaveBeenCalled();
@@ -866,7 +794,7 @@ describe('TasksService', () => {
         ...mockTask,
         status: TaskStatus.IN_PROGRESS,
         odooTicketId: 42,
-        technician: { user: mockUserWithCreds },
+        technician: { user: mockUserWithOdooId },
       };
       taskRepository.findOne
         .mockResolvedValueOnce(inProgressTask)
@@ -876,8 +804,6 @@ describe('TasksService', () => {
       taskRepository.update.mockResolvedValue({ affected: 1 });
       logRepository.findOne.mockResolvedValue({ notes: 'Nota.' });
       odooService.postInternalNote.mockRejectedValue(new Error('Odoo caído'));
-      configService.getOrThrow.mockReturnValue(MOCK_ENCRYPT_KEY);
-
       await expect(service.updateStatus('task-1', TaskStatus.DONE, 90)).resolves.not.toThrow();
       expect(taskRepository.update).toHaveBeenCalledWith('task-1', expect.objectContaining({ status: TaskStatus.DONE }));
     });

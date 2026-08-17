@@ -10,7 +10,6 @@ export class AuthService {
   private readonly TOKEN_KEY            = 'token';
   private readonly USER_KEY             = 'user';
   private readonly MUST_CHANGE_PASS_KEY = 'mustChangePassword';
-  private readonly MUST_ODOO_SETUP_KEY  = 'mustOdooSetup';
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -22,7 +21,6 @@ export class AuthService {
           localStorage.setItem(this.TOKEN_KEY, res.accessToken);
           localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
           localStorage.setItem(this.MUST_CHANGE_PASS_KEY, String(res.mustChangePassword));
-          localStorage.setItem(this.MUST_ODOO_SETUP_KEY, String(res.mustOdooSetup));
         }),
       );
   }
@@ -31,7 +29,6 @@ export class AuthService {
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     localStorage.removeItem(this.MUST_CHANGE_PASS_KEY);
-    localStorage.removeItem(this.MUST_ODOO_SETUP_KEY);
     this.router.navigate(['/login']);
   }
 
@@ -43,14 +40,6 @@ export class AuthService {
 
   clearMustChangePassword(): void {
     localStorage.setItem(this.MUST_CHANGE_PASS_KEY, 'false');
-  }
-
-  mustOdooSetup(): boolean {
-    return localStorage.getItem(this.MUST_ODOO_SETUP_KEY) === 'true';
-  }
-
-  clearMustOdooSetup(): void {
-    localStorage.setItem(this.MUST_ODOO_SETUP_KEY, 'false');
   }
 
   getToken(): string | null { return localStorage.getItem(this.TOKEN_KEY); }

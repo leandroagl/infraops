@@ -3,12 +3,11 @@ import { ClientsModule } from '../../clients/clients.module';
 import { UsersModule } from '../../users/users.module';
 import { TechniciansModule } from '../../technicians/technicians.module';
 import { OdooSystemRpcService } from './odoo-system-rpc.service';
-import { OdooUserRpcModule } from './odoo-user-rpc.module';
 import { OdooService } from './odoo.service';
 import { OdooController } from './odoo.controller';
 
 @Module({
-  imports: [ClientsModule, UsersModule, TechniciansModule, OdooUserRpcModule],
+  imports: [ClientsModule, UsersModule, TechniciansModule],
   controllers: [OdooController],
   providers: [OdooSystemRpcService, OdooService],
   exports: [OdooService],

@@ -48,7 +48,6 @@ describe('UsersComponent', () => {
     usersServiceSpy.getAll.and.returnValue(of([seedAdmin, techUser]));
     authServiceSpy.getCurrentUser.and.returnValue({
       id: 'current-id', email: 'current@ondra.com.ar', role: 'ADMIN',
-      odooKeyValid: true, odooExempt: false,
     });
 
     await TestBed.configureTestingModule({

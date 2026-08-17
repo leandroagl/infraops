@@ -66,26 +66,6 @@ export class User {
   })
   odooEmployeeId: number | null;
 
-  @Column({ name: 'odoo_api_email', type: 'varchar', nullable: true, default: null })
-  odooApiEmail: string | null;
-
-  @Column({ name: 'odoo_api_key_enc', type: 'varchar', nullable: true, default: null })
-  odooApiKeyEnc: string | null;
-
-  @Column({ name: 'odoo_key_valid', default: false })
-  odooKeyValid: boolean;
-
-  @Column({
-    name: 'odoo_key_validated_at',
-    type: 'timestamptz',
-    nullable: true,
-    default: null,
-  })
-  odooKeyValidatedAt: Date | null;
-
-  @Column({ name: 'odoo_exempt', default: false })
-  odooExempt: boolean;
-
   @CreateDateColumn()
   createdAt: Date;
 }

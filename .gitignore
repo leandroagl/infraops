@@ -8,3 +8,7 @@ certbot/
 # OS
 .DS_Store
 Thumbs.db
+
+# Tool artifacts
+.superpowers/
+infraops-obsidian/

@@ -27,8 +27,6 @@ describe('AdminGuard', () => {
       id: 'uuid-1',
       email: 'admin@ondra.com.ar',
       role: 'ADMIN',
-      odooKeyValid: true,
-      odooExempt: false,
     });
     expect(guard.canActivate()).toBeTrue();
   });
@@ -38,8 +36,6 @@ describe('AdminGuard', () => {
       id: 'uuid-2',
       email: 'tech@ondra.com.ar',
       role: 'TECHNICIAN',
-      odooKeyValid: false,
-      odooExempt: false,
     });
     const navSpy = spyOn(router, 'navigate');
     expect(guard.canActivate()).toBeFalse();

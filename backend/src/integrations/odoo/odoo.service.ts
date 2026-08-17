@@ -11,7 +11,6 @@ import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
 import { OdooSystemRpcService } from './odoo-system-rpc.service';
-import { OdooUserRpcService, OdooUserCredentials } from './odoo-user-rpc.service';
 import { OdooPartner } from './dto/odoo-partner.dto';
 import { OdooUser } from './dto/odoo-user.dto';
 import { OdooSyncResult } from './dto/odoo-sync-result.dto';
@@ -106,7 +105,6 @@ export class OdooService {
 
   constructor(
     private readonly systemRpc: OdooSystemRpcService,
-    private readonly userRpc: OdooUserRpcService,
     private readonly configService: ConfigService,
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,
@@ -334,10 +332,8 @@ export class OdooService {
     odooTicketId: number,
     employeeId: number,
     unitAmount: number,
-    creds: OdooUserCredentials,
   ): Promise<void> {
-    await this.userRpc.callKw<number>(
-      creds,
+    await this.systemRpc.callKw<number>(
       'account.analytic.line',
       'create',
       [
@@ -383,10 +379,9 @@ export class OdooService {
     return this.inProgressStageId;
   }
 
-  async markTicketInProgress(odooTicketId: number, creds: OdooUserCredentials): Promise<void> {
+  async markTicketInProgress(odooTicketId: number): Promise<void> {
     const stageId = await this.resolveInProgressStageId();
-    await this.userRpc.callKw<boolean>(
-      creds,
+    await this.systemRpc.callKw<boolean>(
       'helpdesk.ticket',
       'write',
       [[odooTicketId], { stage_id: stageId }],
@@ -528,12 +523,10 @@ export class OdooService {
     odooTicketId: number,
     employeeId: number,
     unitAmount: number,
-    creds: OdooUserCredentials,
   ): Promise<void> {
     const stageId = await this.resolveDoneStageId();
-    await this.logTimesheet(odooTicketId, employeeId, unitAmount, creds);
-    await this.userRpc.callKw<boolean>(
-      creds,
+    await this.logTimesheet(odooTicketId, employeeId, unitAmount);
+    await this.systemRpc.callKw<boolean>(
       'helpdesk.ticket',
       'write',
       [[odooTicketId], { stage_id: stageId }],
@@ -627,16 +620,23 @@ export class OdooService {
     return ticketId;
   }
 
-  async postInternalNote(ticketId: number, note: string): Promise<void> {
-    await this.systemRpc.callKw(
-      'helpdesk.ticket',
-      'message_post',
-      [[ticketId]],
-      {
-        body: note,
-        message_type: 'comment',
-        subtype_xmlid: 'mail.mt_note',
-      },
+  async postInternalNote(ticketId: number, note: string, technicianUserId: string): Promise<void> {
+    const partnerId = await this.resolveUserPartnerId(technicianUserId);
+    const kwargs: Record<string, unknown> = {
+      body: note,
+      message_type: 'comment',
+      subtype_xmlid: 'mail.mt_note',
+    };
+    if (partnerId !== null) kwargs['author_id'] = partnerId;
+    await this.systemRpc.callKw('helpdesk.ticket', 'message_post', [[ticketId]], kwargs);
+  }
+
+  private async resolveUserPartnerId(userId: string): Promise<number | null> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user?.odooUserId) return null;
+    const results = await this.systemRpc.callKw<Array<{ id: number; partner_id: [number, string] }>>(
+      'res.users', 'read', [[user.odooUserId]], { fields: ['partner_id'] },
     );
+    return results?.[0]?.partner_id?.[0] ?? null;
   }
 }

@@ -284,10 +284,11 @@ export class TaskDrawerComponent implements OnChanges {
 
   private upsertLog(payload: MaintenancePayload): Observable<MaintenanceLog> {
     const notes = payload.notes ?? undefined;
-    return this.logsService.create(this.task.id, { payload, notes }).pipe(
+    const body = notes !== undefined ? { payload, notes } : { payload };
+    return this.logsService.create(this.task.id, body).pipe(
       catchError((err: HttpErrorResponse) => {
         if (err.status === 409) {
-          return this.logsService.update(this.task.id, { payload, notes });
+          return this.logsService.update(this.task.id, body);
         }
         return throwError(() => err);
       })

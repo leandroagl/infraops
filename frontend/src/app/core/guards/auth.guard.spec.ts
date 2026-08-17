@@ -23,10 +23,9 @@ describe('AuthGuard', () => {
 
   afterEach(() => localStorage.clear());
 
-  it('permite acceso cuando está autenticado y todo configurado', () => {
+  it('permite acceso cuando está autenticado y sin cambio de contraseña pendiente', () => {
     spyOn(auth, 'isAuthenticated').and.returnValue(true);
     spyOn(auth, 'mustChangePassword').and.returnValue(false);
-    spyOn(auth, 'mustOdooSetup').and.returnValue(false);
     expect(guard.canActivate()).toBeTrue();
   });
 
@@ -43,14 +42,5 @@ describe('AuthGuard', () => {
     const nav = spyOn(router, 'navigate');
     expect(guard.canActivate()).toBeFalse();
     expect(nav).toHaveBeenCalledWith(['/login/change-password']);
-  });
-
-  it('redirige a /login/odoo-setup cuando mustOdooSetup es true', () => {
-    spyOn(auth, 'isAuthenticated').and.returnValue(true);
-    spyOn(auth, 'mustChangePassword').and.returnValue(false);
-    spyOn(auth, 'mustOdooSetup').and.returnValue(true);
-    const nav = spyOn(router, 'navigate');
-    expect(guard.canActivate()).toBeFalse();
-    expect(nav).toHaveBeenCalledWith(['/login/odoo-setup']);
   });
 });

@@ -4,7 +4,6 @@ import { JwtPayload } from '../auth/auth.types';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
-import { UpdateOdooExemptDto } from './dto/update-odoo-exempt.dto';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 
@@ -16,7 +15,6 @@ describe('UsersController', () => {
     update: jest.Mock;
     updateStatus: jest.Mock;
     resetPassword: jest.Mock;
-    updateOdooExempt: jest.Mock;
   };
 
   const currentUser: JwtPayload = {
@@ -33,7 +31,6 @@ describe('UsersController', () => {
       update: jest.fn(),
       updateStatus: jest.fn(),
       resetPassword: jest.fn(),
-      updateOdooExempt: jest.fn(),
     };
 
     const module = await Test.createTestingModule({
@@ -122,20 +119,5 @@ describe('UsersController', () => {
     });
   });
 
-  describe('updateOdooExempt', () => {
-    it('llama a usersService.updateOdooExempt con id, sub del usuario actual y odooExempt', async () => {
-      const dto: UpdateOdooExemptDto = { odooExempt: true };
-      const mockResult = { id: 'user-1', odooExempt: true };
-      usersService.updateOdooExempt.mockResolvedValue(mockResult);
-
-      const result = await controller.updateOdooExempt('user-1', currentUser, dto);
-
-      expect(usersService.updateOdooExempt).toHaveBeenCalledWith(
-        'user-1',
-        'admin-id',
-        true,
-      );
-      expect(result).toEqual(mockResult);
-    });
-  });
 });
+
