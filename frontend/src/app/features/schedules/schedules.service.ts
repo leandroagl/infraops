@@ -30,12 +30,21 @@ export interface MonthlyPreviewClient {
   technicianName: string | null;
 }
 
+export interface TaskStats {
+  total: number;
+  done: number;
+  notDone: number;
+  clientsWithTasks: number;
+}
+
 export interface MonthlyPreview {
   year: number;
   month: number;
   group: 'BIMONTHLY_ODD' | 'BIMONTHLY_EVEN';
   clients: MonthlyPreviewClient[];
   clientsWithoutTechnician: number;
+  wasGenerated: boolean;
+  taskStats: TaskStats | null;
 }
 
 export interface GenerationResult {

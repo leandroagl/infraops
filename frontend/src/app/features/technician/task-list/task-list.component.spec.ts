@@ -69,6 +69,18 @@ describe('TaskListComponent', () => {
     fixture.detectChanges();
   });
 
+  // ── load ─────────────────────────────────────────────────────
+  describe('load()', () => {
+    it('llama a getAll con el mes y año corriente', () => {
+      const now = new Date();
+      const expectedYear  = now.getFullYear();
+      const expectedMonth = now.getMonth() + 1;
+      expect(tasksServiceSpy.getAll).toHaveBeenCalledWith(
+        jasmine.objectContaining({ year: expectedYear, month: expectedMonth }),
+      );
+    });
+  });
+
   // ── KPI getters ─────────────────────────────────────────────
   describe('KPI getters', () => {
     beforeEach(() => {
@@ -255,6 +267,13 @@ describe('TaskListComponent', () => {
       component.selectedClientId = null;
       component.typeCtrl.setValue(null);
       expect(component.filteredTasks.length).toBe(3);
+    });
+  });
+
+  // ── trackClientById ───────────────────────────────────────────
+  describe('trackClientById()', () => {
+    it('retorna el id del cliente', () => {
+      expect(component.trackClientById(0, { id: 'c1', name: 'ACME' })).toBe('c1');
     });
   });
 

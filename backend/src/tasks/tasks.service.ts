@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Client } from '../clients/client.entity';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
@@ -70,6 +70,12 @@ export class TasksService {
     if (filters.clientId) where['clientId'] = filters.clientId;
     if (filters.technicianId) where['technicianId'] = filters.technicianId;
     if (filters.type) where['type'] = filters.type;
+    if (filters.year && filters.month) {
+      const y = filters.year;
+      const m = String(filters.month).padStart(2, '0');
+      const lastDay = new Date(y, filters.month, 0).getDate();
+      where['scheduledDate'] = Between(`${y}-${m}-01`, `${y}-${m}-${String(lastDay).padStart(2, '0')}`);
+    }
 
     return this.taskRepository.find({
       where,

@@ -12,7 +12,6 @@ export interface MonthCard {
   preview: MonthlyPreview | null;
   isCurrentMonth: boolean;
   isFuture: boolean;
-  expanded: boolean;
 }
 
 @Component({
@@ -59,7 +58,6 @@ export class CalendarTabComponent implements OnInit {
             preview: p,
             isCurrentMonth: this.year === currentYear && month === this.currentMonth,
             isFuture: this.year > currentYear || (this.year === currentYear && month > this.currentMonth),
-            expanded: false,
           };
         });
         this.loading = false;
@@ -68,10 +66,6 @@ export class CalendarTabComponent implements OnInit {
         this.loading = false;
       },
     });
-  }
-
-  toggle(card: MonthCard): void {
-    card.expanded = !card.expanded;
   }
 
   groupLabel(group: 'BIMONTHLY_ODD' | 'BIMONTHLY_EVEN'): string {

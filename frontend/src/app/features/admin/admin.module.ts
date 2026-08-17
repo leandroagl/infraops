@@ -16,6 +16,8 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatIconModule } from '@angular/material/icon';
 import { AdminRoutingModule } from './admin-routing.module';
 import { AdminLayoutComponent } from './admin-layout/admin-layout.component';
 import { UsersComponent } from './users/users.component';
@@ -61,6 +63,8 @@ import { SharedModule } from '../../shared/shared.module';
     MatDatepickerModule,
     MatNativeDateModule,
     MatCheckboxModule,
+    MatAutocompleteModule,
+    MatIconModule,
     AdminRoutingModule,
     SharedModule,
   ],

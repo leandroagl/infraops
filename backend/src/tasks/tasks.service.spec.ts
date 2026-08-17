@@ -195,6 +195,26 @@ describe('TasksService', () => {
         order: { scheduledDate: 'ASC' },
       });
     });
+
+    it('aplica filtro por month y year usando rango de scheduledDate', async () => {
+      taskRepository.find.mockResolvedValue([mockTask]);
+
+      await service.findAll({ year: 2026, month: 6 });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(call.where.scheduledDate).toBeDefined();
+      expect(call.where.scheduledDate._type).toBe('between');
+      expect(call.where.scheduledDate._value).toEqual(['2026-06-01', '2026-06-30']);
+    });
+
+    it('no aplica filtro de rango si solo se provee year sin month', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026 });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(call.where.scheduledDate).toBeUndefined();
+    });
   });
 
   describe('create', () => {

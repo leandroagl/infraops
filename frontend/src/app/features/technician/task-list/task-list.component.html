@@ -4,8 +4,7 @@
   <mat-card class="greeting" appearance="outlined">
     <div class="greeting__avatar">{{ technicianName.slice(0, 1).toUpperCase() }}</div>
     <div class="greeting__info">
-      <div class="greeting__name">Buenas, {{ technicianName }}</div>
-      <div class="greeting__sub">Tenés {{ tasks.length }} tareas asignadas · {{ overdueCount + thisWeekCount }} requieren atención</div>
+      <div class="greeting__name">Hola, {{ technicianName }}!</div>
     </div>
     <div class="greeting__kpis">
       <div class="kpi">
@@ -41,7 +40,7 @@
              placeholder="Todos los clientes" />
       <mat-autocomplete #autoCliente="matAutocomplete"
                         (optionSelected)="onClientSelected($event)">
-        <mat-option *ngFor="let c of clientOptions" [value]="c.id">{{ c.name }}</mat-option>
+        <mat-option *ngFor="let c of clientOptions; trackBy: trackClientById" [value]="c.id">{{ c.name }}</mat-option>
       </mat-autocomplete>
       <button *ngIf="selectedClientId" matSuffix mat-icon-button
               aria-label="Limpiar cliente" (click)="clearClientFilter()">
@@ -68,13 +67,14 @@
     </div>
   </ng-container>
 
-  <app-kanban-board
-    *ngIf="!loading"
-    [tasks]="filteredTasks"
-    [scrollable]="true"
-    [selectedTaskId]="selectedTask?.id ?? null"
-    (taskSelected)="selectTask($event)">
-  </app-kanban-board>
+  <div class="kanban-wrapper" *ngIf="!loading">
+    <app-kanban-board
+      [tasks]="filteredTasks"
+      [scrollable]="true"
+      [selectedTaskId]="selectedTask?.id ?? null"
+      (taskSelected)="selectTask($event)">
+    </app-kanban-board>
+  </div>
 
 </div>
 

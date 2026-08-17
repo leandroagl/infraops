@@ -1,6 +1,8 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, EMPTY, switchMap } from 'rxjs';
+import { FormControl } from '@angular/forms';
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Task } from '../../../core/models/task.models';
@@ -24,9 +26,16 @@ export class TasksComponent implements OnInit {
   loading = false;
   error = '';
   filterStatus = '';
-  filterClientId = '';
   filterTechnicianId = '';
   selectedTask: Task | null = null;
+
+  clientSearchCtrl = new FormControl<string>('', { nonNullable: true });
+  selectedClientId: string | null = null;
+
+  get clientOptions(): Client[] {
+    const search = this.clientSearchCtrl.value.toLowerCase();
+    return search ? this.clients.filter(c => c.name.toLowerCase().includes(search)) : this.clients;
+  }
 
   private readonly destroyRef = inject(DestroyRef);
 
@@ -65,12 +74,29 @@ export class TasksComponent implements OnInit {
     this.error = '';
     const filters: TaskFilters = {};
     if (this.filterStatus)       filters.status       = this.filterStatus;
-    if (this.filterClientId)     filters.clientId     = this.filterClientId;
+    if (this.selectedClientId)   filters.clientId     = this.selectedClientId;
     if (this.filterTechnicianId) filters.technicianId = this.filterTechnicianId;
     this.tasksService.getAll(filters).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: tasks => { this.tasks = tasks; this.loading = false; },
       error: () => { this.error = 'No se pudieron cargar las tareas.'; this.loading = false; },
     });
+  }
+
+  onClientSelected(event: MatAutocompleteSelectedEvent): void {
+    this.selectedClientId = event.option.value as string;
+    this.clientSearchCtrl.setValue(event.option.viewValue, { emitEvent: false });
+    this.load();
+  }
+
+  onClientSearch(): void {
+    this.selectedClientId = null;
+    this.load();
+  }
+
+  clearClientFilter(): void {
+    this.selectedClientId = null;
+    this.clientSearchCtrl.setValue('');
+    this.load();
   }
 
   selectTask(task: Task): void { this.selectedTask = task; }
