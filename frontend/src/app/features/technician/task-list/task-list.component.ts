@@ -105,6 +105,10 @@ export class TaskListComponent implements OnInit {
     this.clientSearchCtrl.setValue(event.option.viewValue, { emitEvent: false });
   }
 
+  trackClientById(_: number, c: { id: string; name: string }): string {
+    return c.id;
+  }
+
   onClientSearch(): void {
     this.selectedClientId = null;
   }
@@ -125,7 +129,12 @@ export class TaskListComponent implements OnInit {
     if (!user?.technicianId) return;
     this.loading = true;
     this.error = '';
-    this.tasksService.getAll({ technicianId: user.technicianId })
+    const now = new Date();
+    this.tasksService.getAll({
+      technicianId: user.technicianId,
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+    })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: tasks => { this.tasks = tasks; this.loading = false; },

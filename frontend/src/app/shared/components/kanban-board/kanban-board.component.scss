@@ -1,4 +1,4 @@
-:host { display: block; }
+:host { display: block; height: 100%; }
 
 .kanban {
   display: grid;
@@ -53,14 +53,15 @@
 
 .kanban--scrollable {
   align-items: stretch;
+  height: 100%;
 
   .kanban__col {
     min-height: 0;
   }
 
   .kanban__col-body {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
-    max-height: calc(100vh - 300px);
-    min-height: 80px;
   }
 }

@@ -20,8 +20,7 @@
          [class.group-b]="card.group === 'BIMONTHLY_ODD'"
          [class.current]="card.isCurrentMonth">
 
-      <!-- Header siempre visible y clickeable -->
-      <div class="card-head" (click)="toggle(card)">
+      <div class="card-head">
         <div class="head-left">
           <span class="month-name" [class.future-text]="card.isFuture && !card.isCurrentMonth">
             {{ card.name }}<span *ngIf="card.isCurrentMonth" class="now-tag"> ← hoy</span>
@@ -32,31 +31,30 @@
             {{ groupLabel(card.group) }}
           </span>
         </div>
-        <div class="head-right">
-          <span class="status-badge"
-                [class.s-future]="card.isFuture"
-                [class.s-current]="card.isCurrentMonth">
-            {{ card.isFuture ? 'Futuro' : card.isCurrentMonth ? 'Este mes' : 'Pasado' }}
-          </span>
-          <mat-icon class="chev" [class.open]="card.expanded">chevron_right</mat-icon>
-        </div>
-      </div>
-
-      <!-- Summary siempre visible -->
-      <div class="card-summary" [class.has-border]="card.expanded">
-        <span class="client-count">
-          <b>{{ card.preview?.clients?.length ?? 0 }}</b>
-          {{ card.isFuture ? 'estimados' : 'clientes' }}
+        <span class="status-badge"
+              [class.s-future]="card.isFuture && !card.isCurrentMonth"
+              [class.s-current]="card.isCurrentMonth">
+          {{ card.isFuture && !card.isCurrentMonth ? 'Futuro' : card.isCurrentMonth ? 'Este mes' : 'Pasado' }}
         </span>
       </div>
 
-      <!-- Body desplegable -->
-      <div class="card-body" *ngIf="card.expanded">
-        <div *ngIf="!card.preview?.clients?.length" class="no-clients">Sin clientes configurados</div>
-        <div *ngFor="let c of card.preview?.clients" class="client-row">
-          <span class="c-name">{{ c.clientName }}</span>
-          <span class="c-tech" [class.no-tech]="!c.technicianName">
-            {{ c.technicianName ?? '⚠ Sin técnico' }}
+      <div class="card-stats" *ngIf="!card.isFuture || card.isCurrentMonth">
+        <!-- Clientes con tareas -->
+        <div class="stat-row">
+          <span class="stat-num">{{ card.preview?.taskStats?.clientsWithTasks ?? 0 }}</span>
+          <span class="stat-lbl">clientes</span>
+        </div>
+
+        <!-- Total creadas + faltaron al cierre -->
+        <div class="stat-row task-row">
+          <span class="stat-chip stat-ok">
+            <span class="chip-num">{{ card.preview?.taskStats?.total ?? 0 }}</span>
+            <span class="chip-lbl">creadas</span>
+          </span>
+          <!-- faltaron solo en mes pasado cerrado -->
+          <span class="stat-chip stat-crit" *ngIf="!card.isCurrentMonth">
+            <span class="chip-num">{{ card.preview?.taskStats?.notDone ?? 0 }}</span>
+            <span class="chip-lbl">faltaron</span>
           </span>
         </div>
       </div>

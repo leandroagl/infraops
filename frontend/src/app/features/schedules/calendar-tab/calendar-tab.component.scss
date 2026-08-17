@@ -45,7 +45,6 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
-  transition: border-color .15s;
 
   &.group-a { border-top: 3px solid var(--ok); }
   &.group-b { border-top: 3px solid var(--warn); }
@@ -53,13 +52,10 @@
 }
 
 .card-head {
-  padding: 10px 12px;
+  padding: 10px 12px 6px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  cursor: pointer;
-
-  &:hover { background: var(--hover); }
 }
 
 .head-left {
@@ -76,12 +72,6 @@
 
 .future-text { color: var(--tx-lo); }
 .now-tag { color: var(--accent); }
-
-.head-right {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
 
 .grp-badge {
   font-size: 9px;
@@ -101,56 +91,58 @@
   border-radius: 8px;
   background: rgba(84, 110, 122, 0.1);
   color: var(--tx-lo);
+  white-space: nowrap;
 }
 
 .s-current { background: rgba(77, 208, 225, 0.1); color: var(--accent); }
 
-.chev {
-  font-size: 16px;
-  color: var(--tx-lo);
-  transition: transform .2s;
-
-  &.open { transform: rotate(90deg); }
-}
-
-.card-summary {
-  padding: 5px 12px 8px;
-  border-bottom: 1px solid transparent;
-
-  &.has-border { border-bottom-color: var(--border); }
-}
-
-.client-count {
-  font-size: 11px;
-  color: var(--tx-lo);
-
-  b { color: var(--tx-hi); }
-}
-
-.card-body { padding: 6px 0; }
-
-.no-clients {
-  padding: 6px 12px;
-  font-size: 11px;
-  color: var(--tx-lo);
-  font-style: italic;
-}
-
-.client-row {
+.card-stats {
+  padding: 4px 12px 10px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 5px 12px;
-
-  &:hover { background: var(--hover); }
+  flex-direction: column;
+  gap: 6px;
 }
 
-.c-name { font-size: 11px; color: var(--tx-hi); }
+.stat-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
 
-.c-tech {
+.task-row { gap: 6px; }
+
+.stat-num {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--tx-hi);
+  line-height: 1;
+}
+
+.stat-lbl {
   font-size: 10px;
   color: var(--tx-lo);
+}
+
+.stat-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 10px;
   font-family: var(--font-mono);
 
-  &.no-tech { color: var(--crit); }
+  &.stat-ok   { background: var(--ok-bg);   .chip-num { color: var(--ok); } }
+  &.stat-crit { background: var(--crit-bg); .chip-num { color: var(--crit); } }
+}
+
+.chip-num {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.chip-lbl {
+  font-size: 9px;
+  color: var(--tx-lo);
 }

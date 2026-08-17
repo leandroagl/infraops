@@ -21,8 +21,18 @@ export class GenerationTabComponent implements OnInit {
 
   get monthName(): string { return MONTH_NAMES[this.month]; }
   get isEvenGroup(): boolean { return this.preview?.group === 'BIMONTHLY_EVEN'; }
+  get isFutureMonth(): boolean {
+    const now = new Date();
+    const cy = now.getFullYear(), cm = now.getMonth() + 1;
+    return this.year > cy || (this.year === cy && this.month > cm);
+  }
   get canGenerate(): boolean {
-    return !!this.preview && this.preview.clientsWithoutTechnician === 0 && this.preview.clients.length > 0 && !this.generating;
+    return !!this.preview &&
+      !this.preview.wasGenerated &&
+      this.preview.clientsWithoutTechnician === 0 &&
+      this.preview.clients.length > 0 &&
+      !this.generating &&
+      !this.isFutureMonth;
   }
 
   constructor(

@@ -14,6 +14,16 @@
       <b>{{ preview.clientsWithoutTechnician }}</b> sin técnico
     </span>
   </div>
+
+  <span class="footer-generated" *ngIf="preview?.wasGenerated">
+    <mat-icon class="gen-icon">check_circle</mat-icon>
+    {{ preview!.taskStats?.total ?? 0 }} tareas activas · {{ preview!.taskStats?.done ?? 0 }} realizadas
+  </span>
+
+  <button mat-flat-button color="primary" class="gen-btn" [disabled]="!canGenerate" (click)="generate()">
+    <mat-spinner *ngIf="generating" diameter="16"></mat-spinner>
+    {{ preview?.wasGenerated ? 'Ya generado este mes' : generating ? 'Generando...' : 'Generar ' + monthName + ' ' + year + ' →' }}
+  </button>
 </div>
 
 <div class="group-banner" [class.banner-a]="isEvenGroup" [class.banner-b]="!isEvenGroup" *ngIf="preview">
@@ -22,30 +32,29 @@
 </div>
 
 <div class="table-wrap" *ngIf="preview">
-  <table mat-table [dataSource]="preview.clients">
+  <mat-table [dataSource]="preview.clients" class="gen-table">
     <ng-container matColumnDef="client">
-      <th mat-header-cell *matHeaderCellDef>Cliente</th>
-      <td mat-cell *matCellDef="let c">{{ c.clientName }}</td>
+      <mat-header-cell *matHeaderCellDef>Cliente</mat-header-cell>
+      <mat-cell *matCellDef="let c">{{ c.clientName }}</mat-cell>
     </ng-container>
     <ng-container matColumnDef="technician">
-      <th mat-header-cell *matHeaderCellDef>Técnico</th>
-      <td mat-cell *matCellDef="let c">
+      <mat-header-cell *matHeaderCellDef>Técnico</mat-header-cell>
+      <mat-cell *matCellDef="let c">
         <span *ngIf="c.technicianName" class="tech-ok">{{ c.technicianName }}</span>
         <span *ngIf="!c.technicianName" class="tech-missing">⚠ Sin técnico</span>
-      </td>
+      </mat-cell>
     </ng-container>
-    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-        [class.row-missing]="!row.technicianName"></tr>
-  </table>
+    <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+    <mat-row *matRowDef="let row; columns: displayedColumns;"
+        [class.row-missing]="!row.technicianName"></mat-row>
+  </mat-table>
 </div>
 
-<div class="gen-footer">
-  <span class="footer-hint" *ngIf="preview?.clientsWithoutTechnician">
+<div class="gen-footer" *ngIf="isFutureMonth || (!preview?.wasGenerated && (preview?.clientsWithoutTechnician ?? 0) > 0)">
+  <span class="footer-hint" *ngIf="isFutureMonth">
+    Disponible a partir del 1 de {{ monthName }}
+  </span>
+  <span class="footer-hint" *ngIf="!isFutureMonth && !preview?.wasGenerated && preview?.clientsWithoutTechnician">
     Asigná un técnico a todos los clientes para habilitar la generación
   </span>
-  <button mat-flat-button color="primary" [disabled]="!canGenerate" (click)="generate()">
-    <mat-spinner *ngIf="generating" diameter="16"></mat-spinner>
-    {{ generating ? 'Generando...' : 'Generar ' + monthName + ' ' + year + ' →' }}
-  </button>
 </div>

@@ -24,14 +24,14 @@ describe('SchedulesService', () => {
   };
   let techRepo: { find: jest.Mock };
   let tasksService: { create: jest.Mock };
-  let taskRepo: { findOne: jest.Mock };
+  let taskRepo: { findOne: jest.Mock; find: jest.Mock };
 
   beforeEach(async () => {
     scheduleRepo = { find: jest.fn(), findOne: jest.fn(), create: jest.fn(), save: jest.fn() };
     rotationRepo = { findOne: jest.fn(), create: jest.fn(), save: jest.fn() };
     techRepo = { find: jest.fn() };
     tasksService = { create: jest.fn() };
-    taskRepo = { findOne: jest.fn() };
+    taskRepo = { findOne: jest.fn(), find: jest.fn().mockResolvedValue([]) };
 
     // Default: rotation disabled → applyRotationIfNeeded returns early in most tests
     rotationRepo.findOne.mockResolvedValue({
@@ -115,7 +115,7 @@ describe('SchedulesService', () => {
   });
 
   describe('getMonthlyPreview', () => {
-    it('devuelve clientes del grupo par para mes par', async () => {
+    it('devuelve clientes del grupo par para mes par, wasGenerated false si no hay tareas', async () => {
       const rules: Partial<ClientSchedule>[] = [
         {
           clientId: 'c-1',
@@ -127,17 +127,45 @@ describe('SchedulesService', () => {
         },
       ];
       scheduleRepo.find.mockResolvedValue(rules);
+      taskRepo.find.mockResolvedValue([]);
 
       const result = await service.getMonthlyPreview(2026, 8); // agosto = par
       expect(result.group).toBe(ScheduleGroup.BIMONTHLY_EVEN);
       expect(result.clients).toHaveLength(1);
       expect(result.clientsWithoutTechnician).toBe(0);
+      expect(result.wasGenerated).toBe(false);
+      expect(result.taskStats).toBeNull();
+    });
+
+    it('devuelve wasGenerated true y taskStats cuando existen tareas del mes', async () => {
+      scheduleRepo.find.mockResolvedValue([]);
+      taskRepo.find.mockResolvedValue([
+        { id: 't-1', status: 'DONE',     clientId: 'c-1' },
+        { id: 't-2', status: 'DONE',     clientId: 'c-2' },
+        { id: 't-3', status: 'NOT_DONE', clientId: 'c-1' },
+      ]);
+
+      const result = await service.getMonthlyPreview(2026, 8);
+      expect(result.wasGenerated).toBe(true);
+      expect(result.taskStats).toEqual({ total: 3, done: 2, notDone: 1, clientsWithTasks: 2 });
+    });
+
+    it('clientsWithTasks cuenta clientes distintos aunque tengan múltiples tareas', async () => {
+      scheduleRepo.find.mockResolvedValue([]);
+      taskRepo.find.mockResolvedValue([
+        { id: 't-1', status: 'DONE',    clientId: 'c-1' },
+        { id: 't-2', status: 'DONE',    clientId: 'c-1' },
+        { id: 't-3', status: 'DONE',    clientId: 'c-1' },
+        { id: 't-4', status: 'PENDING', clientId: 'c-2' },
+      ]);
+
+      const result = await service.getMonthlyPreview(2026, 8);
+      expect(result.taskStats?.clientsWithTasks).toBe(2);
     });
 
     it('filtra clientes del grupo impar en mes par', async () => {
-      // La query TypeORM ya filtra por scheduleGroup; el mock devuelve []
-      // como lo haría la DB al no haber coincidencias.
       scheduleRepo.find.mockResolvedValue([]);
+      taskRepo.find.mockResolvedValue([]);
       const result = await service.getMonthlyPreview(2026, 8);
       expect(result.clients).toHaveLength(0);
     });

@@ -8,6 +8,7 @@ import { UpsertClientScheduleDto } from './dto/upsert-client-schedule.dto';
 import { SaveRotationConfigDto } from './dto/save-rotation-config.dto';
 import { TasksService } from '../tasks/tasks.service';
 import { TaskType } from '../tasks/task-type.enum';
+import { TaskStatus } from '../tasks/task-status.enum';
 import { Task } from '../tasks/task.entity';
 import { Technician } from '../technicians/technician.entity';
 
@@ -18,12 +19,21 @@ export interface MonthlyPreviewClientDto {
   technicianName: string | null;
 }
 
+export interface TaskStatsDto {
+  total: number;
+  done: number;
+  notDone: number;
+  clientsWithTasks: number;
+}
+
 export interface MonthlyPreviewDto {
   year: number;
   month: number;
   group: ScheduleGroup;
   clients: MonthlyPreviewClientDto[];
   clientsWithoutTechnician: number;
+  wasGenerated: boolean;
+  taskStats: TaskStatsDto | null;
 }
 
 export interface GenerationResultDto {
@@ -186,12 +196,35 @@ export class SchedulesService {
       technicianName: r.technician?.user?.name ?? null,
     }));
 
+    const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDayNum = new Date(year, month, 0).getDate();
+    const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(lastDayNum).padStart(2, '0')}`;
+
+    const tasks = await this.taskRepo.find({
+      where: { scheduledDate: Between(firstDay, lastDay) as unknown as string },
+      select: ['id', 'status', 'clientId'],
+    });
+
+    const wasGenerated = tasks.length > 0;
+    const taskStats: TaskStatsDto | null = wasGenerated
+      ? {
+          total: tasks.length,
+          done: tasks.filter(
+            t => t.status === TaskStatus.DONE || t.status === TaskStatus.ESCALATED,
+          ).length,
+          notDone: tasks.filter(t => t.status === TaskStatus.NOT_DONE).length,
+          clientsWithTasks: new Set(tasks.map(t => t.clientId)).size,
+        }
+      : null;
+
     return {
       year,
       month,
       group,
       clients,
       clientsWithoutTechnician: clients.filter(c => !c.technicianId).length,
+      wasGenerated,
+      taskStats,
     };
   }
 

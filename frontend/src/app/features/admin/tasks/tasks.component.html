@@ -1,15 +1,6 @@
 <div class="page">
   <div class="page-header">
     <div class="page-header__left">
-      <button mat-flat-button color="primary" (click)="openCreateDialog()">
-        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-right:4px;vertical-align:middle">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        Nueva tarea
-      </button>
-      <span class="page-header__count" *ngIf="!loading">{{ tasks.length }} tareas</span>
-    </div>
-    <div class="page-header__actions">
       <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:160px">
         <mat-label>Estado</mat-label>
         <mat-select [(ngModel)]="filterStatus" (selectionChange)="load()">
@@ -17,12 +8,21 @@
         </mat-select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:180px">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:200px">
         <mat-label>Cliente</mat-label>
-        <mat-select [(ngModel)]="filterClientId" (selectionChange)="load()">
-          <mat-option value="">Todos</mat-option>
-          <mat-option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</mat-option>
-        </mat-select>
+        <input matInput
+               [formControl]="clientSearchCtrl"
+               [matAutocomplete]="autoCliente"
+               (input)="onClientSearch()"
+               placeholder="Todos los clientes" />
+        <mat-autocomplete #autoCliente="matAutocomplete"
+                          (optionSelected)="onClientSelected($event)">
+          <mat-option *ngFor="let c of clientOptions" [value]="c.id">{{ c.name }}</mat-option>
+        </mat-autocomplete>
+        <button *ngIf="selectedClientId" matSuffix mat-icon-button
+                aria-label="Limpiar cliente" (click)="clearClientFilter()">
+          <mat-icon>close</mat-icon>
+        </button>
       </mat-form-field>
 
       <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:180px">
@@ -33,6 +33,16 @@
         </mat-select>
       </mat-form-field>
     </div>
+
+    <div class="page-header__actions">
+      <span class="page-header__count" *ngIf="!loading">{{ tasks.length }} tareas</span>
+      <button mat-flat-button color="primary" (click)="openCreateDialog()">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;margin-right:4px;vertical-align:middle">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nueva tarea
+      </button>
+    </div>
   </div>
 
   <div *ngIf="error" class="error-banner">
@@ -42,13 +52,15 @@
 
   <div *ngIf="loading" class="loading-row">Cargando…</div>
 
-  <app-kanban-board
-    *ngIf="!loading"
-    [tasks]="tasks"
-    [showTechnicianAvatar]="true"
-    [selectedTaskId]="selectedTask?.id ?? null"
-    (taskSelected)="selectTask($event)">
-  </app-kanban-board>
+  <div class="kanban-wrapper" *ngIf="!loading">
+    <app-kanban-board
+      [tasks]="tasks"
+      [scrollable]="true"
+      [showTechnicianAvatar]="true"
+      [selectedTaskId]="selectedTask?.id ?? null"
+      (taskSelected)="selectTask($event)">
+    </app-kanban-board>
+  </div>
 </div>
 
 <div class="drawer" [class.open]="selectedTask !== null">

@@ -9,6 +9,8 @@ export interface TaskFilters {
   clientId?: string;
   technicianId?: string;
   type?: string;
+  year?: number;
+  month?: number;
 }
 
 export interface CreateTaskPayload {
@@ -26,10 +28,12 @@ export class TasksService {
 
   getAll(filters: TaskFilters = {}): Observable<Task[]> {
     let params = new HttpParams();
-    if (filters.status)      params = params.set('status',      filters.status);
-    if (filters.clientId)    params = params.set('clientId',    filters.clientId);
+    if (filters.status)       params = params.set('status',       filters.status);
+    if (filters.clientId)     params = params.set('clientId',     filters.clientId);
     if (filters.technicianId) params = params.set('technicianId', filters.technicianId);
     if (filters.type)         params = params.set('type',         filters.type);
+    if (filters.year)         params = params.set('year',         String(filters.year));
+    if (filters.month)        params = params.set('month',        String(filters.month));
     return this.http.get<Task[]>(this.base, { params });
   }
 
