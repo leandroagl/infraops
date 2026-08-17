@@ -29,7 +29,7 @@ const routes: Routes = [
       {
         path: 'tasks',
         loadChildren: () =>
-          import('./features/technician/technician.module').then(m => m.TechnicianModule),
+          import('./features/tasks/tasks.module').then(m => m.TasksModule),
       },
       {
         path: 'notifications',

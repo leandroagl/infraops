@@ -25,9 +25,6 @@ import { UserFormDialogComponent } from './users/user-form-dialog/user-form-dial
 import { PasswordDisplayDialogComponent } from './users/password-display-dialog/password-display-dialog.component';
 import { TechniciansComponent } from './technicians/technicians.component';
 import { AssignTechnicianDialogComponent } from './technicians/assign-technician-dialog/assign-technician-dialog.component';
-import { TasksComponent } from './tasks/tasks.component';
-import { TaskCreateDialogComponent } from './tasks/task-create-dialog/task-create-dialog.component';
-import { AdminTaskDrawerComponent } from './tasks/admin-task-drawer/admin-task-drawer.component';
 import { SyncComponent } from './sync/sync.component';
 import { SharedModule } from '../../shared/shared.module';
 
@@ -39,9 +36,6 @@ import { SharedModule } from '../../shared/shared.module';
     PasswordDisplayDialogComponent,
     TechniciansComponent,
     AssignTechnicianDialogComponent,
-    TasksComponent,
-    TaskCreateDialogComponent,
-    AdminTaskDrawerComponent,
     SyncComponent,
   ],
   imports: [
