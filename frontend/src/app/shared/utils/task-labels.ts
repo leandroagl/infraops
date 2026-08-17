@@ -31,7 +31,7 @@ export function typeLabel(type: TaskType): string {
     WINDOWS_DOMAIN_MAINTENANCE: 'Windows / AD',
     QNAP_MAINTENANCE:           'QNAP/NAS',
     VEEAM_BACKUP:               'Veeam',
-    ROUTER_MAINTENANCE:         'Router / FW',
+    ROUTER_MAINTENANCE:         'Router/Firewall',
     TERMINAL_MAINTENANCE:       'Terminales',
     SITE_VISIT:                 'Visita',
     AV_CONTROL:                 'Antivirus',

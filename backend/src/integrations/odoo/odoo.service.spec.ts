@@ -801,8 +801,9 @@ describe('OdooService', () => {
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line
-        .mockResolvedValueOnce(66);  // helpdesk.ticket create
+        .mockResolvedValueOnce([])              // sale.order.line
+        .mockResolvedValueOnce([{ id: 30 }])   // helpdesk.tag → Router/Firewall
+        .mockResolvedValueOnce(66);             // helpdesk.ticket create
 
       const ticketId = await service.createTicket(
         'client-uuid-1',
@@ -820,6 +821,48 @@ describe('OdooService', () => {
         })],
         {},
       );
+    });
+
+    it('incluye tag_ids con Router/Firewall al crear ticket ROUTER_MAINTENANCE', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])              // sale.order.line
+        .mockResolvedValueOnce([{ id: 30 }])   // helpdesk.tag → Router/Firewall
+        .mockResolvedValueOnce(66);             // helpdesk.ticket create
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.ROUTER_MAINTENANCE);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.tag',
+        'search_read',
+        [[['name', '=', 'Router/Firewall']]],
+        { fields: ['id'], limit: 1 },
+      );
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [expect.objectContaining({ tag_ids: [[6, 0, [30]]] })],
+        {},
+      );
+    });
+
+    it('lanza ServiceUnavailableException cuando Odoo no encuentra el tag Router/Firewall', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw
+        .mockResolvedValueOnce([])  // sale.order.line
+        .mockResolvedValueOnce([]); // helpdesk.tag → no encontrado
+
+      await expect(
+        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.ROUTER_MAINTENANCE),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
 
     it('incluye sale_line_id en el payload cuando el cliente tiene odooSaleLineId', async () => {

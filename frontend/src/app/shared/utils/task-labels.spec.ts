@@ -35,7 +35,7 @@ describe('task-labels utils', () => {
 
   describe('typeLabel() — labels cortas', () => {
     const cases: [TaskType, string][] = [
-      ['ROUTER_MAINTENANCE',   'Router / FW'],
+      ['ROUTER_MAINTENANCE',   'Router/Firewall'],
       ['TERMINAL_MAINTENANCE', 'Terminales'],
       ['SITE_VISIT',           'Visita'],
       ['AV_CONTROL',           'Antivirus'],
@@ -109,8 +109,8 @@ describe('task-labels utils', () => {
     expect(typeLabelLong('WINDOWS_DOMAIN_MAINTENANCE')).toBe('Mantenimiento Windows y dominios');
   });
 
-  it('typeLabel retorna "Router / FW" para ROUTER_MAINTENANCE', () => {
-    expect(typeLabel('ROUTER_MAINTENANCE')).toBe('Router / FW');
+  it('typeLabel retorna "Router/Firewall" para ROUTER_MAINTENANCE', () => {
+    expect(typeLabel('ROUTER_MAINTENANCE')).toBe('Router/Firewall');
   });
 
   it('typeLabelLong retorna "Mantenimiento de router y firewall" para ROUTER_MAINTENANCE', () => {

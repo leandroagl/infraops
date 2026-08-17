@@ -102,6 +102,7 @@ export class OdooService {
   private windowsServerTagId: number | null = null;
   private virtualizationTagId: number | null = null;
   private serverManagementTagId: number | null = null;
+  private routerFirewallTagId: number | null = null;
 
   constructor(
     private readonly systemRpc: OdooSystemRpcService,
@@ -489,6 +490,26 @@ export class OdooService {
     return this.serverManagementTagId;
   }
 
+  private async resolveRouterFirewallTagId(): Promise<number> {
+    if (this.routerFirewallTagId !== null) return this.routerFirewallTagId;
+
+    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
+      'helpdesk.tag',
+      'search_read',
+      [[['name', '=', 'Router/Firewall']]],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (tags.length === 0) {
+      throw new ServiceUnavailableException(
+        'No se encontró el tag "Router/Firewall" en Odoo',
+      );
+    }
+
+    this.routerFirewallTagId = tags[0].id;
+    return this.routerFirewallTagId;
+  }
+
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 
@@ -603,6 +624,10 @@ export class OdooService {
     }
     if (taskType === TaskType.VEEAM_BACKUP) {
       const tagId = await this.resolveQnapTagId();
+      payload['tag_ids'] = [[6, 0, [tagId]]];
+    }
+    if (taskType === TaskType.ROUTER_MAINTENANCE) {
+      const tagId = await this.resolveRouterFirewallTagId();
       payload['tag_ids'] = [[6, 0, [tagId]]];
     }
 
