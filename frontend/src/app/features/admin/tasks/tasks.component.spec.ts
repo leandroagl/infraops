@@ -87,7 +87,7 @@ describe('TasksComponent', () => {
     });
 
     it('pasa filterClientId al servicio', () => {
-      component.filterClientId = 'client-1';
+      component.selectedClientId = 'client-1';
       component.load();
       expect(tasksServiceSpy.getAll).toHaveBeenCalledWith(jasmine.objectContaining({ clientId: 'client-1' }));
     });
@@ -100,14 +100,14 @@ describe('TasksComponent', () => {
 
     it('combina múltiples filtros', () => {
       component.filterStatus = 'DONE';
-      component.filterClientId = 'client-1';
+      component.selectedClientId = 'client-1';
       component.load();
       expect(tasksServiceSpy.getAll).toHaveBeenCalledWith(jasmine.objectContaining({ status: 'DONE', clientId: 'client-1' }));
     });
 
     it('llama al servicio con objeto vacío cuando no hay filtros', () => {
       component.filterStatus = '';
-      component.filterClientId = '';
+      component.selectedClientId = null;
       component.filterTechnicianId = '';
       component.load();
       expect(tasksServiceSpy.getAll).toHaveBeenCalledWith({});

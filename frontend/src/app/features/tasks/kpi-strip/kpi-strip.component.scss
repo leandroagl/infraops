@@ -1,0 +1,95 @@
+.kpi-strip {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border-lo);
+  height: 62px;
+}
+
+.kpi-block {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 20px;
+  border-right: 1px solid var(--border-lo);
+  &:first-child { padding-left: 0; }
+}
+
+.kpi-sep { width: 1px; height: 28px; background: var(--border-lo); margin: 0; }
+
+.kpi-label {
+  font-size: 9px;
+  color: var(--tx-lo);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  font-family: var(--font-mono);
+  margin-bottom: 3px;
+}
+
+.kpi-val {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1;
+  &--assigned   { color: var(--tx-hi);   }
+  &--inprogress { color: var(--accent);  }
+  &--pending    { color: var(--warn);    }
+  &--done       { color: var(--ok);      }
+}
+
+.kpi-progress {
+  flex: 1;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+
+.kpi-progress-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.kpi-progress-title {
+  font-size: 10px;
+  color: var(--tx-lo);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  font-family: var(--font-mono);
+}
+
+.kpi-progress-pct {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--tx-hi);
+}
+
+.kpi-progress-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.kpi-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ok);
+  transition: width .4s;
+}
+
+.kpi-cycle-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  white-space: nowrap;
+  &--open   { background: var(--warn-bg); border: 1px solid var(--warn-bd); color: var(--warn); }
+  &--closed { background: var(--ok-bg);   border: 1px solid var(--ok-bd);   color: var(--ok);   }
+}
