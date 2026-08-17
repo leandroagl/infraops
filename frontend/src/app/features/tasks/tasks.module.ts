@@ -3,9 +3,11 @@ import { CommonModule } from '@angular/common';
 import { TasksRoutingModule } from './tasks-routing.module';
 import { TasksUnifiedComponent } from './tasks-unified.component';
 import { KpiStripComponent } from './kpi-strip/kpi-strip.component';
+import { CycleTableComponent } from './cycle-table/cycle-table.component';
+import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
-  declarations: [TasksUnifiedComponent, KpiStripComponent],
-  imports: [CommonModule, TasksRoutingModule],
+  declarations: [TasksUnifiedComponent, KpiStripComponent, CycleTableComponent],
+  imports: [CommonModule, TasksRoutingModule, SharedModule],
 })
 export class TasksModule {}
