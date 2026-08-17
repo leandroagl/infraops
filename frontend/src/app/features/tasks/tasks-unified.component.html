@@ -20,7 +20,7 @@
 
   <div class="controls-spacer"></div>
 
-  <button *ngIf="canCreateTask" mat-flat-button color="primary">
+  <button *ngIf="canCreateTask" mat-flat-button color="primary" (click)="openCreateDialog()">
     <mat-icon>add</mat-icon>
     Nueva tarea
   </button>

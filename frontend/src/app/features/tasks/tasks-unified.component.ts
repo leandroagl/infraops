@@ -9,6 +9,7 @@ import { UserRole } from '../../core/models/auth.models';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
+import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/task-create-dialog.component';
 
 @Component({
   selector: 'app-tasks-unified',
@@ -158,6 +159,23 @@ export class TasksUnifiedComponent implements OnInit {
   onTaskNotDone(): void {
     this.onTaskStatusChanged('NOT_DONE');
     this.closeDrawer();
+  }
+
+  openCreateDialog(): void {
+    const ref = this.dialog.open(TaskCreateDialogComponent, {
+      width: '520px',
+      disableClose: true,
+    });
+    ref.afterClosed().pipe(
+      takeUntilDestroyed(this.destroyRef),
+      switchMap((created: Task | undefined) => created ? this.tasksService.getAll({
+        month: this.currentMonth,
+        year:  this.currentYear,
+      }) : EMPTY),
+    ).subscribe({
+      next: tasks => { this.tasks = tasks; },
+      error: () => this.snackBar.open('No se pudo recargar las tareas', 'Cerrar', { duration: 3000 }),
+    });
   }
 
   onTaskDeleted(): void {

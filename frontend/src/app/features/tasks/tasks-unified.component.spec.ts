@@ -118,4 +118,8 @@ describe('TasksUnifiedComponent', () => {
     component.load();
     expect(component.error).toBeTruthy();
   });
+
+  it('ADMIN ve el botón Nueva tarea', () => {
+    expect(fixture.nativeElement.querySelector('button[color="primary"]')).toBeTruthy();
+  });
 });
