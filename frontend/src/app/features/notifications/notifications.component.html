@@ -12,29 +12,6 @@
 
   <div *ngIf="error" class="error-banner">{{ error }}</div>
 
-  <div class="kpi-row">
-    <div class="kpi kpi--vencido">
-      <div class="kpi__label">Vencidos</div>
-      <div class="kpi__value">{{ expiredCount }}</div>
-      <div class="kpi__sub">requieren acción</div>
-    </div>
-    <div class="kpi kpi--crit">
-      <div class="kpi__label">Esta semana</div>
-      <div class="kpi__value">{{ weekCount }}</div>
-      <div class="kpi__sub">≤ 7 días</div>
-    </div>
-    <div class="kpi kpi--warn">
-      <div class="kpi__label">Próximamente</div>
-      <div class="kpi__value">{{ soonCount }}</div>
-      <div class="kpi__sub">8 – 20 días</div>
-    </div>
-    <div class="kpi kpi--total">
-      <div class="kpi__label">Mostrando</div>
-      <div class="kpi__value">{{ totalShown }}</div>
-      <div class="kpi__sub">{{ showAll ? 'todos' : 'próximos 90 días' }}</div>
-    </div>
-  </div>
-
   <div class="filter-bar">
     <mat-form-field appearance="outline" subscriptSizing="dynamic">
       <mat-label>Tipo</mat-label>
@@ -58,11 +35,28 @@
       </mat-select>
     </mat-form-field>
 
-    <span class="filter-sep"></span>
-
     <mat-checkbox [(ngModel)]="showAll" (change)="onShowAllChange()">
       Ver todos los futuros
     </mat-checkbox>
+
+    <span class="filter-sep"></span>
+
+    <span class="kpi-chip kpi-chip--vencido">
+      <span class="kpi-chip__val">{{ expiredCount }}</span>
+      <span class="kpi-chip__lbl">Vencidos</span>
+    </span>
+    <span class="kpi-chip kpi-chip--crit">
+      <span class="kpi-chip__val">{{ weekCount }}</span>
+      <span class="kpi-chip__lbl">Esta semana</span>
+    </span>
+    <span class="kpi-chip kpi-chip--warn">
+      <span class="kpi-chip__val">{{ soonCount }}</span>
+      <span class="kpi-chip__lbl">Próximo</span>
+    </span>
+    <span class="kpi-chip">
+      <span class="kpi-chip__val">{{ totalShown }}</span>
+      <span class="kpi-chip__lbl">Mostrando</span>
+    </span>
   </div>
 
   <mat-table [dataSource]="filteredItems" class="exp-table">
@@ -75,6 +69,21 @@
     <ng-container matColumnDef="item">
       <mat-header-cell *matHeaderCellDef>Item</mat-header-cell>
       <mat-cell *matCellDef="let item" class="cell--name">{{ item.itemName }}</mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="make">
+      <mat-header-cell *matHeaderCellDef>Marca</mat-header-cell>
+      <mat-cell *matCellDef="let item" class="cell--secondary">{{ item.make || '—' }}</mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="model">
+      <mat-header-cell *matHeaderCellDef>Modelo</mat-header-cell>
+      <mat-cell *matCellDef="let item" class="cell--secondary">{{ item.model || '—' }}</mat-cell>
+    </ng-container>
+
+    <ng-container matColumnDef="serial">
+      <mat-header-cell *matHeaderCellDef>Serie</mat-header-cell>
+      <mat-cell *matCellDef="let item" class="cell--mono cell--secondary">{{ item.serial || '—' }}</mat-cell>
     </ng-container>
 
     <ng-container matColumnDef="type">

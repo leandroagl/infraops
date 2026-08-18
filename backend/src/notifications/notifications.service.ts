@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { ExpirationItemDto, ExpirationType } from './dto/expiration-item.dto';
 
 interface RawClient     { client_id: string; client_name: string; }
-interface RawAsset      { asset_id: string; asset_name: string; asset_warranty_expire: string | null; asset_client_id: string; }
+interface RawAsset      { asset_id: string; asset_name: string; asset_make: string | null; asset_model: string | null; asset_serial: string | null; asset_warranty_expire: string | null; asset_client_id: string; }
 interface RawCert       { certificate_id: string; certificate_name: string; certificate_expire: string | null; certificate_client_id: string; }
 interface RawDomain     { domain_id: string; domain_name: string; domain_expire: string | null; domain_client_id: string; }
 interface RawSoftware   { software_id: string; software_name: string; software_expire: string | null; software_client_id: string; }
@@ -51,7 +51,7 @@ export class NotificationsService {
 
     for (const r of this.safe(assetsRes.data)) {
       if (!r.asset_warranty_expire || !r.asset_client_id) continue;
-      items.push(this.toItem('asset_warranty', r.asset_client_id, r.asset_name, r.asset_warranty_expire, clientMap, today));
+      items.push(this.toItem('asset_warranty', r.asset_client_id, r.asset_name, r.asset_warranty_expire, clientMap, today, r.asset_make ?? undefined, r.asset_model ?? undefined, r.asset_serial ?? undefined));
     }
     for (const r of this.safe(certsRes.data)) {
       if (!r.certificate_expire || !r.certificate_client_id) continue;
@@ -80,6 +80,9 @@ export class NotificationsService {
     expireDate: string,
     clientMap: Map<string, string>,
     today: Date,
+    make?: string,
+    model?: string,
+    serial?: string,
   ): ExpirationItemDto {
     const clientId = Number(rawClientId);
     const expire = new Date(expireDate);
@@ -90,6 +93,9 @@ export class NotificationsService {
       clientId,
       clientName: clientMap.get(String(clientId)) ?? `Cliente ${clientId}`,
       itemName: name,
+      make,
+      model,
+      serial,
       expireDate,
       daysUntil,
     };
