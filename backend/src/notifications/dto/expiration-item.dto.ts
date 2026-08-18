@@ -5,6 +5,9 @@ export class ExpirationItemDto {
   clientId!: number;
   clientName!: string;
   itemName!: string;
+  make?: string;
+  model?: string;
+  serial?: string;
   expireDate!: string;
   daysUntil!: number;
 }

@@ -1,0 +1,64 @@
+<table class="cycle-table">
+  <thead>
+    <tr>
+      <th>Tipo</th>
+      <th>Técnico</th>
+      <th>Estado</th>
+      <th>Ticket Odoo</th>
+      <th>Notas</th>
+    </tr>
+  </thead>
+  <tbody>
+    <ng-container *ngFor="let group of groups">
+      <tr class="group-header">
+        <td colspan="5">
+          <div class="group-label">
+            <span class="group-label__client">{{ group.clientName }}</span>
+            <span class="group-label__count">{{ group.tasks.length }} tareas</span>
+            <span class="group-label__progress">
+              <div class="group-progress-bar">
+                <div class="group-progress-fill"
+                     [style.width.%]="groupProgressPct(group)"></div>
+              </div>
+              <span class="group-progress-text">
+                {{ groupDoneCount(group) }}/{{ group.tasks.length }}
+              </span>
+            </span>
+          </div>
+        </td>
+      </tr>
+      <tr *ngFor="let task of group.tasks"
+          class="task-row"
+          [class.selected]="task.id === selectedTaskId"
+          [class.cancelled]="task.status === 'NOT_DONE'"
+          (click)="taskSelected.emit(task)">
+        <td>
+          <span class="badge" [ngClass]="typeBadge(task)">{{ typeLabel(task) }}</span>
+        </td>
+        <td>
+          <div class="col-tech">
+            <span class="avatar">{{ task.technician?.user?.name?.slice(0,1) ?? '?' }}</span>
+            {{ task.technician?.user?.name ?? '—' }}
+          </div>
+        </td>
+        <td>
+          <span class="badge" [ngClass]="statusBadge(task)">{{ statusLabel(task) }}</span>
+        </td>
+        <td>
+          <span class="col-ticket" [class.col-ticket--none]="!task.odooTicketId">
+            {{ ticketLabel(task) }}
+          </span>
+        </td>
+        <td>
+          <span class="col-notes">—</span>
+        </td>
+      </tr>
+    </ng-container>
+
+    <tr *ngIf="groups.length === 0">
+      <td colspan="5" class="empty-state">
+        Sin tareas para este ciclo con los filtros actuales
+      </td>
+    </tr>
+  </tbody>
+</table>

@@ -17,7 +17,7 @@ export class NotificationsComponent implements OnInit {
   filterUrgency: 'expired' | 'week' | 'soon' | 'attention' | '' = '';
   showAll = false;
 
-  readonly displayedColumns = ['client', 'item', 'type', 'expireDate', 'status'];
+  readonly displayedColumns = ['client', 'item', 'make', 'model', 'serial', 'type', 'expireDate', 'status'];
 
   private readonly destroyRef = inject(DestroyRef);
   private loadSub?: Subscription;

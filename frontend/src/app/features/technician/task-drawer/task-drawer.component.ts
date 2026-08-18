@@ -11,6 +11,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, map, of, switchMap, tap, throwError } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { Task, TaskStatus, TaskType } from '../../../core/models/task.models';
+import { UserRole } from '../../../core/models/auth.models';
 import { ClientInfrastructure } from '../../../core/models/infradoc.models';
 import {
   MaintenancePayload,
@@ -45,10 +46,13 @@ import { formatOdooTicketId, odooTicketUrl } from '../../../shared/utils/odoo';
 })
 export class TaskDrawerComponent implements OnChanges {
   @Input() task!: Task;
+  @Input() userRole: UserRole = 'TECHNICIAN';
+  @Input() cycleClosed = false;
 
   @Output() taskCompleted = new EventEmitter<void>();
   @Output() taskNotDone = new EventEmitter<void>();
   @Output() taskStatusChanged = new EventEmitter<TaskStatus>();
+  @Output() taskDeleted = new EventEmitter<void>();
   @Output() drawerClosed = new EventEmitter<void>();
 
   @ViewChild(MaintenanceFormComponent) maintenanceForm?: MaintenanceFormComponent;
@@ -173,6 +177,15 @@ export class TaskDrawerComponent implements OnChanges {
     return this.task.status !== 'DONE'
       && this.task.status !== 'ESCALATED'
       && this.task.status !== 'NOT_DONE';
+  }
+
+  get canExecute(): boolean {
+    return !this.cycleClosed
+      && (this.userRole === 'TECHNICIAN' || this.userRole === 'TL' || this.userRole === 'ADMIN');
+  }
+
+  get canDelete(): boolean {
+    return !this.cycleClosed && this.userRole === 'ADMIN';
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────────

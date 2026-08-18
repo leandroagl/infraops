@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tareas · Opción A (Tabs) · InfraOps</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --base:#0f1117;--surface:#161b22;--card:#1e2530;--elevated:#252e3f;--hover:#2a3447;
+  --border:#2d3748;--border-lo:#1e2737;--border-md:#3a4a62;
+  --tx-hi:#f0f4f8;--tx-md:#8b95a6;--tx-lo:#4a5568;
+  --crit:#f87171;--crit-bg:rgba(248,113,113,.10);--crit-bd:rgba(248,113,113,.25);
+  --warn:#fb923c;--warn-bg:rgba(251,146,60,.10);--warn-bd:rgba(251,146,60,.25);
+  --ok:#4ade80;--ok-bg:rgba(74,222,128,.10);--ok-bd:rgba(74,222,128,.25);
+  --neutral:#64748b;--neutral-bg:rgba(100,116,139,.10);--neutral-bd:rgba(100,116,139,.25);
+  --accent:#22d3ee;--accent-bg:rgba(34,211,238,.10);--accent-bd:rgba(34,211,238,.25);
+  --srv:#60a5fa;--srv-bg:rgba(96,165,250,.10);--srv-bd:rgba(96,165,250,.25);
+  --win:#818cf8;--win-bg:rgba(129,140,248,.12);--win-bd:rgba(129,140,248,.25);
+  --bkp:#a3e635;--bkp-bg:rgba(163,230,53,.12);--bkp-bd:rgba(163,230,53,.25);
+  --purple:#c084fc;--purple-bg:rgba(192,132,252,.10);--purple-bd:rgba(192,132,252,.25);
+  --router:#f59e0b;--router-bg:rgba(245,158,11,.10);--router-bd:rgba(245,158,11,.25);
+  --font-mono:'IBM Plex Mono',monospace;
+  --font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --radius:10px;--radius-sm:7px;--radius-xs:5px;
+  --shadow-card:0 1px 3px rgba(0,0,0,.4);
+  --transition:.12s ease;
+}
+body{font-family:var(--font-ui);background:var(--base);color:var(--tx-hi);font-size:13px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Shell ─────────────────────────────────────────── */
+.topbar{height:50px;background:var(--surface);border-bottom:1px solid var(--border-lo);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.topbar__logo{font-size:13px;font-weight:700;font-family:var(--font-mono);color:var(--tx-hi);letter-spacing:-.5px}
+.topbar__sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.topbar__page{font-size:12px;color:var(--tx-lo)}
+.topbar__spacer{flex:1}
+.btn-new{display:flex;align-items:center;gap:5px;padding:6px 14px;border-radius:var(--radius-sm);background:var(--accent-bg);border:1px solid var(--accent-bd);color:var(--accent);font-size:12px;font-family:var(--font-ui);cursor:pointer;font-weight:500}
+.btn-new svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round}
+.btn-new:hover{background:rgba(34,211,238,.18)}
+
+.shell{display:flex;flex:1;overflow:hidden}
+.sidebar{width:52px;background:var(--surface);border-right:1px solid var(--border-lo);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:4px;flex-shrink:0}
+.nav-item{width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx-lo);border:1px solid transparent}
+.nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nav-item:hover{background:var(--hover);color:var(--tx-md)}
+.nav-item.active{background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── Tab bar ────────────────────────────────────────── */
+.tab-bar{display:flex;align-items:center;gap:0;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border-lo);flex-shrink:0}
+.tab{display:flex;align-items:center;gap:7px;padding:14px 18px 13px;font-size:12px;font-weight:500;color:var(--tx-lo);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .12s,border-color .12s;white-space:nowrap}
+.tab:hover{color:var(--tx-md)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab__badge{font-family:var(--font-mono);font-size:10px;padding:1px 6px;border-radius:20px;background:var(--card);border:1px solid var(--border-lo);color:var(--tx-md)}
+.tab.active .tab__badge{background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)}
+.tab__badge--crit{background:var(--crit-bg);border-color:var(--crit-bd);color:var(--crit)}
+.tab-spacer{flex:1}
+.tab-filters{display:flex;align-items:center;gap:8px;padding:8px 0}
+.filter-chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:var(--card);border:1px solid var(--border-lo);color:var(--tx-md);font-size:11px;cursor:pointer}
+.filter-chip svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.filter-chip:hover{background:var(--elevated);color:var(--tx-hi)}
+.filter-chip.applied{background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)}
+
+/* ── Panel de contenido ─────────────────────────────── */
+.page{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.tab-panel{display:none}
+.tab-panel.active{display:flex;flex-direction:column;gap:16px}
+
+/* ── Kanban (tab Activas) ───────────────────────────── */
+.kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+.kol{background:var(--surface);border:1px solid var(--border-lo);border-radius:var(--radius);display:flex;flex-direction:column;gap:0;overflow:hidden}
+.kol__head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border-lo)}
+.kol__title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--tx-lo);font-family:var(--font-mono)}
+.kol__count{font-family:var(--font-mono);font-size:11px;padding:1px 7px;border-radius:20px}
+.kol--pending .kol__count{background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn)}
+.kol--inprogress .kol__count{background:var(--accent-bg);border:1px solid var(--accent-bd);color:var(--accent)}
+.kol--escalated .kol__count{background:var(--crit-bg);border:1px solid var(--crit-bd);color:var(--crit)}
+.kol__cards{display:flex;flex-direction:column;gap:0}
+
+.task-card{padding:12px 14px;border-bottom:1px solid var(--border-lo);cursor:pointer;transition:background var(--transition);display:flex;flex-direction:column;gap:6px}
+.task-card:last-child{border-bottom:none}
+.task-card:hover{background:var(--hover)}
+.task-card.selected{background:var(--elevated)}
+.task-card__client{font-size:12px;font-weight:500;color:var(--tx-hi)}
+.task-card__meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.task-card__footer{display:flex;align-items:center;justify-content:space-between}
+.task-card__tech{font-size:10px;color:var(--tx-lo)}
+.task-card__date{font-size:10px;font-family:var(--font-mono);color:var(--tx-lo)}
+.task-card__date.overdue{color:var(--crit)}
+.task-card__date.soon{color:var(--warn)}
+
+/* ── Badges de tipo ─────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:600;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.4px;padding:2px 6px;border-radius:4px}
+.badge--srv{background:var(--srv-bg);border:1px solid var(--srv-bd);color:var(--srv)}
+.badge--win{background:var(--win-bg);border:1px solid var(--win-bd);color:var(--win)}
+.badge--bkp{background:var(--bkp-bg);border:1px solid var(--bkp-bd);color:var(--bkp)}
+.badge--router{background:var(--router-bg);border:1px solid var(--router-bd);color:var(--router)}
+.badge--qnap{background:var(--neutral-bg);border:1px solid var(--neutral-bd);color:var(--neutral)}
+.badge--visit{background:var(--purple-bg);border:1px solid var(--purple-bd);color:var(--purple)}
+.badge--av{background:var(--ok-bg);border:1px solid var(--ok-bd);color:var(--ok)}
+.badge--status-done{background:var(--ok-bg);border:1px solid var(--ok-bd);color:var(--ok)}
+.badge--status-notdone{background:var(--crit-bg);border:1px solid var(--crit-bd);color:var(--crit)}
+.badge--status-cancelled{background:var(--neutral-bg);border:1px solid var(--neutral-bd);color:var(--neutral)}
+.badge--status-escalated{background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn)}
+
+/* ── Avatar técnico ─────────────────────────────────── */
+.avatar{width:18px;height:18px;border-radius:50%;background:var(--elevated);border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--tx-md);font-family:var(--font-mono)}
+
+/* ── Historial (tab Historial) ──────────────────────── */
+.hist-controls{display:flex;align-items:center;gap:8px}
+.date-range{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:var(--radius-sm);background:var(--card);border:1px solid var(--border);color:var(--tx-md);font-size:11px;font-family:var(--font-mono)}
+.date-range svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+.hist-spacer{flex:1}
+.hist-count{font-size:11px;color:var(--tx-lo);font-family:var(--font-mono)}
+
+.hist-table{background:var(--surface);border:1px solid var(--border-lo);border-radius:var(--radius);overflow:hidden}
+.hist-table__head{display:grid;grid-template-columns:1.5fr 1.4fr 90px 100px 90px;border-bottom:1px solid var(--border-lo);background:var(--card)}
+.hist-table__hcell{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--tx-lo);font-family:var(--font-mono);padding:9px 12px}
+.hist-row{display:grid;grid-template-columns:1.5fr 1.4fr 90px 100px 90px;border-bottom:1px solid var(--border-lo);cursor:pointer;transition:background var(--transition)}
+.hist-row:last-child{border-bottom:none}
+.hist-row:hover{background:var(--hover)}
+.hist-cell{padding:10px 12px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tx-hi)}
+.hist-cell--lo{color:var(--tx-md)}
+.hist-cell--mono{font-family:var(--font-mono);font-size:11px;color:var(--tx-md)}
+
+/* ── Canceladas (tab Canceladas) ────────────────────── */
+.cancelled-note{font-size:11px;color:var(--tx-lo);display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--card);border:1px solid var(--border-lo);border-radius:var(--radius-sm)}
+.cancelled-note svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;color:var(--neutral)}
+.cancelled-table{background:var(--surface);border:1px solid var(--border-lo);border-radius:var(--radius);overflow:hidden}
+.cancelled-table .hist-table__head{grid-template-columns:1.5fr 1.4fr 90px 100px 1fr}
+.cancelled-table .hist-row{grid-template-columns:1.5fr 1.4fr 90px 100px 1fr}
+.cancelled-reason{font-size:11px;color:var(--tx-lo);font-style:italic}
+
+/* ── Annotation overlay ─────────────────────────────── */
+.annotation{position:fixed;bottom:20px;right:20px;background:var(--elevated);border:1px solid var(--border-md);border-radius:var(--radius);padding:14px 18px;max-width:280px;font-size:11px;color:var(--tx-md);line-height:1.7;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.annotation__title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);font-family:var(--font-mono);margin-bottom:8px}
+.annotation ul{padding-left:14px;display:flex;flex-direction:column;gap:4px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar__logo">InfraOps</span>
+  <span class="topbar__sep"></span>
+  <span class="topbar__page">Tareas de mantenimiento</span>
+  <div class="topbar__spacer"></div>
+  <button class="btn-new">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Nueva tarea
+  </button>
+</div>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+    </div>
+  </nav>
+
+  <div class="main">
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <div class="tab active" onclick="switchTab('activas',this)">
+        Activas
+        <span class="tab__badge tab__badge--crit">12</span>
+      </div>
+      <div class="tab" onclick="switchTab('semana',this)">
+        Esta semana
+        <span class="tab__badge">7</span>
+      </div>
+      <div class="tab" onclick="switchTab('historial',this)">
+        Historial
+        <span class="tab__badge">89</span>
+      </div>
+      <div class="tab" onclick="switchTab('canceladas',this)">
+        Canceladas / No realizadas
+        <span class="tab__badge">6</span>
+      </div>
+      <div class="tab-spacer"></div>
+      <!-- Filtros inline solo en tabs relevantes -->
+      <div class="tab-filters" id="filters-activas">
+        <div class="filter-chip">
+          <svg viewBox="0 0 24 24"><path d="M20 7H4M16 12H8M12 17h0"/></svg>
+          Cliente
+        </div>
+        <div class="filter-chip applied">
+          <svg viewBox="0 0 24 24"><path d="M20 7H4M16 12H8M12 17h0"/></svg>
+          Técnico: Todos
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: ACTIVAS ─────────────────────────────── -->
+    <div class="page tab-panel active" id="panel-activas">
+      <div class="kanban">
+
+        <!-- PENDIENTE -->
+        <div class="kol kol--pending">
+          <div class="kol__head">
+            <span class="kol__title">Pendiente</span>
+            <span class="kol__count">7</span>
+          </div>
+          <div class="kol__cards">
+
+            <div class="task-card">
+              <div class="task-card__client">ACME S.A.</div>
+              <div class="task-card__meta">
+                <span class="badge badge--srv">Server Host</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">V</span> Valen</span>
+                <span class="task-card__date overdue">Venc. 12 ago</span>
+              </div>
+            </div>
+
+            <div class="task-card">
+              <div class="task-card__client">Distribuidora Norte</div>
+              <div class="task-card__meta">
+                <span class="badge badge--router">Router</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">E</span> Enzo</span>
+                <span class="task-card__date overdue">Venc. 14 ago</span>
+              </div>
+            </div>
+
+            <div class="task-card">
+              <div class="task-card__client">Librería Nórdica</div>
+              <div class="task-card__meta">
+                <span class="badge badge--visit">Visita terminal</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">G</span> Gian</span>
+                <span class="task-card__date soon">20 ago</span>
+              </div>
+            </div>
+
+            <div class="task-card">
+              <div class="task-card__client">Colegios Unidos</div>
+              <div class="task-card__meta">
+                <span class="badge badge--bkp">Veeam</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">T</span> Tow</span>
+                <span class="task-card__date">22 ago</span>
+              </div>
+            </div>
+
+            <div class="task-card">
+              <div class="task-card__client">Farmacia Centrale</div>
+              <div class="task-card__meta">
+                <span class="badge badge--win">Windows Dom.</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">S</span> Santi</span>
+                <span class="task-card__date">25 ago</span>
+              </div>
+            </div>
+
+            <div class="task-card">
+              <div class="task-card__client">Estudio Jurídico R.</div>
+              <div class="task-card__meta">
+                <span class="badge badge--qnap">QNAP</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">V</span> Valen</span>
+                <span class="task-card__date">28 ago</span>
+              </div>
+            </div>
+
+            <div class="task-card">
+              <div class="task-card__client">Textil Patagonia</div>
+              <div class="task-card__meta">
+                <span class="badge badge--av">AV Control</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">E</span> Enzo</span>
+                <span class="task-card__date">30 ago</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- EN CURSO -->
+        <div class="kol kol--inprogress">
+          <div class="kol__head">
+            <span class="kol__title">En curso</span>
+            <span class="kol__count">4</span>
+          </div>
+          <div class="kol__cards">
+
+            <div class="task-card selected">
+              <div class="task-card__client">Maderas del Sur</div>
+              <div class="task-card__meta">
+                <span class="badge badge--srv">Server Host</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">T</span> Tow</span>
+                <span class="task-card__date">Hoy</span>
+              </div>
+            </div>
+
+            <div class="task-card">
+              <div class="task-card__client">Constructora Omega</div>
+              <div class="task-card__meta">
+                <span class="badge badge--visit">Visita terminal</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">G</span> Gian</span>
+                <span class="task-card__date">Hoy</span>
+              </div>
+            </div>
+
+            <div class="task-card">
+              <div class="task-card__client">Alimentos Tres Ríos</div>
+              <div class="task-card__meta">
+                <span class="badge badge--bkp">Veeam</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">S</span> Santi</span>
+                <span class="task-card__date soon">Hoy</span>
+              </div>
+            </div>
+
+            <div class="task-card">
+              <div class="task-card__client">Distribuidora Norte</div>
+              <div class="task-card__meta">
+                <span class="badge badge--qnap">QNAP</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">E</span> Enzo</span>
+                <span class="task-card__date">Ayer</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ESCALADA -->
+        <div class="kol kol--escalated">
+          <div class="kol__head">
+            <span class="kol__title">Escalada</span>
+            <span class="kol__count">1</span>
+          </div>
+          <div class="kol__cards">
+
+            <div class="task-card">
+              <div class="task-card__client">Farmacia Centrale</div>
+              <div class="task-card__meta">
+                <span class="badge badge--router">Router</span>
+              </div>
+              <div class="task-card__footer">
+                <span class="task-card__tech"><span class="avatar">P</span> El Pana</span>
+                <span class="task-card__date overdue">Venc. 10 ago</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── TAB: ESTA SEMANA ──────────────────────────── -->
+    <div class="page tab-panel" id="panel-semana">
+      <div class="hist-controls">
+        <span style="font-size:11px;color:var(--tx-lo)">Semana del</span>
+        <div class="date-range">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          12 ago 2026 → 18 ago 2026
+        </div>
+        <div class="hist-spacer"></div>
+        <span class="hist-count">7 tareas</span>
+      </div>
+      <div class="hist-table">
+        <div class="hist-table__head">
+          <div class="hist-table__hcell">Cliente</div>
+          <div class="hist-table__hcell">Tipo</div>
+          <div class="hist-table__hcell">Técnico</div>
+          <div class="hist-table__hcell">Fecha</div>
+          <div class="hist-table__hcell">Estado</div>
+        </div>
+        <div class="hist-row"><div class="hist-cell">ACME S.A.</div><div class="hist-cell"><span class="badge badge--srv">Server Host</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">V</span> Valen</div><div class="hist-cell hist-cell--mono">12 ago</div><div class="hist-cell"><span class="badge" style="background:var(--crit-bg);border-color:var(--crit-bd);color:var(--crit)">Pendiente</span></div></div>
+        <div class="hist-row"><div class="hist-cell">Distribuidora Norte</div><div class="hist-cell"><span class="badge badge--router">Router</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">E</span> Enzo</div><div class="hist-cell hist-cell--mono">14 ago</div><div class="hist-cell"><span class="badge" style="background:var(--crit-bg);border-color:var(--crit-bd);color:var(--crit)">Pendiente</span></div></div>
+        <div class="hist-row"><div class="hist-cell">Maderas del Sur</div><div class="hist-cell"><span class="badge badge--srv">Server Host</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">T</span> Tow</div><div class="hist-cell hist-cell--mono">15 ago</div><div class="hist-cell"><span class="badge" style="background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)">En curso</span></div></div>
+        <div class="hist-row"><div class="hist-cell">Farmacia Centrale</div><div class="hist-cell"><span class="badge badge--router">Router</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">P</span> El Pana</div><div class="hist-cell hist-cell--mono">10 ago</div><div class="hist-cell"><span class="badge badge--status-escalated">Escalada</span></div></div>
+        <div class="hist-row"><div class="hist-cell">Constructora Omega</div><div class="hist-cell"><span class="badge badge--visit">Visita terminal</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">G</span> Gian</div><div class="hist-cell hist-cell--mono">16 ago</div><div class="hist-cell"><span class="badge" style="background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)">En curso</span></div></div>
+        <div class="hist-row"><div class="hist-cell">Alimentos Tres Ríos</div><div class="hist-cell"><span class="badge badge--bkp">Veeam</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">S</span> Santi</div><div class="hist-cell hist-cell--mono">16 ago</div><div class="hist-cell"><span class="badge" style="background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)">En curso</span></div></div>
+        <div class="hist-row"><div class="hist-cell">Distribuidora Norte</div><div class="hist-cell"><span class="badge badge--qnap">QNAP</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">E</span> Enzo</div><div class="hist-cell hist-cell--mono">17 ago</div><div class="hist-cell"><span class="badge" style="background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)">En curso</span></div></div>
+      </div>
+    </div>
+
+    <!-- ── TAB: HISTORIAL ───────────────────────────── -->
+    <div class="page tab-panel" id="panel-historial">
+      <div class="hist-controls">
+        <div class="date-range">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          ago 2026
+        </div>
+        <div class="filter-chip">Tipo: Todos</div>
+        <div class="filter-chip">Técnico: Todos</div>
+        <div class="filter-chip">Cliente: Todos</div>
+        <div class="hist-spacer"></div>
+        <span class="hist-count">89 tareas · 71 completadas · 12 pendientes</span>
+      </div>
+      <div class="hist-table">
+        <div class="hist-table__head">
+          <div class="hist-table__hcell">Cliente</div>
+          <div class="hist-table__hcell">Tipo</div>
+          <div class="hist-table__hcell">Técnico</div>
+          <div class="hist-table__hcell">Fecha</div>
+          <div class="hist-table__hcell">Estado</div>
+        </div>
+        <div class="hist-row"><div class="hist-cell">ACME S.A.</div><div class="hist-cell"><span class="badge badge--srv">Server Host</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">V</span> Valen</div><div class="hist-cell hist-cell--mono">01 ago</div><div class="hist-cell"><span class="badge badge--status-done">Completada</span></div></div>
+        <div class="hist-row"><div class="hist-cell">ACME S.A.</div><div class="hist-cell"><span class="badge badge--bkp">Veeam</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">V</span> Valen</div><div class="hist-cell hist-cell--mono">01 ago</div><div class="hist-cell"><span class="badge badge--status-done">Completada</span></div></div>
+        <div class="hist-row"><div class="hist-cell">Distribuidora Norte</div><div class="hist-cell"><span class="badge badge--srv">Server Host</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">E</span> Enzo</div><div class="hist-cell hist-cell--mono">03 ago</div><div class="hist-cell"><span class="badge badge--status-done">Completada</span></div></div>
+        <div class="hist-row"><div class="hist-cell">Librería Nórdica</div><div class="hist-cell"><span class="badge badge--visit">Visita terminal</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">G</span> Gian</div><div class="hist-cell hist-cell--mono">05 ago</div><div class="hist-cell"><span class="badge badge--status-done">Completada</span></div></div>
+        <div class="hist-row"><div class="hist-cell">Colegios Unidos</div><div class="hist-cell"><span class="badge badge--win">Windows Dom.</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">T</span> Tow</div><div class="hist-cell hist-cell--mono">07 ago</div><div class="hist-cell"><span class="badge badge--status-done">Completada</span></div></div>
+        <div class="hist-row"><div class="hist-cell">Farmacia Centrale</div><div class="hist-cell"><span class="badge badge--router">Router</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">P</span> El Pana</div><div class="hist-cell hist-cell--mono">10 ago</div><div class="hist-cell"><span class="badge badge--status-escalated">Escalada</span></div></div>
+        <div class="hist-row"><div class="hist-cell">ACME S.A.</div><div class="hist-cell"><span class="badge badge--srv">Server Host</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">V</span> Valen</div><div class="hist-cell hist-cell--mono">12 ago</div><div class="hist-cell"><span class="badge" style="background:var(--crit-bg);border-color:var(--crit-bd);color:var(--crit)">Pendiente</span></div></div>
+        <div class="hist-row"><div class="hist-cell">Textil Patagonia</div><div class="hist-cell"><span class="badge badge--qnap">QNAP</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">S</span> Santi</div><div class="hist-cell hist-cell--mono">08 ago</div><div class="hist-cell"><span class="badge badge--status-done">Completada</span></div></div>
+      </div>
+    </div>
+
+    <!-- ── TAB: CANCELADAS ──────────────────────────── -->
+    <div class="page tab-panel" id="panel-canceladas">
+      <div class="cancelled-note">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Tareas que no se realizaron o fueron canceladas. Solo lectura.
+      </div>
+      <div class="cancelled-table hist-table">
+        <div class="hist-table__head" style="grid-template-columns:1.5fr 1.4fr 90px 100px 1fr">
+          <div class="hist-table__hcell">Cliente</div>
+          <div class="hist-table__hcell">Tipo</div>
+          <div class="hist-table__hcell">Técnico</div>
+          <div class="hist-table__hcell">Fecha</div>
+          <div class="hist-table__hcell">Motivo</div>
+        </div>
+        <div class="hist-row" style="grid-template-columns:1.5fr 1.4fr 90px 100px 1fr"><div class="hist-cell">Constructora Omega</div><div class="hist-cell"><span class="badge badge--visit">Visita terminal</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">G</span> Gian</div><div class="hist-cell hist-cell--mono">02 ago</div><div class="hist-cell"><span class="cancelled-reason">Cliente canceló la visita</span></div></div>
+        <div class="hist-row" style="grid-template-columns:1.5fr 1.4fr 90px 100px 1fr"><div class="hist-cell">Estudio Jurídico R.</div><div class="hist-cell"><span class="badge badge--srv">Server Host</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">V</span> Valen</div><div class="hist-cell hist-cell--mono">05 ago</div><div class="hist-cell"><span class="cancelled-reason">Sin horas disponibles</span></div></div>
+        <div class="hist-row" style="grid-template-columns:1.5fr 1.4fr 90px 100px 1fr"><div class="hist-cell">Alimentos Tres Ríos</div><div class="hist-cell"><span class="badge badge--visit">Visita terminal</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">S</span> Santi</div><div class="hist-cell hist-cell--mono">09 ago</div><div class="hist-cell"><span class="cancelled-reason">Reprogramada → 22 ago</span></div></div>
+        <div class="hist-row" style="grid-template-columns:1.5fr 1.4fr 90px 100px 1fr"><div class="hist-cell">Distribuidora Norte</div><div class="hist-cell"><span class="badge badge--av">AV Control</span></div><div class="hist-cell hist-cell--lo"><span class="avatar">E</span> Enzo</div><div class="hist-cell hist-cell--mono">11 ago</div><div class="hist-cell"><span class="cancelled-reason">Eliminada por admin</span></div></div>
+      </div>
+    </div>
+
+  </div><!-- main -->
+</div><!-- shell -->
+
+<div class="annotation">
+  <div class="annotation__title">Opción A — Tabs de contexto</div>
+  <ul>
+    <li>Kanban <strong>solo para activas</strong>: 3 columnas limpias</li>
+    <li>Canceladas/eliminadas en tab propio, sin contaminar el flujo</li>
+    <li>Historial es lista densa, no kanban (el estado ya no importa como eje)</li>
+    <li>Los filtros se adaptan a cada tab</li>
+  </ul>
+</div>
+
+<script>
+function switchTab(id, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+  // Mostrar/ocultar filtros del tab activo
+  const filters = document.getElementById('filters-activas');
+  if (filters) filters.style.display = id === 'activas' ? 'flex' : 'none';
+}
+</script>
+</body>
+</html>

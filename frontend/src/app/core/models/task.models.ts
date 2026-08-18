@@ -35,3 +35,16 @@ export interface UpdateTaskStatusPayload {
   status: TaskStatus;
   timeSpentMinutes?: number;
 }
+
+export interface TaskGroup {
+  clientId: string;
+  clientName: string;
+  tasks: Task[];
+}
+
+export interface CycleStats {
+  assigned: number;
+  inprogress: number;
+  pending: number;
+  done: number;
+}
