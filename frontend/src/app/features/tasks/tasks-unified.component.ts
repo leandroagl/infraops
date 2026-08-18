@@ -2,9 +2,13 @@ import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { EMPTY, Subject } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-import { Task, TaskGroup, TaskStatus, CycleStats } from '../../core/models/task.models';
+import { Task, TaskGroup, TaskType, TaskStatus, CycleStats } from '../../core/models/task.models';
 import { TasksService, TaskFilters } from '../../core/services/tasks.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ClientsService } from '../../core/services/clients.service';
+import { TechniciansService } from '../../core/services/technicians.service';
+import { Client } from '../../core/models/client.models';
+import { Technician } from '../../core/models/technician.models';
 import { UserRole } from '../../core/models/auth.models';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -18,18 +22,46 @@ import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/tas
 })
 export class TasksUnifiedComponent implements OnInit {
   tasks: Task[] = [];
+  clients: Client[] = [];
+  technicians: Technician[] = [];
   selectedTask: Task | null = null;
   loading = false;
   error = '';
   currentMonth: number;
   currentYear: number;
   techFilter: string | null = null;
+  clientFilter: string | null = null;
+  typeFilter: TaskType | null = null;
+  statusFilter: TaskStatus | null = null;
+
+  readonly taskTypes: { value: TaskType; label: string }[] = [
+    { value: 'SERVER_HOST_MAINTENANCE',  label: 'Servidores' },
+    { value: 'WINDOWS_DOMAIN_MAINTENANCE', label: 'Dominio Windows' },
+    { value: 'QNAP_MAINTENANCE',         label: 'QNAP' },
+    { value: 'VEEAM_BACKUP',             label: 'Veeam Backup' },
+    { value: 'ROUTER_MAINTENANCE',       label: 'Routers' },
+    { value: 'TERMINAL_MAINTENANCE',     label: 'Terminales' },
+    { value: 'SITE_VISIT',               label: 'Visita presencial' },
+    { value: 'AV_CONTROL',               label: 'Antivirus' },
+    { value: 'UPS_CONTROL',              label: 'UPS' },
+    { value: 'ENDPOINT_INVENTORY',       label: 'Inventario endpoints' },
+  ];
+
+  readonly taskStatuses: { value: TaskStatus; label: string }[] = [
+    { value: 'PENDING',     label: 'Pendiente' },
+    { value: 'IN_PROGRESS', label: 'En progreso' },
+    { value: 'DONE',        label: 'Hecho' },
+    { value: 'ESCALATED',   label: 'Escalado' },
+    { value: 'NOT_DONE',    label: 'No realizado' },
+  ];
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly load$ = new Subject<void>();
 
   constructor(
     private tasksService: TasksService,
+    private clientsService: ClientsService,
+    private techniciansService: TechniciansService,
     private authService: AuthService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
@@ -43,7 +75,11 @@ export class TasksUnifiedComponent implements OnInit {
   get userRole(): UserRole { return this.currentUser?.role ?? 'TECHNICIAN'; }
 
   get canCreateTask(): boolean {
-    return this.userRole === 'ADMIN' || this.userRole === 'TL';
+    return this.userRole === 'ADMIN';
+  }
+
+  get hasActiveFilters(): boolean {
+    return !!(this.clientFilter || this.typeFilter || this.statusFilter || this.techFilter);
   }
 
   /** Ciclo cerrado si el mes/año seleccionado es anterior al actual */
@@ -87,10 +123,13 @@ export class TasksUnifiedComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const user = this.currentUser;
-    if (user?.role === 'TECHNICIAN' && user.technicianId) {
-      this.techFilter = user.technicianId;
-    }
+    this.clientsService.getAll().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(clients => { this.clients = clients; });
+
+    this.techniciansService.getAll().pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(techs => { this.technicians = techs; });
 
     this.load$.pipe(
       switchMap(() => {
@@ -100,7 +139,10 @@ export class TasksUnifiedComponent implements OnInit {
           month: this.currentMonth,
           year:  this.currentYear,
         };
-        if (this.techFilter) filters.technicianId = this.techFilter;
+        if (this.techFilter)   filters.technicianId = this.techFilter;
+        if (this.clientFilter) filters.clientId     = this.clientFilter;
+        if (this.typeFilter)   filters.type         = this.typeFilter;
+        if (this.statusFilter) filters.status       = this.statusFilter;
         return this.tasksService.getAll(filters);
       }),
       takeUntilDestroyed(this.destroyRef),
@@ -109,7 +151,7 @@ export class TasksUnifiedComponent implements OnInit {
       error: ()    => { this.error = 'No se pudieron cargar las tareas.'; this.loading = false; },
     });
 
-    this.load$.next(); // dispara la carga inicial
+    this.load$.next();
   }
 
   /** Dispara una recarga del ciclo seleccionado con los filtros activos */
@@ -133,11 +175,17 @@ export class TasksUnifiedComponent implements OnInit {
     this.load();
   }
 
-  /** Alterna el filtro por técnico propio (solo para usuarios con technicianId) */
-  toggleTechFilter(): void {
-    const user = this.currentUser;
-    if (!user?.technicianId) return;
-    this.techFilter = this.techFilter ? null : user.technicianId;
+  onFilterChange(): void {
+    this.selectedTask = null;
+    this.load();
+  }
+
+  clearFilters(): void {
+    this.clientFilter = null;
+    this.typeFilter   = null;
+    this.statusFilter = null;
+    this.techFilter   = null;
+    this.selectedTask = null;
     this.load();
   }
 

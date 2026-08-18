@@ -16,7 +16,7 @@
     text-transform: uppercase;
     letter-spacing: .5px;
     color: var(--tx-lo);
-    font-family: var(--font-mono);
+    font-family: var(--font-ui);
     padding: 9px 14px;
     text-align: left;
   }
@@ -33,7 +33,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .8px;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -74,7 +74,7 @@
 .group-progress-text {
   font-size: 9px;
   color: var(--tx-lo);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
 }
 
 .task-row {
@@ -94,6 +94,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
+  font-family: var(--font-ui);
   font-size: 11px;
   color: var(--tx-md);
 }
@@ -110,12 +111,12 @@
   font-size: 9px;
   font-weight: 600;
   color: var(--tx-md);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   flex-shrink: 0;
 }
 
 .col-ticket {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 11px;
   color: var(--accent);
   cursor: pointer;
@@ -131,6 +132,7 @@
 }
 
 .col-notes {
+  font-family: var(--font-ui);
   font-size: 11px;
   color: var(--tx-lo);
   font-style: italic;
@@ -143,6 +145,7 @@
 .empty-state {
   padding: 60px 24px;
   text-align: center;
+  font-family: var(--font-ui);
   color: var(--tx-lo);
   font-size: 12px;
 }

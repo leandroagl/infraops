@@ -1,4 +1,4 @@
-<!-- Barra de controles: navegación de mes, filtro técnico, botón nueva tarea -->
+<!-- Barra de controles: navegación de mes y botón nueva tarea -->
 <div class="controls-bar">
   <div class="month-nav">
     <button mat-icon-button (click)="prevMonth()">
@@ -10,14 +10,6 @@
     </button>
   </div>
 
-  <div class="controls-sep"></div>
-
-  <div class="filter-chip"
-       [class.applied]="!!techFilter"
-       (click)="toggleTechFilter()">
-    Técnico: {{ techFilter ? (currentUser?.email ?? '').split('@')[0] : 'Todos' }}
-  </div>
-
   <div class="controls-spacer"></div>
 
   <button *ngIf="canCreateTask" mat-flat-button color="primary" (click)="openCreateDialog()">
@@ -26,13 +18,53 @@
   </button>
 </div>
 
-<!-- KPI strip del ciclo actual -->
-<app-kpi-strip [stats]="stats" [closed]="cycleClosed"></app-kpi-strip>
+<!-- Bloque unificado: KPIs + filtros inline + progreso -->
+<div class="kpi-filters-block">
+  <app-kpi-strip [stats]="stats" [closed]="cycleClosed">
+    <div class="filters-inline">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+        <mat-label>Cliente</mat-label>
+        <mat-select [(value)]="clientFilter" (selectionChange)="onFilterChange()">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
 
-<!-- Banner de ciclo cerrado -->
-<div class="cycle-closed-banner" *ngIf="cycleClosed">
-  <mat-icon style="font-size:14px;height:14px;width:14px">check_circle</mat-icon>
-  Ciclo cerrado — solo lectura
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+        <mat-label>Tipo de tarea</mat-label>
+        <mat-select [(value)]="typeFilter" (selectionChange)="onFilterChange()">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let t of taskTypes" [value]="t.value">{{ t.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+        <mat-label>Estado</mat-label>
+        <mat-select [(value)]="statusFilter" (selectionChange)="onFilterChange()">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let s of taskStatuses" [value]="s.value">{{ s.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+        <mat-label>Técnico</mat-label>
+        <mat-select [(value)]="techFilter" (selectionChange)="onFilterChange()">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let t of technicians" [value]="t.id">{{ t.user.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button *ngIf="hasActiveFilters" mat-button class="clear-btn" (click)="clearFilters()">
+        <mat-icon>close</mat-icon>
+        Limpiar
+      </button>
+    </div>
+  </app-kpi-strip>
+
+  <div class="cycle-closed-banner" *ngIf="cycleClosed">
+    <mat-icon style="font-size:14px;height:14px;width:14px">check_circle</mat-icon>
+    Ciclo cerrado — solo lectura
+  </div>
 </div>
 
 <!-- Error de carga -->
