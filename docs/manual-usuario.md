@@ -47,44 +47,54 @@ Una vez validada, la conexión queda guardada y no es necesario repetirla. Si la
 
 ---
 
-## Vista Técnico
+## Vista de Tareas (ciclo mensual)
 
-Accesible para roles **TECHNICIAN** y **TL**.
+Accesible para todos los roles. La vista es única para técnicos, coordinadores y administradores; el comportamiento varía según el rol.
 
-### Panel principal — Mis tareas
+Esta vista reemplaza las vistas separadas de "Panel Admin → Tareas" y "Vista Técnico" del modelo anterior. La ruta es `/tasks`.
 
-Al ingresar, el técnico ve su panel personal con:
+### Navegación por ciclo
 
-**KPIs en la parte superior:**
-- **Vencidas:** tareas cuya fecha programada ya pasó y no están completadas
-- **Esta semana:** tareas con vencimiento en los próximos 7 días
-- **Al día:** tareas con fecha más lejana
+La vista muestra las tareas de un **mes calendario** (ciclo). El mes activo por defecto es el mes actual.
 
-**Filtros de tareas:**
-- **Cliente:** campo de búsqueda con autocompletado. Al seleccionar un cliente, el kanban muestra solo sus tareas. Borrar el texto limpia el filtro.
-- **Tipo de tarea:** select para filtrar por tipo (ESXi, Dominio, QNAP, Veeam, etc.).
+Las flechas `[< Agosto 2026 >]` en la barra superior permiten navegar a meses anteriores o futuros. Los meses pasados se muestran en modo **solo lectura** con un banner indicador.
 
-Ambos filtros se combinan. El botón **"Limpiar"** restablece los dos a la vez.
+### KPIs y filtros
 
-**Kanban de tareas** organizado por estado:
-- `Pendiente` → `En curso` → `Completado / Escalado / No realizado`
+Encima de la tabla hay una tira de indicadores con cuatro bloques:
 
-Cada columna es scrolleable de forma independiente cuando hay muchas tareas.
+| KPI | Qué muestra |
+|---|---|
+| **Asignadas** | Total de tareas en el ciclo (o del técnico filtrado) |
+| **En curso** | Tareas con estado EN CURSO |
+| **Pendientes** | Tareas con estado PENDIENTE |
+| **Completadas** | Tareas con estado HECHO |
 
-Cada card muestra: cliente, tipo de tarea, fecha programada y urgencia visual (rojo = vencida, amarillo = esta semana, verde = al día).
+A la derecha: **barra de avance del ciclo** (completadas / total) y badge "Ciclo abierto / Ciclo cerrado".
 
-### Ejecutar una tarea
+Los filtros están integrados en la misma barra:
 
-Al hacer clic en una card se abre el **panel de detalle** (drawer) desde la derecha.
+- **Cliente:** select con todos los clientes activos
+- **Tipo de tarea:** select (Servidores, Dominio Windows, QNAP, Veeam, Routers, etc.)
+- **Estado:** select (Pendiente, En progreso, Hecho, Escalado, No realizado)
+- **Técnico:** select con todos los técnicos activos
 
-**El drawer muestra:**
-- Datos generales: cliente, tipo, estado, fecha, ticket Odoo asociado
-- Formulario de control según el tipo de tarea (ver abajo)
-- Botones de acción según el estado actual
+Los filtros se combinan. El botón **"Limpiar"** (aparece cuando hay al menos un filtro activo) restablece todos a la vez.
+
+### Tabla de tareas
+
+Las tareas están **agrupadas por cliente**. Cada grupo muestra:
+
+- **Header de grupo:** nombre del cliente · conteo de tareas · barra de progreso `completadas/total`
+- **Filas de tarea** con columnas: Tipo · Técnico · Estado · Ticket Odoo · Notas
+
+Hacer clic en una fila abre el **drawer de detalle** desde la derecha.
+
+### Drawer de detalle — Ejecutar una tarea
 
 **Flujo típico:**
 
-1. Hacer clic en la tarea `PENDIENTE`
+1. Hacer clic en la fila de la tarea `PENDIENTE`
 2. Presionar **"Iniciar"** → el estado pasa a `EN CURSO` y el ticket Odoo se marca en progreso
 3. Completar el formulario de control
 4. Presionar **"Guardar progreso"** (opcional, para no perder lo avanzado)
@@ -93,6 +103,19 @@ Al hacer clic en una card se abre el **panel de detalle** (drawer) desde la dere
 
 **Si no se puede completar:**
 - Presionar **"No realizado"** para cerrar la tarea con ese estado y el motivo
+
+### Permisos por rol
+
+| Acción | TECHNICIAN | TL | COORDINATOR | ADMIN |
+|---|---|---|---|---|
+| Ver todas las tareas del ciclo | Sí (quitando filtro) | Sí | Sí | Sí |
+| Filtro técnico por defecto | Propio | Todos | Todos | Todos |
+| Ejecutar / completar tareas | Sí (propias) | Sí | No | Sí |
+| Botón "Nueva tarea" | No | No | No | Sí |
+| Eliminar tarea (solo PENDING) | No | No | No | Sí |
+| Ciclos cerrados | Solo lectura | Solo lectura | Solo lectura | Solo lectura |
+
+COORDINATOR accede en modo solo lectura: puede ver el estado de todas las tareas y el detalle de cada una, pero no puede ejecutar ni modificar nada.
 
 ---
 
@@ -142,24 +165,7 @@ Muestra los routers del cliente. Para cada router se registra:
 
 Accesible para roles **ADMIN**, **TL** y **COORDINATOR**.
 
-### Tareas
-
-Vista central de gestión con **kanban global** de todas las tareas del sistema.
-
-**Filtros disponibles:**
-- Por estado (Pendiente / En curso / Completado / Escalado / No realizado)
-- Por cliente
-- Por técnico
-
-**Acciones disponibles:**
-- **Nueva tarea:** abre un dialog para crear una tarea asignando cliente, tipo, técnico y fecha
-- **Ver detalle:** clic en cualquier tarea abre el drawer de detalle (solo lectura para admin)
-- **Eliminar tarea:** desde el detalle de una tarea en estado Pendiente
-
-**Al crear una tarea** el sistema:
-1. Valida que el cliente tenga la infraestructura necesaria en InfraDoc para ese tipo de tarea
-2. Abre automáticamente un ticket en Odoo bajo el cliente correspondiente
-3. La tarea queda en estado `Pendiente` lista para ser ejecutada por el técnico asignado
+El Panel Admin agrupa las secciones de gestión interna: Usuarios, Técnicos, Alertas de vencimiento, Programación y Sync. La gestión de tareas se hace desde la vista `/tasks` (ver sección anterior), accesible desde la barra de navegación principal.
 
 ### Usuarios
 
@@ -195,9 +201,22 @@ Lista de todos los ítems con fecha de vencimiento próxima o ya vencida en toda
 - 🟠 **Próximo:** vence entre 8 y 20 días
 - ⚪ **Atención:** vence entre 21 y 45 días
 
-**Filtros:** por tipo de alerta y por urgencia.
+**Filtros:** por tipo de alerta y por urgencia. A la derecha de los filtros se muestran chips con el conteo de ítems por categoría de urgencia (Vencidos · Esta semana · Próximo · Mostrando).
 
-Por defecto muestra los próximos 90 días. El botón "Ver todos" quita ese límite.
+Por defecto muestra los próximos 90 días. El checkbox **"Ver todos los futuros"** quita ese límite.
+
+**Columnas de la tabla:**
+
+| Columna | Descripción |
+|---|---|
+| Cliente | Cliente al que pertenece el ítem |
+| Ítem | Nombre del activo, licencia o dominio |
+| Marca | Solo para garantías de hardware (campo de InfraDoc) |
+| Modelo | Solo para garantías de hardware |
+| Serie | Número de serie del hardware (tipografía monoespaciada) |
+| Tipo | Categoría de la alerta |
+| Vencimiento | Fecha de vencimiento |
+| Estado | Badge de urgencia según el semáforo |
 
 ### Programación de mantenimientos
 
@@ -311,7 +330,7 @@ En Odoo: menú superior derecho → tu nombre → `Mi perfil` → sección `API 
 El sistema la valida en el momento. Si es incorrecta muestra un error y no la guarda. Podés intentar de nuevo.
 
 **¿Puedo ver tareas de otro técnico?**
-Los técnicos solo ven sus tareas asignadas. Los roles ADMIN, TL y COORDINATOR ven todas las tareas en el Panel Admin.
+Sí. En la vista de Tareas, todos los roles pueden ver el ciclo completo. Los técnicos arrancan con el filtro aplicado a sus propias tareas, pero pueden quitarlo para ver todas.
 
 **¿Qué significa "Escalado"?**
 Una tarea escalada es aquella que el técnico no pudo resolver y fue derivada a un técnico senior. El ticket original en Odoo se reasigna; no se crea uno nuevo.

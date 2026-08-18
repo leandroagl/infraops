@@ -1,0 +1,101 @@
+<!-- Barra de controles: navegación de mes y botón nueva tarea -->
+<div class="controls-bar">
+  <div class="month-nav">
+    <button mat-icon-button (click)="prevMonth()">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <span class="month-label">{{ monthLabel }}</span>
+    <button mat-icon-button (click)="nextMonth()">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+  </div>
+
+  <div class="controls-spacer"></div>
+
+  <button *ngIf="canCreateTask" mat-flat-button color="primary" (click)="openCreateDialog()">
+    <mat-icon>add</mat-icon>
+    Nueva tarea
+  </button>
+</div>
+
+<!-- Bloque unificado: KPIs + filtros inline + progreso -->
+<div class="kpi-filters-block">
+  <app-kpi-strip [stats]="stats" [closed]="cycleClosed">
+    <div class="filters-inline">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+        <mat-label>Cliente</mat-label>
+        <mat-select [(value)]="clientFilter" (selectionChange)="onFilterChange()">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+        <mat-label>Tipo de tarea</mat-label>
+        <mat-select [(value)]="typeFilter" (selectionChange)="onFilterChange()">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let t of taskTypes" [value]="t.value">{{ t.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+        <mat-label>Estado</mat-label>
+        <mat-select [(value)]="statusFilter" (selectionChange)="onFilterChange()">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let s of taskStatuses" [value]="s.value">{{ s.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
+        <mat-label>Técnico</mat-label>
+        <mat-select [(value)]="techFilter" (selectionChange)="onFilterChange()">
+          <mat-option [value]="null">Todos</mat-option>
+          <mat-option *ngFor="let t of technicians" [value]="t.id">{{ t.user.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button *ngIf="hasActiveFilters" mat-button class="clear-btn" (click)="clearFilters()">
+        <mat-icon>close</mat-icon>
+        Limpiar
+      </button>
+    </div>
+  </app-kpi-strip>
+
+  <div class="cycle-closed-banner" *ngIf="cycleClosed">
+    <mat-icon style="font-size:14px;height:14px;width:14px">check_circle</mat-icon>
+    Ciclo cerrado — solo lectura
+  </div>
+</div>
+
+<!-- Error de carga -->
+<div *ngIf="error" class="error-banner">
+  {{ error }}
+  <button mat-button (click)="load()">Reintentar</button>
+</div>
+
+<!-- Indicador de carga -->
+<div *ngIf="loading" class="loading-row">Cargando…</div>
+
+<!-- Tabla de tareas agrupadas por cliente -->
+<div class="table-scroll" *ngIf="!loading">
+  <app-cycle-table
+    [groups]="groups"
+    [selectedTaskId]="selectedTask?.id ?? null"
+    (taskSelected)="selectTask($event)">
+  </app-cycle-table>
+</div>
+
+<!-- Drawer de detalle de tarea -->
+<div class="drawer" [class.open]="selectedTask !== null">
+  <app-task-drawer
+    *ngIf="selectedTask"
+    [task]="selectedTask"
+    [userRole]="userRole"
+    [cycleClosed]="cycleClosed"
+    (taskCompleted)="onTaskCompleted()"
+    (taskNotDone)="onTaskNotDone()"
+    (taskStatusChanged)="onTaskStatusChanged($event)"
+    (taskDeleted)="onTaskDeleted()"
+    (drawerClosed)="closeDrawer()">
+  </app-task-drawer>
+</div>

@@ -1,0 +1,39 @@
+<div class="kpi-strip">
+  <div class="kpi-block">
+    <div class="kpi-label">Asignadas</div>
+    <div class="kpi-val kpi-val--assigned">{{ stats.assigned }}</div>
+  </div>
+  <div class="kpi-sep"></div>
+  <div class="kpi-block">
+    <div class="kpi-label">En curso</div>
+    <div class="kpi-val kpi-val--inprogress">{{ stats.inprogress }}</div>
+  </div>
+  <div class="kpi-sep"></div>
+  <div class="kpi-block">
+    <div class="kpi-label">Pendientes</div>
+    <div class="kpi-val kpi-val--pending">{{ stats.pending }}</div>
+  </div>
+  <div class="kpi-sep"></div>
+  <div class="kpi-block">
+    <div class="kpi-label">Completadas</div>
+    <div class="kpi-val kpi-val--done">{{ stats.done }}</div>
+  </div>
+
+  <ng-content></ng-content>
+
+  <div class="kpi-progress">
+    <div class="kpi-progress-row">
+      <span class="kpi-progress-title">Avance del ciclo</span>
+      <span class="kpi-progress-pct">{{ progressPct }}%</span>
+    </div>
+    <div class="kpi-progress-bar">
+      <div class="kpi-progress-fill" [style.width.%]="progressPct"></div>
+    </div>
+  </div>
+
+  <span class="kpi-cycle-badge"
+        [class.kpi-cycle-badge--closed]="closed"
+        [class.kpi-cycle-badge--open]="!closed">
+    {{ closed ? '✓ Ciclo cerrado' : '● Ciclo abierto' }}
+  </span>
+</div>

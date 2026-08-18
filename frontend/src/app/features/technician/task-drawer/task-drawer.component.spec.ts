@@ -15,6 +15,7 @@ import {
   MaintenancePayload,
   WindowsDomainPayload,
 } from '../../../core/models/maintenance-log.models';
+import { UserRole } from '../../../core/models/auth.models';
 
 // ── Test helpers ────────────────────────────────────────────────────────────
 
@@ -723,6 +724,49 @@ describe('TaskDrawerComponent — template tests', () => {
       const errors = fixture.nativeElement.querySelectorAll('.d-footer__err');
       const msgs = Array.from(errors).map((e: any) => e.textContent?.trim());
       expect(msgs.some(m => m?.includes('No se pudo guardar'))).toBe(true);
+    });
+  });
+
+  // ── Visibilidad de acciones según rol ──────────────────────────────────────
+
+  describe('visibilidad de acciones según rol', () => {
+    function setup(role: UserRole, cycleClosed = false): ComponentFixture<TaskDrawerComponent> {
+      const fix = TestBed.createComponent(TaskDrawerComponent);
+      fix.componentInstance.task = makeTask({ type: 'WINDOWS_DOMAIN_MAINTENANCE', scheduledDate: futureDate(10) });
+      fix.componentInstance.userRole    = role;
+      fix.componentInstance.cycleClosed = cycleClosed;
+      fix.detectChanges();
+      return fix;
+    }
+
+    it('TECHNICIAN ve el botón de completar', () => {
+      const fix = setup('TECHNICIAN');
+      const btn = fix.nativeElement.querySelector('[data-testid="btn-complete"]');
+      expect(btn).toBeTruthy();
+    });
+
+    it('COORDINATOR no ve botones de acción', () => {
+      const fix = setup('COORDINATOR');
+      const btn = fix.nativeElement.querySelector('[data-testid="btn-complete"]');
+      expect(btn).toBeFalsy();
+    });
+
+    it('ADMIN ve el botón de eliminar', () => {
+      const fix = setup('ADMIN');
+      const btn = fix.nativeElement.querySelector('[data-testid="btn-delete"]');
+      expect(btn).toBeTruthy();
+    });
+
+    it('TECHNICIAN no ve el botón de eliminar', () => {
+      const fix = setup('TECHNICIAN');
+      const btn = fix.nativeElement.querySelector('[data-testid="btn-delete"]');
+      expect(btn).toBeFalsy();
+    });
+
+    it('ciclo cerrado oculta todos los botones de acción', () => {
+      const fix = setup('ADMIN', true);
+      expect(fix.nativeElement.querySelector('[data-testid="btn-complete"]')).toBeFalsy();
+      expect(fix.nativeElement.querySelector('[data-testid="btn-delete"]')).toBeFalsy();
     });
   });
 });
