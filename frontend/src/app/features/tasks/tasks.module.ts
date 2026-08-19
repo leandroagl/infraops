@@ -23,8 +23,6 @@ import { CycleTableComponent } from './cycle-table/cycle-table.component';
 import { SharedModule } from '../../shared/shared.module';
 import { TaskDrawerComponent } from '../technician/task-drawer/task-drawer.component';
 import { MaintenanceFormComponent } from '../technician/task-drawer/maintenance-form/maintenance-form.component';
-import { ConfirmMaintenanceDialogComponent } from '../technician/task-drawer/confirm-maintenance-dialog/confirm-maintenance-dialog.component';
-import { TimeSpentDialogComponent } from '../technician/task-drawer/time-spent-dialog/time-spent-dialog.component';
 import { ConfirmCloseDialogComponent } from '../technician/task-drawer/confirm-close-dialog/confirm-close-dialog.component';
 import { DcHealthCardComponent } from '../technician/task-drawer/maintenance-form/dc-health-card/dc-health-card.component';
 import { QnapFormComponent } from '../technician/task-drawer/qnap-form/qnap-form.component';
@@ -44,8 +42,6 @@ import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/tas
     CycleTableComponent,
     TaskDrawerComponent,
     MaintenanceFormComponent,
-    ConfirmMaintenanceDialogComponent,
-    TimeSpentDialogComponent,
     DcHealthCardComponent,
     QnapFormComponent,
     QnapDeviceCardComponent,
