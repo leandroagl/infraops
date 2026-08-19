@@ -1,0 +1,44 @@
+<h2 mat-dialog-title>
+  <span *ngIf="!hasAlerts">✓</span>
+  <span *ngIf="hasAlerts">⚠</span>
+  Confirmar cierre
+</h2>
+
+<mat-dialog-content>
+  <p class="dialog-subtitle">{{ data.taskType }}</p>
+
+  <div class="info-row">
+    <span class="info-key">Tiempo a imputar</span>
+    <span class="info-val">{{ formattedTime }}</span>
+  </div>
+
+  <div *ngIf="showTags" class="info-row">
+    <span class="info-key">Tags Odoo</span>
+    <div class="info-tags">
+      <span *ngFor="let name of data.config.odooTagNames" class="tag-chip">{{ name }}</span>
+    </div>
+  </div>
+
+  <div *ngIf="showTicket" class="info-row">
+    <span class="info-key">Ticket</span>
+    <span class="info-val">#{{ data.odooTicketId }}</span>
+  </div>
+
+  <div *ngIf="hasAlerts" class="alerts-block">
+    <p class="alerts-title">⚠ Errores detectados</p>
+    <ul>
+      <li *ngFor="let err of data.issuesSummary.dcdiagErrors">{{ err }}</li>
+      <li *ngIf="data.issuesSummary.veeamMissing">Hay VMs sin cobertura de backup Veeam</li>
+    </ul>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">Cancelar</button>
+  <button
+    mat-flat-button
+    [color]="hasAlerts ? 'warn' : 'primary'"
+    (click)="confirm()">
+    {{ confirmLabel }}
+  </button>
+</mat-dialog-actions>
