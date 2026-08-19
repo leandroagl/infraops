@@ -501,7 +501,7 @@ export class OdooService {
       [[]],
       { fields: ['id', 'name'] },
     );
-    return tags.map(t => ({ id: t.id, name: t.name }));
+    return tags.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async closeTicket(

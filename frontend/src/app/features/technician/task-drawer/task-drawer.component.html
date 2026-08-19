@@ -146,7 +146,7 @@
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Marcar visita como realizada</span>
       </button>
-      <button *ngIf="task.type === 'SITE_VISIT'" mat-stroked-button color="warn" (click)="onRequestNotDone()" [disabled]="completing">No concretada</button>
+      <button *ngIf="task.type === 'SITE_VISIT'" mat-stroked-button color="warn" (click)="onRequestNotDone()" [disabled]="completing || !canComplete" [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">No concretada</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
@@ -184,7 +184,7 @@
     </ng-container>
 
     <ng-container *ngIf="task.type === 'AV_CONTROL' || task.type === 'UPS_CONTROL' || task.type === 'ENDPOINT_INVENTORY'">
-      <button mat-flat-button color="primary" data-testid="btn-complete" disabled>Completar</button>
+      <button mat-flat-button color="primary" data-testid="btn-complete" disabled matTooltip="Formulario no disponible para este tipo de tarea">Completar</button>
       <button mat-stroked-button (click)="drawerClosed.emit()">Cerrar</button>
     </ng-container>
 
