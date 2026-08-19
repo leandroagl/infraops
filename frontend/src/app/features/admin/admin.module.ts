@@ -18,6 +18,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { AdminRoutingModule } from './admin-routing.module';
 import { AdminLayoutComponent } from './admin-layout/admin-layout.component';
 import { UsersComponent } from './users/users.component';
@@ -26,6 +27,8 @@ import { PasswordDisplayDialogComponent } from './users/password-display-dialog/
 import { TechniciansComponent } from './technicians/technicians.component';
 import { AssignTechnicianDialogComponent } from './technicians/assign-technician-dialog/assign-technician-dialog.component';
 import { SyncComponent } from './sync/sync.component';
+import { TaskConfigComponent } from './task-config/task-config.component';
+import { TaskEditDialogComponent } from './task-config/task-edit-dialog/task-edit-dialog.component';
 import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
@@ -37,6 +40,8 @@ import { SharedModule } from '../../shared/shared.module';
     TechniciansComponent,
     AssignTechnicianDialogComponent,
     SyncComponent,
+    TaskConfigComponent,
+    TaskEditDialogComponent,
   ],
   imports: [
     CommonModule,
@@ -59,6 +64,7 @@ import { SharedModule } from '../../shared/shared.module';
     MatCheckboxModule,
     MatAutocompleteModule,
     MatIconModule,
+    MatTooltipModule,
     AdminRoutingModule,
     SharedModule,
   ],
