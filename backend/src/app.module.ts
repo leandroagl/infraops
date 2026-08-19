@@ -13,6 +13,7 @@ import { ClientsModule } from './clients/clients.module';
 import { VmwareIntegrationModule } from './integrations/vmware/vmware-integration.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SchedulesModule } from './schedules/schedules.module';
+import { TaskConfigModule } from './task-config/task-config.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { SchedulesModule } from './schedules/schedules.module';
     VmwareIntegrationModule,
     NotificationsModule,
     SchedulesModule,
+    TaskConfigModule,
   ],
 })
 export class AppModule {}
