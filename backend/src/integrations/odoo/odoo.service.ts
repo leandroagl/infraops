@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
@@ -327,6 +327,63 @@ export class OdooService {
       odooSyncedAt: new Date(),
     });
     return lines[0].id;
+  }
+
+  async getSubscriptionHours(
+    partnerIds: number[],
+  ): Promise<{ partnerId: number; contracted: number; delivered: number }[]> {
+    if (partnerIds.length === 0) return [];
+
+    const lines = await this.systemRpc.callKw<
+      Array<{
+        id: number;
+        product_uom_qty: number;
+        qty_delivered: number;
+        order_id: [number, string];
+      }>
+    >(
+      'sale.order.line',
+      'search_read',
+      [
+        [
+          ['order_id.partner_id', 'in', partnerIds],
+          ['product_id.name', 'in', ['Hora Única', 'Hora Única Garantia']],
+          ['order_id.state', 'in', ['sale', 'done']],
+        ],
+      ],
+      { fields: ['product_uom_qty', 'qty_delivered', 'order_id'] },
+    );
+
+    if (lines.length === 0) return [];
+
+    const orderIds = [...new Set(lines.map((l) => l.order_id[0]))];
+    const orders = await this.systemRpc.callKw<
+      Array<{ id: number; partner_id: [number, string] }>
+    >(
+      'sale.order',
+      'read',
+      [orderIds],
+      { fields: ['partner_id'] },
+    );
+
+    const partnerByOrderId = new Map(orders.map((o) => [o.id, o.partner_id[0]]));
+
+    const totals = new Map<number, { contracted: number; delivered: number }>();
+    for (const line of lines) {
+      const partnerId = partnerByOrderId.get(line.order_id[0]);
+      if (partnerId === undefined) continue;
+      const existing = totals.get(partnerId) ?? { contracted: 0, delivered: 0 };
+      totals.set(partnerId, {
+        contracted: existing.contracted + line.product_uom_qty,
+        delivered: existing.delivered + line.qty_delivered,
+      });
+    }
+
+    return Array.from(totals.entries()).map(([partnerId, { contracted, delivered }]) => ({
+      partnerId,
+      contracted,
+      delivered,
+    }));
   }
 
   private async logTimesheet(

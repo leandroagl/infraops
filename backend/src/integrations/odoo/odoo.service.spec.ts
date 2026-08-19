@@ -1209,6 +1209,56 @@ describe('OdooService', () => {
     });
   });
 
+  describe('getSubscriptionHours', () => {
+    it('retorna lista vacía sin llamar a Odoo cuando partnerIds está vacío', async () => {
+      const result = await service.getSubscriptionHours([]);
+      expect(result).toEqual([]);
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+    });
+
+    it('suma horas de dos productos (Hora Única + Hora Única Garantia) para el mismo partner', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_uom_qty: 20, qty_delivered: 8,  order_id: [101, 'SO001'] },
+          { id: 2, product_uom_qty: 5,  qty_delivered: 2,  order_id: [101, 'SO001'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 101, partner_id: [201, 'ACME Corp'] },
+        ]);
+
+      const result = await service.getSubscriptionHours([201]);
+
+      expect(result).toEqual([{ partnerId: 201, contracted: 25, delivered: 10 }]);
+    });
+
+    it('maneja múltiples partners en una sola llamada a Odoo', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_uom_qty: 20, qty_delivered: 5, order_id: [101, 'SO001'] },
+          { id: 2, product_uom_qty: 10, qty_delivered: 8, order_id: [102, 'SO002'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 101, partner_id: [201, 'ACME Corp'] },
+          { id: 102, partner_id: [202, 'Beta SRL'] },
+        ]);
+
+      const result = await service.getSubscriptionHours([201, 202]);
+
+      expect(result).toHaveLength(2);
+      expect(result).toContainEqual({ partnerId: 201, contracted: 20, delivered: 5 });
+      expect(result).toContainEqual({ partnerId: 202, contracted: 10, delivered: 8 });
+    });
+
+    it('retorna lista vacía y hace solo una llamada cuando Odoo no devuelve líneas', async () => {
+      odooRpc.callKw.mockResolvedValueOnce([]);
+
+      const result = await service.getSubscriptionHours([201]);
+
+      expect(result).toEqual([]);
+      expect(odooRpc.callKw).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('resolveSaleLineId', () => {
     it('busca sale.order.line por partner_id y producto Hora Única, cachea y retorna', async () => {
       clientRepo.findOne.mockResolvedValue(
