@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Device Cards v2 — QNAP & Router</title>
+<style>
+:root {
+  --base:     #0a0d12;
+  --surface:  #111418;
+  --card:     #181d24;
+  --elevated: #1e242e;
+  --hover:    #252c38;
+  --border-lo: rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.10);
+  --border-md: rgba(255,255,255,0.18);
+  --tx-hi: #e8eaf0;
+  --tx-md: #8896a4;
+  --tx-lo: #546272;
+  --crit:#f44336; --crit-bg:rgba(244,67,54,.12); --crit-bd:rgba(244,67,54,.25);
+  --warn:#ffb300; --warn-bg:rgba(255,179,0,.12);  --warn-bd:rgba(255,179,0,.25);
+  --ok:  #43d98a; --ok-bg:rgba(67,217,138,.12);   --ok-bd:rgba(67,217,138,.25);
+  --accent:  #4dd0e1; --accent-bg:rgba(77,208,225,.12); --accent-bd:rgba(77,208,225,.30);
+  --nas: #2dd4bf; --nas-bg:rgba(45,212,191,.12); --nas-bd:rgba(45,212,191,.25);
+  --net: #f97316; --net-bg:rgba(249,115,22,.12);  --net-bd:rgba(249,115,22,.25);
+  --font-ui:   'DM Sans', system-ui, sans-serif;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
+  --radius-sm: 4px;
+  --radius:    8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--base);
+  font-family: var(--font-ui);
+  color: var(--tx-hi);
+  font-size: 13px;
+  padding: 32px;
+}
+
+h2 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--tx-lo);
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-lo);
+  padding-bottom: 8px;
+}
+
+.demo-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.col-title {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--tx-lo);
+  margin-bottom: 16px;
+}
+
+/* ── Simulación del drawer ──────────────────────────── */
+.drawer-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Section label (igual que veeam-form) ────────────── */
+.section-lbl {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--tx-lo);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-lbl::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-lo);
+}
+
+.devices-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: -4px;
+}
+
+/* ──────────────────────────────────────────────────────
+   VERSIÓN ACTUAL (v1) — para comparar
+   background: var(--card) + box-shadow = "caja gris"
+   ────────────────────────────────────────────────────── */
+.card-v1 {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.5), 0 4px 16px rgba(0,0,0,.3);
+}
+
+/* ──────────────────────────────────────────────────────
+   VERSIÓN NUEVA (v2) — stripe lateral por tipo de dispositivo
+   sin background pesado, sin box-shadow
+   ────────────────────────────────────────────────────── */
+.card-v2 {
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 10px 14px 12px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+/* Stripe lateral con color por tipo */
+.card-v2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+}
+.card-v2.nas::before  { background: var(--nas); }
+.card-v2.net::before  { background: var(--net); }
+
+/* Cuando tiene estado de error/warn: borde y tint */
+.card-v2.state-warn {
+  border-color: var(--warn-bd);
+  background: color-mix(in srgb, var(--warn) 3%, transparent);
+}
+.card-v2.state-crit {
+  border-color: var(--crit-bd);
+  background: color-mix(in srgb, var(--crit) 3%, transparent);
+}
+
+/* ── Compartidos: header ──────────────────────────────── */
+.dev-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dev-name-block {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.dev-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tx-hi);
+}
+.dev-ip {
+  font-size: 11px;
+  color: var(--tx-lo);
+  font-family: var(--font-mono);
+  margin-top: 1px;
+}
+
+/* ── Badge ─────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  border: 1px solid;
+}
+.badge .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.badge-ok   { background: var(--ok-bg);   border-color: var(--ok-bd);   color: var(--ok);   }
+.badge-warn { background: var(--warn-bg); border-color: var(--warn-bd); color: var(--warn); }
+.badge-crit { background: var(--crit-bg); border-color: var(--crit-bd); color: var(--crit); }
+.badge-nas  { background: var(--nas-bg);  border-color: var(--nas-bd);  color: var(--nas);  }
+.badge-net  { background: var(--net-bg);  border-color: var(--net-bd);  color: var(--net);  }
+.badge-neutral { background: var(--elevated); border-color: var(--border-md); color: var(--tx-md); }
+
+/* ── Card section label interno ──────────────────────── */
+.card-lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--tx-lo);
+  margin-top: 4px;
+}
+
+/* ── Mock form fields ─────────────────────────────────── */
+.mock-row { display: grid; gap: 10px; align-items: start; }
+.mock-row.cols-2 { grid-template-columns: 1fr 1fr; }
+.mock-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.mf {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mf-label {
+  font-size: 9px;
+  color: var(--tx-lo);
+  letter-spacing: 0.3px;
+}
+.mf-input {
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  font-size: 12px;
+  color: var(--tx-hi);
+  font-family: inherit;
+}
+.mf-input.ok-border   { border-color: var(--ok-bd); }
+.mf-input.warn-border { border-color: var(--warn-bd); }
+.mf-input.crit-border { border-color: var(--crit-bd); }
+
+/* ── Progress bar ─────────────────────────────────────── */
+.progress-wrap { display: flex; align-items: center; gap: 8px; }
+.progress-track { flex: 1; height: 5px; background: var(--elevated); border-radius: 3px; overflow: hidden; }
+.progress-fill  { height: 100%; border-radius: 3px; }
+.fill-ok   { background: var(--ok);   width: 67%; }
+.fill-warn { background: var(--warn); width: 78%; }
+.fill-crit { background: var(--crit); width: 91%; }
+.progress-pct { font-size: 11px; font-weight: 600; font-family: var(--font-mono); min-width: 32px; text-align: right; }
+.pct-ok   { color: var(--ok);   }
+.pct-warn { color: var(--warn); }
+.pct-crit { color: var(--crit); }
+
+/* ── Mock checkbox ────────────────────────────────────── */
+.mock-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--tx-hi);
+  cursor: default;
+}
+.mock-check-box {
+  width: 14px; height: 14px;
+  border: 1.5px solid var(--border-md);
+  border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.mock-check-box.checked {
+  background: var(--ok-bg);
+  border-color: var(--ok-bd);
+}
+.mock-check-box.checked::after {
+  content: '✓';
+  font-size: 9px;
+  color: var(--ok);
+  font-weight: 700;
+}
+
+/* ── Notes textarea ───────────────────────────────────── */
+.mock-textarea {
+  width: 100%;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--tx-lo);
+  font-family: inherit;
+  resize: none;
+}
+
+/* ── Separador visual entre cards ─────────────────────── */
+.devices-stack .card-v2 + .card-v2 {
+  /* sutil separación ya la da el gap del stack */
+}
+</style>
+</head>
+<body>
+
+<h2>Mockup — Device Cards v2: QNAP & Router · branch develop</h2>
+
+<div class="demo-cols">
+
+  <!-- ════════════════════════════════════════════════
+       COLUMNA IZQ: ACTUAL (v1)
+       ════════════════════════════════════════════════ -->
+  <div>
+    <div class="col-title">v1 — Actual · fondo gris + shadow</div>
+    <div class="drawer-panel">
+
+      <!-- QNAP actual -->
+      <div class="section-lbl">Dispositivos NAS</div>
+      <div class="devices-stack">
+
+        <div class="card-v1">
+          <div class="dev-hdr">
+            <div class="dev-name-block">
+              <span class="dev-name">ONDRA-NAS-01</span>
+              <span class="dev-ip">192.168.1.50</span>
+            </div>
+            <span class="badge badge-ok"><span class="dot"></span>RAID OK</span>
+          </div>
+          <div class="card-lbl">Almacenamiento</div>
+          <div class="mock-row cols-2">
+            <div class="mf"><span class="mf-label">Cantidad de discos</span><div class="mf-input">4</div></div>
+            <div class="mf"><span class="mf-label">Discos con error</span><div class="mf-input" style="color:var(--tx-lo)">Ninguno</div></div>
+          </div>
+          <div class="mock-row cols-2">
+            <div class="mf"><span class="mf-label">Espacio total</span><div class="mf-input">16 TB</div></div>
+            <div class="mf"><span class="mf-label">Espacio utilizado</span><div class="mf-input ok-border">10.7 TB</div></div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-track"><div class="progress-fill fill-ok"></div></div>
+            <span class="progress-pct pct-ok">67%</span>
+          </div>
+          <div class="mf"><span class="mf-label">Estado RAID</span><div class="mf-input ok-border" style="color:var(--ok)">OK — saludable</div></div>
+          <div class="card-lbl">Firmware</div>
+          <div class="mock-row" style="grid-template-columns:1fr auto;align-items:center">
+            <div class="mf"><span class="mf-label">Versión instalada</span><div class="mf-input">5.1.0.2566</div></div>
+            <div class="mock-check"><div class="mock-check-box"></div>Se actualizó el firmware</div>
+          </div>
+        </div>
+
+        <div class="card-v1" style="border-color:var(--warn-bd);background:color-mix(in srgb,var(--warn) 3%,transparent)">
+          <div class="dev-hdr">
+            <div class="dev-name-block">
+              <span class="dev-name">ONDRA-NAS-02</span>
+              <span class="dev-ip">192.168.1.51</span>
+            </div>
+            <span class="badge badge-warn"><span class="dot"></span>DEGRADADO</span>
+          </div>
+          <div class="card-lbl">Almacenamiento</div>
+          <div class="mock-row cols-2">
+            <div class="mf"><span class="mf-label">Cantidad de discos</span><div class="mf-input">4</div></div>
+            <div class="mf"><span class="mf-label">Discos con error</span><div class="mf-input crit-border" style="color:var(--crit)">Slot 3</div></div>
+          </div>
+          <div class="mock-row cols-2">
+            <div class="mf"><span class="mf-label">Espacio total</span><div class="mf-input">8 TB</div></div>
+            <div class="mf"><span class="mf-label">Espacio utilizado</span><div class="mf-input warn-border">6.2 TB</div></div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-track"><div class="progress-fill fill-warn"></div></div>
+            <span class="progress-pct pct-warn">78%</span>
+          </div>
+          <div class="mf"><span class="mf-label">Estado RAID</span><div class="mf-input warn-border" style="color:var(--warn)">Degradado</div></div>
+          <div class="card-lbl">Firmware</div>
+          <div class="mock-row" style="grid-template-columns:1fr auto;align-items:center">
+            <div class="mf"><span class="mf-label">Versión instalada</span><div class="mf-input">5.0.1.2234</div></div>
+            <div class="mock-check"><div class="mock-check-box"></div>Se actualizó el firmware</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Router actual -->
+      <div class="section-lbl">Routers</div>
+      <div class="devices-stack">
+
+        <div class="card-v1">
+          <div class="dev-hdr">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></div>
+            <div class="dev-name-block">
+              <span class="dev-name">MikroTik-Core-01</span>
+              <span class="dev-ip">10.0.0.1</span>
+            </div>
+          </div>
+          <div class="card-lbl">Firmware</div>
+          <div class="mock-check"><div class="mock-check-box checked"></div>Se actualizó el firmware</div>
+          <div class="mf" style="margin-top:4px"><span class="mf-label">Nueva versión aplicada</span><div class="mf-input">7.14.2</div></div>
+          <div class="card-lbl">Configuración</div>
+          <div class="mock-check"><div class="mock-check-box checked"></div>Backup de configuración realizado</div>
+        </div>
+
+        <div class="card-v1">
+          <div class="dev-hdr">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0"></div>
+            <div class="dev-name-block">
+              <span class="dev-name">MikroTik-Edge-02</span>
+              <span class="dev-ip">10.0.0.2</span>
+            </div>
+          </div>
+          <div class="card-lbl">Firmware</div>
+          <div class="mock-check"><div class="mock-check-box"></div>Se actualizó el firmware</div>
+          <div class="card-lbl">Configuración</div>
+          <div class="mock-check"><div class="mock-check-box"></div>Backup de configuración realizado</div>
+        </div>
+
+      </div>
+
+      <div class="section-lbl">Observaciones</div>
+      <textarea class="mock-textarea" rows="3" readonly placeholder="Observaciones generales..."></textarea>
+
+    </div><!-- /drawer-panel v1 -->
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       COLUMNA DER: PROPUESTA (v2)
+       ════════════════════════════════════════════════ -->
+  <div>
+    <div class="col-title">v2 — Propuesta · stripe lateral, sin fondo</div>
+    <div class="drawer-panel">
+
+      <!-- QNAP nuevo -->
+      <div class="section-lbl">Dispositivos NAS</div>
+      <div class="devices-stack">
+
+        <!-- NAS-01 — estado normal -->
+        <div class="card-v2 nas">
+          <div class="dev-hdr">
+            <div class="dev-name-block">
+              <span class="dev-name">ONDRA-NAS-01</span>
+              <span class="dev-ip">192.168.1.50</span>
+            </div>
+            <span class="badge badge-ok"><span class="dot"></span>RAID OK</span>
+          </div>
+          <div class="card-lbl">Almacenamiento</div>
+          <div class="mock-row cols-2">
+            <div class="mf"><span class="mf-label">Cantidad de discos</span><div class="mf-input">4</div></div>
+            <div class="mf"><span class="mf-label">Discos con error</span><div class="mf-input" style="color:var(--tx-lo)">Ninguno</div></div>
+          </div>
+          <div class="mock-row cols-2">
+            <div class="mf"><span class="mf-label">Espacio total</span><div class="mf-input">16 TB</div></div>
+            <div class="mf"><span class="mf-label">Espacio utilizado</span><div class="mf-input ok-border">10.7 TB</div></div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-track"><div class="progress-fill fill-ok"></div></div>
+            <span class="progress-pct pct-ok">67%</span>
+          </div>
+          <div class="mf"><span class="mf-label">Estado RAID</span><div class="mf-input ok-border" style="color:var(--ok)">OK — saludable</div></div>
+          <div class="card-lbl">Firmware</div>
+          <div class="mock-row" style="grid-template-columns:1fr auto;align-items:center">
+            <div class="mf"><span class="mf-label">Versión instalada</span><div class="mf-input">5.1.0.2566</div></div>
+            <div class="mock-check"><div class="mock-check-box"></div>Se actualizó el firmware</div>
+          </div>
+        </div>
+
+        <!-- NAS-02 — RAID degradado → tint warn -->
+        <div class="card-v2 nas state-warn">
+          <div class="dev-hdr">
+            <div class="dev-name-block">
+              <span class="dev-name">ONDRA-NAS-02</span>
+              <span class="dev-ip">192.168.1.51</span>
+            </div>
+            <span class="badge badge-warn"><span class="dot"></span>DEGRADADO</span>
+          </div>
+          <div class="card-lbl">Almacenamiento</div>
+          <div class="mock-row cols-2">
+            <div class="mf"><span class="mf-label">Cantidad de discos</span><div class="mf-input">4</div></div>
+            <div class="mf"><span class="mf-label">Discos con error</span><div class="mf-input crit-border" style="color:var(--crit)">Slot 3</div></div>
+          </div>
+          <div class="mock-row cols-2">
+            <div class="mf"><span class="mf-label">Espacio total</span><div class="mf-input">8 TB</div></div>
+            <div class="mf"><span class="mf-label">Espacio utilizado</span><div class="mf-input warn-border">6.2 TB</div></div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-track"><div class="progress-fill fill-warn"></div></div>
+            <span class="progress-pct pct-warn">78%</span>
+          </div>
+          <div class="mf"><span class="mf-label">Estado RAID</span><div class="mf-input warn-border" style="color:var(--warn)">Degradado</div></div>
+          <div class="card-lbl">Firmware</div>
+          <div class="mock-row" style="grid-template-columns:1fr auto;align-items:center">
+            <div class="mf"><span class="mf-label">Versión instalada</span><div class="mf-input">5.0.1.2234</div></div>
+            <div class="mock-check"><div class="mock-check-box"></div>Se actualizó el firmware</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Router nuevo -->
+      <div class="section-lbl">Routers</div>
+      <div class="devices-stack">
+
+        <!-- Router con update -->
+        <div class="card-v2 net">
+          <div class="dev-hdr">
+            <div class="dev-name-block">
+              <span class="dev-name">MikroTik-Core-01</span>
+              <span class="dev-ip">10.0.0.1</span>
+            </div>
+            <!-- Sin badge si no hay estado particular; o badge neutral de modelo -->
+            <span class="badge badge-net" style="font-size:8px;padding:2px 6px">RouterOS</span>
+          </div>
+          <div class="card-lbl">Firmware</div>
+          <div class="mock-check"><div class="mock-check-box checked"></div>Se actualizó el firmware</div>
+          <div class="mf" style="margin-top:4px"><span class="mf-label">Nueva versión aplicada</span><div class="mf-input">7.14.2</div></div>
+          <div class="card-lbl">Configuración</div>
+          <div class="mock-check"><div class="mock-check-box checked"></div>Backup de configuración realizado</div>
+        </div>
+
+        <!-- Router sin update -->
+        <div class="card-v2 net">
+          <div class="dev-hdr">
+            <div class="dev-name-block">
+              <span class="dev-name">MikroTik-Edge-02</span>
+              <span class="dev-ip">10.0.0.2</span>
+            </div>
+            <span class="badge badge-net" style="font-size:8px;padding:2px 6px">RouterOS</span>
+          </div>
+          <div class="card-lbl">Firmware</div>
+          <div class="mock-check"><div class="mock-check-box"></div>Se actualizó el firmware</div>
+          <div class="card-lbl">Configuración</div>
+          <div class="mock-check"><div class="mock-check-box"></div>Backup de configuración realizado</div>
+        </div>
+
+      </div>
+
+      <div class="section-lbl">Observaciones</div>
+      <textarea class="mock-textarea" rows="3" readonly placeholder="Observaciones generales..."></textarea>
+
+    </div><!-- /drawer-panel v2 -->
+  </div>
+
+</div><!-- /demo-cols -->
+
+<!-- ── Nota de diseño ──────────────────────────────────────── -->
+<div style="margin-top:40px;padding:16px;background:var(--elevated);border:1px solid var(--border);border-radius:var(--radius);font-size:11px;color:var(--tx-md);line-height:1.7">
+  <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:var(--tx-lo);margin-bottom:8px">Cambios v2</div>
+  <b style="color:var(--tx-hi)">QNAP</b> · stripe <span style="color:var(--nas)">──</span> <code style="font-family:var(--font-mono)">--nas</code> (#2dd4bf, teal) ·
+  fondo <code>transparent</code> · sin <code>box-shadow</code> · border-radius solo en lado derecho ·
+  estado warn/crit agrega <code>border-color</code> + tint de color sobre el fondo del drawer<br>
+  <b style="color:var(--tx-hi)">Router</b> · stripe <span style="color:var(--net)">──</span> <code style="font-family:var(--font-mono)">--net</code> (#f97316, naranja) ·
+  idem estructura · badge de marca reemplaza el dot azul genérico<br>
+  <b style="color:var(--tx-hi)">Sin cambiar</b> · lógica de componentes · estructura del form · Angular Material · campos y validaciones · comportamiento de estado warn/crit existente
+</div>
+
+</body>
+</html>

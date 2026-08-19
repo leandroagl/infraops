@@ -5,6 +5,7 @@ export interface InfraAsset {
   bmcIp: string | null;
   bmcType: string | null;
   os: string | null;
+  make: string | null;
   model: string | null;
   uri1: string | null;
   uri2: string | null;

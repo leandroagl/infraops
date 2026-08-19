@@ -39,7 +39,7 @@ function makeGroup(overrides: {
 
 const mockDevice: InfraAsset = {
   assetId: 1, name: 'QNAP – TS-219P+', ip: '192.168.0.132',
-  bmcIp: null, bmcType: null, os: null, model: 'TS-219P+',
+  bmcIp: null, bmcType: null, os: null, make: 'QNAP', model: 'TS-219P+',
   uri1: null, uri2: null,
 };
 
@@ -101,7 +101,7 @@ export const StorageWarning: Story = {
 export const DiskError: Story = {
   render: (args) => ({
     props: {
-      device: { ...mockDevice, name: 'QNAP – VS-8148UPro+', ip: '192.168.0.199' },
+      device: { ...mockDevice, make: 'QNAP', model: 'VS-8148UPro+', ip: '192.168.0.199' },
       group: makeGroup({
         diskCount: 8, totalSpaceGB: 48, totalSpaceUnit: 'TB',
         usedSpaceGB: 20, usedSpaceUnit: 'TB',
@@ -118,7 +118,7 @@ export const DiskError: Story = {
 export const Critical: Story = {
   render: (args) => ({
     props: {
-      device: { ...mockDevice, name: 'NAS – QNAP Cramer', ip: '192.168.10.15' },
+      device: { ...mockDevice, make: 'QNAP', model: 'TS-2888X', ip: '192.168.10.15' },
       group: makeGroup({
         diskCount: 4, totalSpaceGB: 8, totalSpaceUnit: 'TB',
         usedSpaceGB: 7.5, usedSpaceUnit: 'TB',

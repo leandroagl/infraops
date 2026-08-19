@@ -1,95 +1,86 @@
-// ── Section label ─────────────────────────────────────────────
-.mf-section-lbl {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--tx-lo);
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  font-family: var(--font-mono);
-  margin-top: 12px;
-  white-space: nowrap;
-
-  &::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border-lo);
-  }
-}
-
-// ── Base card (mf-cl-rpt es scoped a MaintenanceFormComponent, re-declarado acá) ──
-.mf-cl-rpt {
-  background: var(--card);
+// ── Card root ──────────────────────────────────────────────────
+.qdc {
   border: 1px solid var(--border);
+  border-left: 3px solid var(--nas);
   border-radius: var(--radius-sm);
-  padding: 0;
-  box-shadow: var(--shadow-card);
-
-  &.mf-cl-rpt--warn {
-    border-color: var(--warn-bd);
-    background: color-mix(in srgb, var(--warn) 3%, transparent);
-  }
-}
-
-.qnap-card--crit {
-  border-color: var(--crit-bd);
-  background: color-mix(in srgb, var(--crit) 3%, transparent);
-}
-
-// ── Header con separador inferior ─────────────────────────────
-.qnap-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-lo);
-  background: var(--elevated);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-}
-
-// ── Body con padding propio ────────────────────────────────────
-.qnap-card-body {
-  padding: 12px 14px 14px;
-}
-
-.qnap-card-identity {
+  padding: 10px 14px 12px 11px;
+  background: transparent;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
+
+  &.qdc--warn {
+    border-color: var(--warn-bd);
+    border-left-color: var(--warn);
+    background: color-mix(in srgb, var(--warn) 3%, transparent);
+  }
+
+  &.qdc--crit {
+    border-color: var(--crit-bd);
+    border-left-color: var(--crit);
+    background: color-mix(in srgb, var(--crit) 3%, transparent);
+  }
+}
+
+// ── Header ────────────────────────────────────────────────────
+.qdc-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qdc-name-block {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   min-width: 0;
 }
 
+.qdc-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tx-hi);
+}
+
+.qdc-ip {
+  font-size: 11px;
+  color: var(--tx-lo);
+  font-family: var(--font-mono);
+}
+
+// ── Section labels ─────────────────────────────────────────────
+.qdc-section-lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--tx-lo);
+  margin-top: 4px;
+}
+
 // ── Filas de campos ────────────────────────────────────────────
-.qnap-disks-row,
-.qnap-space-row {
+.qdc-disks-row,
+.qdc-space-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   align-items: start;
-  margin-top: 8px;
 }
 
-.qnap-firmware-row {
+.qdc-firmware-row {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: center;
-  margin-top: 8px;
 }
 
-// ── Barra de progreso con % inline ─────────────────────────────
-.qnap-progress-wrap {
+// ── Progress bar ───────────────────────────────────────────────
+.qdc-progress-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 8px;
 }
 
-.qnap-progress-bar {
+.qdc-progress-bar {
   flex: 1;
   height: 5px;
   background: var(--elevated);
@@ -97,17 +88,17 @@
   overflow: hidden;
 }
 
-.qnap-progress-fill {
+.qdc-progress-fill {
   height: 100%;
   border-radius: 3px;
   transition: width 300ms ease;
 
-  &.mf-inp--ok   { background: var(--ok); }
-  &.mf-inp--warn { background: var(--warn); }
-  &.mf-inp--crit { background: var(--crit); }
+  &.qdc-metric--ok   { background: var(--ok); }
+  &.qdc-metric--warn { background: var(--warn); }
+  &.qdc-metric--crit { background: var(--crit); }
 }
 
-.qnap-progress-pct {
+.qdc-progress-pct {
   font-size: 11px;
   font-weight: 600;
   font-family: var(--font-mono);
@@ -115,30 +106,80 @@
   text-align: right;
   flex-shrink: 0;
 
-  &.mf-inp--ok   { color: var(--ok); }
-  &.mf-inp--warn { color: var(--warn); }
-  &.mf-inp--crit { color: var(--crit); }
+  &.qdc-metric--ok   { color: var(--ok); }
+  &.qdc-metric--warn { color: var(--warn); }
+  &.qdc-metric--crit { color: var(--crit); }
 }
 
-// Estado RAID siempre con margen superior fijo
-mat-form-field.qnap-raid-field {
-  margin-top: 14px;
+// ── Form fields ────────────────────────────────────────────────
+mat-form-field.qdc-field {
+  width: 100%;
+  --mdc-outlined-text-field-container-color:        var(--elevated);
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mdc-outlined-text-field-label-text-color:       var(--tx-lo);
+  --mdc-outlined-text-field-hover-label-text-color: var(--tx-md);
+  --mdc-outlined-text-field-focus-label-text-color: var(--accent);
 }
 
-// Campo "Nueva versión" (condicional post-checkbox)
-mat-form-field.qnap-new-version {
-  margin-top: 8px;
+mat-form-field.qdc-metric-ff {
+  width: 100%;
+  --mat-form-field-container-height:           32px;
+  --mat-form-field-container-vertical-padding: 6px;
+  --mdc-outlined-text-field-container-color:        var(--elevated);
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mdc-outlined-text-field-label-text-color:       var(--tx-lo);
 }
 
-// ── Chips de discos con error ──────────────────────────────────
-.qnap-disk-error-chips {
+mat-form-field.qdc-raid-field { margin-top: 4px; }
+mat-form-field.qdc-new-version { margin-top: 4px; }
+
+// ── Select coloring ────────────────────────────────────────────
+mat-form-field.qdc-sel--ok {
+  --mdc-outlined-text-field-container-color: var(--ok-bg);
+  --mdc-outlined-text-field-outline-color:   var(--ok-bd);
+  --mat-select-trigger-text-color:           var(--ok);
+}
+mat-form-field.qdc-sel--warn {
+  --mdc-outlined-text-field-container-color: var(--warn-bg);
+  --mdc-outlined-text-field-outline-color:   var(--warn-bd);
+  --mat-select-trigger-text-color:           var(--warn);
+}
+mat-form-field.qdc-sel--crit {
+  --mdc-outlined-text-field-container-color: var(--crit-bg);
+  --mdc-outlined-text-field-outline-color:   var(--crit-bd);
+  --mat-select-trigger-text-color:           var(--crit);
+}
+
+// ── Metric coloring en form fields ─────────────────────────────
+mat-form-field.qdc-metric--ok   { --mdc-outlined-text-field-outline-color: var(--ok-bd); }
+mat-form-field.qdc-metric--warn { --mdc-outlined-text-field-outline-color: var(--warn-bd); }
+mat-form-field.qdc-metric--crit { --mdc-outlined-text-field-outline-color: var(--crit-bd); }
+
+// ── Checkbox ───────────────────────────────────────────────────
+mat-checkbox.qdc-check {
+  --mdc-checkbox-unselected-outline-color:        var(--border);
+  --mdc-checkbox-unselected-hover-outline-color:  var(--accent);
+  --mdc-checkbox-selected-icon-color:             var(--ok-bg);
+  --mdc-checkbox-selected-checkmark-color:        var(--ok);
+  --mdc-checkbox-selected-focus-icon-color:       var(--ok-bg);
+  --mdc-checkbox-selected-hover-icon-color:       var(--ok-bg);
+  --mdc-form-field-label-text-size:  11px;
+  --mdc-form-field-label-text-color: var(--tx-hi);
+  display: block;
+}
+
+// ── Error chips ────────────────────────────────────────────────
+.qdc-disk-error-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 4px;
 }
 
-.qnap-disk-chip {
+.qdc-disk-chip {
   font-size: 11px;
   font-family: var(--font-mono);
   padding: 1px 6px;
