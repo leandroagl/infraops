@@ -4,12 +4,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 
 import { TaskDrawerComponent } from './task-drawer.component';
-import { TimeSpentDialogComponent } from './time-spent-dialog/time-spent-dialog.component';
-import { ConfirmMaintenanceDialogComponent } from './confirm-maintenance-dialog/confirm-maintenance-dialog.component';
 import { InfradocService } from '../../../core/services/infradoc.service';
 import { MaintenanceLogsService } from '../../../core/services/maintenance-logs.service';
 import { TasksService } from '../../../core/services/tasks.service';
-import { Task, TaskType, TaskStatus } from '../../../core/models/task.models';
+import { TaskConfigService } from '../../../core/services/task-config.service';
+import { Task, TaskType, TaskStatus, TaskTypeConfigDto } from '../../../core/models/task.models';
 import {
   TerminalPayload,
   MaintenancePayload,
@@ -68,16 +67,21 @@ const mockDialog = {
   open: () => ({ afterClosed: () => of(null) }),
 } as unknown as MatDialog;
 
-function makeDialogThatConfirms(timeMinutes = 90): MatDialog {
-  return {
-    open: (component: unknown) => ({
-      afterClosed: () =>
-        component === TimeSpentDialogComponent ? of(timeMinutes) : of(true),
-    }),
-  } as unknown as MatDialog;
-}
+const mockDialogThatConfirms: MatDialog = {
+  open: () => ({ afterClosed: () => of(true) }),
+} as unknown as MatDialog;
 
-const mockDialogThatConfirms = makeDialogThatConfirms();
+const mockTaskConfig: TaskTypeConfigDto = {
+  taskType: 'WINDOWS_DOMAIN_MAINTENANCE',
+  defaultTimeMinutes: 90,
+  odooTagIds: [],
+  odooTagNames: [],
+  updatedAt: '',
+};
+
+function makeMockTaskConfigService(config: TaskTypeConfigDto | null = mockTaskConfig): TaskConfigService {
+  return { getAll: () => of(config ? [config] : []) } as unknown as TaskConfigService;
+}
 
 // ── Pure unit tests (no TestBed) ─────────────────────────────────────────────
 
@@ -89,7 +93,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
   const mockTasks = { updateStatus: () => of({}) } as any;
 
   beforeEach(() => {
-    component = new TaskDrawerComponent(mockInfradoc, mockLogs, mockTasks, mockDialog);
+    component = new TaskDrawerComponent(mockInfradoc, mockLogs, mockTasks, mockDialog, makeMockTaskConfigService());
     component.task = makeTask();
   });
 
@@ -205,6 +209,28 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     });
   });
 
+  // ── canComplete ──────────────────────────────────────────────────────────
+
+  describe('canComplete', () => {
+    it('canComplete es false cuando taskConfig es null', () => {
+      component.task = { ...makeTask(), status: 'IN_PROGRESS' };
+      component['taskConfig'] = null;
+      expect(component.canComplete).toBe(false);
+    });
+
+    it('canComplete es true cuando taskConfig tiene defaultTimeMinutes', () => {
+      component.task = { ...makeTask(), status: 'IN_PROGRESS' };
+      component['taskConfig'] = {
+        taskType: 'SERVER_HOST_MAINTENANCE',
+        defaultTimeMinutes: 90,
+        odooTagIds: [],
+        odooTagNames: [],
+        updatedAt: '',
+      };
+      expect(component.canComplete).toBe(true);
+    });
+  });
+
   // ── onRequestSave ─────────────────────────────────────────────────────────
 
   describe('onRequestSave()', () => {
@@ -222,6 +248,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { create: createSpy, update: updateSpy } as any,
         { updateStatus: updateStatusSpy } as any,
         mockDialog,
+        makeMockTaskConfigService(),
       );
       saveComponent.task = makeTask({ status: 'PENDING' });
     });
@@ -310,7 +337,9 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { create: createSpy, update: updateSpy } as any,
         { updateStatus: updateStatusSpy } as any,
         mockDialogThatConfirms,
+        makeMockTaskConfigService(),
       );
+      completeComponent.taskConfig = mockTaskConfig;
     });
 
     it('hace doble transición PENDING → IN_PROGRESS → DONE cuando tarea está en PENDING', () => {
@@ -367,30 +396,32 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { getClientInfrastructure: () => of(null) } as any,
         { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } as any,
         { updateStatus: updateStatusSpy } as any,
-        makeDialogThatConfirms(45),
+        mockDialogThatConfirms,
+        makeMockTaskConfigService(),
       );
       notDoneComponent.task = makeTask({ status: 'IN_PROGRESS' });
+      notDoneComponent.taskConfig = mockTaskConfig;
     });
 
-    it('abre TimeSpentDialog y llama updateStatus con NOT_DONE y los minutos', () => {
+    it('llama updateStatus con NOT_DONE y el tiempo de la config cuando se confirma', () => {
       notDoneComponent.onRequestNotDone();
 
-      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'NOT_DONE', timeSpentMinutes: 45 });
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'NOT_DONE', timeSpentMinutes: 90 });
     });
 
-    it('no llama updateStatus si el diálogo de tiempo es cancelado', () => {
+    it('no llama updateStatus si el diálogo es cancelado (retorna null)', () => {
       const cancelDialog = {
-        open: (component: unknown) => ({
-          afterClosed: () => component === TimeSpentDialogComponent ? of(null) : of(true),
-        }),
+        open: () => ({ afterClosed: () => of(null) }),
       } as unknown as MatDialog;
       const cancelComponent = new TaskDrawerComponent(
         { getClientInfrastructure: () => of(null) } as any,
         { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } as any,
         { updateStatus: updateStatusSpy } as any,
         cancelDialog,
+        makeMockTaskConfigService(),
       );
       cancelComponent.task = makeTask({ status: 'IN_PROGRESS' });
+      cancelComponent.taskConfig = mockTaskConfig;
 
       cancelComponent.onRequestNotDone();
 
@@ -443,6 +474,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { create: () => of({}), update: () => of({}), get: getLogSpy } as any,
         { updateStatus: () => of({}) } as any,
         mockDialog,
+        makeMockTaskConfigService(),
       );
       loadComponent.task = makeTask();
     });
@@ -517,6 +549,7 @@ describe('TaskDrawerComponent — template tests', () => {
         { provide: MaintenanceLogsService, useValue: { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } },
         { provide: TasksService, useValue: { updateStatus: () => of({}) } },
         { provide: MatDialog, useValue: { open: () => ({ afterClosed: () => of(false) }) } },
+        { provide: TaskConfigService, useValue: { getAll: () => of([mockTaskConfig]) } },
       ],
     }).compileComponents();
 

@@ -15,6 +15,7 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TasksRoutingModule } from './tasks-routing.module';
 import { TasksUnifiedComponent } from './tasks-unified.component';
 import { KpiStripComponent } from './kpi-strip/kpi-strip.component';
@@ -24,6 +25,7 @@ import { TaskDrawerComponent } from '../technician/task-drawer/task-drawer.compo
 import { MaintenanceFormComponent } from '../technician/task-drawer/maintenance-form/maintenance-form.component';
 import { ConfirmMaintenanceDialogComponent } from '../technician/task-drawer/confirm-maintenance-dialog/confirm-maintenance-dialog.component';
 import { TimeSpentDialogComponent } from '../technician/task-drawer/time-spent-dialog/time-spent-dialog.component';
+import { ConfirmCloseDialogComponent } from '../technician/task-drawer/confirm-close-dialog/confirm-close-dialog.component';
 import { DcHealthCardComponent } from '../technician/task-drawer/maintenance-form/dc-health-card/dc-health-card.component';
 import { QnapFormComponent } from '../technician/task-drawer/qnap-form/qnap-form.component';
 import { QnapDeviceCardComponent } from '../technician/task-drawer/qnap-form/qnap-device-card/qnap-device-card.component';
@@ -54,6 +56,7 @@ import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/tas
     EsxiHostCardComponent,
     BmcHostCardComponent,
     TaskCreateDialogComponent,
+    ConfirmCloseDialogComponent,
   ],
   imports: [
     CommonModule,
@@ -72,6 +75,7 @@ import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/tas
     MatIconModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    MatTooltipModule,
     TasksRoutingModule,
     SharedModule,
   ],

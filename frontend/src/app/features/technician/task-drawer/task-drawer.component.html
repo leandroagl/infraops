@@ -118,7 +118,9 @@
   <ng-container *ngIf="isActiveTask && canExecute">
 
     <ng-container *ngIf="task.type === 'WINDOWS_DOMAIN_MAINTENANCE'">
-      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
+      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
+              [disabled]="!canComplete || completing"
+              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
@@ -127,7 +129,9 @@
     </ng-container>
 
     <ng-container *ngIf="task.type === 'SERVER_HOST_MAINTENANCE'">
-      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
+      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
+              [disabled]="!canComplete || completing"
+              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
@@ -136,7 +140,9 @@
     </ng-container>
 
     <ng-container *ngIf="task.type === 'TERMINAL_MAINTENANCE' || task.type === 'SITE_VISIT'">
-      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
+      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
+              [disabled]="!canComplete || completing"
+              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Marcar visita como realizada</span>
       </button>
@@ -145,7 +151,9 @@
     </ng-container>
 
     <ng-container *ngIf="task.type === 'QNAP_MAINTENANCE'">
-      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
+      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
+              [disabled]="!canComplete || completing"
+              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
@@ -154,7 +162,9 @@
     </ng-container>
 
     <ng-container *ngIf="task.type === 'VEEAM_BACKUP'">
-      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
+      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
+              [disabled]="!canComplete || completing"
+              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
@@ -163,7 +173,9 @@
     </ng-container>
 
     <ng-container *ngIf="task.type === 'ROUTER_MAINTENANCE'">
-      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
+      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
+              [disabled]="!canComplete || completing"
+              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>

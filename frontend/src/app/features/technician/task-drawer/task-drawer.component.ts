@@ -31,10 +31,11 @@ import { VeeamFormComponent } from './veeam-form/veeam-form.component';
 import { ServerHostFormComponent } from './server-host-form/server-host-form.component';
 import { RouterFormComponent } from './router-form/router-form.component';
 import {
-  ConfirmMaintenanceDialogComponent,
-  ConfirmMaintenanceDialogData,
-} from './confirm-maintenance-dialog/confirm-maintenance-dialog.component';
-import { TimeSpentDialogComponent } from './time-spent-dialog/time-spent-dialog.component';
+  ConfirmCloseDialogComponent,
+  ConfirmCloseDialogData,
+} from './confirm-close-dialog/confirm-close-dialog.component';
+import { TaskConfigService } from '../../../core/services/task-config.service';
+import { TaskTypeConfigDto } from '../../../core/models/task.models';
 import { statusLabel, statusBadge, typeLabel, typeBadge } from '../../../shared/utils/task-labels';
 import { daysFromToday, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
 import { formatOdooTicketId, odooTicketUrl } from '../../../shared/utils/odoo';
@@ -70,9 +71,9 @@ export class TaskDrawerComponent implements OnChanges {
   saveProgressMsg = '';
   saveProgressError = '';
   completing = false;
+  taskConfig: TaskTypeConfigDto | null = null;
 
   private pendingPayload: MaintenancePayload | null = null;
-  private pendingTimeSpentMinutes: number | null = null;
   private _currentStatus = '';
 
   constructor(
@@ -80,12 +81,16 @@ export class TaskDrawerComponent implements OnChanges {
     private logsService: MaintenanceLogsService,
     private tasksService: TasksService,
     private dialog: MatDialog,
+    private taskConfigService: TaskConfigService,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['task'] && this.task) {
       this._currentStatus = this.task.status;
       this.loadInfrastructure();
+      this.taskConfigService.getAll().subscribe(configs => {
+        this.taskConfig = configs.find(c => c.taskType === this.task.type) ?? null;
+      });
     }
   }
 
@@ -188,6 +193,12 @@ export class TaskDrawerComponent implements OnChanges {
     return !this.cycleClosed && this.userRole === 'ADMIN';
   }
 
+  get canComplete(): boolean {
+    return this.isActiveTask
+      && this.canExecute
+      && this.taskConfig?.defaultTimeMinutes != null;
+  }
+
   // ── Actions ──────────────────────────────────────────────────────────────────
 
   triggerFormComplete(): void {
@@ -242,21 +253,21 @@ export class TaskDrawerComponent implements OnChanges {
   }
 
   onRequestComplete(payload: MaintenancePayload): void {
+    if (!this.taskConfig) return;
     this.pendingPayload = payload;
 
-    this.dialog.open(TimeSpentDialogComponent, { width: '360px' })
+    const data: ConfirmCloseDialogData = {
+      mode: 'DONE',
+      taskType: this.task.type,
+      config: this.taskConfig,
+      odooTicketId: this.task.odooTicketId,
+      issuesSummary: this.detectIssues(payload),
+    };
+
+    this.dialog.open(ConfirmCloseDialogComponent, { data, width: '420px' })
       .afterClosed()
-      .subscribe((minutes: number | null) => {
-        if (minutes == null) return;
-        this.pendingTimeSpentMinutes = minutes;
-        const issuesSummary = this.detectIssues(payload);
-        const hasAlerts = issuesSummary.dcdiagErrors.length > 0 || issuesSummary.veeamMissing;
-        const data: ConfirmMaintenanceDialogData = { issuesSummary, hasAlerts };
-        this.dialog.open(ConfirmMaintenanceDialogComponent, { data, width: '420px' })
-          .afterClosed()
-          .subscribe((confirmed: boolean) => {
-            if (confirmed) this.saveAndComplete(this.pendingTimeSpentMinutes!);
-          });
+      .subscribe((confirmed: boolean | null) => {
+        if (confirmed) this.saveAndComplete(this.taskConfig!.defaultTimeMinutes!);
       });
   }
 
@@ -281,15 +292,27 @@ export class TaskDrawerComponent implements OnChanges {
   }
 
   onRequestNotDone(): void {
-    this.dialog.open(TimeSpentDialogComponent, { width: '360px' })
+    if (!this.taskConfig) return;
+
+    const data: ConfirmCloseDialogData = {
+      mode: 'NOT_DONE',
+      taskType: this.task.type,
+      config: this.taskConfig,
+      odooTicketId: this.task.odooTicketId,
+      issuesSummary: { dcdiagErrors: [], veeamMissing: false, emptyFields: [] },
+    };
+
+    this.dialog.open(ConfirmCloseDialogComponent, { data, width: '420px' })
       .afterClosed()
-      .subscribe((minutes: number | null) => {
-        if (minutes == null) return;
-        this.tasksService.updateStatus(this.task.id, { status: 'NOT_DONE', timeSpentMinutes: minutes })
-          .subscribe({
-            next: () => { this.taskNotDone.emit(); },
-            error: () => { this.confirmError = 'No se pudo actualizar el estado de la tarea.'; },
-          });
+      .subscribe((confirmed: boolean | null) => {
+        if (!confirmed) return;
+        this.tasksService.updateStatus(this.task.id, {
+          status: 'NOT_DONE',
+          timeSpentMinutes: this.taskConfig!.defaultTimeMinutes!,
+        }).subscribe({
+          next: () => { this.taskNotDone.emit(); },
+          error: () => { this.confirmError = 'No se pudo actualizar el estado de la tarea.'; },
+        });
       });
   }
 
