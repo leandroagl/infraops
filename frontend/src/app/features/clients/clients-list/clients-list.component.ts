@@ -50,6 +50,12 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
             hours: hoursMap.get(c.id),
           }));
         },
+        error: () => {
+          this.dataSource.data = this.dataSource.data.map((c) => ({
+            ...c,
+            hours: { clientId: c.id, contracted: 0, delivered: 0, available: 0 },
+          }));
+        },
       });
   }
 
