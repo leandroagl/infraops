@@ -7,8 +7,8 @@
 
 .page-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
 
   &__title {
     font-size: 20px;
@@ -23,11 +23,13 @@
     font-family: var(--font-mono);
   }
 
-  &__actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
+  &__search {
+    flex-shrink: 0;
   }
+}
+
+.search-field {
+  width: 280px;
 }
 
 .error-banner {
@@ -51,6 +53,94 @@
   cursor: pointer;
 }
 
-.search-field {
-  width: 280px;
+// ── Hours cell ──────────────────────────────────────────
+
+.hours-metrics {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 8px;
 }
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metric__value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+
+  &--neutral { color: var(--tx-md); }
+  &--hi      { color: var(--tx-hi); }
+  &--ok      { color: var(--ok); }
+  &--warn    { color: var(--warn); }
+  &--crit    { color: var(--crit); }
+}
+
+.metric__label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--tx-lo);
+}
+
+.hours-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bar-track {
+  flex: 1;
+  height: 4px;
+  background: var(--elevated);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 2px;
+
+  &--ok   { background: var(--ok); }
+  &--warn { background: var(--warn); }
+  &--crit { background: var(--crit); }
+}
+
+.bar-pct {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--tx-lo);
+  min-width: 32px;
+  text-align: right;
+}
+
+.no-data {
+  color: var(--tx-lo);
+}
+
+// ── Skeleton ─────────────────────────────────────────────
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.skeleton {
+  display: inline-block;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--elevated) 25%,
+    var(--hover)    50%,
+    var(--elevated) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+.sk-val { width: 36px; height: 14px; }
+.sk-bar { width: 100%; height: 4px; display: block; }

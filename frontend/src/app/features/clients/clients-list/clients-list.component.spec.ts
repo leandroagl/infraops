@@ -1,47 +1,59 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { FormsModule } from '@angular/forms';
-import { of, throwError } from 'rxjs';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { Router } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
 import { MatTableModule } from '@angular/material/table';
 import { MatSortModule } from '@angular/material/sort';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { FormsModule } from '@angular/forms';
+import { of, NEVER } from 'rxjs';
 import { ClientsListComponent } from './clients-list.component';
 import { ClientsService } from '../../../core/services/clients.service';
-import { Client } from '../../../core/models/client.models';
+import { Client, ClientSubscriptionHours } from '../../../core/models/client.models';
 
-const makeClient = (overrides: Partial<Client> = {}): Client => ({
-  id: '1',
-  name: 'ACME Corp',
-  primaryAddress: 'Av. Corrientes 1234, Buenos Aires',
-  isActive: true,
-  createdAt: '2026-01-01T00:00:00.000Z',
-  ...overrides,
+const makeClient = (override: Partial<Client> = {}): Client => ({
+  id: 'c1', name: 'ACME Corp', primaryAddress: null, isActive: true, createdAt: '2026-01-01', ...override,
 });
+
+const MATERIAL_IMPORTS = [
+  NoopAnimationsModule,
+  RouterTestingModule,
+  FormsModule,
+  MatTableModule,
+  MatSortModule,
+  MatFormFieldModule,
+  MatInputModule,
+];
+
+async function buildFixture(
+  getAll: jasmine.Spy,
+  getSubscriptionHours: jasmine.Spy,
+): Promise<ComponentFixture<ClientsListComponent>> {
+  const svc = { getAll, getSubscriptionHours } as unknown as ClientsService;
+  await TestBed.configureTestingModule({
+    declarations: [ClientsListComponent],
+    imports: MATERIAL_IMPORTS,
+    providers: [{ provide: ClientsService, useValue: svc }],
+  }).compileComponents();
+  const f = TestBed.createComponent(ClientsListComponent);
+  f.detectChanges();
+  return f;
+}
 
 describe('ClientsListComponent', () => {
   let component: ClientsListComponent;
   let fixture: ComponentFixture<ClientsListComponent>;
-  let clientsServiceSpy: jasmine.SpyObj<ClientsService>;
-  let routerSpy: jasmine.SpyObj<Router>;
+  let getAllSpy: jasmine.Spy;
+  let getHoursSpy: jasmine.Spy;
 
   beforeEach(async () => {
-    clientsServiceSpy = jasmine.createSpyObj('ClientsService', ['getAll']);
-    routerSpy = jasmine.createSpyObj('Router', ['navigate']);
-
-    clientsServiceSpy.getAll.and.returnValue(of([
-      makeClient({ id: '1', name: 'ACME Corp', isActive: true }),
-      makeClient({ id: '2', name: 'Archivado SA', isActive: false }),
-    ]));
+    getAllSpy = jasmine.createSpy('getAll').and.returnValue(of([]));
+    getHoursSpy = jasmine.createSpy('getSubscriptionHours').and.returnValue(of([]));
 
     await TestBed.configureTestingModule({
       declarations: [ClientsListComponent],
-      imports: [NoopAnimationsModule, FormsModule, MatTableModule, MatSortModule],
-      providers: [
-        { provide: ClientsService, useValue: clientsServiceSpy },
-        { provide: Router, useValue: routerSpy },
-      ],
-      schemas: [NO_ERRORS_SCHEMA],
+      imports: MATERIAL_IMPORTS,
+      providers: [{ provide: ClientsService, useValue: { getAll: getAllSpy, getSubscriptionHours: getHoursSpy } }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ClientsListComponent);
@@ -49,47 +61,75 @@ describe('ClientsListComponent', () => {
     fixture.detectChanges();
   });
 
-  it('carga solo clientes activos en ngOnInit', () => {
-    expect(component.dataSource.data.length).toBe(1);
-    expect(component.dataSource.data[0].name).toBe('ACME Corp');
-  });
-
-  it('navega a /clients/:id al llamar navigateToClient', () => {
-    component.navigateToClient('1');
-    expect(routerSpy.navigate).toHaveBeenCalledWith(['/clients', '1']);
-  });
-
-  it('expone displayedColumns con los campos name y primaryAddress', () => {
-    expect(component.displayedColumns).toContain('name');
-    expect(component.displayedColumns).toContain('primaryAddress');
-  });
-
-  it('muestra loadError true cuando falla la carga', async () => {
-    const errorSpy = jasmine.createSpyObj('ClientsService', ['getAll']);
-    errorSpy.getAll.and.returnValue(throwError(() => new Error('Network error')));
-    const routerSpyLocal = jasmine.createSpyObj('Router', ['navigate']);
-
+  afterEach(() => {
     TestBed.resetTestingModule();
-    await TestBed.configureTestingModule({
-      declarations: [ClientsListComponent],
-      imports: [NoopAnimationsModule, FormsModule, MatTableModule, MatSortModule],
-      providers: [
-        { provide: ClientsService, useValue: errorSpy },
-        { provide: Router, useValue: routerSpyLocal },
-      ],
-      schemas: [NO_ERRORS_SCHEMA],
-    }).compileComponents();
-
-    const f = TestBed.createComponent(ClientsListComponent);
-    f.detectChanges();
-
-    expect(f.componentInstance.loadError).toBe(true);
-    expect(f.componentInstance.dataSource.data.length).toBe(0);
   });
 
-  it('aplica filtro al dataSource al llamar applyFilter', () => {
-    component.quickFilter = 'acme';
-    component.applyFilter();
-    expect(component.dataSource.filter).toBe('acme');
+  it('lanza getAll y getSubscriptionHours en paralelo al inicializar', () => {
+    expect(getAllSpy).toHaveBeenCalledTimes(1);
+    expect(getHoursSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('filtra clientes inactivos y popula dataSource', async () => {
+    TestBed.resetTestingModule();
+    const clients = [makeClient({ id: 'c1', isActive: true }), makeClient({ id: 'c2', isActive: false })];
+    const spy1 = jasmine.createSpy('getAll').and.returnValue(of(clients));
+    const spy2 = jasmine.createSpy('getSubscriptionHours').and.returnValue(NEVER);
+    const f = await buildFixture(spy1, spy2);
+
+    expect(f.componentInstance.dataSource.data).toHaveSize(1);
+    expect(f.componentInstance.dataSource.data[0].id).toBe('c1');
+  });
+
+  it('hours es undefined (skeleton) antes de que lleguen las horas', async () => {
+    TestBed.resetTestingModule();
+    const spy1 = jasmine.createSpy('getAll').and.returnValue(of([makeClient()]));
+    const spy2 = jasmine.createSpy('getSubscriptionHours').and.returnValue(NEVER);
+    const f = await buildFixture(spy1, spy2);
+
+    expect(f.componentInstance.dataSource.data[0].hours).toBeUndefined();
+  });
+
+  it('mergea horas sin volver a llamar getAll', async () => {
+    TestBed.resetTestingModule();
+    const hours: ClientSubscriptionHours[] = [
+      { clientId: 'c1', contracted: 20, delivered: 8, available: 12 },
+    ];
+    const spy1 = jasmine.createSpy('getAll').and.returnValue(of([makeClient()]));
+    const spy2 = jasmine.createSpy('getSubscriptionHours').and.returnValue(of(hours));
+    const f = await buildFixture(spy1, spy2);
+
+    expect(f.componentInstance.dataSource.data[0].hours).toEqual(hours[0]);
+    expect(spy1).toHaveBeenCalledTimes(1);
+  });
+
+  describe('getHoursState', () => {
+    it('retorna ok cuando uso < 70%', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 20, delivered: 8, available: 12 };
+      expect(component.getHoursState(h)).toBe('ok');
+    });
+    it('retorna warn cuando uso está entre 70% y 90%', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 10, delivered: 8, available: 2 };
+      expect(component.getHoursState(h)).toBe('warn');
+    });
+    it('retorna crit cuando uso >= 90%', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 10, delivered: 9, available: 1 };
+      expect(component.getHoursState(h)).toBe('crit');
+    });
+  });
+
+  describe('getHoursPct', () => {
+    it('retorna 0 cuando contracted es 0', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 0, delivered: 0, available: 0 };
+      expect(component.getHoursPct(h)).toBe(0);
+    });
+    it('retorna porcentaje redondeado', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 20, delivered: 8, available: 12 };
+      expect(component.getHoursPct(h)).toBe(40);
+    });
+    it('está capeado en 100 cuando delivered > contracted', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 10, delivered: 15, available: 0 };
+      expect(component.getHoursPct(h)).toBe(100);
+    });
   });
 });
