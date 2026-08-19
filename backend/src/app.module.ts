@@ -31,7 +31,7 @@ import { SchedulesModule } from './schedules/schedules.module';
     ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
-    OdooIntegrationModule, // must precede ClientsModule — static route /clients/subscription-hours must register before /clients/:id
+    OdooIntegrationModule,
     ClientsModule,
     TechniciansModule,
     TasksModule,
