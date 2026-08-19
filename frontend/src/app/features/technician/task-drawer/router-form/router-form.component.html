@@ -1,5 +1,7 @@
 <form [formGroup]="form" class="rf">
 
+  <div class="rf-section-lbl">Routers</div>
+
   <div class="rf-devices-stack">
     <app-router-device-card
       *ngFor="let _ of routerControls.controls; let i = index"
@@ -9,9 +11,12 @@
     </app-router-device-card>
   </div>
 
+  <div class="rf-section-lbl">Observaciones</div>
+
   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="rf-notes-field">
     <mat-label>Notas</mat-label>
-    <textarea matInput formControlName="notes" placeholder="Observaciones generales..."></textarea>
+    <textarea matInput formControlName="notes" rows="3"
+              placeholder="Observaciones generales..."></textarea>
   </mat-form-field>
 
 </form>

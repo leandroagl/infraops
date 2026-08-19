@@ -7,7 +7,7 @@
   background: transparent;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 20px;
 
   &.qdc--warn {
     border-color: var(--warn-bd);
@@ -46,6 +46,13 @@
   font-size: 11px;
   color: var(--tx-lo);
   font-family: var(--font-mono);
+}
+
+// ── Body ───────────────────────────────────────────────────────
+.qdc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 // ── Section labels ─────────────────────────────────────────────
@@ -114,6 +121,8 @@
 // ── Form fields ────────────────────────────────────────────────
 mat-form-field.qdc-field {
   width: 100%;
+  --mat-form-field-container-height:           32px;
+  --mat-form-field-container-vertical-padding: 6px;
   --mdc-outlined-text-field-container-color:        var(--elevated);
   --mdc-outlined-text-field-outline-color:          var(--border);
   --mdc-outlined-text-field-hover-outline-color:    var(--border-md);

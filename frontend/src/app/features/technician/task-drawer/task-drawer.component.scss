@@ -4,6 +4,7 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  height: 100%;
 }
 
 .ds {
@@ -182,34 +183,25 @@
 // ── Footer ────────────────────────────────────────────────
 .d-footer {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 8px;
-  padding: 12px 18px;
-  border-top: 1px solid var(--border-lo);
-  background: var(--surface);
+  align-items: center;
+  padding: 0 18px 20px;
   flex-shrink: 0;
-  box-shadow: var(--shadow-md);
+  background: var(--base);
 
-  &__actions {
-    display: flex;
-    gap: 8px;
-
-    button[color="primary"] mat-progress-spinner {
-      --mdc-circular-progress-active-indicator-color: white;
-    }
+  button[color="primary"] mat-progress-spinner {
+    --mdc-circular-progress-active-indicator-color: white;
   }
+}
 
-  &__err {
-    font-size: 11px;
-    color: var(--crit);
-    margin: 0;
-  }
+.d-footer-msg {
+  width: 100%;
+  font-size: 11px;
+  margin: 0;
 
-  &__ok {
-    font-size: 11px;
-    color: var(--ok);
-    margin: 0;
-  }
+  &--err { color: var(--crit); }
+  &--ok  { color: var(--ok);   }
 }
 
 // ── Urgency badges ────────────────────────────────────────
