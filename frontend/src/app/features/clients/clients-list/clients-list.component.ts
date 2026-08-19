@@ -47,7 +47,7 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
           const hoursMap = new Map(hoursData.map((h) => [h.clientId, h]));
           this.dataSource.data = this.dataSource.data.map((c) => ({
             ...c,
-            hours: hoursMap.get(c.id),
+            hours: hoursMap.get(c.id) ?? { clientId: c.id, contracted: 0, delivered: 0, available: 0 },
           }));
         },
         error: () => {
@@ -61,6 +61,10 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit(): void {
     this.dataSource.sort = this.sort;
+    this.dataSource.sortingDataAccessor = (row, column) => {
+      if (column === 'hours') return row.hours ? this.getHoursPct(row.hours) : -1;
+      return (row as unknown as Record<string, unknown>)[column] as string ?? '';
+    };
   }
 
   applyFilter(): void {

@@ -1,96 +1,94 @@
 <div class="page">
-  <div class="page-header">
-    <div class="page-header__search">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
-        <mat-label>Buscar</mat-label>
-        <input matInput [(ngModel)]="quickFilter" (ngModelChange)="applyFilter()" placeholder="Nombre de cliente...">
-      </mat-form-field>
+  <div class="page-hdr">
+    <div class="page-hdr__left">
+      <span class="page-title">Clientes</span>
+      <span class="page-count">{{ dataSource.data.length }} clientes activos</span>
     </div>
-    <div>
-      <h1 class="page-header__title">Clientes</h1>
-      <span class="page-header__count">{{ dataSource.data.length }} clientes activos</span>
-    </div>
+  </div>
+
+  <div class="filter-bar">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
+      <mat-label>Buscar cliente</mat-label>
+      <input matInput [(ngModel)]="quickFilter" (ngModelChange)="applyFilter()" placeholder="Nombre de cliente...">
+    </mat-form-field>
   </div>
 
   <div *ngIf="loadError" class="error-banner">
     Error al cargar los clientes. Intentá recargar la página.
   </div>
 
-  <div class="surface-card clients-table">
-    <table mat-table [dataSource]="dataSource" matSort matSortActive="name" matSortDirection="asc" style="width:100%">
+  <mat-table [dataSource]="dataSource" class="clients-table" matSort matSortActive="name" matSortDirection="asc">
 
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
-        <td mat-cell *matCellDef="let row" class="client-name" (click)="navigateToClient(row.id)">
-          {{ row.name }}
-        </td>
-      </ng-container>
+    <ng-container matColumnDef="name">
+      <mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</mat-header-cell>
+      <mat-cell *matCellDef="let row" class="client-name" (click)="navigateToClient(row.id)">
+        {{ row.name }}
+      </mat-cell>
+    </ng-container>
 
-      <ng-container matColumnDef="hours">
-        <th mat-header-cell *matHeaderCellDef>Horas del mes</th>
-        <td mat-cell *matCellDef="let row">
+    <ng-container matColumnDef="hours">
+      <mat-header-cell *matHeaderCellDef mat-sort-header>Horas del mes</mat-header-cell>
+      <mat-cell *matCellDef="let row">
 
-          <ng-container *ngIf="row.hours; else skeleton">
-            <ng-container *ngIf="row.hours.contracted > 0; else noData">
-              <div class="hours-metrics">
-                <div class="metric">
-                  <span class="metric__value metric__value--neutral">{{ row.hours.contracted }}</span>
-                  <span class="metric__label">Contratadas</span>
-                </div>
-                <div class="metric">
-                  <span class="metric__value" [ngClass]="'metric__value--' + getHoursState(row.hours)">
-                    {{ row.hours.delivered }}
-                  </span>
-                  <span class="metric__label">Usadas</span>
-                </div>
-                <div class="metric">
-                  <span class="metric__value metric__value--hi">{{ row.hours.available }}</span>
-                  <span class="metric__label">Disponibles</span>
-                </div>
-              </div>
-              <div class="hours-bar">
-                <div class="bar-track">
-                  <div class="bar-fill" [ngClass]="'bar-fill--' + getHoursState(row.hours)"
-                       [style.width.%]="getHoursPct(row.hours)">
-                  </div>
-                </div>
-                <span class="bar-pct">{{ getHoursPct(row.hours) }}%</span>
-              </div>
-            </ng-container>
-          </ng-container>
-
-          <ng-template #noData>
-            <span class="no-data">—</span>
-          </ng-template>
-
-          <ng-template #skeleton>
+        <ng-container *ngIf="row.hours; else skeleton">
+          <ng-container *ngIf="row.hours.contracted > 0; else noData">
             <div class="hours-metrics">
               <div class="metric">
-                <span class="skeleton sk-val"></span>
+                <span class="metric__value metric__value--neutral">{{ row.hours.contracted }}</span>
                 <span class="metric__label">Contratadas</span>
               </div>
               <div class="metric">
-                <span class="skeleton sk-val"></span>
+                <span class="metric__value" [ngClass]="'metric__value--' + getHoursState(row.hours)">
+                  {{ row.hours.delivered }}
+                </span>
                 <span class="metric__label">Usadas</span>
               </div>
               <div class="metric">
-                <span class="skeleton sk-val"></span>
+                <span class="metric__value metric__value--hi">{{ row.hours.available }}</span>
                 <span class="metric__label">Disponibles</span>
               </div>
             </div>
             <div class="hours-bar">
-              <div class="bar-track"><span class="skeleton sk-bar"></span></div>
+              <div class="bar-track">
+                <div class="bar-fill" [ngClass]="'bar-fill--' + getHoursState(row.hours)"
+                     [style.width.%]="getHoursPct(row.hours)">
+                </div>
+              </div>
+              <span class="bar-pct" [ngClass]="'bar-pct--' + getHoursState(row.hours)">{{ getHoursPct(row.hours) }}%</span>
             </div>
-          </ng-template>
+          </ng-container>
+        </ng-container>
 
-        </td>
-      </ng-container>
+        <ng-template #noData>
+          <span class="no-data">—</span>
+        </ng-template>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-      <tr class="mat-mdc-no-data-row" *matNoDataRow>
-        <td [attr.colspan]="displayedColumns.length">Sin clientes</td>
-      </tr>
-    </table>
-  </div>
+        <ng-template #skeleton>
+          <div class="hours-metrics">
+            <div class="metric">
+              <span class="skeleton sk-val"></span>
+              <span class="metric__label">Contratadas</span>
+            </div>
+            <div class="metric">
+              <span class="skeleton sk-val"></span>
+              <span class="metric__label">Usadas</span>
+            </div>
+            <div class="metric">
+              <span class="skeleton sk-val"></span>
+              <span class="metric__label">Disponibles</span>
+            </div>
+          </div>
+          <div class="hours-bar">
+            <div class="bar-track"><span class="skeleton sk-bar"></span></div>
+          </div>
+        </ng-template>
+
+      </mat-cell>
+    </ng-container>
+
+    <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+    <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+    <div *matNoDataRow class="no-data-row">Sin clientes</div>
+
+  </mat-table>
 </div>

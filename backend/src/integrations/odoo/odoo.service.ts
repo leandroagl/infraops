@@ -125,7 +125,6 @@ export class OdooService {
           [
             ['is_company', '=', true],
             ['vat', '!=', false],
-            ['email', '!=', false],
           ],
         ],
         { fields: ['id', 'name', 'vat'] },
@@ -149,7 +148,7 @@ export class OdooService {
         );
         continue;
       }
-      const client = clientByCuit.get(partner.vat);
+      const client = clientByCuit.get(partner.vat.replace(/-/g, ''));
       if (client) {
         await this.clientRepo.update(client.id, {
           odooPartnerId: partner.id,

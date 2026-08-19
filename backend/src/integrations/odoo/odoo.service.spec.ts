@@ -143,7 +143,7 @@ describe('OdooService', () => {
       expect(result.total).toBe(1);
     });
 
-    it('consulta Odoo con filtros is_company=true, vat!=false y email!=false', async () => {
+    it('consulta Odoo con filtros is_company=true y vat!=false', async () => {
       clientRepo.find.mockResolvedValue([]);
       odooRpc.callKw.mockResolvedValue([]);
 
@@ -156,7 +156,6 @@ describe('OdooService', () => {
           expect.arrayContaining([
             ['is_company', '=', true],
             ['vat', '!=', false],
-            ['email', '!=', false],
           ]),
         ]),
         expect.objectContaining({

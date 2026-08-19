@@ -88,6 +88,7 @@ describe('InfrastructureService', () => {
       bmcIp: null,
       bmcType: null,
       os: 'VMware ESXi 7.0.0',
+      make: 'HPE',
       model: 'ProLiant DL380 Gen10',
       uri1: null,
       uri2: null,
