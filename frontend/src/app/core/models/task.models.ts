@@ -48,3 +48,22 @@ export interface CycleStats {
   pending: number;
   done: number;
 }
+
+export interface TaskTypeConfigDto {
+  taskType: TaskType;
+  defaultTimeMinutes: number | null;
+  odooTagIds: number[];
+  odooTagNames: string[];
+  updatedAt: string;
+}
+
+export interface OdooHelpdeskTagDto {
+  id: number;
+  name: string;
+}
+
+export interface UpdateTaskConfigPayload {
+  defaultTimeMinutes?: number;
+  odooTagIds?: number[];
+  odooTagNames?: string[];
+}
