@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { TaskConfigController } from './task-config.controller';
 import { TaskConfigService } from './task-config.service';
@@ -76,8 +77,8 @@ describe('TaskConfigController', () => {
 
     it('retorna 400 con taskType inválido', async () => {
       await expect(
-        controller.update('INVALID_TYPE' as TaskType, { defaultTimeMinutes: 30 })
-      ).rejects.toThrow();
+        controller.update('INVALID_TYPE' as any, { defaultTimeMinutes: 30 })
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });
