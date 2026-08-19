@@ -29,4 +29,9 @@ export class OdooController {
   getSyncStatus(): Promise<OdooSyncStatusDto> {
     return this.odooService.getSyncStatus();
   }
+
+  @Get('helpdesk-tags')
+  getHelpdeskTags(): Promise<{ id: number; name: string }[]> {
+    return this.odooService.getHelpdeskTags();
+  }
 }

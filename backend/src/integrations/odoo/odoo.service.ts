@@ -17,6 +17,7 @@ import { OdooSyncResult } from './dto/odoo-sync-result.dto';
 import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 import { ClientSubscriptionHoursDto } from './dto/client-subscription-hours.dto';
 import { TaskType } from '../../tasks/task-type.enum';
+import { TaskConfigService } from '../../task-config/task-config.service';
 
 const CLOSING_NOTE = '<p>Ante cualquier anomalía detectada, se creará un ticket de soporte para su seguimiento y resolución.</p>';
 
@@ -98,16 +99,11 @@ export class OdooService {
   private readonly logger = new Logger(OdooService.name);
   private doneStageId: number | null = null;
   private inProgressStageId: number | null = null;
-  private qnapTagId: number | null = null;
-  private windowsAdDomainTagId: number | null = null;
-  private windowsServerTagId: number | null = null;
-  private virtualizationTagId: number | null = null;
-  private serverManagementTagId: number | null = null;
-  private routerFirewallTagId: number | null = null;
 
   constructor(
     private readonly systemRpc: OdooSystemRpcService,
     private readonly configService: ConfigService,
+    private readonly taskConfigService: TaskConfigService,
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,
     @InjectRepository(User)
@@ -468,126 +464,6 @@ export class OdooService {
     );
   }
 
-  private async resolveQnapTagId(): Promise<number> {
-    if (this.qnapTagId !== null) return this.qnapTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Backups (NAS)']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Backups (NAS)" en Odoo',
-      );
-    }
-
-    this.qnapTagId = tags[0].id;
-    return this.qnapTagId;
-  }
-
-  private async resolveWindowsAdDomainTagId(): Promise<number> {
-    if (this.windowsAdDomainTagId !== null) return this.windowsAdDomainTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Windows AD Domain']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Windows AD Domain" en Odoo',
-      );
-    }
-
-    this.windowsAdDomainTagId = tags[0].id;
-    return this.windowsAdDomainTagId;
-  }
-
-  private async resolveWindowsServerTagId(): Promise<number> {
-    if (this.windowsServerTagId !== null) return this.windowsServerTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Windows Server']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Windows Server" en Odoo',
-      );
-    }
-
-    this.windowsServerTagId = tags[0].id;
-    return this.windowsServerTagId;
-  }
-
-  private async resolveVirtualizationTagId(): Promise<number> {
-    if (this.virtualizationTagId !== null) return this.virtualizationTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Virtualización']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Virtualización" en Odoo',
-      );
-    }
-
-    this.virtualizationTagId = tags[0].id;
-    return this.virtualizationTagId;
-  }
-
-  private async resolveServerManagementTagId(): Promise<number> {
-    if (this.serverManagementTagId !== null) return this.serverManagementTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Gestión de servidores']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Gestión de servidores" en Odoo',
-      );
-    }
-
-    this.serverManagementTagId = tags[0].id;
-    return this.serverManagementTagId;
-  }
-
-  private async resolveRouterFirewallTagId(): Promise<number> {
-    if (this.routerFirewallTagId !== null) return this.routerFirewallTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Router/Firewall']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Router/Firewall" en Odoo',
-      );
-    }
-
-    this.routerFirewallTagId = tags[0].id;
-    return this.routerFirewallTagId;
-  }
-
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 
@@ -616,6 +492,16 @@ export class OdooService {
 
     this.doneStageId = stages[0].id;
     return this.doneStageId;
+  }
+
+  async getHelpdeskTags(): Promise<{ id: number; name: string }[]> {
+    const tags = await this.systemRpc.callKw<Array<{ id: number; name: string }>>(
+      'helpdesk.tag',
+      'search_read',
+      [[]],
+      { fields: ['id', 'name'] },
+    );
+    return tags.map(t => ({ id: t.id, name: t.name }));
   }
 
   async closeTicket(
@@ -686,27 +572,9 @@ export class OdooService {
     if (saleLineId !== null) {
       payload['sale_line_id'] = saleLineId;
     }
-    if (taskType === TaskType.WINDOWS_DOMAIN_MAINTENANCE) {
-      const adDomainTagId = await this.resolveWindowsAdDomainTagId();
-      const serverTagId = await this.resolveWindowsServerTagId();
-      payload['tag_ids'] = [[6, 0, [adDomainTagId, serverTagId]]];
-    }
-    if (taskType === TaskType.SERVER_HOST_MAINTENANCE) {
-      const virtualizationId = await this.resolveVirtualizationTagId();
-      const serverMgmtId = await this.resolveServerManagementTagId();
-      payload['tag_ids'] = [[6, 0, [virtualizationId, serverMgmtId]]];
-    }
-    if (taskType === TaskType.QNAP_MAINTENANCE) {
-      const tagId = await this.resolveQnapTagId();
-      payload['tag_ids'] = [[6, 0, [tagId]]];
-    }
-    if (taskType === TaskType.VEEAM_BACKUP) {
-      const tagId = await this.resolveQnapTagId();
-      payload['tag_ids'] = [[6, 0, [tagId]]];
-    }
-    if (taskType === TaskType.ROUTER_MAINTENANCE) {
-      const tagId = await this.resolveRouterFirewallTagId();
-      payload['tag_ids'] = [[6, 0, [tagId]]];
+    const config = await this.taskConfigService.findOne(taskType);
+    if (config && config.odooTagIds.length > 0) {
+      payload['tag_ids'] = [[6, 0, config.odooTagIds]];
     }
 
     const ticketId = await this.systemRpc.callKw<number>(
