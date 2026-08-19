@@ -15,6 +15,7 @@ import { OdooPartner } from './dto/odoo-partner.dto';
 import { OdooUser } from './dto/odoo-user.dto';
 import { OdooSyncResult } from './dto/odoo-sync-result.dto';
 import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
+import { ClientSubscriptionHoursDto } from './dto/client-subscription-hours.dto';
 import { TaskType } from '../../tasks/task-type.enum';
 
 const CLOSING_NOTE = '<p>Ante cualquier anomalía detectada, se creará un ticket de soporte para su seguimiento y resolución.</p>';
@@ -383,6 +384,27 @@ export class OdooService {
       partnerId,
       contracted,
       delivered,
+    }));
+  }
+
+  async getClientSubscriptionHours(): Promise<ClientSubscriptionHoursDto[]> {
+    const clients = await this.clientRepo.find({
+      where: { isActive: true, odooPartnerId: Not(IsNull()) },
+      select: { id: true, odooPartnerId: true },
+    });
+
+    if (clients.length === 0) return [];
+
+    const partnerIds = clients.map((c) => c.odooPartnerId!);
+    const hours = await this.getSubscriptionHours(partnerIds);
+
+    const partnerToClientId = new Map(clients.map((c) => [c.odooPartnerId!, c.id]));
+
+    return hours.map(({ partnerId, contracted, delivered }) => ({
+      clientId: partnerToClientId.get(partnerId)!,
+      contracted,
+      delivered,
+      available: Math.max(0, contracted - delivered),
     }));
   }
 

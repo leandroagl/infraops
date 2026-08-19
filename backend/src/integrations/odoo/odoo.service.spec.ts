@@ -1259,6 +1259,46 @@ describe('OdooService', () => {
     });
   });
 
+  describe('getClientSubscriptionHours', () => {
+    it('devuelve horas mapeadas por clientId con available calculado', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'client-1', odooPartnerId: 201 }),
+      ]);
+      jest.spyOn(service, 'getSubscriptionHours').mockResolvedValue([
+        { partnerId: 201, contracted: 20, delivered: 8 },
+      ]);
+
+      const result = await service.getClientSubscriptionHours();
+
+      expect(result).toEqual([
+        { clientId: 'client-1', contracted: 20, delivered: 8, available: 12 },
+      ]);
+    });
+
+    it('available es 0 cuando delivered supera contracted', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'client-1', odooPartnerId: 201 }),
+      ]);
+      jest.spyOn(service, 'getSubscriptionHours').mockResolvedValue([
+        { partnerId: 201, contracted: 10, delivered: 15 },
+      ]);
+
+      const result = await service.getClientSubscriptionHours();
+
+      expect(result[0].available).toBe(0);
+    });
+
+    it('retorna lista vacía y no llama a getSubscriptionHours cuando no hay clientes con odooPartnerId', async () => {
+      clientRepo.find.mockResolvedValue([]);
+      const spy = jest.spyOn(service, 'getSubscriptionHours');
+
+      const result = await service.getClientSubscriptionHours();
+
+      expect(result).toEqual([]);
+      expect(spy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('resolveSaleLineId', () => {
     it('busca sale.order.line por partner_id y producto Hora Única, cachea y retorna', async () => {
       clientRepo.findOne.mockResolvedValue(
