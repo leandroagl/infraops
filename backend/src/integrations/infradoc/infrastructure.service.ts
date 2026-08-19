@@ -149,6 +149,7 @@ export class InfrastructureService {
       bmcIp: bmc?.bmcIp ?? null,
       bmcType: bmc?.bmcType ?? null,
       os: raw.asset_os || null,
+      make: raw.asset_make || null,
       model: raw.asset_model || null,
       uri1: uriOverride?.uri1 ?? raw.asset_uri ?? null,
       uri2: uriOverride?.uri2 ?? raw.asset_uri_2 ?? null,

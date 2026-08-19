@@ -27,12 +27,12 @@ const emptyInfra: ClientInfrastructure = {
 
 const infraRoutersOnly: ClientInfrastructure = {
   ...emptyInfra,
-  routers: [{ assetId: 1, name: 'FW-01', ip: '10.0.0.1', bmcIp: null, bmcType: null, os: null, model: null, uri1: null, uri2: null }],
+  routers: [{ assetId: 1, name: 'FW-01', ip: '10.0.0.1', bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: null, uri2: null }],
 };
 
 const infraNasOnly: ClientInfrastructure = {
   ...emptyInfra,
-  nas: [{ assetId: 2, name: 'NAS-01', ip: '192.168.1.50', bmcIp: null, bmcType: null, os: null, model: null, uri1: null, uri2: null }],
+  nas: [{ assetId: 2, name: 'NAS-01', ip: '192.168.1.50', bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: null, uri2: null }],
 };
 
 describe('TaskCreateDialogComponent', () => {

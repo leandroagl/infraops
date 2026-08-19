@@ -4,7 +4,7 @@ import { InfraAsset } from '../../../core/models/infradoc.models';
 function makeAsset(uri1: string | null, uri2: string | null): InfraAsset {
   return {
     assetId: 1, name: 'host1', ip: null, bmcIp: null,
-    bmcType: null, os: null, model: null, uri1, uri2,
+    bmcType: null, os: null, make: null, model: null, uri1, uri2,
   };
 }
 

@@ -1,52 +1,23 @@
-// ── Section label (re-declarado localmente, igual que en qnap-device-card) ──
-.mf-section-lbl {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--tx-lo);
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  font-family: var(--font-mono);
-  margin-top: 12px;
-  white-space: nowrap;
-
-  &::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border-lo);
-  }
-}
-
-// ── Base card (re-declarado localmente, igual que en qnap-device-card) ──────
-.mf-cl-rpt {
-  background: var(--card);
+// ── Card root ──────────────────────────────────────────────────
+.rdc {
   border: 1px solid var(--border);
+  border-left: 3px solid var(--net);
   border-radius: var(--radius-sm);
-  padding: 0;
-  box-shadow: var(--shadow-card);
+  padding: 10px 14px 12px 11px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-// ── Header con separador inferior ─────────────────────────────
-.rdc-header {
+// ── Header ─────────────────────────────────────────────────────
+.rdc-hdr {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-lo);
-  background: var(--elevated);
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  gap: 8px;
 }
 
-// ── Body con padding propio ────────────────────────────────────
-.rdc-body {
-  padding: 12px 14px 14px;
-}
-
-// ── Identity (nombre + IP en columna) ─────────────────────────
+// ── Identity ───────────────────────────────────────────────────
 .rdc-identity {
   display: flex;
   flex-direction: column;
@@ -55,28 +26,27 @@
 }
 
 .rdc-device-name {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--tx-hi);
 }
 
 .rdc-device-ip {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--tx-lo);
   font-family: var(--font-mono);
 }
 
-// ── Firmware row ───────────────────────────────────────────────
-.rdc-firmware-row {
-  margin-top: 8px;
+// ── Section label ──────────────────────────────────────────────
+.rdc-section-lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--tx-lo);
+  margin-top: 4px;
 }
 
-// ── Campo de versión (condicional post-checkbox) ───────────────
-mat-form-field.rdc-version-field {
-  margin-top: 8px;
-}
-
-// ── Form field compacto ───────────────────────────────────────
+// ── Form field ─────────────────────────────────────────────────
 mat-form-field.rdc-form-field {
   width: 100%;
   --mat-form-field-container-height:            32px;
@@ -90,18 +60,17 @@ mat-form-field.rdc-form-field {
   --mdc-outlined-text-field-focus-label-text-color: var(--accent);
 }
 
-// ── Checkbox theming ──────────────────────────────────────────
+mat-form-field.rdc-version-field { margin-top: 4px; }
+
+// ── Checkbox ───────────────────────────────────────────────────
 mat-checkbox.rdc-check {
   --mdc-checkbox-unselected-outline-color:        var(--border);
   --mdc-checkbox-unselected-hover-outline-color:  var(--accent);
-  --mdc-checkbox-unselected-focus-outline-color:  var(--accent-bd);
   --mdc-checkbox-selected-icon-color:             var(--ok-bg);
   --mdc-checkbox-selected-checkmark-color:        var(--ok);
   --mdc-checkbox-selected-focus-icon-color:       var(--ok-bg);
   --mdc-checkbox-selected-hover-icon-color:       var(--ok-bg);
-  --mdc-checkbox-selected-pressed-icon-color:     var(--ok-bg);
   --mdc-form-field-label-text-size:  11px;
   --mdc-form-field-label-text-color: var(--tx-hi);
   display: block;
-  margin-top: 8px;
 }

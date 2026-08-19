@@ -15,7 +15,7 @@ const makeTask = (): Task => ({
 
 const makeHost = (overrides: Partial<InfraAsset> = {}): InfraAsset => ({
   assetId: 1, name: 'esxi01', ip: '192.168.1.10',
-  bmcIp: null, bmcType: null, os: null, model: null,
+  bmcIp: null, bmcType: null, os: null, make: null, model: null,
   uri1: 'esxi.cliente.com:344', uri2: null,
   ...overrides,
 });
