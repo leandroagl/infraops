@@ -1,0 +1,31 @@
+.section-header {
+  padding: 20px 0 16px;
+}
+.section-title    { font-size: 15px; font-weight: 600; color: var(--tx-hi); margin-bottom: 4px; }
+.section-subtitle { font-size: 12px; color: var(--tx-md); }
+
+.task-config-table { width: 100%; }
+
+.time-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-bd);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+.time-unset { font-size: 12px; color: var(--tx-lo); font-style: italic; }
+
+.tag-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 100px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-bd);
+  margin-right: 4px;
+}
