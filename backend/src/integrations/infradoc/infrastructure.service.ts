@@ -25,6 +25,15 @@ export class InfrastructureService {
 
     const raw = await this.infradocAssetsService.getAssets(infradocId);
 
+    // getAssets returns one row per interface (a server with iDRAC has 2 rows).
+    // Group them so we can use the raw rows as a fallback for BMC resolution.
+    const rawByAsset = new Map<string, RawInfradocAsset[]>();
+    for (const asset of raw) {
+      const group = rawByAsset.get(asset.asset_id) ?? [];
+      group.push(asset);
+      rawByAsset.set(asset.asset_id, group);
+    }
+
     const serverIds = [
       ...new Set(
         raw
@@ -52,8 +61,12 @@ export class InfrastructureService {
       { uri1: string | null; uri2: string | null }
     >();
     serverIds.forEach((id, i) => {
-      bmcMap.set(id, this.resolveBmc(interfaceArrays[i]));
-      uriMap.set(id, this.resolveVmwareUris(interfaceArrays[i]));
+      // Merge getAssetInterfaces result with raw rows already in memory.
+      // This covers the case where getAssetInterfaces returns only the primary
+      // interface row while the BMC interface exists in the getAssets response.
+      const merged = [...interfaceArrays[i], ...(rawByAsset.get(id) ?? [])];
+      bmcMap.set(id, this.resolveBmc(merged));
+      uriMap.set(id, this.resolveVmwareUris(merged));
     });
 
     return this.groupAssets(raw, bmcMap, uriMap);

@@ -61,10 +61,17 @@ export interface BmcEntry {
   alertLogs?: string;
 }
 
+export interface EsxiHostEntry {
+  assetId: number;
+  vmwareCheck: Record<string, unknown> | null;
+  notes?: string;
+}
+
 export interface ServerHostPayload {
   type: 'SERVER_HOST_MAINTENANCE';
-  vmware: VMwareHostEntry[];
-  bmc: BmcEntry[];
+  esxiHosts: EsxiHostEntry[];
+  windowsHosts?: WindowsServerEntry[];
+  bmc?: BmcEntry[];
   notes?: string;
 }
 

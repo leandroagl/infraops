@@ -33,18 +33,6 @@ Ingresar con el email y contraseña provisto por el administrador.
 
 En el primer ingreso el sistema pide cambiar la contraseña. La nueva contraseña queda guardada y es la que se usa de ahí en adelante.
 
-### 3. Configuración de credenciales Odoo (técnicos y TL)
-
-Inmediatamente después del primer login, técnicos y TL deben conectar su cuenta de Odoo. El sistema no permite acceder a los módulos de tarea sin completar este paso.
-
-**Qué ingresar:**
-- **Email de Odoo:** generalmente el mismo email que el usuario de InfraOps
-- **API Key de Odoo:** se genera en Odoo en `Configuración → Mi cuenta → API Keys`
-
-Una vez validada, la conexión queda guardada y no es necesario repetirla. Si la API key se vence o cambia, se puede actualizar desde el perfil.
-
-> **Por qué es necesario:** InfraOps registra las horas en Odoo bajo el nombre de cada técnico. Sin las credenciales propias, el tiempo queda sin atribuir correctamente.
-
 ---
 
 ## Vista de Tareas (ciclo mensual)
@@ -174,7 +162,6 @@ Gestión de los usuarios del sistema (solo **ADMIN**).
 - **Ver lista:** todos los usuarios activos con su rol
 - **Nuevo usuario:** genera el usuario con contraseña temporal automática (se muestra una sola vez)
 - **Editar:** cambiar nombre, rol, estado activo
-- **Eximir de Odoo:** marcar un usuario como exento de la configuración de credenciales Odoo (para roles que no ejecutan tareas, como COORDINATOR)
 
 ### Técnicos
 
@@ -294,7 +281,21 @@ Accesible para todos los roles.
 
 ### Lista de clientes
 
-Vista de todos los clientes activos sincronizados desde InfraDoc.
+Vista de todos los clientes activos sincronizados desde InfraDoc. Incluye una barra de búsqueda por nombre.
+
+La tabla muestra dos columnas:
+
+| Columna | Descripción |
+|---|---|
+| **Cliente** | Nombre del cliente. Hacer clic navega al detalle. |
+| **Horas del mes** | Horas del contrato de soporte Odoo para el mes en curso: contratadas · usadas · disponibles, con barra de progreso. |
+
+**Semáforo de horas:**
+- **Verde:** uso normal (por debajo del límite)
+- **Naranja:** cerca del tope
+- **Rojo:** superó las horas contratadas
+
+Los clientes sin contrato de horas en Odoo muestran `—` en esa columna. Los datos se cargan al abrir la vista; mientras se obtienen aparece un skeleton loader.
 
 ### Detalle de cliente
 
@@ -309,25 +310,11 @@ Al hacer clic en un cliente se ve:
 
 Accesible para todos los usuarios desde el menú de navegación.
 
-Muestra los datos del usuario logueado y el estado de la conexión con Odoo:
-- Email de Odoo configurado
-- Estado de validación de la API key
-- Fecha de última validación
-
-**Actualizar credenciales Odoo:** si la API key cambió o expiró, desde aquí se pueden actualizar sin necesidad de cerrar sesión.
+Muestra los datos del usuario logueado: email y rol en el sistema.
 
 ---
 
 ## Preguntas frecuentes
-
-**¿Por qué el sistema me pide configurar Odoo antes de entrar?**
-InfraOps registra el tiempo y el avance de los tickets directamente en Odoo bajo el nombre de cada técnico. Sin las credenciales propias no puede hacer eso.
-
-**¿Dónde genero mi API Key de Odoo?**
-En Odoo: menú superior derecho → tu nombre → `Mi perfil` → sección `API Keys` → `Nueva API Key`.
-
-**¿Qué pasa si pongo mal la API Key?**
-El sistema la valida en el momento. Si es incorrecta muestra un error y no la guarda. Podés intentar de nuevo.
 
 **¿Puedo ver tareas de otro técnico?**
 Sí. En la vista de Tareas, todos los roles pueden ver el ciclo completo. Los técnicos arrancan con el filtro aplicado a sus propias tareas, pero pueden quitarlo para ver todas.

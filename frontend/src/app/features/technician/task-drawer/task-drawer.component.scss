@@ -195,14 +195,15 @@
   }
 }
 
-.d-footer-msg {
+.d-footer__ok,
+.d-footer__err {
   width: 100%;
   font-size: 11px;
   margin: 0;
-
-  &--err { color: var(--crit); }
-  &--ok  { color: var(--ok);   }
 }
+
+.d-footer__ok  { color: var(--ok);   }
+.d-footer__err { color: var(--crit); }
 
 // ── Urgency badges ────────────────────────────────────────
 .urg {

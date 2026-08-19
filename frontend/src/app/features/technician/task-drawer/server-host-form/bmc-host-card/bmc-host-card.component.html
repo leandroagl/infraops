@@ -1,0 +1,67 @@
+<div class="bhc" [ngClass]="{ 'bhc--ok': isOk }">
+
+  <!-- Header -->
+  <div class="bhc-hdr">
+    <div class="bhc-dot"></div>
+    <div class="bhc-name-block">
+      <span class="bhc-name">{{ host.name }}</span>
+      <div *ngIf="host.bmcIp || bmcTypeLabel" class="bhc-ip-row">
+        <span *ngIf="host.bmcIp" class="mono bhc-ip">{{ host.bmcIp }}</span>
+        <span *ngIf="bmcTypeLabel" class="badge badge--bmc">{{ bmcTypeLabel }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Estado hardware -->
+  <div class="bhc-section-lbl">Estado hardware</div>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                  [ngClass]="{ 'mf-bmc--ok': alertStatusCtrl.value === 'ok',
+                               'mf-bmc--crit': alertStatusCtrl.value === 'alerta' }">
+    <mat-select [formControl]="alertStatusCtrl">
+      <mat-option value="ok">Todo OK</mat-option>
+      <mat-option value="alerta">Hay alertas</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <!-- Detalle de alertas -->
+  <ng-container *ngIf="showAlertDetails">
+    <div class="bhc-section-lbl">Categorías</div>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Categorías afectadas</mat-label>
+      <mat-select multiple [formControl]="categoriesCtrl">
+        <mat-option *ngFor="let cat of allCategories" [value]="cat">{{ cat }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="bhc-section-lbl">Detalle</div>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Descripción de la alerta</mat-label>
+      <textarea matInput [formControl]="alertLogsCtrl" rows="2"
+                placeholder="Ej: Fan 3 running at reduced speed…"></textarea>
+    </mat-form-field>
+  </ng-container>
+
+  <!-- Firmware -->
+  <div class="bhc-section-lbl">Firmware</div>
+
+  <div class="bhc-fw-row">
+    <mat-checkbox [formControl]="firmwareUpdatedCtrl">Firmware BMC actualizado</mat-checkbox>
+    <mat-form-field *ngIf="firmwareUpdatedCtrl.value"
+                    appearance="outline" subscriptSizing="dynamic" class="bhc-fw-field">
+      <mat-label>Versión</mat-label>
+      <input matInput [formControl]="firmwareVersionCtrl" class="mono"
+             placeholder="ej. 6.10.30.20" />
+    </mat-form-field>
+  </div>
+
+  <div class="bhc-fw-row">
+    <mat-checkbox [formControl]="biosUpdatedCtrl">BIOS / UEFI actualizado</mat-checkbox>
+    <mat-form-field *ngIf="biosUpdatedCtrl.value"
+                    appearance="outline" subscriptSizing="dynamic" class="bhc-fw-field">
+      <mat-label>Versión</mat-label>
+      <input matInput [formControl]="biosVersionCtrl" class="mono"
+             placeholder="ej. 2.20.1" />
+    </mat-form-field>
+  </div>
+
+</div>

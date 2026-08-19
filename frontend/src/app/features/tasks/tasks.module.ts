@@ -32,6 +32,7 @@ import { ServerHostFormComponent } from '../technician/task-drawer/server-host-f
 import { RouterFormComponent } from '../technician/task-drawer/router-form/router-form.component';
 import { RouterDeviceCardComponent } from '../technician/task-drawer/router-form/router-device-card/router-device-card.component';
 import { EsxiHostCardComponent } from '../technician/task-drawer/server-host-form/esxi-host-card/esxi-host-card.component';
+import { BmcHostCardComponent } from '../technician/task-drawer/server-host-form/bmc-host-card/bmc-host-card.component';
 import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/task-create-dialog.component';
 
 @NgModule({
@@ -51,6 +52,7 @@ import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/tas
     RouterFormComponent,
     RouterDeviceCardComponent,
     EsxiHostCardComponent,
+    BmcHostCardComponent,
     TaskCreateDialogComponent,
   ],
   imports: [

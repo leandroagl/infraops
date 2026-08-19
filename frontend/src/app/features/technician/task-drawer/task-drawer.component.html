@@ -120,25 +120,25 @@
     <ng-container *ngIf="task.type === 'WINDOWS_DOMAIN_MAINTENANCE'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
-        <span *ngIf="!completing">Completar</span>
+        <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button (click)="triggerFormSave()" [disabled]="completing">Guardar</button>
+      <button mat-stroked-button (click)="triggerFormSave()" [disabled]="completing">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
     <ng-container *ngIf="task.type === 'SERVER_HOST_MAINTENANCE'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
-        <span *ngIf="!completing">Completar</span>
+        <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button (click)="triggerServerHostSave()" [disabled]="completing">Guardar</button>
+      <button mat-stroked-button (click)="triggerServerHostSave()" [disabled]="completing">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
     <ng-container *ngIf="task.type === 'TERMINAL_MAINTENANCE' || task.type === 'SITE_VISIT'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
-        <span *ngIf="!completing">Marcar realizada</span>
+        <span *ngIf="!completing">Marcar visita como realizada</span>
       </button>
       <button *ngIf="task.type === 'SITE_VISIT'" mat-stroked-button color="warn" (click)="onRequestNotDone()" [disabled]="completing">No concretada</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
@@ -147,27 +147,27 @@
     <ng-container *ngIf="task.type === 'QNAP_MAINTENANCE'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
-        <span *ngIf="!completing">Completar</span>
+        <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button (click)="triggerQnapSave()" [disabled]="completing">Guardar</button>
+      <button mat-stroked-button (click)="triggerQnapSave()" [disabled]="completing">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
     <ng-container *ngIf="task.type === 'VEEAM_BACKUP'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
-        <span *ngIf="!completing">Completar</span>
+        <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button (click)="triggerVeeamSave()" [disabled]="completing">Guardar</button>
+      <button mat-stroked-button (click)="triggerVeeamSave()" [disabled]="completing">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
     <ng-container *ngIf="task.type === 'ROUTER_MAINTENANCE'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()" [disabled]="completing">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
-        <span *ngIf="!completing">Completar</span>
+        <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button (click)="triggerRouterFormSave()" [disabled]="completing">Guardar</button>
+      <button mat-stroked-button (click)="triggerRouterFormSave()" [disabled]="completing">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
@@ -180,9 +180,9 @@
             data-testid="btn-delete"
             (click)="taskDeleted.emit()">Eliminar tarea</button>
 
-    <p *ngIf="confirmError" class="d-footer-msg d-footer-msg--err">{{ confirmError }}</p>
-    <p *ngIf="saveProgressMsg" class="d-footer-msg d-footer-msg--ok">{{ saveProgressMsg }}</p>
-    <p *ngIf="saveProgressError" class="d-footer-msg d-footer-msg--err">{{ saveProgressError }}</p>
+    <p *ngIf="confirmError" class="d-footer__err">{{ confirmError }}</p>
+    <p *ngIf="saveProgressMsg" class="d-footer__ok">{{ saveProgressMsg }}</p>
+    <p *ngIf="saveProgressError" class="d-footer__err">{{ saveProgressError }}</p>
   </ng-container>
 
 </div>

@@ -370,6 +370,11 @@ docs/
 
 ---
 
+## Que proponer?
+
+  - Proponer siempre que sea necesario, la actualización de los archivos CLAUDE.md y README.md
+  - Proponer actualizar el docs/manual-usuario.md siempre que sea necesario
+
 ## Design System — Tokens y convenciones visuales
 
 Tokens completos en `frontend/src/styles/tokens.scss`.
