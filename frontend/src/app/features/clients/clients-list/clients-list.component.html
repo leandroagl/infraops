@@ -61,11 +61,27 @@
             </span>
             <span class="kpi-tile__text">
               <span class="kpi-tile__label">Sin actividad</span>
-              <span class="kpi-tile__range">&lt; 60%</span>
+              <span class="kpi-tile__range">0%</span>
             </span>
             <span class="kpi-tile__num">
               <span class="kpi-tile__value">{{ kpiStates.crit }}</span>
               <span class="kpi-tile__of">{{ zonePct(kpiStates.crit) }}%</span>
+            </span>
+            <svg class="kpi-tile__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div class="kpi-tile kpi-tile--low" [class.kpi-tile--active]="selectedZone === 'low'"
+               role="button" tabindex="0" [attr.aria-pressed]="selectedZone === 'low'"
+               (click)="toggleZone('low')" (keydown.enter)="toggleZone('low')" (keydown.space)="toggleZone('low'); $event.preventDefault()">
+            <span class="kpi-tile__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15h16M8 19l-4-4 4-4M16 9l4 4-4 4"/></svg>
+            </span>
+            <span class="kpi-tile__text">
+              <span class="kpi-tile__label">Uso bajo</span>
+              <span class="kpi-tile__range">1–59%</span>
+            </span>
+            <span class="kpi-tile__num">
+              <span class="kpi-tile__value">{{ kpiStates.low }}</span>
+              <span class="kpi-tile__of">{{ zonePct(kpiStates.low) }}%</span>
             </span>
             <svg class="kpi-tile__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
           </div>

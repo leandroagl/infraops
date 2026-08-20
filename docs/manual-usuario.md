@@ -281,7 +281,10 @@ Accesible para todos los roles.
 
 ### Lista de clientes
 
-Vista de todos los clientes activos sincronizados desde InfraDoc. Incluye una barra de búsqueda por nombre.
+Vista de todos los clientes activos sincronizados desde InfraDoc. Incluye una barra de búsqueda por nombre y dos KPI cards junto al buscador:
+
+- **Horas del mes:** anillo de progreso con el total de horas contratadas, usadas y disponibles de toda la cartera (respeta el filtro de búsqueda por nombre).
+- **Clientes por consumo:** conteo de clientes agrupados por zona de consumo. Cada tile es clickeable y filtra la tabla a esa zona; hacer clic de nuevo sobre la misma tile quita el filtro.
 
 La tabla muestra dos columnas:
 
@@ -290,12 +293,13 @@ La tabla muestra dos columnas:
 | **Cliente** | Nombre del cliente. Hacer clic navega al detalle. |
 | **Horas del mes** | Horas del contrato de soporte Odoo para el mes en curso: contratadas · usadas · disponibles, con barra de progreso. |
 
-**Semáforo de horas:**
-- **Verde:** uso normal (por debajo del límite)
-- **Naranja:** cerca del tope
-- **Rojo:** superó las horas contratadas
+**Semáforo de horas (% usado sobre contratado):**
+- **Rojo — 0%:** sin actividad, todavía no se usó ninguna hora contratada.
+- **Celeste — 1% a 59%:** uso bajo.
+- **Verde — 60% a 100%:** uso normal.
+- **Amarillo — más de 100%:** excedente, superó las horas contratadas.
 
-Los clientes sin contrato de horas en Odoo muestran `—` en esa columna. Los datos se cargan al abrir la vista; mientras se obtienen aparece un skeleton loader.
+Los clientes sin contrato de horas en Odoo muestran `—` en esa columna y quedan excluidos tanto de las KPI cards como del filtro por zona. Los datos se cargan al abrir la vista; mientras se obtienen aparece un skeleton loader.
 
 ### Detalle de cliente
 

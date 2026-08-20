@@ -6,7 +6,7 @@ import { MatSort } from '@angular/material/sort';
 import { ClientsService } from '../../../core/services/clients.service';
 import { ClientSubscriptionHours, ClientWithHours } from '../../../core/models/client.models';
 
-export type HoursZone = 'crit' | 'ok' | 'warn';
+export type HoursZone = 'crit' | 'low' | 'ok' | 'warn';
 
 interface TableFilter {
   q: string;
@@ -122,7 +122,7 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
     return Math.min(100, Math.round((delivered / contracted) * 100));
   }
 
-  get kpiStates(): { ok: number; warn: number; crit: number } {
+  get kpiStates(): { ok: number; warn: number; crit: number; low: number } {
     return this.textFilteredClients
       .filter((c) => c.hours != null && c.hours.contracted > 0)
       .reduce(
@@ -130,13 +130,13 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
           const state = this.getHoursState(c.hours!);
           return { ...acc, [state]: acc[state] + 1 };
         },
-        { ok: 0, warn: 0, crit: 0 },
+        { ok: 0, warn: 0, crit: 0, low: 0 },
       );
   }
 
   zonePct(count: number): number {
-    const { ok, warn, crit } = this.kpiStates;
-    const total = ok + warn + crit;
+    const { ok, warn, crit, low } = this.kpiStates;
+    const total = ok + warn + crit + low;
     return total === 0 ? 0 : Math.round((count / total) * 100);
   }
 
@@ -145,6 +145,7 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
     const pct = hours.delivered / hours.contracted;
     if (pct > 1) return 'warn';
     if (pct >= 0.6) return 'ok';
+    if (pct > 0) return 'low';
     return 'crit';
   }
 
