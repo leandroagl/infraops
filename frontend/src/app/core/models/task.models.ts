@@ -54,6 +54,8 @@ export interface TaskTypeConfigDto {
   defaultTimeMinutes: number | null;
   odooTagIds: number[];
   odooTagNames: string[];
+  ticketDescription: string | null;
+  defaultTicketDescription?: string;
   updatedAt: string;
 }
 
@@ -66,4 +68,5 @@ export interface UpdateTaskConfigPayload {
   defaultTimeMinutes?: number;
   odooTagIds?: number[];
   odooTagNames?: string[];
+  ticketDescription?: string;
 }

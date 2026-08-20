@@ -16,8 +16,9 @@ export class TaskEditDialogComponent implements OnInit {
   saving = false;
 
   form = new FormGroup({
-    time:   new FormControl('', [Validators.required, Validators.pattern(TIME_PATTERN)]),
-    tagIds: new FormControl<number[]>([]),
+    time:              new FormControl('', [Validators.required, Validators.pattern(TIME_PATTERN)]),
+    tagIds:            new FormControl<number[]>([]),
+    ticketDescription: new FormControl<string>(''),
   });
 
   constructor(
@@ -27,10 +28,11 @@ export class TaskEditDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const { defaultTimeMinutes, odooTagIds } = this.data.config;
+    const { defaultTimeMinutes, odooTagIds, ticketDescription, defaultTicketDescription } = this.data.config;
     this.form.patchValue({
-      time:   defaultTimeMinutes != null ? this.minutesToTime(defaultTimeMinutes) : '',
-      tagIds: odooTagIds,
+      time:              defaultTimeMinutes != null ? this.minutesToTime(defaultTimeMinutes) : '',
+      tagIds:            odooTagIds,
+      ticketDescription: ticketDescription ?? defaultTicketDescription ?? '',
     });
 
     this.taskConfigService.getHelpdeskTags().subscribe({
@@ -46,11 +48,13 @@ export class TaskEditDialogComponent implements OnInit {
     const minutes = this.timeToMinutes(this.form.value.time!);
     const tagIds  = this.form.value.tagIds ?? [];
     const tagNames = tagIds.map(id => this.availableTags.find(t => t.id === id)?.name ?? '');
+    const ticketDescription = this.form.value.ticketDescription ?? '';
 
     this.taskConfigService.update(this.data.config.taskType, {
       defaultTimeMinutes: minutes,
-      odooTagIds:  tagIds,
-      odooTagNames: tagNames,
+      odooTagIds:         tagIds,
+      odooTagNames:       tagNames,
+      ticketDescription:  ticketDescription || undefined,
     }).subscribe({
       next: updated => { this.saving = false; this.dialogRef.close(updated); },
       error: () => { this.saving = false; },

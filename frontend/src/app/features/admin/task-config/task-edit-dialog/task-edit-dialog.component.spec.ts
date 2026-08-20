@@ -17,6 +17,8 @@ const mockConfig: TaskTypeConfigDto = {
   defaultTimeMinutes: 90,
   odooTagIds: [1],
   odooTagNames: ['Virtualización'],
+  ticketDescription: '<p>Descripción de prueba.</p>',
+  defaultTicketDescription: '<p>Descripción predeterminada del sistema.</p>',
   updatedAt: '2026-01-01T00:00:00Z',
 };
 
@@ -60,6 +62,7 @@ describe('TaskEditDialogComponent', () => {
   it('pre-llena el formulario con la config actual', () => {
     expect(component.form.value.time).toBe('01:30');
     expect(component.form.value.tagIds).toEqual([1]);
+    expect(component.form.value.ticketDescription).toBe('<p>Descripción de prueba.</p>');
   });
 
   it('carga los tags disponibles desde Odoo al iniciar', () => {
@@ -73,6 +76,26 @@ describe('TaskEditDialogComponent', () => {
     expect(service.update).toHaveBeenCalledWith(
       'SERVER_HOST_MAINTENANCE',
       jasmine.objectContaining({ defaultTimeMinutes: 120 })
+    );
+  });
+
+  it('pre-llena ticketDescription con el default cuando la config no tiene descripción custom', () => {
+    const configSinCustom: TaskTypeConfigDto = {
+      ...mockConfig,
+      ticketDescription: null,
+      defaultTicketDescription: '<p>Default del sistema.</p>',
+    };
+    component['data'] = { config: configSinCustom };
+    component.ngOnInit();
+    expect(component.form.value.ticketDescription).toBe('<p>Default del sistema.</p>');
+  });
+
+  it('incluye ticketDescription en el payload al guardar', () => {
+    component.form.patchValue({ time: '01:30', tagIds: [1], ticketDescription: '<p>Nueva descripción.</p>' });
+    component.save();
+    expect(service.update).toHaveBeenCalledWith(
+      'SERVER_HOST_MAINTENANCE',
+      jasmine.objectContaining({ ticketDescription: '<p>Nueva descripción.</p>' })
     );
   });
 

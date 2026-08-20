@@ -35,8 +35,9 @@ export class TaskConfigComponent implements OnInit {
   }
 
   onConfigUpdated(updated: TaskTypeConfigDto): void {
-    const idx = this.configs.findIndex(c => c.taskType === updated.taskType);
-    if (idx !== -1) this.configs[idx] = { ...updated };
+    this.configs = this.configs.map(c =>
+      c.taskType === updated.taskType ? { ...updated } : c
+    );
   }
 
   formatMinutes(minutes: number | null): string {
@@ -46,7 +47,7 @@ export class TaskConfigComponent implements OnInit {
     return `${h}:${m.toString().padStart(2, '0')} h`;
   }
 
-  readonly taskTypeLabels: Record<string, string> = {
+  readonly taskTypeLabels: Partial<Record<string, string>> = {
     SERVER_HOST_MAINTENANCE:    'Hosts VMware / BMC',
     WINDOWS_DOMAIN_MAINTENANCE: 'Servidores Windows',
     QNAP_MAINTENANCE:           'QNAP / NAS',

@@ -80,5 +80,45 @@ describe('TaskConfigController', () => {
         controller.update('INVALID_TYPE' as any, { defaultTimeMinutes: 30 })
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('persiste ticketDescription cuando se envía en el body', async () => {
+      const updated: Partial<TaskTypeConfig> = {
+        taskType: TaskType.SERVER_HOST_MAINTENANCE,
+        defaultTimeMinutes: 90,
+        odooTagIds: [],
+        odooTagNames: [],
+        ticketDescription: '<p>Nueva descripción personalizada.</p>',
+        updatedAt: new Date(),
+      };
+      mockRepo.findOne.mockResolvedValue(null);
+      mockRepo.save.mockResolvedValue(updated);
+      const result = await controller.update(TaskType.SERVER_HOST_MAINTENANCE, {
+        ticketDescription: '<p>Nueva descripción personalizada.</p>',
+      });
+      expect(result.ticketDescription).toBe('<p>Nueva descripción personalizada.</p>');
+    });
+  });
+
+  describe('GET /task-config — ticketDescription', () => {
+    it('devuelve ticketDescription null por defecto para tipos sin fila en DB', async () => {
+      mockRepo.find.mockResolvedValue([]);
+      const result = await controller.findAll();
+      expect(result[0].ticketDescription).toBeNull();
+    });
+
+    it('devuelve ticketDescription desde la DB cuando existe', async () => {
+      const existing: Partial<TaskTypeConfig> = {
+        taskType: TaskType.VEEAM_BACKUP,
+        defaultTimeMinutes: null,
+        odooTagIds: [],
+        odooTagNames: [],
+        ticketDescription: '<p>Texto editado.</p>',
+        updatedAt: new Date(),
+      };
+      mockRepo.find.mockResolvedValue([existing]);
+      const result = await controller.findAll();
+      const veeam = result.find(r => r.taskType === TaskType.VEEAM_BACKUP)!;
+      expect(veeam.ticketDescription).toBe('<p>Texto editado.</p>');
+    });
   });
 });

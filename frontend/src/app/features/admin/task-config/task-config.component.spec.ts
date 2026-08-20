@@ -15,6 +15,7 @@ const mockConfigs: TaskTypeConfigDto[] = [
     defaultTimeMinutes: 90,
     odooTagIds: [1],
     odooTagNames: ['Virtualización'],
+    ticketDescription: null,
     updatedAt: '2026-01-01T00:00:00Z',
   },
   {
@@ -22,6 +23,7 @@ const mockConfigs: TaskTypeConfigDto[] = [
     defaultTimeMinutes: null,
     odooTagIds: [],
     odooTagNames: [],
+    ticketDescription: null,
     updatedAt: '2026-01-01T00:00:00Z',
   },
 ];
