@@ -232,7 +232,7 @@ describe('ClientsListComponent', () => {
     });
   });
 
-  describe('toggleZone / clearZoneFilter', () => {
+  describe('toggleZone', () => {
     beforeEach(() => {
       component.dataSource.data = [
         { id: 'c1', name: 'Acme', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 4,  available: 6 } }, // crit
@@ -266,13 +266,6 @@ describe('ClientsListComponent', () => {
       component.applyFilter();
       component.toggleZone('ok');
       expect(component.dataSource.filteredData.map((c) => c.id)).toEqual(['c2']);
-    });
-
-    it('clearZoneFilter limpia la selección', () => {
-      component.toggleZone('warn');
-      component.clearZoneFilter();
-      expect(component.selectedZone).toBeNull();
-      expect(component.dataSource.filteredData).toHaveSize(3);
     });
   });
 });
