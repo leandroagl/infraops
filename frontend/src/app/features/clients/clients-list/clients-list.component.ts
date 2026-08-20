@@ -94,11 +94,6 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
     this.applyFilter();
   }
 
-  clearZoneFilter(): void {
-    this.selectedZone = null;
-    this.applyFilter();
-  }
-
   navigateToClient(id: string): void {
     this.router.navigate(['/clients', id]);
   }
