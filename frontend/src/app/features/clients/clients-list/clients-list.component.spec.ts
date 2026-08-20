@@ -104,17 +104,25 @@ describe('ClientsListComponent', () => {
   });
 
   describe('getHoursState', () => {
-    it('retorna ok cuando uso < 70%', () => {
+    it('retorna crit cuando uso < 60% (cliente sin actividad)', () => {
       const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 20, delivered: 8, available: 12 };
+      expect(component.getHoursState(h)).toBe('crit');
+    });
+    it('retorna ok cuando uso está entre 60% y 100% (uso normal)', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 10, delivered: 8, available: 2 };
       expect(component.getHoursState(h)).toBe('ok');
     });
-    it('retorna warn cuando uso está entre 70% y 90%', () => {
-      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 10, delivered: 8, available: 2 };
-      expect(component.getHoursState(h)).toBe('warn');
+    it('retorna ok en el límite exacto de 60%', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 10, delivered: 6, available: 4 };
+      expect(component.getHoursState(h)).toBe('ok');
     });
-    it('retorna crit cuando uso >= 90%', () => {
-      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 10, delivered: 9, available: 1 };
-      expect(component.getHoursState(h)).toBe('crit');
+    it('retorna ok en el límite exacto de 100%', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 10, delivered: 10, available: 0 };
+      expect(component.getHoursState(h)).toBe('ok');
+    });
+    it('retorna warn cuando uso supera el 100% (excedente)', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 10, delivered: 12, available: 0 };
+      expect(component.getHoursState(h)).toBe('warn');
     });
   });
 
@@ -127,9 +135,20 @@ describe('ClientsListComponent', () => {
       const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 20, delivered: 8, available: 12 };
       expect(component.getHoursPct(h)).toBe(40);
     });
-    it('está capeado en 100 cuando delivered > contracted', () => {
+    it('no cappea en 100 cuando delivered > contracted (excedente)', () => {
       const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 10, delivered: 15, available: 0 };
-      expect(component.getHoursPct(h)).toBe(100);
+      expect(component.getHoursPct(h)).toBe(150);
+    });
+  });
+
+  describe('getHoursBarWidth', () => {
+    it('devuelve el mismo valor que getHoursPct por debajo de 100', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 20, delivered: 8, available: 12 };
+      expect(component.getHoursBarWidth(h)).toBe(40);
+    });
+    it('cappea en 100 cuando delivered > contracted (excedente)', () => {
+      const h: ClientSubscriptionHours = { clientId: 'c1', contracted: 10, delivered: 15, available: 0 };
+      expect(component.getHoursBarWidth(h)).toBe(100);
     });
   });
 
@@ -168,14 +187,14 @@ describe('ClientsListComponent', () => {
       expect(component.kpiStates).toEqual({ ok: 0, warn: 0, crit: 0 });
     });
 
-    it('clasifica correctamente clientes por estado', () => {
+    it('clasifica correctamente clientes por rango de consumo', () => {
       component.dataSource.data = [
-        { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 2, available: 8  } }, // ok
-        { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 8, available: 2  } }, // warn
-        { id: 'c3', name: 'C', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c3', contracted: 10, delivered: 9, available: 1  } }, // crit
-        { id: 'c4', name: 'D', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c4', contracted: 10, delivered: 1, available: 9  } }, // ok
+        { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 4,  available: 6  } }, // 40% crit
+        { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 8,  available: 2  } }, // 80% ok
+        { id: 'c3', name: 'C', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c3', contracted: 10, delivered: 12, available: 0  } }, // 120% warn
+        { id: 'c4', name: 'D', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c4', contracted: 10, delivered: 1,  available: 9  } }, // 10% crit
       ];
-      expect(component.kpiStates).toEqual({ ok: 2, warn: 1, crit: 1 });
+      expect(component.kpiStates).toEqual({ ok: 1, warn: 1, crit: 2 });
     });
 
     it('excluye clientes sin contracted (sin abono)', () => {
@@ -183,7 +202,77 @@ describe('ClientsListComponent', () => {
         { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 0, delivered: 0, available: 0 } },
         { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 9, available: 1 } },
       ];
-      expect(component.kpiStates).toEqual({ ok: 0, warn: 0, crit: 1 });
+      expect(component.kpiStates).toEqual({ ok: 1, warn: 0, crit: 0 });
+    });
+
+    it('no se ve afectado por el filtro de zona seleccionado (solo por el buscador de texto)', () => {
+      component.dataSource.data = [
+        { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 4, available: 6 } }, // crit
+        { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 8, available: 2 } }, // ok
+      ];
+      component.toggleZone('crit');
+      expect(component.kpiStates).toEqual({ ok: 1, warn: 0, crit: 1 });
+    });
+  });
+
+  describe('zonePct', () => {
+    it('retorna 0 cuando no hay clientes con horas contratadas', () => {
+      expect(component.zonePct(0)).toBe(0);
+    });
+
+    it('retorna el % que representa un conteo sobre el total de kpiStates', () => {
+      component.dataSource.data = [
+        { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 4, available: 6 } }, // crit
+        { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 8, available: 2 } }, // ok
+        { id: 'c3', name: 'C', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c3', contracted: 10, delivered: 8, available: 2 } }, // ok
+        { id: 'c4', name: 'D', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c4', contracted: 10, delivered: 8, available: 2 } }, // ok
+      ];
+      expect(component.zonePct(component.kpiStates.ok)).toBe(75);
+      expect(component.zonePct(component.kpiStates.crit)).toBe(25);
+    });
+  });
+
+  describe('toggleZone / clearZoneFilter', () => {
+    beforeEach(() => {
+      component.dataSource.data = [
+        { id: 'c1', name: 'Acme', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 4,  available: 6 } }, // crit
+        { id: 'c2', name: 'Beta', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 8,  available: 2 } }, // ok
+        { id: 'c3', name: 'Gamma', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c3', contracted: 10, delivered: 12, available: 0 } }, // warn
+      ];
+    });
+
+    it('activa una zona y filtra la tabla a esa zona', () => {
+      component.toggleZone('crit');
+      expect(component.selectedZone).toBe('crit');
+      expect(component.dataSource.filteredData.map((c) => c.id)).toEqual(['c1']);
+    });
+
+    it('clickear la misma zona activa la desactiva (single-select)', () => {
+      component.toggleZone('ok');
+      component.toggleZone('ok');
+      expect(component.selectedZone).toBeNull();
+      expect(component.dataSource.filteredData).toHaveSize(3);
+    });
+
+    it('clickear otra zona reemplaza la selección anterior', () => {
+      component.toggleZone('crit');
+      component.toggleZone('warn');
+      expect(component.selectedZone).toBe('warn');
+      expect(component.dataSource.filteredData.map((c) => c.id)).toEqual(['c3']);
+    });
+
+    it('combina el filtro de zona con el buscador de texto', () => {
+      component.quickFilter = 'be';
+      component.applyFilter();
+      component.toggleZone('ok');
+      expect(component.dataSource.filteredData.map((c) => c.id)).toEqual(['c2']);
+    });
+
+    it('clearZoneFilter limpia la selección', () => {
+      component.toggleZone('warn');
+      component.clearZoneFilter();
+      expect(component.selectedZone).toBeNull();
+      expect(component.dataSource.filteredData).toHaveSize(3);
     });
   });
 });
