@@ -19,4 +19,8 @@ export class UpdateTaskConfigDto {
   @IsOptional()
   @IsString()
   ticketDescription?: string;
+
+  @IsOptional()
+  @IsString()
+  timesheetDescription?: string;
 }

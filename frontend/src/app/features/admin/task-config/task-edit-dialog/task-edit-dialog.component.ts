@@ -16,9 +16,10 @@ export class TaskEditDialogComponent implements OnInit {
   saving = false;
 
   form = new FormGroup({
-    time:              new FormControl('', [Validators.required, Validators.pattern(TIME_PATTERN)]),
-    tagIds:            new FormControl<number[]>([]),
-    ticketDescription: new FormControl<string>(''),
+    time:                new FormControl('', [Validators.required, Validators.pattern(TIME_PATTERN)]),
+    tagIds:              new FormControl<number[]>([]),
+    ticketDescription:   new FormControl<string>(''),
+    timesheetDescription: new FormControl<string>(''),
   });
 
   constructor(
@@ -28,11 +29,16 @@ export class TaskEditDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const { defaultTimeMinutes, odooTagIds, ticketDescription, defaultTicketDescription } = this.data.config;
+    const {
+      defaultTimeMinutes, odooTagIds,
+      ticketDescription, defaultTicketDescription,
+      timesheetDescription, defaultTimesheetDescription,
+    } = this.data.config;
     this.form.patchValue({
-      time:              defaultTimeMinutes != null ? this.minutesToTime(defaultTimeMinutes) : '',
-      tagIds:            odooTagIds,
-      ticketDescription: ticketDescription ?? defaultTicketDescription ?? '',
+      time:                 defaultTimeMinutes != null ? this.minutesToTime(defaultTimeMinutes) : '',
+      tagIds:                odooTagIds,
+      ticketDescription:     ticketDescription ?? defaultTicketDescription ?? '',
+      timesheetDescription: timesheetDescription ?? defaultTimesheetDescription ?? '',
     });
 
     this.taskConfigService.getHelpdeskTags().subscribe({
@@ -49,12 +55,14 @@ export class TaskEditDialogComponent implements OnInit {
     const tagIds  = this.form.value.tagIds ?? [];
     const tagNames = tagIds.map(id => this.availableTags.find(t => t.id === id)?.name ?? '');
     const ticketDescription = this.form.value.ticketDescription ?? '';
+    const timesheetDescription = this.form.value.timesheetDescription ?? '';
 
     this.taskConfigService.update(this.data.config.taskType, {
-      defaultTimeMinutes: minutes,
-      odooTagIds:         tagIds,
-      odooTagNames:       tagNames,
-      ticketDescription:  ticketDescription || undefined,
+      defaultTimeMinutes:   minutes,
+      odooTagIds:           tagIds,
+      odooTagNames:         tagNames,
+      ticketDescription:    ticketDescription || undefined,
+      timesheetDescription: timesheetDescription || undefined,
     }).subscribe({
       next: updated => { this.saving = false; this.dialogRef.close(updated); },
       error: () => { this.saving = false; },

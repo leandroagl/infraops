@@ -121,4 +121,45 @@ describe('TaskConfigController', () => {
       expect(veeam.ticketDescription).toBe('<p>Texto editado.</p>');
     });
   });
+
+  describe('timesheetDescription', () => {
+    it('devuelve timesheetDescription null y el default "Mantenimiento realizado" para tipos sin fila en DB', async () => {
+      mockRepo.find.mockResolvedValue([]);
+      const result = await controller.findAll();
+      expect(result[0].timesheetDescription).toBeNull();
+      expect(result[0].defaultTimesheetDescription).toBe('Mantenimiento realizado');
+    });
+
+    it('devuelve timesheetDescription desde la DB cuando existe', async () => {
+      const existing: Partial<TaskTypeConfig> = {
+        taskType: TaskType.QNAP_MAINTENANCE,
+        defaultTimeMinutes: null,
+        odooTagIds: [],
+        odooTagNames: [],
+        timesheetDescription: 'Mantenimiento QNAP realizado',
+        updatedAt: new Date(),
+      };
+      mockRepo.find.mockResolvedValue([existing]);
+      const result = await controller.findAll();
+      const qnap = result.find(r => r.taskType === TaskType.QNAP_MAINTENANCE)!;
+      expect(qnap.timesheetDescription).toBe('Mantenimiento QNAP realizado');
+    });
+
+    it('persiste timesheetDescription cuando se envía en el body', async () => {
+      const updated: Partial<TaskTypeConfig> = {
+        taskType: TaskType.SERVER_HOST_MAINTENANCE,
+        defaultTimeMinutes: 90,
+        odooTagIds: [],
+        odooTagNames: [],
+        timesheetDescription: 'Mantenimiento de hosts realizado',
+        updatedAt: new Date(),
+      };
+      mockRepo.findOne.mockResolvedValue(null);
+      mockRepo.save.mockResolvedValue(updated);
+      const result = await controller.update(TaskType.SERVER_HOST_MAINTENANCE, {
+        timesheetDescription: 'Mantenimiento de hosts realizado',
+      });
+      expect(result.timesheetDescription).toBe('Mantenimiento de hosts realizado');
+    });
+  });
 });

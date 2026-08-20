@@ -188,7 +188,7 @@ export class TasksService {
         );
       }
       const unitAmount = (timeSpentMinutes ?? 0) / 60;
-      await this.odooService.closeTicket(task.odooTicketId!, employeeId, unitAmount);
+      await this.odooService.closeTicket(task.odooTicketId!, employeeId, unitAmount, task.type);
     }
 
     await this.taskRepository.update(id, { status: newStatus, completedDate });

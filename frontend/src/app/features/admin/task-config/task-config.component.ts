@@ -27,7 +27,7 @@ export class TaskConfigComponent implements OnInit {
   }
 
   openEdit(config: TaskTypeConfigDto): void {
-    this.dialog.open(TaskEditDialogComponent, { data: { config }, width: '440px' })
+    this.dialog.open(TaskEditDialogComponent, { data: { config }, width: '720px', maxWidth: '90vw' })
       .afterClosed()
       .subscribe((updated: TaskTypeConfigDto | null) => {
         if (updated) this.onConfigUpdated(updated);
