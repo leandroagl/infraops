@@ -541,7 +541,7 @@ describe('TasksService', () => {
       await service.updateStatus('task-1', TaskStatus.DONE, 90);
 
       expect(odooService.resolveEmployeeId).toHaveBeenCalledWith('user-1');
-      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5);
+      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5, inProgressTask.type);
     });
 
     it('llama closeTicket al transicionar a NOT_DONE cuando la tarea tiene odooTicketId', async () => {
@@ -562,7 +562,7 @@ describe('TasksService', () => {
       taskRepository.update.mockResolvedValue({ affected: 1 });
       await service.updateStatus('task-1', TaskStatus.NOT_DONE, 60);
 
-      expect(odooService.closeTicket).toHaveBeenCalledWith(55, 22, 1.0);
+      expect(odooService.closeTicket).toHaveBeenCalledWith(55, 22, 1.0, taskWithTicket.type);
     });
 
     it('no actualiza el status en DB si Odoo falla al cerrar el ticket (atomicidad)', async () => {

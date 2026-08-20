@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { TaskType } from '../tasks/task-type.enum';
 import { TaskTypeConfig } from './task-type-config.entity';
 import { UpdateTaskConfigDto } from './dto/update-task-config.dto';
-import { TICKET_DESCRIPTION_DEFAULTS } from './task-description-defaults';
+import { TICKET_DESCRIPTION_DEFAULTS, TIMESHEET_DESCRIPTION_DEFAULT } from './task-description-defaults';
 
 const ALL_TASK_TYPES = Object.values(TaskType);
 
@@ -21,6 +21,7 @@ export class TaskConfigService {
     return ALL_TASK_TYPES.map(taskType => {
       const config = byType.get(taskType) ?? this.defaultConfig(taskType);
       config.defaultTicketDescription = TICKET_DESCRIPTION_DEFAULTS[taskType];
+      config.defaultTimesheetDescription = TIMESHEET_DESCRIPTION_DEFAULT;
       return config;
     });
   }
@@ -36,18 +37,21 @@ export class TaskConfigService {
     if (dto.odooTagIds !== undefined)          existing.odooTagIds          = dto.odooTagIds;
     if (dto.odooTagNames !== undefined)        existing.odooTagNames        = dto.odooTagNames;
     if (dto.ticketDescription !== undefined)   existing.ticketDescription   = dto.ticketDescription;
+    if (dto.timesheetDescription !== undefined) existing.timesheetDescription = dto.timesheetDescription;
     const saved = await this.repo.save(existing);
     saved.defaultTicketDescription = TICKET_DESCRIPTION_DEFAULTS[taskType];
+    saved.defaultTimesheetDescription = TIMESHEET_DESCRIPTION_DEFAULT;
     return saved;
   }
 
   private defaultConfig(taskType: TaskType): TaskTypeConfig {
     const config = new TaskTypeConfig();
-    config.taskType           = taskType;
-    config.defaultTimeMinutes = null;
-    config.odooTagIds         = [];
-    config.odooTagNames       = [];
-    config.ticketDescription  = null;
+    config.taskType             = taskType;
+    config.defaultTimeMinutes   = null;
+    config.odooTagIds           = [];
+    config.odooTagNames         = [];
+    config.ticketDescription    = null;
+    config.timesheetDescription = null;
     return config;
   }
 }

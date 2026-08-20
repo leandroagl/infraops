@@ -20,8 +20,14 @@
 
   <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
     <mat-label>Descripción del ticket en Odoo</mat-label>
-    <textarea matInput formControlName="ticketDescription" rows="6" placeholder="Dejar vacío para usar la descripción predeterminada"></textarea>
-    <mat-hint>Admite etiquetas HTML. Si se deja vacío se usa la descripción estándar del tipo de tarea.</mat-hint>
+    <textarea matInput formControlName="ticketDescription" rows="10" placeholder="Dejar vacío para usar la descripción predeterminada"></textarea>
+    <mat-hint>Texto plano: usar línea en blanco para separar párrafos y "- " para listas. Se convierte a HTML automáticamente al crear el ticket. Si se deja vacío se usa la descripción estándar del tipo de tarea.</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Descripción del timesheet en Odoo</mat-label>
+    <textarea matInput formControlName="timesheetDescription" rows="2" placeholder="Dejar vacío para usar la descripción predeterminada"></textarea>
+    <mat-hint>Texto que se imputa como descripción del parte de horas al cerrar la tarea. Si se deja vacío se usa "Mantenimiento realizado".</mat-hint>
   </mat-form-field>
 
 </mat-dialog-content>
