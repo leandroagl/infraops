@@ -4,6 +4,38 @@
       <span class="page-title">Clientes</span>
       <span class="page-count">{{ dataSource.data.length }} clientes activos</span>
     </div>
+
+    <div class="page-hdr__right">
+      <div class="kpi-group">
+        <div class="kpi-chip">
+          <span class="kpi-chip__label">Contratadas</span>
+          <span class="kpi-chip__value">{{ kpiHours.contracted }}</span>
+        </div>
+        <div class="kpi-chip">
+          <span class="kpi-chip__label">Usadas</span>
+          <span class="kpi-chip__value">{{ kpiHours.delivered }}</span>
+        </div>
+        <div class="kpi-chip">
+          <span class="kpi-chip__label">Disponibles</span>
+          <span class="kpi-chip__value">{{ kpiHours.available }}</span>
+        </div>
+      </div>
+      <div class="kpi-divider"></div>
+      <div class="kpi-group">
+        <div class="kpi-chip">
+          <span class="kpi-chip__label">Ok</span>
+          <span class="kpi-chip__value kpi-chip__value--ok">{{ kpiStates.ok }}</span>
+        </div>
+        <div class="kpi-chip">
+          <span class="kpi-chip__label">Warn</span>
+          <span class="kpi-chip__value kpi-chip__value--warn">{{ kpiStates.warn }}</span>
+        </div>
+        <div class="kpi-chip">
+          <span class="kpi-chip__label">Crit</span>
+          <span class="kpi-chip__value kpi-chip__value--crit">{{ kpiStates.crit }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="filter-bar">

@@ -75,6 +75,31 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
     this.router.navigate(['/clients', id]);
   }
 
+  get kpiHours(): { contracted: number; delivered: number; available: number } {
+    return this.dataSource.filteredData
+      .filter((c) => c.hours != null && c.hours.contracted > 0)
+      .reduce(
+        (acc, c) => ({
+          contracted: acc.contracted + c.hours!.contracted,
+          delivered:  acc.delivered  + c.hours!.delivered,
+          available:  acc.available  + c.hours!.available,
+        }),
+        { contracted: 0, delivered: 0, available: 0 },
+      );
+  }
+
+  get kpiStates(): { ok: number; warn: number; crit: number } {
+    return this.dataSource.filteredData
+      .filter((c) => c.hours != null && c.hours.contracted > 0)
+      .reduce(
+        (acc, c) => {
+          const state = this.getHoursState(c.hours!);
+          return { ...acc, [state]: acc[state] + 1 };
+        },
+        { ok: 0, warn: 0, crit: 0 },
+      );
+  }
+
   getHoursState(hours: ClientSubscriptionHours): 'ok' | 'warn' | 'crit' {
     if (hours.contracted === 0) return 'ok';
     const pct = hours.delivered / hours.contracted;

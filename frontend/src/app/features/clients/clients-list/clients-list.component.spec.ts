@@ -132,4 +132,58 @@ describe('ClientsListComponent', () => {
       expect(component.getHoursPct(h)).toBe(100);
     });
   });
+
+  describe('kpiHours', () => {
+    it('retorna ceros cuando no hay datos cargados', () => {
+      expect(component.kpiHours).toEqual({ contracted: 0, delivered: 0, available: 0 });
+    });
+
+    it('suma horas de todos los clientes visibles con contracted > 0', () => {
+      component.dataSource.data = [
+        { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 20, delivered: 8, available: 12 } },
+        { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 6, available: 4  } },
+      ];
+      expect(component.kpiHours).toEqual({ contracted: 30, delivered: 14, available: 16 });
+    });
+
+    it('excluye clientes con contracted = 0', () => {
+      component.dataSource.data = [
+        { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 0, delivered: 0, available: 0 } },
+        { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 4, available: 6 } },
+      ];
+      expect(component.kpiHours).toEqual({ contracted: 10, delivered: 4, available: 6 });
+    });
+
+    it('excluye clientes sin hours cargado (skeleton)', () => {
+      component.dataSource.data = [
+        { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: undefined },
+        { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 4, available: 6 } },
+      ];
+      expect(component.kpiHours).toEqual({ contracted: 10, delivered: 4, available: 6 });
+    });
+  });
+
+  describe('kpiStates', () => {
+    it('retorna ceros cuando no hay datos cargados', () => {
+      expect(component.kpiStates).toEqual({ ok: 0, warn: 0, crit: 0 });
+    });
+
+    it('clasifica correctamente clientes por estado', () => {
+      component.dataSource.data = [
+        { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 2, available: 8  } }, // ok
+        { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 8, available: 2  } }, // warn
+        { id: 'c3', name: 'C', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c3', contracted: 10, delivered: 9, available: 1  } }, // crit
+        { id: 'c4', name: 'D', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c4', contracted: 10, delivered: 1, available: 9  } }, // ok
+      ];
+      expect(component.kpiStates).toEqual({ ok: 2, warn: 1, crit: 1 });
+    });
+
+    it('excluye clientes sin contracted (sin abono)', () => {
+      component.dataSource.data = [
+        { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 0, delivered: 0, available: 0 } },
+        { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 9, available: 1 } },
+      ];
+      expect(component.kpiStates).toEqual({ ok: 0, warn: 0, crit: 1 });
+    });
+  });
 });
