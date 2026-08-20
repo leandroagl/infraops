@@ -18,6 +18,12 @@
     <mat-hint *ngIf="!loadingTags">{{ availableTags.length }} tags disponibles</mat-hint>
   </mat-form-field>
 
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Descripción del ticket en Odoo</mat-label>
+    <textarea matInput formControlName="ticketDescription" rows="6" placeholder="Dejar vacío para usar la descripción predeterminada"></textarea>
+    <mat-hint>Admite etiquetas HTML. Si se deja vacío se usa la descripción estándar del tipo de tarea.</mat-hint>
+  </mat-form-field>
+
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

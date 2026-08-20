@@ -18,80 +18,19 @@ import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 import { ClientSubscriptionHoursDto } from './dto/client-subscription-hours.dto';
 import { TaskType } from '../../tasks/task-type.enum';
 import { TaskConfigService } from '../../task-config/task-config.service';
+import { TICKET_DESCRIPTION_DEFAULTS } from '../../task-config/task-description-defaults';
 
-const CLOSING_NOTE = '<p>Ante cualquier anomalía detectada, se creará un ticket de soporte para su seguimiento y resolución.</p>';
-
-const WINDOWS_DOMAIN_DESCRIPTION = `
-<p>Control mensual preventivo sobre la infraestructura de servidores Windows.</p>
-<p>Se verifican los siguientes puntos:</p>
-<ul>
-  <li>Estado de actualizaciones del sistema operativo (Windows Updates) en cada servidor</li>
-  <li>Revisión de logs de eventos: errores y advertencias críticas</li>
-  <li>Replicación de Active Directory y salud general de controladores de dominio</li>
-  <li>Estado del servicio DNS: resolución, SRV records y zonas configuradas</li>
-  <li>Consistencia de SYSVOL / DFSR</li>
-  <li>Espacio en disco y rendimiento general del sistema</li>
-</ul>
-${CLOSING_NOTE}
-`.trim();
-
-const SERVER_HOST_DESCRIPTION = `
-<p>Control mensual preventivo sobre los hosts de virtualización ESXi y su infraestructura asociada.</p>
-<p>Se verifican los siguientes puntos:</p>
-<ul>
-  <li>Estado general del host: versión de ESXi, uptime y alertas de hardware</li>
-  <li>Consumo de recursos: uso de CPU y memoria</li>
-  <li>Estado de datastores: capacidad total, espacio libre y accesibilidad</li>
-  <li>Máquinas virtuales: estado de encendido, snapshots acumulados y antigüedad, estado de VMware Tools</li>
-  <li>Red: estado de vSwitches y NICs, velocidades de enlace</li>
-</ul>
-${CLOSING_NOTE}
-`.trim();
-
-const QNAP_DESCRIPTION = `
-<p>Control mensual preventivo sobre el repositorio de backups QNAP/NAS.</p>
-<p>Se verifican los siguientes puntos:</p>
-<ul>
-  <li>Estado de los discos físicos: cantidad instalada y detección de fallas o alertas por unidad</li>
-  <li>Estado del volumen RAID: degradación, falta de sincronización o error crítico</li>
-  <li>Capacidad de almacenamiento: espacio utilizado sobre el total disponible</li>
-  <li>Versión de firmware del dispositivo y aplicación de actualizaciones disponibles</li>
-</ul>
-${CLOSING_NOTE}
-`.trim();
-
-const VEEAM_DESCRIPTION = `
-<p>Control mensual preventivo sobre los trabajos de backup administrados con Veeam Backup &amp; Replication.</p>
-<p>Se verifican los siguientes puntos:</p>
-<ul>
-  <li>Cobertura de backup por máquina virtual: job de Veeam, agente instalado o exclusión justificada</li>
-  <li>Cantidad de backups completos (full) realizados en el mes por cada VM</li>
-  <li>Identificación de VMs sin cobertura o con cadena de incrementales sin full base reciente</li>
-</ul>
-${CLOSING_NOTE}
-`.trim();
-
-const ROUTER_DESCRIPTION = `
-<p>Control mensual preventivo sobre routers y firewalls de la infraestructura del cliente.</p>
-<p>Se verifican los siguientes puntos:</p>
-<ul>
-  <li>Versión de firmware instalada y aplicación de actualizaciones disponibles</li>
-  <li>Generación de backup de configuración del dispositivo</li>
-</ul>
-${CLOSING_NOTE}
-`.trim();
-
-const TICKET_META: Record<TaskType, { name: string; description: string }> = {
-  [TaskType.SERVER_HOST_MAINTENANCE]:        { name: 'Mantenimiento de hosts VMware/BMC',             description: SERVER_HOST_DESCRIPTION },
-  [TaskType.WINDOWS_DOMAIN_MAINTENANCE]:     { name: 'Mantenimiento de servidores y dominio Windows', description: WINDOWS_DOMAIN_DESCRIPTION },
-  [TaskType.ROUTER_MAINTENANCE]:             { name: 'Mantenimiento de router y firewall',            description: ROUTER_DESCRIPTION },
-  [TaskType.QNAP_MAINTENANCE]:               { name: 'Mantenimiento repositorio de backups QNAP/NAS', description: QNAP_DESCRIPTION },
-  [TaskType.VEEAM_BACKUP]:                   { name: 'Mantenimiento de backups Veeam',                description: VEEAM_DESCRIPTION },
-  [TaskType.TERMINAL_MAINTENANCE]:           { name: 'Mantenimiento de terminales',                   description: 'Mantenimiento mensual de terminales.' },
-  [TaskType.SITE_VISIT]:                     { name: 'Visita técnica presencial',                     description: 'Visita técnica al cliente.' },
-  [TaskType.AV_CONTROL]:                     { name: 'Control de antivirus',                          description: 'Control mensual de antivirus.' },
-  [TaskType.UPS_CONTROL]:                    { name: 'Control de UPS',                                description: 'Control mensual de equipos UPS.' },
-  [TaskType.ENDPOINT_INVENTORY]:             { name: 'Inventario de endpoints',                       description: 'Relevamiento de endpoints.' },
+const TICKET_META: Record<TaskType, { name: string }> = {
+  [TaskType.SERVER_HOST_MAINTENANCE]:    { name: 'Mantenimiento de hosts VMware/BMC' },
+  [TaskType.WINDOWS_DOMAIN_MAINTENANCE]: { name: 'Mantenimiento de servidores y dominio Windows' },
+  [TaskType.ROUTER_MAINTENANCE]:         { name: 'Mantenimiento de router y firewall' },
+  [TaskType.QNAP_MAINTENANCE]:           { name: 'Mantenimiento repositorio de backups QNAP/NAS' },
+  [TaskType.VEEAM_BACKUP]:               { name: 'Mantenimiento de backups Veeam' },
+  [TaskType.TERMINAL_MAINTENANCE]:       { name: 'Mantenimiento de terminales' },
+  [TaskType.SITE_VISIT]:                 { name: 'Visita técnica presencial' },
+  [TaskType.AV_CONTROL]:                 { name: 'Control de antivirus' },
+  [TaskType.UPS_CONTROL]:               { name: 'Control de UPS' },
+  [TaskType.ENDPOINT_INVENTORY]:         { name: 'Inventario de endpoints' },
 };
 
 @Injectable()
@@ -561,18 +500,18 @@ export class OdooService {
 
     const saleLineId = await this.resolveSaleLineId(clientId);
     const meta = TICKET_META[taskType];
+    const config = await this.taskConfigService.findOne(taskType);
 
     const payload: Record<string, unknown> = {
       team_id: teamId,
       partner_id: partnerId,
       user_id: odooUserId,
       name: meta.name,
-      description: meta.description,
+      description: config?.ticketDescription ?? TICKET_DESCRIPTION_DEFAULTS[taskType],
     };
     if (saleLineId !== null) {
       payload['sale_line_id'] = saleLineId;
     }
-    const config = await this.taskConfigService.findOne(taskType);
     if (config && config.odooTagIds.length > 0) {
       payload['tag_ids'] = [[6, 0, config.odooTagIds]];
     }

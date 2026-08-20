@@ -76,6 +76,7 @@ const mockTaskConfig: TaskTypeConfigDto = {
   defaultTimeMinutes: 90,
   odooTagIds: [],
   odooTagNames: [],
+  ticketDescription: null,
   updatedAt: '',
 };
 
@@ -225,6 +226,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         defaultTimeMinutes: 90,
         odooTagIds: [],
         odooTagNames: [],
+        ticketDescription: null,
         updatedAt: '',
       };
       expect(component.canComplete).toBe(true);

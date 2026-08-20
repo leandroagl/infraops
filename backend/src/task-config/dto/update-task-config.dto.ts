@@ -15,4 +15,8 @@ export class UpdateTaskConfigDto {
   @IsArray()
   @IsString({ each: true })
   odooTagNames?: string[];
+
+  @IsOptional()
+  @IsString()
+  ticketDescription?: string;
 }
