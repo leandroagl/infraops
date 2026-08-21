@@ -193,10 +193,23 @@ export class TaskDrawerComponent implements OnChanges {
     return !this.cycleClosed && this.userRole === 'ADMIN';
   }
 
+  get isConfigMissing(): boolean {
+    return this.taskConfig?.defaultTimeMinutes == null
+      || !this.taskConfig?.odooTagIds?.length;
+  }
+
+  get formReadOnly(): boolean {
+    return !this.isActiveTask || this.isConfigMissing;
+  }
+
+  get configWarningMessage(): string {
+    return 'El administrador debe configurar el tiempo estimado y los tags de Odoo para este tipo de tarea antes de poder trabajarla.';
+  }
+
   get canComplete(): boolean {
     return this.isActiveTask
       && this.canExecute
-      && this.taskConfig?.defaultTimeMinutes != null;
+      && !this.isConfigMissing;
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────────

@@ -42,13 +42,16 @@
   <!-- Banner solo-lectura -->
   <div *ngIf="!isActiveTask" class="d-readonly">Solo lectura — tarea completada</div>
 
+  <!-- Banner de configuración faltante -->
+  <div *ngIf="isActiveTask && isConfigMissing" class="d-config-warn">⚠ {{ configWarningMessage }}</div>
+
   <!-- Formulario QNAP -->
   <app-qnap-form
     *ngIf="infrastructure && task.type === 'QNAP_MAINTENANCE'"
     [task]="task"
     [infrastructure]="infrastructure"
     [savedPayload]="savedPayload"
-    [readOnly]="!isActiveTask"
+    [readOnly]="formReadOnly"
     (requestComplete)="onRequestComplete($event)"
     (requestSave)="onRequestSave($event)"
     (requestNotDone)="onRequestNotDone()">
@@ -59,7 +62,7 @@
     *ngIf="infrastructure && task.type === 'VEEAM_BACKUP'"
     [vms]="veeamVms"
     [existingPayload]="veeamPayload"
-    [readOnly]="!isActiveTask"
+    [readOnly]="formReadOnly"
     (saved)="onRequestComplete($event)"
     (requestSave)="onRequestSave($event)"
     (cancelled)="drawerClosed.emit()">
@@ -71,7 +74,7 @@
     [task]="task"
     [infrastructure]="infrastructure"
     [savedPayload]="savedPayload"
-    [readOnly]="!isActiveTask"
+    [readOnly]="formReadOnly"
     (requestComplete)="onRequestComplete($event)"
     (requestSave)="onRequestSave($event)"
     (requestNotDone)="onRequestNotDone()">
@@ -83,7 +86,7 @@
     [task]="task"
     [infrastructure]="infrastructure"
     [savedPayload]="savedPayload"
-    [readOnly]="!isActiveTask"
+    [readOnly]="formReadOnly"
     (requestComplete)="onRequestComplete($event)"
     (requestSave)="onRequestSave($event)"
     (requestNotDone)="onRequestNotDone()">
@@ -95,7 +98,7 @@
     [task]="task"
     [infrastructure]="infrastructure"
     [savedPayload]="savedPayload"
-    [readOnly]="!isActiveTask"
+    [readOnly]="formReadOnly"
     (requestComplete)="onRequestComplete($event)"
     (requestSave)="onRequestSave($event)"
     (requestNotDone)="onRequestNotDone()">
@@ -120,66 +123,66 @@
     <ng-container *ngIf="task.type === 'WINDOWS_DOMAIN_MAINTENANCE'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
               [disabled]="!canComplete || completing"
-              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
+              [matTooltip]="canComplete ? '' : configWarningMessage">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button (click)="triggerFormSave()" [disabled]="completing">Guardar progreso</button>
+      <button mat-stroked-button (click)="triggerFormSave()" [disabled]="completing || isConfigMissing" [matTooltip]="isConfigMissing ? configWarningMessage : ''">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
     <ng-container *ngIf="task.type === 'SERVER_HOST_MAINTENANCE'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
               [disabled]="!canComplete || completing"
-              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
+              [matTooltip]="canComplete ? '' : configWarningMessage">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button (click)="triggerServerHostSave()" [disabled]="completing">Guardar progreso</button>
+      <button mat-stroked-button (click)="triggerServerHostSave()" [disabled]="completing || isConfigMissing" [matTooltip]="isConfigMissing ? configWarningMessage : ''">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
     <ng-container *ngIf="task.type === 'TERMINAL_MAINTENANCE' || task.type === 'SITE_VISIT'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
               [disabled]="!canComplete || completing"
-              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
+              [matTooltip]="canComplete ? '' : configWarningMessage">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Marcar visita como realizada</span>
       </button>
-      <button *ngIf="task.type === 'SITE_VISIT'" mat-stroked-button color="warn" (click)="onRequestNotDone()" [disabled]="completing || !canComplete" [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">No concretada</button>
+      <button *ngIf="task.type === 'SITE_VISIT'" mat-stroked-button color="warn" (click)="onRequestNotDone()" [disabled]="completing || !canComplete" [matTooltip]="canComplete ? '' : configWarningMessage">No concretada</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
     <ng-container *ngIf="task.type === 'QNAP_MAINTENANCE'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
               [disabled]="!canComplete || completing"
-              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
+              [matTooltip]="canComplete ? '' : configWarningMessage">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button (click)="triggerQnapSave()" [disabled]="completing">Guardar progreso</button>
+      <button mat-stroked-button (click)="triggerQnapSave()" [disabled]="completing || isConfigMissing" [matTooltip]="isConfigMissing ? configWarningMessage : ''">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
     <ng-container *ngIf="task.type === 'VEEAM_BACKUP'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
               [disabled]="!canComplete || completing"
-              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
+              [matTooltip]="canComplete ? '' : configWarningMessage">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button (click)="triggerVeeamSave()" [disabled]="completing">Guardar progreso</button>
+      <button mat-stroked-button (click)="triggerVeeamSave()" [disabled]="completing || isConfigMissing" [matTooltip]="isConfigMissing ? configWarningMessage : ''">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
     <ng-container *ngIf="task.type === 'ROUTER_MAINTENANCE'">
       <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
               [disabled]="!canComplete || completing"
-              [matTooltip]="canComplete ? '' : 'El administrador debe configurar el tiempo para este tipo de tarea'">
+              [matTooltip]="canComplete ? '' : configWarningMessage">
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Completar mantenimiento</span>
       </button>
-      <button mat-stroked-button (click)="triggerRouterFormSave()" [disabled]="completing">Guardar progreso</button>
+      <button mat-stroked-button (click)="triggerRouterFormSave()" [disabled]="completing || isConfigMissing" [matTooltip]="isConfigMissing ? configWarningMessage : ''">Guardar progreso</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 

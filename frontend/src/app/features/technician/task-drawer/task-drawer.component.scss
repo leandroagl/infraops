@@ -76,6 +76,15 @@
   padding: 8px 12px;
 }
 
+.d-config-warn {
+  font-size: 11px;
+  color: var(--warn);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-bd);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+
 .infra-empty {
   font-size: 11px;
   color: var(--tx-lo);
