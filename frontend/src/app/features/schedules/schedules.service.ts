@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { TaskType } from '../../core/models/task.models';
 
@@ -68,6 +69,10 @@ export interface RotationPreview {
 export class SchedulesService {
   private readonly base = `${environment.apiUrl}/schedules`;
 
+  /** Emite cada vez que se guarda un ClientSchedule, para que otras vistas (ej. generación mensual) se actualicen sin recargar. */
+  private readonly scheduleUpdatedSource = new Subject<ClientSchedule>();
+  readonly scheduleUpdated$ = this.scheduleUpdatedSource.asObservable();
+
   constructor(private http: HttpClient) {}
 
   findAll(): Observable<ClientSchedule[]> {
@@ -78,7 +83,9 @@ export class SchedulesService {
     clientId: string,
     body: { scheduleGroup: ScheduleGroup; technicianId: string | null },
   ): Observable<ClientSchedule> {
-    return this.http.put<ClientSchedule>(`${this.base}/${clientId}`, body);
+    return this.http.put<ClientSchedule>(`${this.base}/${clientId}`, body).pipe(
+      tap(updated => this.scheduleUpdatedSource.next(updated)),
+    );
   }
 
   getMonthlyPreview(year: number, month: number): Observable<MonthlyPreview> {
