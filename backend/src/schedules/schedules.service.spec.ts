@@ -7,7 +7,17 @@ import { SchedulesService, RotationPreviewDto } from './schedules.service';
 import { Technician } from '../technicians/technician.entity';
 import { Client } from '../clients/client.entity';
 import { Task } from '../tasks/task.entity';
+import { TaskType } from '../tasks/task-type.enum';
 import { TasksService } from '../tasks/tasks.service';
+import { TaskConfigService } from '../task-config/task-config.service';
+
+const V1_TYPES_FULLY_TAGGED = [
+  TaskType.SERVER_HOST_MAINTENANCE,
+  TaskType.WINDOWS_DOMAIN_MAINTENANCE,
+  TaskType.QNAP_MAINTENANCE,
+  TaskType.VEEAM_BACKUP,
+  TaskType.ROUTER_MAINTENANCE,
+].map(taskType => ({ taskType, odooTagIds: [1] }));
 
 describe('SchedulesService', () => {
   let service: SchedulesService;
@@ -25,6 +35,7 @@ describe('SchedulesService', () => {
   let techRepo: { find: jest.Mock };
   let tasksService: { create: jest.Mock };
   let taskRepo: { findOne: jest.Mock; find: jest.Mock };
+  let taskConfigService: { findAll: jest.Mock };
 
   beforeEach(async () => {
     scheduleRepo = { find: jest.fn(), findOne: jest.fn(), create: jest.fn(), save: jest.fn() };
@@ -32,6 +43,7 @@ describe('SchedulesService', () => {
     techRepo = { find: jest.fn() };
     tasksService = { create: jest.fn() };
     taskRepo = { findOne: jest.fn(), find: jest.fn().mockResolvedValue([]) };
+    taskConfigService = { findAll: jest.fn().mockResolvedValue(V1_TYPES_FULLY_TAGGED) };
 
     // Default: rotation disabled → applyRotationIfNeeded returns early in most tests
     rotationRepo.findOne.mockResolvedValue({
@@ -49,6 +61,7 @@ describe('SchedulesService', () => {
         { provide: getRepositoryToken(Task), useValue: taskRepo },
         { provide: getRepositoryToken(Technician), useValue: techRepo },
         { provide: TasksService, useValue: tasksService },
+        { provide: TaskConfigService, useValue: taskConfigService },
       ],
     }).compile();
 
@@ -168,6 +181,31 @@ describe('SchedulesService', () => {
       taskRepo.find.mockResolvedValue([]);
       const result = await service.getMonthlyPreview(2026, 8);
       expect(result.clients).toHaveLength(0);
+    });
+
+    it('taskTypesWithoutTags queda vacío cuando todos los tipos V1 tienen tags configurados', async () => {
+      scheduleRepo.find.mockResolvedValue([]);
+      taskRepo.find.mockResolvedValue([]);
+      const result = await service.getMonthlyPreview(2026, 8);
+      expect(result.taskTypesWithoutTags).toEqual([]);
+    });
+
+    it('taskTypesWithoutTags incluye los tipos V1 sin tags configurados', async () => {
+      scheduleRepo.find.mockResolvedValue([]);
+      taskRepo.find.mockResolvedValue([]);
+      taskConfigService.findAll.mockResolvedValue([
+        { taskType: TaskType.SERVER_HOST_MAINTENANCE,    odooTagIds: [1] },
+        { taskType: TaskType.WINDOWS_DOMAIN_MAINTENANCE, odooTagIds: [] },
+        { taskType: TaskType.QNAP_MAINTENANCE,           odooTagIds: [1] },
+        { taskType: TaskType.VEEAM_BACKUP,               odooTagIds: [1] },
+        { taskType: TaskType.ROUTER_MAINTENANCE,         odooTagIds: [] },
+      ]);
+
+      const result = await service.getMonthlyPreview(2026, 8);
+      expect(result.taskTypesWithoutTags).toEqual([
+        TaskType.WINDOWS_DOMAIN_MAINTENANCE,
+        TaskType.ROUTER_MAINTENANCE,
+      ]);
     });
   });
 

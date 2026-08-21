@@ -28,9 +28,13 @@
 .gen-btn { margin-left: auto; }
 .gen-footer {
   padding: 10px 24px; border-top: 1px solid var(--border);
-  display: flex; align-items: center;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
 }
 .footer-hint { font-size: 11px; color: var(--tx-lo); }
+.footer-hint--warn {
+  color: var(--warn);
+  a { color: var(--warn); text-decoration: underline; }
+}
 .footer-generated {
   display: flex; align-items: center; gap: 6px;
   font-size: 12px; color: var(--ok);

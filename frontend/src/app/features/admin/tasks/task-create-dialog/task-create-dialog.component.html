@@ -35,6 +35,9 @@
         <mat-option *ngFor="let t of availableTaskTypes" [value]="t.value">{{ t.label }}</mat-option>
       </mat-select>
     </mat-form-field>
+    <div style="color:var(--tx-lo);font-size:12px;padding:2px 0 6px">
+      Sólo se listan tipos de tarea con tags de Odoo configurados.
+    </div>
 
     <mat-form-field appearance="outline" subscriptSizing="dynamic">
       <mat-label>Fecha programada</mat-label>
