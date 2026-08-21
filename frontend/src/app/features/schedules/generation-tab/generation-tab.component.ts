@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { GenerationResult, MonthlyPreview, SchedulesService } from '../schedules.service';
+import { typeLabelLong } from '../../../shared/utils/task-labels';
 
 const MONTH_NAMES = ['', 'Enero','Febrero','Marzo','Abril','Mayo','Junio',
                      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -30,9 +31,14 @@ export class GenerationTabComponent implements OnInit {
     return !!this.preview &&
       !this.preview.wasGenerated &&
       this.preview.clientsWithoutTechnician === 0 &&
+      this.preview.taskTypesWithoutTags.length === 0 &&
       this.preview.clients.length > 0 &&
       !this.generating &&
       !this.isFutureMonth;
+  }
+
+  get taskTypesWithoutTagsLabel(): string {
+    return (this.preview?.taskTypesWithoutTags ?? []).map(typeLabelLong).join(', ');
   }
 
   constructor(

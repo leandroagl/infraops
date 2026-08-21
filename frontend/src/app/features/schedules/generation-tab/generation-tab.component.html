@@ -13,6 +13,9 @@
     <span class="stat" [class.warn]="preview.clientsWithoutTechnician > 0">
       <b>{{ preview.clientsWithoutTechnician }}</b> sin técnico
     </span>
+    <span class="stat" [class.warn]="preview.taskTypesWithoutTags.length > 0">
+      <b>{{ preview.taskTypesWithoutTags.length }}</b> tipos sin tag Odoo
+    </span>
   </div>
 
   <span class="footer-generated" *ngIf="preview?.wasGenerated">
@@ -50,11 +53,17 @@
   </mat-table>
 </div>
 
-<div class="gen-footer" *ngIf="isFutureMonth || (!preview?.wasGenerated && (preview?.clientsWithoutTechnician ?? 0) > 0)">
+<div class="gen-footer" *ngIf="isFutureMonth
+    || (!preview?.wasGenerated && (preview?.clientsWithoutTechnician ?? 0) > 0)
+    || (!preview?.wasGenerated && (preview?.taskTypesWithoutTags?.length ?? 0) > 0)">
   <span class="footer-hint" *ngIf="isFutureMonth">
     Disponible a partir del 1 de {{ monthName }}
   </span>
   <span class="footer-hint" *ngIf="!isFutureMonth && !preview?.wasGenerated && preview?.clientsWithoutTechnician">
     Asigná un técnico a todos los clientes para habilitar la generación
+  </span>
+  <span class="footer-hint footer-hint--warn" *ngIf="!isFutureMonth && !preview?.wasGenerated && (preview?.taskTypesWithoutTags?.length ?? 0) > 0">
+    Configurá los tags de Odoo para {{ taskTypesWithoutTagsLabel }} en
+    <a routerLink="/admin/task-config">Configuración de tipos de tarea</a> para habilitar la generación
   </span>
 </div>

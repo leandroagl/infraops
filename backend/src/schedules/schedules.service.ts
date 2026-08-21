@@ -11,6 +11,7 @@ import { TaskType } from '../tasks/task-type.enum';
 import { TaskStatus } from '../tasks/task-status.enum';
 import { Task } from '../tasks/task.entity';
 import { Technician } from '../technicians/technician.entity';
+import { TaskConfigService } from '../task-config/task-config.service';
 
 export interface MonthlyPreviewClientDto {
   clientId: string;
@@ -34,6 +35,7 @@ export interface MonthlyPreviewDto {
   clientsWithoutTechnician: number;
   wasGenerated: boolean;
   taskStats: TaskStatsDto | null;
+  taskTypesWithoutTags: TaskType[];
 }
 
 export interface GenerationResultDto {
@@ -75,6 +77,7 @@ export class SchedulesService {
     @InjectRepository(Technician)
     private readonly techRepo: Repository<Technician>,
     private readonly tasksService: TasksService,
+    private readonly taskConfigService: TaskConfigService,
   ) {}
 
   findAll(): Promise<ClientSchedule[]> {
@@ -217,6 +220,12 @@ export class SchedulesService {
         }
       : null;
 
+    const configs = await this.taskConfigService.findAll();
+    const configByType = new Map(configs.map(c => [c.taskType, c]));
+    const taskTypesWithoutTags = V1_TASK_TYPES.filter(
+      type => (configByType.get(type)?.odooTagIds.length ?? 0) === 0,
+    );
+
     return {
       year,
       month,
@@ -225,6 +234,7 @@ export class SchedulesService {
       clientsWithoutTechnician: clients.filter(c => !c.technicianId).length,
       wasGenerated,
       taskStats,
+      taskTypesWithoutTags,
     };
   }
 

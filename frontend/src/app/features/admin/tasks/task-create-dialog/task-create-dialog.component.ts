@@ -5,12 +5,13 @@ import { MatDialogRef } from '@angular/material/dialog';
 import { forkJoin, Subscription } from 'rxjs';
 import { Client } from '../../../../core/models/client.models';
 import { Technician } from '../../../../core/models/technician.models';
-import { TaskType } from '../../../../core/models/task.models';
+import { TaskType, TaskTypeConfigDto } from '../../../../core/models/task.models';
 import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
 import { ClientsService } from '../../../../core/services/clients.service';
 import { TechniciansService } from '../../../../core/services/technicians.service';
 import { TasksService } from '../../../../core/services/tasks.service';
 import { InfradocService } from '../../../../core/services/infradoc.service';
+import { TaskConfigService } from '../../../../core/services/task-config.service';
 
 @Component({
   selector: 'app-task-create-dialog',
@@ -28,6 +29,7 @@ export class TaskCreateDialogComponent implements OnInit, OnDestroy {
   infra: ClientInfrastructure | null = null;
   loadingInfra = false;
   infraError = '';
+  taskConfigs: TaskTypeConfigDto[] = [];
 
   private clientSub?: Subscription;
 
@@ -53,11 +55,17 @@ export class TaskCreateDialogComponent implements OnInit, OnDestroy {
   ];
 
   get availableTaskTypes(): { value: TaskType; label: string }[] {
-    if (!this.infra) return this.taskTypes;
-    return this.taskTypes.filter(({ value }) => {
+    const withTags = this.taskTypes.filter(({ value }) => this.hasTagConfig(value));
+    if (!this.infra) return withTags;
+    return withTags.filter(({ value }) => {
       const predicate = this.REQUIRES_INFRA[value];
       return !predicate || predicate(this.infra!);
     });
+  }
+
+  private hasTagConfig(type: TaskType): boolean {
+    const config = this.taskConfigs.find(c => c.taskType === type);
+    return !!config && config.odooTagIds.length > 0;
   }
 
   constructor(
@@ -67,6 +75,7 @@ export class TaskCreateDialogComponent implements OnInit, OnDestroy {
     private techniciansService: TechniciansService,
     private tasksService: TasksService,
     private infradocService: InfradocService,
+    private taskConfigService: TaskConfigService,
   ) {}
 
   ngOnInit(): void {
@@ -106,11 +115,18 @@ export class TaskCreateDialogComponent implements OnInit, OnDestroy {
     forkJoin({
       clients:     this.clientsService.getAll(),
       technicians: this.techniciansService.getAll(),
+      taskConfigs: this.taskConfigService.getAll(),
     }).subscribe({
-      next: ({ clients, technicians }) => {
+      next: ({ clients, technicians, taskConfigs }) => {
         this.clients     = clients.filter(c => c.isActive);
         this.technicians = technicians.filter(t => t.user.isActive);
+        this.taskConfigs = taskConfigs;
         this.loading = false;
+
+        const currentType = this.form.get('type')!.value as TaskType;
+        if (currentType && !this.availableTaskTypes.find(t => t.value === currentType)) {
+          this.form.get('type')!.reset();
+        }
       },
       error: () => { this.error = 'No se pudieron cargar los datos.'; this.loading = false; },
     });

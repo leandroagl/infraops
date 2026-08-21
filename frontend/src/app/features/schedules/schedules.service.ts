@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { TaskType } from '../../core/models/task.models';
 
 export type ScheduleGroup = 'BIMONTHLY_ODD' | 'BIMONTHLY_EVEN' | null;
 export type RotationFrequency = 'EVERY_GENERATION' | 'EVERY_TWO_GENERATIONS';
@@ -45,6 +46,7 @@ export interface MonthlyPreview {
   clientsWithoutTechnician: number;
   wasGenerated: boolean;
   taskStats: TaskStats | null;
+  taskTypesWithoutTags: TaskType[];
 }
 
 export interface GenerationResult {

@@ -12,6 +12,7 @@ import { Technician } from '../technicians/technician.entity';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { InfrastructureService } from '../integrations/infradoc/infrastructure.service';
 import { ClientInfrastructureDto } from '../integrations/infradoc/dto/client-infrastructure.dto';
+import { TaskConfigService } from '../task-config/task-config.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -62,6 +63,7 @@ export class TasksService {
     private readonly logRepository: Repository<MaintenanceLog>,
     private readonly odooService: OdooService,
     private readonly infrastructureService: InfrastructureService,
+    private readonly taskConfigService: TaskConfigService,
   ) {}
 
   async findAll(filters: FilterTasksDto): Promise<Task[]> {
@@ -95,6 +97,7 @@ export class TasksService {
     });
     if (!technician) throw new NotFoundException('Técnico no encontrado');
 
+    await this.validateTagConfig(dto.type);
     await this.validateInfrastructure(dto.clientId, dto.type);
 
     const odooTicketId = await this.odooService.createTicket(
@@ -214,6 +217,15 @@ export class TasksService {
 
     await this.logRepository.delete({ taskId: id });
     await this.taskRepository.delete(id);
+  }
+
+  private async validateTagConfig(type: TaskType): Promise<void> {
+    const config = await this.taskConfigService.findOne(type);
+    if (!config || config.odooTagIds.length === 0) {
+      throw new BadRequestException(
+        `El tipo de tarea ${type} no tiene tags de Odoo configurados`,
+      );
+    }
   }
 
   private async validateInfrastructure(clientId: string, type: TaskType): Promise<void> {
