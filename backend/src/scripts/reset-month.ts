@@ -23,9 +23,9 @@ function monthRange(year: number, month: number): { firstDay: string; lastDay: s
 }
 
 async function resetMonth(): Promise<void> {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.ALLOW_TASK_RESET !== 'true') {
     process.stderr.write(
-      'reset-month está deshabilitado en producción (NODE_ENV=production). Abortado.\n',
+      'reset-month está deshabilitado: falta ALLOW_TASK_RESET=true en el .env de este servidor. Abortado.\n',
     );
     process.exit(1);
   }
