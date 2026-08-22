@@ -352,7 +352,6 @@ describe('SchedulesService', () => {
         .mockResolvedValueOnce([
           makeTask('t-1', TaskStatus.PENDING),
           makeTask('t-2', TaskStatus.IN_PROGRESS),
-          makeTask('t-3', TaskStatus.DONE), // NO debe cerrarse
         ])
         .mockResolvedValue([]); // llamadas subsiguientes (wasGenerated)
 

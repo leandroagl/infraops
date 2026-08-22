@@ -249,17 +249,13 @@ export class SchedulesService {
     const lastDayNum = new Date(prevYear, prevMonth, 0).getDate();
     const lastDay = `${prevYear}-${pad(prevMonth)}-${pad(lastDayNum)}`;
 
-    const found = await this.taskRepo.find({
+    const unfinished = await this.taskRepo.find({
       where: [
         { scheduledDate: Between(firstDay, lastDay) as unknown as string, status: TaskStatus.PENDING },
         { scheduledDate: Between(firstDay, lastDay) as unknown as string, status: TaskStatus.IN_PROGRESS },
       ],
-      select: ['id', 'status'],
+      select: ['id'],
     });
-
-    const unfinished = found.filter(
-      t => t.status === TaskStatus.PENDING || t.status === TaskStatus.IN_PROGRESS,
-    );
 
     for (const task of unfinished) {
       try {
