@@ -185,6 +185,22 @@ describe('TasksController', () => {
       );
     });
 
+    it('pasa reason al service en PATCH status con NOT_DONE', async () => {
+      const updatedTask = { id: 'task-1', status: 'NOT_DONE' } as Task;
+      jest.spyOn(tasksService, 'updateStatus').mockResolvedValue(updatedTask);
+
+      const result = await controller.updateStatus('task-1', {
+        status: TaskStatus.NOT_DONE,
+        reason: 'Cliente canceló',
+      } as UpdateTaskStatusDto);
+
+      expect(tasksService.updateStatus).toHaveBeenCalledWith('task-1', TaskStatus.NOT_DONE, {
+        timeSpentMinutes: undefined,
+        reason: 'Cliente canceló',
+      });
+      expect(result).toBe(updatedTask);
+    });
+
     it('propaga NotFoundException si la tarea no existe', async () => {
       tasksService.updateStatus.mockRejectedValue(new NotFoundException());
 
