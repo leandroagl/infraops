@@ -119,6 +119,27 @@ docker compose exec backend node dist/scripts/seed-admin.js
 Imprime el email y la contraseña generada. **Guardar la contraseña — no se vuelve a mostrar.**
 El usuario tiene `mustChangePassword: true`, así que pedirá cambiarla al primer login.
 
+### Scripts de base de datos
+
+#### Limpiar tareas de un mes (reset-month)
+
+Útil para deshacer una generación mensual en el servidor de pruebas.
+Requiere `ALLOW_TASK_RESET=true` en `backend/.env` — **nunca habilitar en producción.**
+
+```bash
+# Dry-run: muestra cuántas tareas se borrarían (no borra nada)
+docker compose exec backend node dist/scripts/reset-month.js --year=2026 --month=08
+
+# Aplicar el borrado
+docker compose exec backend node dist/scripts/reset-month.js --year=2026 --month=08 --confirm
+```
+
+> **Nota local (desarrollo):** `npm run db:reset-month` no pasa argumentos correctamente en PowerShell.
+> Usar ts-node directamente desde `backend/`:
+> ```powershell
+> npx ts-node -r tsconfig-paths/register src/scripts/reset-month.ts --year=2026 --month=08 --confirm
+> ```
+
 ### Actualizar
 
 ```bash
