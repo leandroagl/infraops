@@ -238,7 +238,44 @@ export class SchedulesService {
     };
   }
 
+  private async closeUnfinishedTasksFromPreviousMonth(
+    year: number,
+    month: number,
+  ): Promise<void> {
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear  = month === 1 ? year - 1 : year;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const firstDay = `${prevYear}-${pad(prevMonth)}-01`;
+    const lastDayNum = new Date(prevYear, prevMonth, 0).getDate();
+    const lastDay = `${prevYear}-${pad(prevMonth)}-${pad(lastDayNum)}`;
+
+    const found = await this.taskRepo.find({
+      where: [
+        { scheduledDate: Between(firstDay, lastDay) as unknown as string, status: TaskStatus.PENDING },
+        { scheduledDate: Between(firstDay, lastDay) as unknown as string, status: TaskStatus.IN_PROGRESS },
+      ],
+      select: ['id', 'status'],
+    });
+
+    const unfinished = found.filter(
+      t => t.status === TaskStatus.PENDING || t.status === TaskStatus.IN_PROGRESS,
+    );
+
+    for (const task of unfinished) {
+      try {
+        await this.tasksService.updateStatus(task.id, TaskStatus.NOT_DONE, {
+          reason: 'Cierre automático de fin de mes',
+        });
+      } catch (err) {
+        this.logger.warn(
+          `No se pudo cerrar tarea ${task.id} automáticamente: ${(err as Error).message}`,
+        );
+      }
+    }
+  }
+
   async generateMonth(year: number, month: number): Promise<GenerationResultDto> {
+    await this.closeUnfinishedTasksFromPreviousMonth(year, month);
     await this.applyRotationIfNeeded();
     const group = MONTH_TO_GROUP[month];
     const rules = await this.scheduleRepo.find({

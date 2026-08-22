@@ -8,6 +8,7 @@ import { Technician } from '../technicians/technician.entity';
 import { Client } from '../clients/client.entity';
 import { Task } from '../tasks/task.entity';
 import { TaskType } from '../tasks/task-type.enum';
+import { TaskStatus } from '../tasks/task-status.enum';
 import { TasksService } from '../tasks/tasks.service';
 import { TaskConfigService } from '../task-config/task-config.service';
 
@@ -33,7 +34,7 @@ describe('SchedulesService', () => {
     save: jest.Mock;
   };
   let techRepo: { find: jest.Mock };
-  let tasksService: { create: jest.Mock };
+  let tasksService: { create: jest.Mock; updateStatus: jest.Mock };
   let taskRepo: { findOne: jest.Mock; find: jest.Mock };
   let taskConfigService: { findAll: jest.Mock };
 
@@ -41,7 +42,10 @@ describe('SchedulesService', () => {
     scheduleRepo = { find: jest.fn(), findOne: jest.fn(), create: jest.fn(), save: jest.fn() };
     rotationRepo = { findOne: jest.fn(), create: jest.fn(), save: jest.fn() };
     techRepo = { find: jest.fn() };
-    tasksService = { create: jest.fn() };
+    tasksService = {
+      create: jest.fn(),
+      updateStatus: jest.fn().mockResolvedValue(undefined),
+    };
     taskRepo = { findOne: jest.fn(), find: jest.fn().mockResolvedValue([]) };
     taskConfigService = { findAll: jest.fn().mockResolvedValue(V1_TYPES_FULLY_TAGGED) };
 
@@ -326,6 +330,60 @@ describe('SchedulesService', () => {
       const tow  = preview.technicians.find((t) => t.name === 'Tow')!;
       expect(enzo.clients).toContain('Alpha');
       expect(tow.clients).toContain('Beta');
+    });
+  });
+
+  describe('generateMonth — cierre automático del mes anterior', () => {
+    const makeTask = (id: string, status: TaskStatus) =>
+      ({ id, status, odooTicketId: null } as Task);
+
+    beforeEach(() => {
+      // Sin reglas de schedule: el loop de creación no hace nada
+      scheduleRepo.find.mockResolvedValue([]);
+      rotationRepo.findOne.mockResolvedValue({
+        isActive: false,
+        frequency: RotationFrequency.EVERY_GENERATION,
+        generationsSinceLastRotation: 0,
+      });
+    });
+
+    it('cierra tareas PENDING y IN_PROGRESS del mes anterior', async () => {
+      taskRepo.find
+        .mockResolvedValueOnce([
+          makeTask('t-1', TaskStatus.PENDING),
+          makeTask('t-2', TaskStatus.IN_PROGRESS),
+          makeTask('t-3', TaskStatus.DONE), // NO debe cerrarse
+        ])
+        .mockResolvedValue([]); // llamadas subsiguientes (wasGenerated)
+
+      await service.generateMonth(2026, 8);
+
+      expect(tasksService.updateStatus).toHaveBeenCalledTimes(2);
+      expect(tasksService.updateStatus).toHaveBeenCalledWith('t-1', TaskStatus.NOT_DONE, {
+        reason: 'Cierre automático de fin de mes',
+      });
+      expect(tasksService.updateStatus).toHaveBeenCalledWith('t-2', TaskStatus.NOT_DONE, {
+        reason: 'Cierre automático de fin de mes',
+      });
+    });
+
+    it('calcula correctamente el mes anterior cuando es enero', async () => {
+      taskRepo.find.mockResolvedValue([]);
+      await service.generateMonth(2026, 1);
+
+      // Primera llamada a taskRepo.find debe ser para diciembre 2025
+      const firstCall = taskRepo.find.mock.calls[0][0] as Record<string, unknown>;
+      expect(JSON.stringify(firstCall)).toContain('2025-12');
+    });
+
+    it('un error en updateStatus no detiene la generación del nuevo mes', async () => {
+      taskRepo.find
+        .mockResolvedValueOnce([makeTask('t-err', TaskStatus.PENDING)])
+        .mockResolvedValue([]);
+      tasksService.updateStatus.mockRejectedValue(new Error('Odoo error'));
+
+      // No debe lanzar
+      await expect(service.generateMonth(2026, 8)).resolves.toBeDefined();
     });
   });
 
