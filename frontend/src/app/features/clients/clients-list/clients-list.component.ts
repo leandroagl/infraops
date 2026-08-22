@@ -6,6 +6,13 @@ import { MatSort } from '@angular/material/sort';
 import { ClientsService } from '../../../core/services/clients.service';
 import { ClientSubscriptionHours, ClientWithHours } from '../../../core/models/client.models';
 
+export type HoursZone = 'crit' | 'low' | 'ok' | 'warn';
+
+interface TableFilter {
+  q: string;
+  zone: HoursZone | null;
+}
+
 @Component({
   selector: 'app-clients-list',
   templateUrl: './clients-list.component.html',
@@ -15,6 +22,7 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
   readonly dataSource = new MatTableDataSource<ClientWithHours>([]);
   readonly displayedColumns = ['name', 'hours'];
   quickFilter = '';
+  selectedZone: HoursZone | null = null;
   loadError = false;
 
   @ViewChild(MatSort) sort!: MatSort;
@@ -27,6 +35,15 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
   ) {}
 
   ngOnInit(): void {
+    this.dataSource.filterPredicate = (row, filter) => {
+      const { q, zone } = JSON.parse(filter) as TableFilter;
+      const matchesText = !q || row.name.toLowerCase().includes(q);
+      const matchesZone = !zone
+        || (row.hours != null && row.hours.contracted > 0 && this.getHoursState(row.hours) === zone);
+      return matchesText && matchesZone;
+    };
+    this.applyFilter();
+
     this.clientsService.getAll()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -68,15 +85,26 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
   }
 
   applyFilter(): void {
-    this.dataSource.filter = this.quickFilter.trim().toLowerCase();
+    const filter: TableFilter = { q: this.quickFilter.trim().toLowerCase(), zone: this.selectedZone };
+    this.dataSource.filter = JSON.stringify(filter);
+  }
+
+  toggleZone(zone: HoursZone): void {
+    this.selectedZone = this.selectedZone === zone ? null : zone;
+    this.applyFilter();
   }
 
   navigateToClient(id: string): void {
     this.router.navigate(['/clients', id]);
   }
 
+  private get textFilteredClients(): ClientWithHours[] {
+    const q = this.quickFilter.trim().toLowerCase();
+    return this.dataSource.data.filter((c) => !q || c.name.toLowerCase().includes(q));
+  }
+
   get kpiHours(): { contracted: number; delivered: number; available: number } {
-    return this.dataSource.filteredData
+    return this.textFilteredClients
       .filter((c) => c.hours != null && c.hours.contracted > 0)
       .reduce(
         (acc, c) => ({
@@ -88,28 +116,45 @@ export class ClientsListComponent implements OnInit, AfterViewInit {
       );
   }
 
-  get kpiStates(): { ok: number; warn: number; crit: number } {
-    return this.dataSource.filteredData
+  get kpiHoursPct(): number {
+    const { contracted, delivered } = this.kpiHours;
+    if (contracted === 0) return 0;
+    return Math.min(100, Math.round((delivered / contracted) * 100));
+  }
+
+  get kpiStates(): { ok: number; warn: number; crit: number; low: number } {
+    return this.textFilteredClients
       .filter((c) => c.hours != null && c.hours.contracted > 0)
       .reduce(
         (acc, c) => {
           const state = this.getHoursState(c.hours!);
           return { ...acc, [state]: acc[state] + 1 };
         },
-        { ok: 0, warn: 0, crit: 0 },
+        { ok: 0, warn: 0, crit: 0, low: 0 },
       );
   }
 
-  getHoursState(hours: ClientSubscriptionHours): 'ok' | 'warn' | 'crit' {
+  zonePct(count: number): number {
+    const { ok, warn, crit, low } = this.kpiStates;
+    const total = ok + warn + crit + low;
+    return total === 0 ? 0 : Math.round((count / total) * 100);
+  }
+
+  getHoursState(hours: ClientSubscriptionHours): HoursZone {
     if (hours.contracted === 0) return 'ok';
     const pct = hours.delivered / hours.contracted;
-    if (pct >= 0.9) return 'crit';
-    if (pct >= 0.7) return 'warn';
-    return 'ok';
+    if (pct > 1) return 'warn';
+    if (pct >= 0.6) return 'ok';
+    if (pct > 0) return 'low';
+    return 'crit';
   }
 
   getHoursPct(hours: ClientSubscriptionHours): number {
     if (hours.contracted === 0) return 0;
-    return Math.min(100, Math.round((hours.delivered / hours.contracted) * 100));
+    return Math.round((hours.delivered / hours.contracted) * 100);
+  }
+
+  getHoursBarWidth(hours: ClientSubscriptionHours): number {
+    return Math.min(100, this.getHoursPct(hours));
   }
 }

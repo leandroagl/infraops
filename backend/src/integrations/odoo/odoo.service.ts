@@ -18,7 +18,8 @@ import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 import { ClientSubscriptionHoursDto } from './dto/client-subscription-hours.dto';
 import { TaskType } from '../../tasks/task-type.enum';
 import { TaskConfigService } from '../../task-config/task-config.service';
-import { TICKET_DESCRIPTION_DEFAULTS } from '../../task-config/task-description-defaults';
+import { TICKET_DESCRIPTION_DEFAULTS, TIMESHEET_DESCRIPTION_DEFAULT } from '../../task-config/task-description-defaults';
+import { plainTextToHtml } from '../../task-config/plain-text-to-html';
 
 const TICKET_META: Record<TaskType, { name: string }> = {
   [TaskType.SERVER_HOST_MAINTENANCE]:    { name: 'Mantenimiento de hosts VMware/BMC' },
@@ -346,6 +347,7 @@ export class OdooService {
     odooTicketId: number,
     employeeId: number,
     unitAmount: number,
+    description: string,
   ): Promise<void> {
     await this.systemRpc.callKw<number>(
       'account.analytic.line',
@@ -354,7 +356,7 @@ export class OdooService {
         {
           helpdesk_ticket_id: odooTicketId,
           employee_id: employeeId,
-          name: 'Mantenimiento realizado',
+          name: description,
           unit_amount: unitAmount,
           date: new Date().toISOString().split('T')[0],
         },
@@ -447,9 +449,12 @@ export class OdooService {
     odooTicketId: number,
     employeeId: number,
     unitAmount: number,
+    taskType: TaskType,
   ): Promise<void> {
     const stageId = await this.resolveDoneStageId();
-    await this.logTimesheet(odooTicketId, employeeId, unitAmount);
+    const config = await this.taskConfigService.findOne(taskType);
+    const timesheetDescription = config?.timesheetDescription ?? TIMESHEET_DESCRIPTION_DEFAULT;
+    await this.logTimesheet(odooTicketId, employeeId, unitAmount, timesheetDescription);
     await this.systemRpc.callKw<boolean>(
       'helpdesk.ticket',
       'write',
@@ -507,7 +512,7 @@ export class OdooService {
       partner_id: partnerId,
       user_id: odooUserId,
       name: meta.name,
-      description: config?.ticketDescription ?? TICKET_DESCRIPTION_DEFAULTS[taskType],
+      description: plainTextToHtml(config?.ticketDescription ?? TICKET_DESCRIPTION_DEFAULTS[taskType]),
     };
     if (saleLineId !== null) {
       payload['sale_line_id'] = saleLineId;

@@ -18,8 +18,12 @@ export class TaskTypeConfig {
   @Column({ name: 'ticket_description', type: 'text', nullable: true, default: null })
   ticketDescription: string | null;
 
+  @Column({ name: 'timesheet_description', type: 'text', nullable: true, default: null })
+  timesheetDescription: string | null;
+
   // Populated by service, not persisted
   defaultTicketDescription?: string;
+  defaultTimesheetDescription?: string;
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;

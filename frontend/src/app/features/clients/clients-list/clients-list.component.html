@@ -4,38 +4,6 @@
       <span class="page-title">Clientes</span>
       <span class="page-count">{{ dataSource.data.length }} clientes activos</span>
     </div>
-
-    <div class="page-hdr__right">
-      <div class="kpi-group">
-        <div class="kpi-chip">
-          <span class="kpi-chip__label">Contratadas</span>
-          <span class="kpi-chip__value">{{ kpiHours.contracted }}</span>
-        </div>
-        <div class="kpi-chip">
-          <span class="kpi-chip__label">Usadas</span>
-          <span class="kpi-chip__value">{{ kpiHours.delivered }}</span>
-        </div>
-        <div class="kpi-chip">
-          <span class="kpi-chip__label">Disponibles</span>
-          <span class="kpi-chip__value">{{ kpiHours.available }}</span>
-        </div>
-      </div>
-      <div class="kpi-divider"></div>
-      <div class="kpi-group">
-        <div class="kpi-chip">
-          <span class="kpi-chip__label">Ok</span>
-          <span class="kpi-chip__value kpi-chip__value--ok">{{ kpiStates.ok }}</span>
-        </div>
-        <div class="kpi-chip">
-          <span class="kpi-chip__label">Warn</span>
-          <span class="kpi-chip__value kpi-chip__value--warn">{{ kpiStates.warn }}</span>
-        </div>
-        <div class="kpi-chip">
-          <span class="kpi-chip__label">Crit</span>
-          <span class="kpi-chip__value kpi-chip__value--crit">{{ kpiStates.crit }}</span>
-        </div>
-      </div>
-    </div>
   </div>
 
   <div class="filter-bar">
@@ -43,6 +11,118 @@
       <mat-label>Buscar cliente</mat-label>
       <input matInput [(ngModel)]="quickFilter" (ngModelChange)="applyFilter()" placeholder="Nombre de cliente...">
     </mat-form-field>
+
+    <div class="kpi-row">
+
+      <div class="kpi-card kpi-card--hours">
+        <div class="kpi-card__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+          <span class="kpi-card__title">Horas del mes</span>
+        </div>
+
+        <div class="kpi-card__body--hours">
+          <div class="kpi-ring">
+            <svg viewBox="0 0 72 72">
+              <circle class="track" cx="36" cy="36" r="29" pathLength="100"/>
+              <circle class="progress" cx="36" cy="36" r="29" pathLength="100" [attr.stroke-dasharray]="kpiHoursPct + ' 100'"/>
+            </svg>
+            <div class="kpi-ring__label">
+              <span class="kpi-ring__pct">{{ kpiHoursPct }}%</span>
+              <span class="kpi-ring__sub">usado</span>
+            </div>
+          </div>
+          <div class="kpi-stats">
+            <div class="kpi-stat">
+              <span class="kpi-stat__value kpi-stat__value--neutral">{{ kpiHours.contracted }}</span>
+              <span class="kpi-stat__label">Contratadas</span>
+            </div>
+            <div class="kpi-stat">
+              <span class="kpi-stat__value kpi-stat__value--accent">{{ kpiHours.delivered }}</span>
+              <span class="kpi-stat__label">Usadas</span>
+            </div>
+            <div class="kpi-stat">
+              <span class="kpi-stat__value kpi-stat__value--hi">{{ kpiHours.available }}</span>
+              <span class="kpi-stat__label">Disponibles</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-card kpi-card--states">
+        <div class="kpi-card__head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V4M16 20v-6M4 20h12"/></svg>
+          <span class="kpi-card__title">Clientes por consumo</span>
+        </div>
+
+        <div class="kpi-card__body--states">
+          <div class="kpi-tile kpi-tile--crit" [class.kpi-tile--active]="selectedZone === 'crit'"
+               role="button" tabindex="0" [attr.aria-pressed]="selectedZone === 'crit'"
+               (click)="toggleZone('crit')" (keydown.enter)="toggleZone('crit')" (keydown.space)="toggleZone('crit'); $event.preventDefault()">
+            <span class="kpi-tile__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 3.5A8.5 8.5 0 1 0 20.5 15 7 7 0 0 1 14.5 3.5z"/></svg>
+            </span>
+            <span class="kpi-tile__text">
+              <span class="kpi-tile__label">Sin actividad</span>
+              <span class="kpi-tile__range">0%</span>
+            </span>
+            <span class="kpi-tile__num">
+              <span class="kpi-tile__value">{{ kpiStates.crit }}</span>
+              <span class="kpi-tile__of">{{ zonePct(kpiStates.crit) }}%</span>
+            </span>
+            <svg class="kpi-tile__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div class="kpi-tile kpi-tile--low" [class.kpi-tile--active]="selectedZone === 'low'"
+               role="button" tabindex="0" [attr.aria-pressed]="selectedZone === 'low'"
+               (click)="toggleZone('low')" (keydown.enter)="toggleZone('low')" (keydown.space)="toggleZone('low'); $event.preventDefault()">
+            <span class="kpi-tile__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15h16M8 19l-4-4 4-4M16 9l4 4-4 4"/></svg>
+            </span>
+            <span class="kpi-tile__text">
+              <span class="kpi-tile__label">Uso bajo</span>
+              <span class="kpi-tile__range">1–59%</span>
+            </span>
+            <span class="kpi-tile__num">
+              <span class="kpi-tile__value">{{ kpiStates.low }}</span>
+              <span class="kpi-tile__of">{{ zonePct(kpiStates.low) }}%</span>
+            </span>
+            <svg class="kpi-tile__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div class="kpi-tile kpi-tile--ok" [class.kpi-tile--active]="selectedZone === 'ok'"
+               role="button" tabindex="0" [attr.aria-pressed]="selectedZone === 'ok'"
+               (click)="toggleZone('ok')" (keydown.enter)="toggleZone('ok')" (keydown.space)="toggleZone('ok'); $event.preventDefault()">
+            <span class="kpi-tile__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>
+            </span>
+            <span class="kpi-tile__text">
+              <span class="kpi-tile__label">Uso normal</span>
+              <span class="kpi-tile__range">60–100%</span>
+            </span>
+            <span class="kpi-tile__num">
+              <span class="kpi-tile__value">{{ kpiStates.ok }}</span>
+              <span class="kpi-tile__of">{{ zonePct(kpiStates.ok) }}%</span>
+            </span>
+            <svg class="kpi-tile__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div class="kpi-tile kpi-tile--warn" [class.kpi-tile--active]="selectedZone === 'warn'"
+               role="button" tabindex="0" [attr.aria-pressed]="selectedZone === 'warn'"
+               (click)="toggleZone('warn')" (keydown.enter)="toggleZone('warn')" (keydown.space)="toggleZone('warn'); $event.preventDefault()">
+            <span class="kpi-tile__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l5.5-6 4 4L20 6"/><path d="M14 6h6v6"/></svg>
+            </span>
+            <span class="kpi-tile__text">
+              <span class="kpi-tile__label">Excedente</span>
+              <span class="kpi-tile__range">&gt; 100%</span>
+            </span>
+            <span class="kpi-tile__num">
+              <span class="kpi-tile__value">{{ kpiStates.warn }}</span>
+              <span class="kpi-tile__of">{{ zonePct(kpiStates.warn) }}%</span>
+            </span>
+            <svg class="kpi-tile__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <div *ngIf="loadError" class="error-banner">
@@ -83,7 +163,7 @@
             <div class="hours-bar">
               <div class="bar-track">
                 <div class="bar-fill" [ngClass]="'bar-fill--' + getHoursState(row.hours)"
-                     [style.width.%]="getHoursPct(row.hours)">
+                     [style.width.%]="getHoursBarWidth(row.hours)">
                 </div>
               </div>
               <span class="bar-pct" [ngClass]="'bar-pct--' + getHoursState(row.hours)">{{ getHoursPct(row.hours) }}%</span>

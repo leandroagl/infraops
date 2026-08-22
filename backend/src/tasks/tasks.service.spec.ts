@@ -9,6 +9,7 @@ import { Client } from '../clients/client.entity';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { InfrastructureService } from '../integrations/infradoc/infrastructure.service';
 import { ClientInfrastructureDto } from '../integrations/infradoc/dto/client-infrastructure.dto';
+import { TaskConfigService } from '../task-config/task-config.service';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
 import { User } from '../users/user.entity';
@@ -39,6 +40,7 @@ describe('TasksService', () => {
     postInternalNote: jest.Mock;
   };
   let infrastructureService: { getClientInfrastructure: jest.Mock };
+  let taskConfigService: { findOne: jest.Mock };
 
   const emptyInfra: ClientInfrastructureDto = {
     esxiHosts: [], windowsVMs: [], domainControllers: [], linuxVMs: [], nas: [], routers: [],
@@ -114,6 +116,9 @@ describe('TasksService', () => {
       postInternalNote: jest.fn().mockResolvedValue(undefined),
     };
     infrastructureService = { getClientInfrastructure: jest.fn() };
+    taskConfigService = {
+      findOne: jest.fn().mockResolvedValue({ odooTagIds: [1] }),
+    };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -124,6 +129,7 @@ describe('TasksService', () => {
         { provide: getRepositoryToken(MaintenanceLog), useValue: logRepository },
         { provide: OdooService,                        useValue: odooService },
         { provide: InfrastructureService,              useValue: infrastructureService },
+        { provide: TaskConfigService,                  useValue: taskConfigService },
       ],
     }).compile();
 
@@ -360,6 +366,27 @@ describe('TasksService', () => {
       await expect(service.create(createDto)).rejects.toThrow(ServiceUnavailableException);
       expect(odooService.createTicket).not.toHaveBeenCalled();
     });
+
+    it('lanza BadRequestException si el tipo de tarea no tiene tags de Odoo configurados', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      taskConfigService.findOne.mockResolvedValue({ odooTagIds: [] });
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        'El tipo de tarea WINDOWS_DOMAIN_MAINTENANCE no tiene tags de Odoo configurados',
+      );
+      expect(infrastructureService.getClientInfrastructure).not.toHaveBeenCalled();
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+    });
+
+    it('lanza BadRequestException si no existe configuración para el tipo de tarea', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      taskConfigService.findOne.mockResolvedValue(null);
+
+      await expect(service.create(createDto)).rejects.toThrow(BadRequestException);
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+    });
   });
 
   describe('update', () => {
@@ -541,7 +568,7 @@ describe('TasksService', () => {
       await service.updateStatus('task-1', TaskStatus.DONE, 90);
 
       expect(odooService.resolveEmployeeId).toHaveBeenCalledWith('user-1');
-      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5);
+      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5, inProgressTask.type);
     });
 
     it('llama closeTicket al transicionar a NOT_DONE cuando la tarea tiene odooTicketId', async () => {
@@ -562,7 +589,7 @@ describe('TasksService', () => {
       taskRepository.update.mockResolvedValue({ affected: 1 });
       await service.updateStatus('task-1', TaskStatus.NOT_DONE, 60);
 
-      expect(odooService.closeTicket).toHaveBeenCalledWith(55, 22, 1.0);
+      expect(odooService.closeTicket).toHaveBeenCalledWith(55, 22, 1.0, taskWithTicket.type);
     });
 
     it('no actualiza el status en DB si Odoo falla al cerrar el ticket (atomicidad)', async () => {

@@ -724,6 +724,58 @@ describe('OdooService', () => {
     });
   });
 
+  describe('createTicket - conversión de descripción a HTML', () => {
+    it('convierte la descripción default (texto plano) a HTML antes de enviarla a Odoo', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      taskConfigServiceMock.findOne.mockResolvedValue(null);
+      odooRpc.callKw
+        .mockResolvedValueOnce([])   // sale.order.line
+        .mockResolvedValueOnce(55);  // helpdesk.ticket create
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.QNAP_MAINTENANCE);
+
+      const createCall = odooRpc.callKw.mock.calls.find(
+        (args: unknown[]) => args[0] === 'helpdesk.ticket' && args[1] === 'create',
+      );
+      const description = (createCall![2][0] as { description: string }).description;
+      expect(description).toContain('<ul><li>Estado de los discos físicos');
+      expect(description).not.toContain('\n');
+    });
+
+    it('convierte el ticketDescription override (texto plano) a HTML antes de enviarla a Odoo', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      taskConfigServiceMock.findOne.mockResolvedValue({
+        odooTagIds: [],
+        odooTagNames: [],
+        ticketDescription: 'Línea uno.\n\n- Punto A\n- Punto B',
+      });
+      odooRpc.callKw
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce(55);
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.QNAP_MAINTENANCE);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [
+          expect.objectContaining({
+            description: '<p>Línea uno.</p><ul><li>Punto A</li><li>Punto B</li></ul>',
+          }),
+        ],
+        {},
+      );
+    });
+  });
+
   describe('getHelpdeskTags', () => {
     it('devuelve lista de tags desde Odoo ordenada por nombre', async () => {
       odooRpc.callKw.mockResolvedValue([
@@ -741,13 +793,17 @@ describe('OdooService', () => {
   });
 
   describe('closeTicket', () => {
+    beforeEach(() => {
+      taskConfigServiceMock.findOne.mockResolvedValue(null);
+    });
+
     it('llama logTimesheet y luego escribe stage_id en el ticket', async () => {
       odooRpc.callKw
         .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage search_read
         .mockResolvedValueOnce(88)            // account.analytic.line create
         .mockResolvedValueOnce(true);         // helpdesk.ticket write
 
-      await service.closeTicket(42, 22, 1.5);
+      await service.closeTicket(42, 22, 1.5, TaskType.QNAP_MAINTENANCE);
 
       const calls = odooRpc.callKw.mock.calls;
       expect(calls[1][0]).toBe('account.analytic.line');
@@ -762,8 +818,8 @@ describe('OdooService', () => {
         .mockResolvedValueOnce([{ id: 99 }]) // primera llamada: resuelve stage
         .mockResolvedValue(true);
 
-      await service.closeTicket(42, 22, 1.5);
-      await service.closeTicket(43, 22, 0.5);
+      await service.closeTicket(42, 22, 1.5, TaskType.QNAP_MAINTENANCE);
+      await service.closeTicket(43, 22, 0.5, TaskType.QNAP_MAINTENANCE);
 
       const stageCalls = odooRpc.callKw.mock.calls.filter(
         (args: unknown[]) => args[0] === 'helpdesk.stage',
@@ -774,9 +830,9 @@ describe('OdooService', () => {
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage de cierre', async () => {
       odooRpc.callKw.mockResolvedValueOnce([]);
 
-      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(
-        ServiceUnavailableException,
-      );
+      await expect(
+        service.closeTicket(42, 22, 1.5, TaskType.QNAP_MAINTENANCE),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
 
     it('no escribe stage_id si logTimesheet falla', async () => {
@@ -784,9 +840,9 @@ describe('OdooService', () => {
         .mockResolvedValueOnce([{ id: 99 }])
         .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(
-        ServiceUnavailableException,
-      );
+      await expect(
+        service.closeTicket(42, 22, 1.5, TaskType.QNAP_MAINTENANCE),
+      ).rejects.toThrow(ServiceUnavailableException);
 
       const writeCalls = odooRpc.callKw.mock.calls.filter(
         (args: unknown[]) => args[0] === 'helpdesk.ticket' && args[1] === 'write',
@@ -800,9 +856,9 @@ describe('OdooService', () => {
         .mockResolvedValueOnce(88)
         .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(
-        ServiceUnavailableException,
-      );
+      await expect(
+        service.closeTicket(42, 22, 1.5, TaskType.QNAP_MAINTENANCE),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
   });
 
@@ -871,13 +927,17 @@ describe('OdooService', () => {
   });
 
   describe('logTimesheet (via closeTicket)', () => {
-    it('crea entrada en account.analytic.line con los campos correctos al cerrar ticket', async () => {
+    beforeEach(() => {
+      taskConfigServiceMock.findOne.mockResolvedValue(null);
+    });
+
+    it('crea entrada en account.analytic.line con el default "Mantenimiento realizado" cuando no hay override', async () => {
       odooRpc.callKw
         .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
         .mockResolvedValueOnce(88)            // account.analytic.line create
         .mockResolvedValueOnce(true);         // helpdesk.ticket write
 
-      await service.closeTicket(42, 22, 1.5);
+      await service.closeTicket(42, 22, 1.5, TaskType.QNAP_MAINTENANCE);
 
       expect(odooRpc.callKw).toHaveBeenCalledWith(
         'account.analytic.line',
@@ -895,14 +955,33 @@ describe('OdooService', () => {
       );
     });
 
+    it('usa timesheetDescription de la config de DB cuando está definida', async () => {
+      taskConfigServiceMock.findOne.mockResolvedValue({
+        timesheetDescription: 'Mantenimiento QNAP realizado',
+      });
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }])
+        .mockResolvedValueOnce(88)
+        .mockResolvedValueOnce(true);
+
+      await service.closeTicket(42, 22, 1.5, TaskType.QNAP_MAINTENANCE);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'account.analytic.line',
+        'create',
+        [expect.objectContaining({ name: 'Mantenimiento QNAP realizado' })],
+        {},
+      );
+    });
+
     it('propaga ServiceUnavailableException cuando Odoo falla al crear el timesheet', async () => {
       odooRpc.callKw
         .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
         .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
 
-      await expect(service.closeTicket(42, 22, 1.5)).rejects.toThrow(
-        ServiceUnavailableException,
-      );
+      await expect(
+        service.closeTicket(42, 22, 1.5, TaskType.QNAP_MAINTENANCE),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
   });
 

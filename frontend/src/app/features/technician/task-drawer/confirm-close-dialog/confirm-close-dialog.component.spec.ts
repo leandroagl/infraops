@@ -17,6 +17,7 @@ const baseData: ConfirmCloseDialogData = {
     odooTagIds: [1],
     odooTagNames: ['Virtualización'],
     ticketDescription: null,
+    timesheetDescription: null,
     updatedAt: '2026-01-01T00:00:00Z',
   },
   odooTicketId: 1234,

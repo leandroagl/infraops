@@ -2,6 +2,8 @@ import { TaskType } from '../tasks/task-type.enum';
 
 const CLOSING_NOTE = 'Ante cualquier anomalía detectada, se creará un ticket de soporte para su seguimiento y resolución.';
 
+export const TIMESHEET_DESCRIPTION_DEFAULT = 'Mantenimiento realizado';
+
 export const TICKET_DESCRIPTION_DEFAULTS: Record<TaskType, string> = {
   [TaskType.SERVER_HOST_MAINTENANCE]: `Control mensual preventivo sobre los hosts de virtualización ESXi y su infraestructura asociada.
 

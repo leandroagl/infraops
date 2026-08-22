@@ -74,9 +74,10 @@ const mockDialogThatConfirms: MatDialog = {
 const mockTaskConfig: TaskTypeConfigDto = {
   taskType: 'WINDOWS_DOMAIN_MAINTENANCE',
   defaultTimeMinutes: 90,
-  odooTagIds: [],
-  odooTagNames: [],
+  odooTagIds: [1],
+  odooTagNames: ['Mantenimiento'],
   ticketDescription: null,
+  timesheetDescription: null,
   updatedAt: '',
 };
 
@@ -210,6 +211,46 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     });
   });
 
+  // ── isConfigMissing ──────────────────────────────────────────────────────
+
+  describe('isConfigMissing', () => {
+    it('es true cuando taskConfig es null', () => {
+      component.taskConfig = null;
+      expect(component.isConfigMissing).toBe(true);
+    });
+
+    it('es true cuando falta defaultTimeMinutes aunque haya tags', () => {
+      component.taskConfig = {
+        taskType: 'SERVER_HOST_MAINTENANCE',
+        defaultTimeMinutes: null,
+        odooTagIds: [1],
+        odooTagNames: ['Mantenimiento'],
+        ticketDescription: null,
+        timesheetDescription: null,
+        updatedAt: '',
+      };
+      expect(component.isConfigMissing).toBe(true);
+    });
+
+    it('es true cuando faltan tags aunque haya defaultTimeMinutes', () => {
+      component.taskConfig = {
+        taskType: 'SERVER_HOST_MAINTENANCE',
+        defaultTimeMinutes: 90,
+        odooTagIds: [],
+        odooTagNames: [],
+        ticketDescription: null,
+        timesheetDescription: null,
+        updatedAt: '',
+      };
+      expect(component.isConfigMissing).toBe(true);
+    });
+
+    it('es false cuando hay defaultTimeMinutes y tags', () => {
+      component.taskConfig = mockTaskConfig;
+      expect(component.isConfigMissing).toBe(false);
+    });
+  });
+
   // ── canComplete ──────────────────────────────────────────────────────────
 
   describe('canComplete', () => {
@@ -219,7 +260,21 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(component.canComplete).toBe(false);
     });
 
-    it('canComplete es true cuando taskConfig tiene defaultTimeMinutes', () => {
+    it('canComplete es true cuando taskConfig tiene defaultTimeMinutes y tags', () => {
+      component.task = { ...makeTask(), status: 'IN_PROGRESS' };
+      component['taskConfig'] = {
+        taskType: 'SERVER_HOST_MAINTENANCE',
+        defaultTimeMinutes: 90,
+        odooTagIds: [1],
+        odooTagNames: ['Mantenimiento'],
+        ticketDescription: null,
+        timesheetDescription: null,
+        updatedAt: '',
+      };
+      expect(component.canComplete).toBe(true);
+    });
+
+    it('canComplete es false cuando faltan los tags aunque haya tiempo configurado', () => {
       component.task = { ...makeTask(), status: 'IN_PROGRESS' };
       component['taskConfig'] = {
         taskType: 'SERVER_HOST_MAINTENANCE',
@@ -227,9 +282,10 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         odooTagIds: [],
         odooTagNames: [],
         ticketDescription: null,
+        timesheetDescription: null,
         updatedAt: '',
       };
-      expect(component.canComplete).toBe(true);
+      expect(component.canComplete).toBe(false);
     });
   });
 
@@ -687,6 +743,61 @@ describe('TaskDrawerComponent — template tests', () => {
       setupWithType('WINDOWS_DOMAIN_MAINTENANCE', 'IN_PROGRESS');
       const banner = fixture.nativeElement.querySelector('.d-readonly');
       expect(banner).toBeFalsy();
+    });
+  });
+
+  // ── Advertencia de configuración faltante ──────────────────────────────────
+
+  describe('advertencia de configuración faltante', () => {
+    function setConfig(config: TaskTypeConfigDto | null): void {
+      component.taskConfig = config;
+      fixture.detectChanges();
+    }
+
+    it('muestra el banner cuando falta el tiempo predefinido', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig({ ...mockTaskConfig, defaultTimeMinutes: null });
+      expect(fixture.nativeElement.querySelector('.d-config-warn')).toBeTruthy();
+    });
+
+    it('muestra el banner cuando faltan los tags', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig({ ...mockTaskConfig, odooTagIds: [], odooTagNames: [] });
+      expect(fixture.nativeElement.querySelector('.d-config-warn')).toBeTruthy();
+    });
+
+    it('no muestra el banner cuando el tipo de tarea está totalmente configurado', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig(mockTaskConfig);
+      expect(fixture.nativeElement.querySelector('.d-config-warn')).toBeFalsy();
+    });
+
+    it('no muestra el banner en una tarea de solo lectura aunque falte configuración', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE', 'DONE');
+      setConfig({ ...mockTaskConfig, defaultTimeMinutes: null });
+      expect(fixture.nativeElement.querySelector('.d-config-warn')).toBeFalsy();
+    });
+
+    it('deshabilita "Guardar progreso" cuando falta la configuración', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig({ ...mockTaskConfig, defaultTimeMinutes: null });
+      const btn = findButton('Guardar progreso');
+      expect(btn).toBeTruthy();
+      expect(btn!.disabled).toBe(true);
+    });
+
+    it('habilita "Guardar progreso" cuando la configuración está completa', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig(mockTaskConfig);
+      const btn = findButton('Guardar progreso');
+      expect(btn!.disabled).toBe(false);
+    });
+
+    it('deshabilita "Completar mantenimiento" cuando faltan los tags aunque haya tiempo', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig({ ...mockTaskConfig, odooTagIds: [], odooTagNames: [] });
+      const btn = findButton('Completar mantenimiento');
+      expect(btn!.disabled).toBe(true);
     });
   });
 
