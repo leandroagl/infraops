@@ -34,6 +34,7 @@ export interface Task {
 export interface UpdateTaskStatusPayload {
   status: TaskStatus;
   timeSpentMinutes?: number;
+  reason?: string;
 }
 
 export interface TaskGroup {
