@@ -147,7 +147,7 @@ export class TasksService {
   async updateStatus(
     id: string,
     newStatus: TaskStatus,
-    timeSpentMinutes?: number,
+    options: { timeSpentMinutes?: number; reason?: string } = {},
   ): Promise<Task> {
     const task = await this.taskRepository.findOne({
       where: { id },
@@ -169,29 +169,33 @@ export class TasksService {
     const isTerminal = VALID_TRANSITIONS[newStatus].length === 0;
     const completedDate = isTerminal ? new Date() : null;
 
-    const shouldCloseTicket =
-      (newStatus === TaskStatus.DONE || newStatus === TaskStatus.NOT_DONE) &&
-      task.odooTicketId !== null;
-
-    if (shouldCloseTicket) {
+    if (newStatus === TaskStatus.NOT_DONE && task.odooTicketId !== null) {
       const userId = task.technician?.user?.id;
       if (!userId)
         throw new BadRequestException('La tarea no tiene técnico con usuario asociado');
 
       const employeeId = await this.odooService.resolveEmployeeId(userId);
-      if (employeeId === null) {
-        throw new BadRequestException(
-          'El técnico no tiene odooEmployeeId sincronizado',
-        );
-      }
+      if (employeeId === null)
+        throw new BadRequestException('El técnico no tiene odooEmployeeId sincronizado');
 
-      if (newStatus === TaskStatus.DONE && !timeSpentMinutes) {
-        throw new BadRequestException(
-          'Se requiere timeSpentMinutes para marcar una tarea como DONE',
-        );
-      }
-      const unitAmount = (timeSpentMinutes ?? 0) / 60;
-      await this.odooService.closeTicket(task.odooTicketId!, employeeId, unitAmount, task.type);
+      const reason = options.reason ?? 'Cierre automático de fin de mes';
+      await this.odooService.markTicketNotDone(task.odooTicketId, employeeId, reason);
+    }
+
+    if (newStatus === TaskStatus.DONE && task.odooTicketId !== null) {
+      const userId = task.technician?.user?.id;
+      if (!userId)
+        throw new BadRequestException('La tarea no tiene técnico con usuario asociado');
+
+      const employeeId = await this.odooService.resolveEmployeeId(userId);
+      if (employeeId === null)
+        throw new BadRequestException('El técnico no tiene odooEmployeeId sincronizado');
+
+      if (!options.timeSpentMinutes)
+        throw new BadRequestException('Se requiere timeSpentMinutes para marcar una tarea como DONE');
+
+      const unitAmount = options.timeSpentMinutes / 60;
+      await this.odooService.closeTicket(task.odooTicketId, employeeId, unitAmount, task.type);
     }
 
     await this.taskRepository.update(id, { status: newStatus, completedDate });
@@ -209,14 +213,6 @@ export class TasksService {
     }
 
     return this.loadTask(id);
-  }
-
-  async remove(id: string): Promise<void> {
-    const task = await this.taskRepository.findOne({ where: { id } });
-    if (!task) throw new NotFoundException('Tarea no encontrada');
-
-    await this.logRepository.delete({ taskId: id });
-    await this.taskRepository.delete(id);
   }
 
   private async validateTagConfig(type: TaskType): Promise<void> {
