@@ -1,0 +1,68 @@
+<div class="docs-layout">
+
+  <!-- ── Sidebar ───────────────────────────────────────── -->
+  <aside class="docs-sidebar">
+    <div class="docs-sidebar__header">
+      <span class="docs-sidebar__title">Documentación</span>
+      <span class="docs-sidebar__sub">Manual de usuario</span>
+    </div>
+
+    <nav class="docs-nav">
+      <ng-container *ngFor="let group of groupedSections()">
+        <span class="docs-nav__group-label">{{ group.group }}</span>
+        <a
+          *ngFor="let section of group.sections"
+          class="docs-nav__item"
+          [class.docs-nav__item--active]="activeSection.id === section.id"
+          (click)="selectSection(section)"
+        >
+          <span class="docs-nav__item-title">{{ section.title }}</span>
+          <span
+            *ngIf="!section.roles.includes('*')"
+            class="docs-nav__role-badge"
+          >
+            {{ section.roles.includes('ADMIN') && section.roles.length === 1 ? 'ADM' : 'TL' }}
+          </span>
+        </a>
+      </ng-container>
+    </nav>
+  </aside>
+
+  <!-- ── Content ───────────────────────────────────────── -->
+  <main class="docs-content">
+    <div class="docs-content__body">
+      <markdown [src]="activeAssetPath" />
+
+      <div class="docs-footer-nav">
+        <button
+          mat-stroked-button
+          class="docs-footer-nav__btn"
+          [disabled]="!hasPrev"
+          (click)="goPrev()"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          <span *ngIf="prevSection">{{ prevSection.title }}</span>
+        </button>
+
+        <button
+          mat-stroked-button
+          class="docs-footer-nav__btn"
+          [disabled]="!hasNext"
+          (click)="goNext()"
+        >
+          <span *ngIf="nextSection">{{ nextSection.title }}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </main>
+
+</div>
