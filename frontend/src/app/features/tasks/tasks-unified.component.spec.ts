@@ -35,7 +35,7 @@ describe('TasksUnifiedComponent', () => {
   const now = new Date();
 
   beforeEach(async () => {
-    tasksServiceSpy      = jasmine.createSpyObj('TasksService', ['getAll', 'delete']);
+    tasksServiceSpy      = jasmine.createSpyObj('TasksService', ['getAll']);
     authServiceSpy       = jasmine.createSpyObj('AuthService', ['getCurrentUser']);
     clientsServiceSpy    = jasmine.createSpyObj('ClientsService', ['getAll']);
     techniciansServiceSpy = jasmine.createSpyObj('TechniciansService', ['getAll']);
