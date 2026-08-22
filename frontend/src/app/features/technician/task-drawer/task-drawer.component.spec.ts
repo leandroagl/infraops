@@ -68,7 +68,7 @@ const mockDialog = {
 } as unknown as MatDialog;
 
 const mockDialogThatConfirms: MatDialog = {
-  open: () => ({ afterClosed: () => of(true) }),
+  open: () => ({ afterClosed: () => of({ confirmed: true }) }),
 } as unknown as MatDialog;
 
 const mockTaskConfig: TaskTypeConfigDto = {
@@ -461,10 +461,29 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       notDoneComponent.taskConfig = mockTaskConfig;
     });
 
-    it('llama updateStatus con NOT_DONE y el tiempo de la config cuando se confirma', () => {
+    it('llama updateStatus con NOT_DONE cuando se confirma', () => {
       notDoneComponent.onRequestNotDone();
 
-      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'NOT_DONE', timeSpentMinutes: 90 });
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'NOT_DONE', reason: undefined });
+    });
+
+    it('pasa el reason del diálogo a updateStatus cuando hay motivo', () => {
+      const dialogWithReason = {
+        open: () => ({ afterClosed: () => of({ confirmed: true, reason: 'Sin horas disponibles' }) }),
+      } as unknown as MatDialog;
+      const reasonComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } as any,
+        { updateStatus: updateStatusSpy } as any,
+        dialogWithReason,
+        makeMockTaskConfigService(),
+      );
+      reasonComponent.task = makeTask({ status: 'IN_PROGRESS' });
+      reasonComponent.taskConfig = mockTaskConfig;
+
+      reasonComponent.onRequestNotDone();
+
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'NOT_DONE', reason: 'Sin horas disponibles' });
     });
 
     it('no llama updateStatus si el diálogo es cancelado (retorna null)', () => {
@@ -666,9 +685,10 @@ describe('TaskDrawerComponent — template tests', () => {
       expect(btn).toBeTruthy();
     });
 
-    it('should render "No concretada" button for SITE_VISIT', () => {
+    it('should render "No realizada" button for SITE_VISIT when role is ADMIN', () => {
+      component.userRole = 'ADMIN';
       setupWithType('SITE_VISIT');
-      const btn = findButton('No concretada');
+      const btn = findButton('No realizada');
       expect(btn).toBeTruthy();
     });
 
@@ -897,22 +917,69 @@ describe('TaskDrawerComponent — template tests', () => {
       expect(btn).toBeFalsy();
     });
 
-    it('ADMIN ve el botón de eliminar', () => {
-      const fix = setup('ADMIN');
-      const btn = fix.nativeElement.querySelector('[data-testid="btn-delete"]');
-      expect(btn).toBeTruthy();
-    });
-
-    it('TECHNICIAN no ve el botón de eliminar', () => {
-      const fix = setup('TECHNICIAN');
-      const btn = fix.nativeElement.querySelector('[data-testid="btn-delete"]');
-      expect(btn).toBeFalsy();
-    });
-
     it('ciclo cerrado oculta todos los botones de acción', () => {
       const fix = setup('ADMIN', true);
       expect(fix.nativeElement.querySelector('[data-testid="btn-complete"]')).toBeFalsy();
       expect(fix.nativeElement.querySelector('[data-testid="btn-delete"]')).toBeFalsy();
+    });
+  });
+
+  // ── canMarkNotDone ──────────────────────────────────────────────────────────
+
+  describe('canMarkNotDone', () => {
+    function setup(role: UserRole): ComponentFixture<TaskDrawerComponent> {
+      const fix = TestBed.createComponent(TaskDrawerComponent);
+      fix.componentInstance.task = makeTask({ type: 'WINDOWS_DOMAIN_MAINTENANCE', scheduledDate: futureDate(10) });
+      fix.componentInstance.userRole = role;
+      fix.componentInstance.cycleClosed = false;
+      fix.detectChanges();
+      return fix;
+    }
+
+    it('es true para ADMIN con tarea activa y ciclo abierto', () => {
+      const fix = setup('ADMIN');
+      fix.componentInstance.task = { ...fix.componentInstance.task, status: 'PENDING' };
+      fix.componentInstance.cycleClosed = false;
+      fix.detectChanges();
+      expect(fix.componentInstance.canMarkNotDone).toBeTrue();
+    });
+
+    it('es true para TL con tarea activa y ciclo abierto', () => {
+      const fix = setup('TL');
+      fix.componentInstance.task = { ...fix.componentInstance.task, status: 'IN_PROGRESS' };
+      fix.componentInstance.cycleClosed = false;
+      fix.detectChanges();
+      expect(fix.componentInstance.canMarkNotDone).toBeTrue();
+    });
+
+    it('es false para TECHNICIAN', () => {
+      const fix = setup('TECHNICIAN');
+      fix.componentInstance.cycleClosed = false;
+      fix.detectChanges();
+      expect(fix.componentInstance.canMarkNotDone).toBeFalse();
+    });
+
+    it('es false cuando el ciclo está cerrado', () => {
+      const fix = setup('ADMIN');
+      fix.componentInstance.cycleClosed = true;
+      fix.detectChanges();
+      expect(fix.componentInstance.canMarkNotDone).toBeFalse();
+    });
+
+    it('es false cuando la tarea está DONE', () => {
+      const fix = setup('ADMIN');
+      fix.componentInstance.task = { ...fix.componentInstance.task, status: 'DONE' };
+      fix.detectChanges();
+      expect(fix.componentInstance.canMarkNotDone).toBeFalse();
+    });
+
+    it('no renderiza el botón "Eliminar tarea" para ningún rol', () => {
+      for (const role of ['ADMIN', 'TL', 'TECHNICIAN'] as const) {
+        const fix = setup(role);
+        fix.detectChanges();
+        const btn = fix.nativeElement.querySelector('[data-testid="btn-delete"]');
+        expect(btn).toBeNull(`rol ${role} no debería ver btn-delete`);
+      }
     });
   });
 });

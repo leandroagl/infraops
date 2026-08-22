@@ -53,7 +53,6 @@ export class TaskDrawerComponent implements OnChanges {
   @Output() taskCompleted = new EventEmitter<void>();
   @Output() taskNotDone = new EventEmitter<void>();
   @Output() taskStatusChanged = new EventEmitter<TaskStatus>();
-  @Output() taskDeleted = new EventEmitter<void>();
   @Output() drawerClosed = new EventEmitter<void>();
 
   @ViewChild(MaintenanceFormComponent) maintenanceForm?: MaintenanceFormComponent;
@@ -189,8 +188,10 @@ export class TaskDrawerComponent implements OnChanges {
       && (this.userRole === 'TECHNICIAN' || this.userRole === 'TL' || this.userRole === 'ADMIN');
   }
 
-  get canDelete(): boolean {
-    return !this.cycleClosed && this.userRole === 'ADMIN';
+  get canMarkNotDone(): boolean {
+    return !this.cycleClosed
+      && this.isActiveTask
+      && (this.userRole === 'ADMIN' || this.userRole === 'TL');
   }
 
   get isConfigMissing(): boolean {
@@ -279,8 +280,8 @@ export class TaskDrawerComponent implements OnChanges {
 
     this.dialog.open(ConfirmCloseDialogComponent, { data, width: '420px' })
       .afterClosed()
-      .subscribe((confirmed: boolean | null) => {
-        if (confirmed) this.saveAndComplete(this.taskConfig!.defaultTimeMinutes!);
+      .subscribe((result: { confirmed: boolean; reason?: string } | null) => {
+        if (result?.confirmed) this.saveAndComplete(this.taskConfig!.defaultTimeMinutes!);
       });
   }
 
@@ -317,11 +318,11 @@ export class TaskDrawerComponent implements OnChanges {
 
     this.dialog.open(ConfirmCloseDialogComponent, { data, width: '420px' })
       .afterClosed()
-      .subscribe((confirmed: boolean | null) => {
-        if (!confirmed) return;
+      .subscribe((result: { confirmed: boolean; reason?: string } | null) => {
+        if (!result?.confirmed) return;
         this.tasksService.updateStatus(this.task.id, {
           status: 'NOT_DONE',
-          timeSpentMinutes: this.taskConfig!.defaultTimeMinutes!,
+          reason: result.reason,
         }).subscribe({
           next: () => { this.taskNotDone.emit(); },
           error: () => { this.confirmError = 'No se pudo actualizar el estado de la tarea.'; },

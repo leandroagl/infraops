@@ -112,9 +112,6 @@
   <!-- Acciones solo-lectura -->
   <ng-container *ngIf="!isActiveTask">
     <button mat-stroked-button (click)="drawerClosed.emit()">Cerrar</button>
-    <button *ngIf="canDelete" mat-stroked-button color="warn"
-            data-testid="btn-delete"
-            (click)="taskDeleted.emit()">Eliminar tarea</button>
   </ng-container>
 
   <!-- Acciones activas -->
@@ -149,7 +146,6 @@
         <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
         <span *ngIf="!completing">Marcar visita como realizada</span>
       </button>
-      <button *ngIf="task.type === 'SITE_VISIT'" mat-stroked-button color="warn" (click)="onRequestNotDone()" [disabled]="completing || !canComplete" [matTooltip]="canComplete ? '' : configWarningMessage">No concretada</button>
       <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
@@ -191,9 +187,10 @@
       <button mat-stroked-button (click)="drawerClosed.emit()">Cerrar</button>
     </ng-container>
 
-    <button *ngIf="canDelete" mat-stroked-button color="warn"
-            data-testid="btn-delete"
-            (click)="taskDeleted.emit()">Eliminar tarea</button>
+    <button *ngIf="canMarkNotDone" mat-stroked-button color="warn"
+            (click)="onRequestNotDone()" [disabled]="completing">
+      No realizada
+    </button>
 
     <p *ngIf="confirmError" class="d-footer__err">{{ confirmError }}</p>
     <p *ngIf="saveProgressMsg" class="d-footer__ok">{{ saveProgressMsg }}</p>
