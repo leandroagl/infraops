@@ -1045,6 +1045,81 @@ describe('OdooService', () => {
     });
   });
 
+  describe('markTicketNotDone', () => {
+    it('resuelve stage "No realizadas", imputa 0 hs con motivo y mueve ticket al stage', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 88 }]) // helpdesk.stage search_read
+        .mockResolvedValueOnce(55)            // account.analytic.line create (0 hs)
+        .mockResolvedValueOnce(true);         // helpdesk.ticket write
+
+      await service.markTicketNotDone(42, 22, 'Cliente canceló');
+
+      expect(odooRpc.callKw.mock.calls[0]).toEqual([
+        'helpdesk.stage',
+        'search_read',
+        [
+          [
+            ['team_ids', 'in', [5]],
+            ['name', '=', 'No realizadas'],
+          ],
+        ],
+        { fields: ['id'], limit: 1 },
+      ]);
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'account.analytic.line',
+        'create',
+        [
+          expect.objectContaining({
+            helpdesk_ticket_id: 42,
+            employee_id: 22,
+            name: 'Cliente canceló',
+            unit_amount: 0,
+          }),
+        ],
+        {},
+      );
+      expect(odooRpc.callKw.mock.calls[2]).toEqual([
+        'helpdesk.ticket',
+        'write',
+        [[42], { stage_id: 88 }],
+        {},
+      ]);
+    });
+
+    it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 88 }]) // primera llamada: resuelve stage
+        .mockResolvedValue(true);
+
+      await service.markTicketNotDone(42, 22, 'Motivo A');
+      await service.markTicketNotDone(43, 22, 'Motivo B');
+
+      const stageCalls = odooRpc.callKw.mock.calls.filter(
+        (args: unknown[]) => args[0] === 'helpdesk.stage',
+      );
+      expect(stageCalls).toHaveLength(1);
+    });
+
+    it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage "No realizadas"', async () => {
+      odooRpc.callKw.mockResolvedValueOnce([]);
+
+      await expect(
+        service.markTicketNotDone(42, 22, 'Motivo'),
+      ).rejects.toThrow(ServiceUnavailableException);
+    });
+
+    it('propaga excepción cuando Odoo falla al ejecutar write', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 88 }])
+        .mockResolvedValueOnce(55) // logTimesheet ok
+        .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
+
+      await expect(
+        service.markTicketNotDone(42, 22, 'Motivo'),
+      ).rejects.toThrow(ServiceUnavailableException);
+    });
+  });
+
   describe('getSubscriptionHours', () => {
     it('retorna lista vacía sin llamar a Odoo cuando partnerIds está vacío', async () => {
       const result = await service.getSubscriptionHours([]);

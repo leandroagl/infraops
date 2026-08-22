@@ -23,6 +23,7 @@ export interface ConfirmCloseDialogResult {
 @Component({
   selector: 'app-confirm-close-dialog',
   templateUrl: './confirm-close-dialog.component.html',
+  styleUrls: ['./confirm-close-dialog.component.scss'],
 })
 export class ConfirmCloseDialogComponent {
   readonly reasonCtrl = new FormControl('', [Validators.required]);
