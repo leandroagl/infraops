@@ -39,6 +39,7 @@ export class OdooService {
   private readonly logger = new Logger(OdooService.name);
   private doneStageId: number | null = null;
   private inProgressStageId: number | null = null;
+  private notDoneStageId: number | null = null;
 
   constructor(
     private readonly systemRpc: OdooSystemRpcService,
@@ -395,12 +396,57 @@ export class OdooService {
     return this.inProgressStageId;
   }
 
+  private async resolveNotDoneStageId(): Promise<number> {
+    if (this.notDoneStageId !== null) return this.notDoneStageId;
+
+    const teamId = parseInt(
+      this.configService.getOrThrow<string>('ODOO_HELPDESK_TEAM_ID'),
+      10,
+    );
+
+    const stages = await this.systemRpc.callKw<Array<{ id: number }>>(
+      'helpdesk.stage',
+      'search_read',
+      [
+        [
+          ['team_ids', 'in', [teamId]],
+          ['name', '=', 'No realizadas'],
+        ],
+      ],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (stages.length === 0) {
+      throw new ServiceUnavailableException(
+        'No se encontró stage "No realizadas" en Odoo para el equipo configurado',
+      );
+    }
+
+    this.notDoneStageId = stages[0].id;
+    return this.notDoneStageId;
+  }
+
   async markTicketInProgress(odooTicketId: number): Promise<void> {
     const stageId = await this.resolveInProgressStageId();
     await this.systemRpc.callKw<boolean>(
       'helpdesk.ticket',
       'write',
       [[odooTicketId], { stage_id: stageId }],
+      {},
+    );
+  }
+
+  async markTicketNotDone(
+    ticketId: number,
+    employeeId: number,
+    reason: string,
+  ): Promise<void> {
+    const stageId = await this.resolveNotDoneStageId();
+    await this.logTimesheet(ticketId, employeeId, 0, reason);
+    await this.systemRpc.callKw<boolean>(
+      'helpdesk.ticket',
+      'write',
+      [[ticketId], { stage_id: stageId }],
       {},
     );
   }
