@@ -1,7 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { ReactiveFormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { CommonModule } from '@angular/common';
 import {
   ConfirmCloseDialogComponent,
@@ -34,7 +37,15 @@ describe('ConfirmCloseDialogComponent', () => {
     TestBed.resetTestingModule();
     return TestBed.configureTestingModule({
       declarations: [ConfirmCloseDialogComponent],
-      imports: [NoopAnimationsModule, CommonModule, MatButtonModule, MatDialogModule],
+      imports: [
+        NoopAnimationsModule,
+        CommonModule,
+        ReactiveFormsModule,
+        MatButtonModule,
+        MatDialogModule,
+        MatFormFieldModule,
+        MatInputModule,
+      ],
       providers: [
         { provide: MatDialogRef, useValue: dialogRef },
         { provide: MAT_DIALOG_DATA, useValue: data },
@@ -46,31 +57,57 @@ describe('ConfirmCloseDialogComponent', () => {
     });
   }
 
-  it('muestra el tiempo formateado', async () => {
-    await setup(baseData);
-    expect(component.formattedTime).toBe('1:30 h');
+  describe('modo DONE', () => {
+    it('muestra el tiempo formateado', async () => {
+      await setup(baseData);
+      expect(component.formattedTime).toBe('1:30 h');
+    });
+
+    it('devuelve { confirmed: true } al confirmar', async () => {
+      await setup(baseData);
+      component.confirm();
+      expect(dialogRef.close).toHaveBeenCalledWith({ confirmed: true });
+    });
+
+    it('devuelve null al cancelar', async () => {
+      await setup(baseData);
+      component.cancel();
+      expect(dialogRef.close).toHaveBeenCalledWith(null);
+    });
+
+    it('detecta alertas cuando hay errores DCDiag', async () => {
+      await setup({ ...baseData, issuesSummary: { dcdiagErrors: ['ERROR: DNS'], veeamMissing: false, emptyFields: [] } });
+      expect(component.hasAlerts).toBe(true);
+    });
   });
 
-  it('devuelve true al confirmar', async () => {
-    await setup(baseData);
-    component.confirm();
-    expect(dialogRef.close).toHaveBeenCalledWith(true);
-  });
+  describe('modo NOT_DONE', () => {
+    it('no muestra tags ni ticket', async () => {
+      await setup({ ...baseData, mode: 'NOT_DONE' });
+      expect(component.showTags).toBe(false);
+      expect(component.showTicket).toBe(false);
+    });
 
-  it('devuelve null al cancelar', async () => {
-    await setup(baseData);
-    component.cancel();
-    expect(dialogRef.close).toHaveBeenCalledWith(null);
-  });
+    it('reasonCtrl existe y comienza vacío', async () => {
+      await setup({ ...baseData, mode: 'NOT_DONE' });
+      expect(component.reasonCtrl.value).toBe('');
+    });
 
-  it('detecta alertas cuando hay errores DCDiag', async () => {
-    await setup({ ...baseData, issuesSummary: { dcdiagErrors: ['ERROR: DNS'], veeamMissing: false, emptyFields: [] } });
-    expect(component.hasAlerts).toBe(true);
-  });
+    it('devuelve { confirmed: true, reason } al confirmar con motivo', async () => {
+      await setup({ ...baseData, mode: 'NOT_DONE' });
+      component.reasonCtrl.setValue('Cliente canceló');
+      component.confirm();
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        confirmed: true,
+        reason: 'Cliente canceló',
+      });
+    });
 
-  it('en modo NOT_DONE no muestra tags ni ticket', async () => {
-    await setup({ ...baseData, mode: 'NOT_DONE' });
-    expect(component.showTags).toBe(false);
-    expect(component.showTicket).toBe(false);
+    it('no cierra si el motivo está vacío', async () => {
+      await setup({ ...baseData, mode: 'NOT_DONE' });
+      component.reasonCtrl.setValue('');
+      component.confirm();
+      expect(dialogRef.close).not.toHaveBeenCalled();
+    });
   });
 });

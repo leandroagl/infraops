@@ -1,44 +1,76 @@
 <h2 mat-dialog-title>
-  <span *ngIf="!hasAlerts">✓</span>
-  <span *ngIf="hasAlerts">⚠</span>
-  Confirmar cierre
+  <span *ngIf="data.mode === 'NOT_DONE'">⊘</span>
+  <span *ngIf="data.mode !== 'NOT_DONE' && !hasAlerts">✓</span>
+  <span *ngIf="data.mode !== 'NOT_DONE' && hasAlerts">⚠</span>
+  {{ data.mode === 'NOT_DONE' ? 'Marcar como No realizada' : 'Confirmar cierre' }}
 </h2>
 
 <mat-dialog-content>
   <p class="dialog-subtitle">{{ data.taskType }}</p>
 
-  <div class="info-row">
-    <span class="info-key">Tiempo a imputar</span>
-    <span class="info-val">{{ formattedTime }}</span>
-  </div>
-
-  <div *ngIf="showTags" class="info-row">
-    <span class="info-key">Tags Odoo</span>
-    <div class="info-tags">
-      <span *ngFor="let name of data.config.odooTagNames" class="tag-chip">{{ name }}</span>
+  <!-- Modo DONE: información de cierre -->
+  <ng-container *ngIf="data.mode === 'DONE'">
+    <div class="info-row">
+      <span class="info-key">Tiempo a imputar</span>
+      <span class="info-val">{{ formattedTime }}</span>
     </div>
-  </div>
 
-  <div *ngIf="showTicket" class="info-row">
-    <span class="info-key">Ticket</span>
-    <span class="info-val">#{{ data.odooTicketId }}</span>
-  </div>
+    <div *ngIf="showTags" class="info-row">
+      <span class="info-key">Tags Odoo</span>
+      <div class="info-tags">
+        <span *ngFor="let name of data.config.odooTagNames" class="tag-chip">{{ name }}</span>
+      </div>
+    </div>
 
-  <div *ngIf="hasAlerts" class="alerts-block">
-    <p class="alerts-title">⚠ Errores detectados</p>
-    <ul>
-      <li *ngFor="let err of data.issuesSummary.dcdiagErrors">{{ err }}</li>
-      <li *ngIf="data.issuesSummary.veeamMissing">Hay VMs sin cobertura de backup Veeam</li>
-    </ul>
-  </div>
+    <div *ngIf="showTicket" class="info-row">
+      <span class="info-key">Ticket</span>
+      <span class="info-val">#{{ data.odooTicketId }}</span>
+    </div>
+
+    <div *ngIf="hasAlerts" class="alerts-block">
+      <p class="alerts-title">⚠ Errores detectados</p>
+      <ul>
+        <li *ngFor="let err of data.issuesSummary.dcdiagErrors">{{ err }}</li>
+        <li *ngIf="data.issuesSummary.veeamMissing">Hay VMs sin cobertura de backup Veeam</li>
+      </ul>
+    </div>
+  </ng-container>
+
+  <!-- Modo NOT_DONE: motivo + aviso -->
+  <ng-container *ngIf="data.mode === 'NOT_DONE'">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:100%;margin-top:12px">
+      <mat-label>Motivo</mat-label>
+      <textarea matInput [formControl]="reasonCtrl" rows="3"
+                placeholder="Ej: El cliente canceló el mantenimiento por falla de conectividad externa…"></textarea>
+      <mat-error *ngIf="reasonCtrl.hasError('required')">El motivo es obligatorio</mat-error>
+    </mat-form-field>
+
+    <div class="not-done-warn">
+      ⚠ Se imputarán <strong>0:00 hs</strong> en Odoo y el ticket pasará al stage
+      <strong>"No realizadas"</strong>. El motivo ingresado se usará como descripción de la imputación.
+    </div>
+  </ng-container>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
   <button mat-stroked-button (click)="cancel()">Cancelar</button>
   <button
     mat-flat-button
-    [color]="hasAlerts ? 'warn' : 'primary'"
+    [color]="data.mode === 'NOT_DONE' ? 'warn' : (hasAlerts ? 'warn' : 'primary')"
     (click)="confirm()">
     {{ confirmLabel }}
   </button>
 </mat-dialog-actions>
+
+<style>
+.not-done-warn {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: rgba(255, 179, 0, 0.12);
+  border: 1px solid rgba(255, 179, 0, 0.25);
+  border-radius: 4px;
+  font-size: 12px;
+  color: #ffb300;
+  line-height: 1.5;
+}
+</style>

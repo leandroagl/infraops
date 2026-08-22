@@ -1,4 +1,5 @@
 import { Component, Inject } from '@angular/core';
+import { FormControl, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { TaskType, TaskTypeConfigDto } from '../../../../core/models/task.models';
 
@@ -14,13 +15,20 @@ export interface ConfirmCloseDialogData {
   };
 }
 
+export interface ConfirmCloseDialogResult {
+  confirmed: boolean;
+  reason?: string;
+}
+
 @Component({
   selector: 'app-confirm-close-dialog',
   templateUrl: './confirm-close-dialog.component.html',
 })
 export class ConfirmCloseDialogComponent {
+  readonly reasonCtrl = new FormControl('', [Validators.required]);
+
   constructor(
-    private dialogRef: MatDialogRef<ConfirmCloseDialogComponent>,
+    private dialogRef: MatDialogRef<ConfirmCloseDialogComponent, ConfirmCloseDialogResult | null>,
     @Inject(MAT_DIALOG_DATA) public data: ConfirmCloseDialogData,
   ) {}
 
@@ -49,6 +57,17 @@ export class ConfirmCloseDialogComponent {
     return this.hasAlerts ? 'Confirmar con alertas' : 'Confirmar cierre';
   }
 
-  confirm(): void { this.dialogRef.close(true); }
-  cancel():  void { this.dialogRef.close(null); }
+  confirm(): void {
+    if (this.data.mode === 'NOT_DONE') {
+      if (this.reasonCtrl.invalid) {
+        this.reasonCtrl.markAsTouched();
+        return;
+      }
+      this.dialogRef.close({ confirmed: true, reason: this.reasonCtrl.value! });
+    } else {
+      this.dialogRef.close({ confirmed: true });
+    }
+  }
+
+  cancel(): void { this.dialogRef.close(null); }
 }
