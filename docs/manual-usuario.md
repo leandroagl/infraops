@@ -89,8 +89,10 @@ Hacer clic en una fila abre el **drawer de detalle** desde la derecha.
 5. Presionar **"Completar tarea"** → ingresar tiempo dedicado → confirmar
 6. El estado pasa a `COMPLETADO`, se cierra el ticket en Odoo y se registra el timesheet
 
-**Si no se puede completar:**
-- Presionar **"No realizado"** para cerrar la tarea con ese estado y el motivo
+**Si no se puede completar (solo ADMIN y TL):**
+- Presionar **"No realizado"** → se abre un diálogo donde se debe ingresar un motivo (obligatorio)
+- Al confirmar: se imputan **0:00 hs en Odoo** con el motivo como descripción y el ticket pasa al stage "No realizadas"
+- El estado de la tarea queda como `NO REALIZADO` con el motivo registrado
 
 ### Permisos por rol
 
@@ -100,7 +102,7 @@ Hacer clic en una fila abre el **drawer de detalle** desde la derecha.
 | Filtro técnico por defecto | Propio | Todos | Todos | Todos |
 | Ejecutar / completar tareas | Sí (propias) | Sí | No | Sí |
 | Botón "Nueva tarea" | No | No | No | Sí |
-| Eliminar tarea (solo PENDING) | No | No | No | Sí |
+| Marcar como "No realizado" con motivo | No | Sí | No | Sí |
 | Ciclos cerrados | Solo lectura | Solo lectura | Solo lectura | Solo lectura |
 
 COORDINATOR accede en modo solo lectura: puede ver el estado de todas las tareas y el detalle de cada una, pero no puede ejecutar ni modificar nada.
@@ -250,6 +252,8 @@ Permite generar las tareas de mantenimiento para un mes concreto.
 5. El sistema crea una tarea por cliente correspondiente y muestra cuántas fueron creadas y cuántas omitidas (porque ya existían).
 
 > Los clientes sin grupo asignado no aparecen en el preview y no reciben tarea.
+
+> **Cierre automático del mes anterior:** al generar un mes nuevo, el sistema cierra automáticamente todas las tareas `PENDIENTE` o `EN CURSO` del mes anterior con estado `NO REALIZADO` y motivo "Cierre automático de fin de mes". Esto garantiza que ningún ciclo quede con tareas abiertas indefinidamente.
 
 ---
 
