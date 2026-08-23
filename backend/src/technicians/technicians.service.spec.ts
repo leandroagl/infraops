@@ -92,6 +92,35 @@ describe('TechniciansService', () => {
       expect(result[0].user).not.toHaveProperty('technicianId');
       expect(result[0].user).not.toHaveProperty('technician');
     });
+
+    it('incluye avatarUrl en el user del response', async () => {
+      const mockUserWithAvatar = {
+        ...mockUser,
+        technicianId: 'tech-1',
+        technician: mockTechnician,
+        avatarPath: 'photo.jpg',
+      };
+      userRepository.find.mockResolvedValue([mockUserWithAvatar]);
+
+      const [result] = await service.findAll();
+
+      expect(result.user.avatarUrl).toBe('/avatars/photo.jpg');
+      expect((result.user as any).avatarPath).toBeUndefined();
+    });
+
+    it('retorna avatarUrl null cuando avatarPath es null', async () => {
+      const mockUserNoAvatar = {
+        ...mockUser,
+        technicianId: 'tech-1',
+        technician: mockTechnician,
+        avatarPath: null,
+      };
+      userRepository.find.mockResolvedValue([mockUserNoAvatar]);
+
+      const [result] = await service.findAll();
+
+      expect(result.user.avatarUrl).toBeNull();
+    });
   });
 
   describe('assign', () => {

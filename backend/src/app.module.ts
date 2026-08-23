@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TechniciansModule } from './technicians/technicians.module';
@@ -28,6 +30,11 @@ import { TaskConfigModule } from './task-config/task-config.module';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
       synchronize: false,
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads', 'avatars'),
+      serveRoot: '/avatars',
+      serveStaticOptions: { index: false },
     }),
     ScheduleModule.forRoot(),
     AuthModule,
