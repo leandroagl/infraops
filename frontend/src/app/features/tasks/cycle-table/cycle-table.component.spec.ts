@@ -3,6 +3,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CommonModule } from '@angular/common';
 import { CycleTableComponent } from './cycle-table.component';
 import { Task, TaskGroup } from '../../../core/models/task.models';
+import { SharedModule } from '../../../shared/shared.module';
 
 function makeTask(id: string, clientId: string, techId: string, status: Task['status'] = 'PENDING'): Task {
   return {
@@ -11,7 +12,7 @@ function makeTask(id: string, clientId: string, techId: string, status: Task['st
     scheduledDate: '2026-08-01', completedDate: null,
     odooTicketId: 3810, createdAt: '2026-08-01T00:00:00Z',
     client: { id: clientId, name: 'ACME S.A.' },
-    technician: { id: techId, user: { id: 'u1', name: 'Valen', email: 'v@ondra' } },
+    technician: { id: techId, user: { id: 'u1', name: 'Valen', email: 'v@ondra', avatarUrl: null } },
   };
 }
 
@@ -33,7 +34,7 @@ describe('CycleTableComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [CycleTableComponent],
-      imports: [NoopAnimationsModule, CommonModule],
+      imports: [NoopAnimationsModule, CommonModule, SharedModule],
     }).compileComponents();
     fixture = TestBed.createComponent(CycleTableComponent);
     component = fixture.componentInstance;

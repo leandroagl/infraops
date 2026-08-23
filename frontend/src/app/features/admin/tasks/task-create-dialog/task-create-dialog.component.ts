@@ -54,6 +54,12 @@ export class TaskCreateDialogComponent implements OnInit, OnDestroy {
     { value: 'ENDPOINT_INVENTORY',        label: 'Inventario de endpoints'      },
   ];
 
+  get selectedTechForDialog(): Technician | null {
+    const id = this.form.get('technicianId')?.value;
+    if (!id) return null;
+    return this.technicians?.find(t => t.id === id) ?? null;
+  }
+
   get availableTaskTypes(): { value: TaskType; label: string }[] {
     const withTags = this.taskTypes.filter(({ value }) => this.hasTagConfig(value));
     if (!this.infra) return withTags;

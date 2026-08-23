@@ -22,7 +22,7 @@ export class ConfigTabComponent implements OnInit, OnDestroy {
   searchTerm = '';
   displayedColumns = ['client', 'group', 'months', 'technician'];
   loading = false;
-  technicians: Array<{ id: string; name: string }> = [];
+  technicians: Array<{ id: string; name: string; avatarUrl: string | null }> = [];
 
   private readonly saveSubject = new Subject<{
     clientId: string;
@@ -62,6 +62,16 @@ export class ConfigTabComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  get filterSelectedTech(): { id: string; name: string; avatarUrl: string | null } | null {
+    if (!this.filterTechnicianId || this.filterTechnicianId === 'ALL') return null;
+    return this.technicians.find(t => t.id === this.filterTechnicianId) ?? null;
+  }
+
+  getTechForRule(rule: ClientSchedule): { id: string; name: string; avatarUrl: string | null } | null {
+    if (!rule.technicianId) return null;
+    return this.technicians.find(t => t.id === rule.technicianId) ?? null;
+  }
+
   private load(): void {
     this.loading = true;
     forkJoin({
@@ -82,7 +92,7 @@ export class ConfigTabComponent implements OnInit, OnDestroy {
             technician: null,
             isActive: true,
           } as ClientSchedule);
-        this.technicians = technicians.map(t => ({ id: t.id, name: t.user?.name ?? t.id }));
+        this.technicians = technicians.map(t => ({ id: t.id, name: t.user?.name ?? t.id, avatarUrl: t.user?.avatarUrl ?? null }));
         this.loading = false;
       },
       error: () => { this.loading = false; },

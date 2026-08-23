@@ -37,7 +37,11 @@
         </td>
         <td>
           <div class="col-tech">
-            <span class="avatar">{{ task.technician?.user?.name?.slice(0,1) ?? '?' }}</span>
+            <app-user-avatar
+              [name]="task.technician?.user?.name ?? ''"
+              [avatarUrl]="task.technician?.user?.avatarUrl ?? null"
+              size="sm">
+            </app-user-avatar>
             {{ task.technician?.user?.name ?? '—' }}
           </div>
         </td>

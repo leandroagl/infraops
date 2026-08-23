@@ -19,6 +19,7 @@ import { InfradocService } from '../../../../core/services/infradoc.service';
 import { TaskConfigService } from '../../../../core/services/task-config.service';
 import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
 import { TaskType, TaskTypeConfigDto } from '../../../../core/models/task.models';
+import { SharedModule } from '../../../../shared/shared.module';
 
 const mockClients = [{ id: 'c1', name: 'Cliente A', isActive: true }];
 const mockTechnicians = [{ id: 'tech1', user: { id: 'u1', name: 'Valen', email: 'v@ondra.com', isActive: true } }];
@@ -88,6 +89,7 @@ describe('TaskCreateDialogComponent', () => {
         MatProgressSpinnerModule,
         MatDatepickerModule,
         MatNativeDateModule,
+        SharedModule,
       ],
       providers: [
         { provide: MatDialogRef, useValue: dialogRefSpy },
