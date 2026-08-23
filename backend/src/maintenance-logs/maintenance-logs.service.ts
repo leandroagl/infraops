@@ -76,10 +76,11 @@ export class MaintenanceLogsService {
     const log = await this.logRepository.findOne({ where: { taskId } });
     if (!log) throw new NotFoundException('Esta tarea no tiene log registrado');
 
-    if (dto.payload !== undefined) log.payload = dto.payload;
-    if (dto.notes !== undefined) log.notes = dto.notes;
+    const updateData: Partial<MaintenanceLog> = {};
+    if (dto.payload !== undefined) updateData.payload = dto.payload;
+    if (dto.notes !== undefined) updateData.notes = dto.notes;
 
-    await this.logRepository.save(log);
+    await this.logRepository.update(log.id, updateData);
     return this.loadLog(log.id);
   }
 
