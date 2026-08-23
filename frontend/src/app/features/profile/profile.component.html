@@ -10,7 +10,7 @@
     </div>
     <div class="section-body avatar-section">
       <div class="avatar-wrap">
-        <app-user-avatar [name]="user?.name || ''" [avatarUrl]="user?.avatarUrl || null" size="lg"></app-user-avatar>
+        <app-user-avatar [name]="user.name" [avatarUrl]="user.avatarUrl" size="lg"></app-user-avatar>
         <input type="file" hidden #fileInput accept=".jpg,.jpeg,.png,.webp"
                (change)="onFileSelected($event)" />
       </div>
