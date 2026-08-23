@@ -6,9 +6,9 @@ Reemplaza las planillas Excel para hacer visible, trazable y medible el trabajo 
 
 ## Roles
 
-| Rol | Quién | Qué puede hacer |
+| Rol |  | Qué puede hacer |
 |---|---|---|
-| **ADMIN** | Omar, Leandro | Acceso completo |
-| **TL** | El Pana | Acceso completo + asignación de técnicos |
-| **COORDINATOR** | Lau | Panel admin + gestión de tareas (solo lectura en tareas) |
-| **TECHNICIAN** | Valen, Enzo, Tow, Santi, Gian | Vista propia de tareas + ejecución |
+| **ADMIN** |  | Acceso completo |
+| **TL** |  | Acceso completo + asignación de técnicos |
+| **COORDINATOR** |  | Panel admin + gestión de tareas (solo lectura en tareas) |
+| **TECHNICIAN** |  | Vista propia de tareas + ejecución |

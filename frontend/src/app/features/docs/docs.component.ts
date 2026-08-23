@@ -11,6 +11,7 @@ import { UserRole } from '../../core/models/auth.models';
 export class DocsComponent implements OnInit {
   visibleSections: DocSection[] = [];
   activeSection!: DocSection;
+  sectionTimestamp = Date.now();
 
   private currentUserRole: UserRole = 'TECHNICIAN';
 
@@ -26,7 +27,7 @@ export class DocsComponent implements OnInit {
   }
 
   get activeAssetPath(): string {
-    return 'assets/docs/' + this.activeSection.file;
+    return `assets/docs/${this.activeSection.file}?t=${this.sectionTimestamp}`;
   }
 
   get activeIndex(): number {
@@ -51,14 +52,21 @@ export class DocsComponent implements OnInit {
 
   selectSection(section: DocSection): void {
     this.activeSection = section;
+    this.sectionTimestamp = Date.now();
   }
 
   goPrev(): void {
-    if (this.hasPrev) this.activeSection = this.visibleSections[this.activeIndex - 1];
+    if (this.hasPrev) {
+      this.activeSection = this.visibleSections[this.activeIndex - 1];
+      this.sectionTimestamp = Date.now();
+    }
   }
 
   goNext(): void {
-    if (this.hasNext) this.activeSection = this.visibleSections[this.activeIndex + 1];
+    if (this.hasNext) {
+      this.activeSection = this.visibleSections[this.activeIndex + 1];
+      this.sectionTimestamp = Date.now();
+    }
   }
 
   groupedSections(): { group: string; sections: DocSection[] }[] {
