@@ -1,4 +1,6 @@
-<form [formGroup]="form">
+<form [formGroup]="form" class="qf">
+
+  <div class="qf-section-lbl">Dispositivos NAS</div>
 
   <div class="qnap-devices-stack">
     <app-qnap-device-card
@@ -9,9 +11,12 @@
     </app-qnap-device-card>
   </div>
 
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field" style="margin-top:12px">
+  <div class="qf-section-lbl">Observaciones</div>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="qnap-notes-ff">
     <mat-label>Notas</mat-label>
-    <textarea matInput formControlName="notes" placeholder="Observaciones generales..."></textarea>
+    <textarea matInput formControlName="notes" rows="3"
+              placeholder="Observaciones generales..."></textarea>
   </mat-form-field>
 
 </form>

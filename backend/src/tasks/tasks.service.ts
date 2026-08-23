@@ -12,6 +12,7 @@ import { Technician } from '../technicians/technician.entity';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { InfrastructureService } from '../integrations/infradoc/infrastructure.service';
 import { ClientInfrastructureDto } from '../integrations/infradoc/dto/client-infrastructure.dto';
+import { TaskConfigService } from '../task-config/task-config.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -62,6 +63,7 @@ export class TasksService {
     private readonly logRepository: Repository<MaintenanceLog>,
     private readonly odooService: OdooService,
     private readonly infrastructureService: InfrastructureService,
+    private readonly taskConfigService: TaskConfigService,
   ) {}
 
   async findAll(filters: FilterTasksDto): Promise<Task[]> {
@@ -95,6 +97,7 @@ export class TasksService {
     });
     if (!technician) throw new NotFoundException('Técnico no encontrado');
 
+    await this.validateTagConfig(dto.type);
     await this.validateInfrastructure(dto.clientId, dto.type);
 
     const odooTicketId = await this.odooService.createTicket(
@@ -144,7 +147,7 @@ export class TasksService {
   async updateStatus(
     id: string,
     newStatus: TaskStatus,
-    timeSpentMinutes?: number,
+    options: { timeSpentMinutes?: number; reason?: string } = {},
   ): Promise<Task> {
     const task = await this.taskRepository.findOne({
       where: { id },
@@ -166,29 +169,33 @@ export class TasksService {
     const isTerminal = VALID_TRANSITIONS[newStatus].length === 0;
     const completedDate = isTerminal ? new Date() : null;
 
-    const shouldCloseTicket =
-      (newStatus === TaskStatus.DONE || newStatus === TaskStatus.NOT_DONE) &&
-      task.odooTicketId !== null;
-
-    if (shouldCloseTicket) {
+    if (newStatus === TaskStatus.NOT_DONE && task.odooTicketId !== null) {
       const userId = task.technician?.user?.id;
       if (!userId)
         throw new BadRequestException('La tarea no tiene técnico con usuario asociado');
 
       const employeeId = await this.odooService.resolveEmployeeId(userId);
-      if (employeeId === null) {
-        throw new BadRequestException(
-          'El técnico no tiene odooEmployeeId sincronizado',
-        );
-      }
+      if (employeeId === null)
+        throw new BadRequestException('El técnico no tiene odooEmployeeId sincronizado');
 
-      if (newStatus === TaskStatus.DONE && !timeSpentMinutes) {
-        throw new BadRequestException(
-          'Se requiere timeSpentMinutes para marcar una tarea como DONE',
-        );
-      }
-      const unitAmount = (timeSpentMinutes ?? 0) / 60;
-      await this.odooService.closeTicket(task.odooTicketId!, employeeId, unitAmount);
+      const reason = options.reason ?? 'Cierre automático de fin de mes';
+      await this.odooService.markTicketNotDone(task.odooTicketId, employeeId, reason);
+    }
+
+    if (newStatus === TaskStatus.DONE && task.odooTicketId !== null) {
+      const userId = task.technician?.user?.id;
+      if (!userId)
+        throw new BadRequestException('La tarea no tiene técnico con usuario asociado');
+
+      const employeeId = await this.odooService.resolveEmployeeId(userId);
+      if (employeeId === null)
+        throw new BadRequestException('El técnico no tiene odooEmployeeId sincronizado');
+
+      if (!options.timeSpentMinutes)
+        throw new BadRequestException('Se requiere timeSpentMinutes para marcar una tarea como DONE');
+
+      const unitAmount = options.timeSpentMinutes / 60;
+      await this.odooService.closeTicket(task.odooTicketId, employeeId, unitAmount, task.type);
     }
 
     await this.taskRepository.update(id, { status: newStatus, completedDate });
@@ -208,12 +215,13 @@ export class TasksService {
     return this.loadTask(id);
   }
 
-  async remove(id: string): Promise<void> {
-    const task = await this.taskRepository.findOne({ where: { id } });
-    if (!task) throw new NotFoundException('Tarea no encontrada');
-
-    await this.logRepository.delete({ taskId: id });
-    await this.taskRepository.delete(id);
+  private async validateTagConfig(type: TaskType): Promise<void> {
+    const config = await this.taskConfigService.findOne(type);
+    if (!config || config.odooTagIds.length === 0) {
+      throw new BadRequestException(
+        `El tipo de tarea ${type} no tiene tags de Odoo configurados`,
+      );
+    }
   }
 
   private async validateInfrastructure(clientId: string, type: TaskType): Promise<void> {

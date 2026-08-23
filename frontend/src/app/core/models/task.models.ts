@@ -34,6 +34,7 @@ export interface Task {
 export interface UpdateTaskStatusPayload {
   status: TaskStatus;
   timeSpentMinutes?: number;
+  reason?: string;
 }
 
 export interface TaskGroup {
@@ -47,4 +48,29 @@ export interface CycleStats {
   inprogress: number;
   pending: number;
   done: number;
+}
+
+export interface TaskTypeConfigDto {
+  taskType: TaskType;
+  defaultTimeMinutes: number | null;
+  odooTagIds: number[];
+  odooTagNames: string[];
+  ticketDescription: string | null;
+  defaultTicketDescription?: string;
+  timesheetDescription: string | null;
+  defaultTimesheetDescription?: string;
+  updatedAt: string;
+}
+
+export interface OdooHelpdeskTagDto {
+  id: number;
+  name: string;
+}
+
+export interface UpdateTaskConfigPayload {
+  defaultTimeMinutes?: number;
+  odooTagIds?: number[];
+  odooTagNames?: string[];
+  ticketDescription?: string;
+  timesheetDescription?: string;
 }

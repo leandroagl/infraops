@@ -9,6 +9,7 @@ import { Client } from '../clients/client.entity';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { InfrastructureService } from '../integrations/infradoc/infrastructure.service';
 import { ClientInfrastructureDto } from '../integrations/infradoc/dto/client-infrastructure.dto';
+import { TaskConfigService } from '../task-config/task-config.service';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
 import { User } from '../users/user.entity';
@@ -34,11 +35,13 @@ describe('TasksService', () => {
   let odooService: {
     createTicket: jest.Mock;
     closeTicket: jest.Mock;
+    markTicketNotDone: jest.Mock;
     resolveEmployeeId: jest.Mock;
     markTicketInProgress: jest.Mock;
     postInternalNote: jest.Mock;
   };
   let infrastructureService: { getClientInfrastructure: jest.Mock };
+  let taskConfigService: { findOne: jest.Mock };
 
   const emptyInfra: ClientInfrastructureDto = {
     esxiHosts: [], windowsVMs: [], domainControllers: [], linuxVMs: [], nas: [], routers: [],
@@ -109,11 +112,15 @@ describe('TasksService', () => {
     odooService = {
       createTicket: jest.fn(),
       closeTicket: jest.fn(),
+      markTicketNotDone: jest.fn().mockResolvedValue(undefined),
       resolveEmployeeId: jest.fn(),
       markTicketInProgress: jest.fn(),
       postInternalNote: jest.fn().mockResolvedValue(undefined),
     };
     infrastructureService = { getClientInfrastructure: jest.fn() };
+    taskConfigService = {
+      findOne: jest.fn().mockResolvedValue({ odooTagIds: [1] }),
+    };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -124,6 +131,7 @@ describe('TasksService', () => {
         { provide: getRepositoryToken(MaintenanceLog), useValue: logRepository },
         { provide: OdooService,                        useValue: odooService },
         { provide: InfrastructureService,              useValue: infrastructureService },
+        { provide: TaskConfigService,                  useValue: taskConfigService },
       ],
     }).compile();
 
@@ -360,6 +368,27 @@ describe('TasksService', () => {
       await expect(service.create(createDto)).rejects.toThrow(ServiceUnavailableException);
       expect(odooService.createTicket).not.toHaveBeenCalled();
     });
+
+    it('lanza BadRequestException si el tipo de tarea no tiene tags de Odoo configurados', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      taskConfigService.findOne.mockResolvedValue({ odooTagIds: [] });
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        'El tipo de tarea WINDOWS_DOMAIN_MAINTENANCE no tiene tags de Odoo configurados',
+      );
+      expect(infrastructureService.getClientInfrastructure).not.toHaveBeenCalled();
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+    });
+
+    it('lanza BadRequestException si no existe configuración para el tipo de tarea', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      taskConfigService.findOne.mockResolvedValue(null);
+
+      await expect(service.create(createDto)).rejects.toThrow(BadRequestException);
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+    });
   });
 
   describe('update', () => {
@@ -538,13 +567,13 @@ describe('TasksService', () => {
       odooService.resolveEmployeeId.mockResolvedValue(22);
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
-      await service.updateStatus('task-1', TaskStatus.DONE, 90);
+      await service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 });
 
       expect(odooService.resolveEmployeeId).toHaveBeenCalledWith('user-1');
-      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5);
+      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5, inProgressTask.type);
     });
 
-    it('llama closeTicket al transicionar a NOT_DONE cuando la tarea tiene odooTicketId', async () => {
+    it('llama markTicketNotDone al transicionar a NOT_DONE cuando la tarea tiene odooTicketId', async () => {
       const taskWithTicket = {
         ...mockTask,
         status: TaskStatus.PENDING,
@@ -558,11 +587,11 @@ describe('TasksService', () => {
           status: TaskStatus.NOT_DONE,
         });
       odooService.resolveEmployeeId.mockResolvedValue(22);
-      odooService.closeTicket.mockResolvedValue(undefined);
+      odooService.markTicketNotDone.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
-      await service.updateStatus('task-1', TaskStatus.NOT_DONE, 60);
+      await service.updateStatus('task-1', TaskStatus.NOT_DONE, { reason: 'Sin tiempo disponible' });
 
-      expect(odooService.closeTicket).toHaveBeenCalledWith(55, 22, 1.0);
+      expect(odooService.markTicketNotDone).toHaveBeenCalledWith(55, 22, 'Sin tiempo disponible');
     });
 
     it('no actualiza el status en DB si Odoo falla al cerrar el ticket (atomicidad)', async () => {
@@ -578,7 +607,7 @@ describe('TasksService', () => {
         new ServiceUnavailableException('Odoo down'),
       );
       await expect(
-        service.updateStatus('task-1', TaskStatus.DONE, 60),
+        service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 60 }),
       ).rejects.toThrow(ServiceUnavailableException);
       expect(taskRepository.update).not.toHaveBeenCalled();
     });
@@ -594,7 +623,7 @@ describe('TasksService', () => {
         .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
       taskRepository.update.mockResolvedValue({ affected: 1 });
 
-      await service.updateStatus('task-1', TaskStatus.DONE, 90);
+      await service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 });
 
       expect(odooService.closeTicket).not.toHaveBeenCalled();
       expect(odooService.resolveEmployeeId).not.toHaveBeenCalled();
@@ -632,7 +661,7 @@ describe('TasksService', () => {
         new ServiceUnavailableException('Odoo caído'),
       );
       await expect(
-        service.updateStatus('task-1', TaskStatus.DONE, 90),
+        service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 }),
       ).rejects.toThrow(ServiceUnavailableException);
       expect(taskRepository.update).not.toHaveBeenCalled();
     });
@@ -647,7 +676,7 @@ describe('TasksService', () => {
       taskRepository.findOne.mockResolvedValueOnce(inProgressTask);
       odooService.resolveEmployeeId.mockResolvedValue(null);
       await expect(
-        service.updateStatus('task-1', TaskStatus.DONE, 90),
+        service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 }),
       ).rejects.toThrow(BadRequestException);
       expect(taskRepository.update).not.toHaveBeenCalled();
     });
@@ -662,7 +691,7 @@ describe('TasksService', () => {
       taskRepository.findOne.mockResolvedValueOnce(taskWithNoUser);
 
       await expect(
-        service.updateStatus('task-1', TaskStatus.DONE, 60),
+        service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 60 }),
       ).rejects.toThrow(BadRequestException);
       expect(taskRepository.update).not.toHaveBeenCalled();
     });
@@ -711,7 +740,7 @@ describe('TasksService', () => {
       odooService.resolveEmployeeId.mockResolvedValue(22);
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
-      await service.updateStatus('task-1', TaskStatus.DONE, 90);
+      await service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 });
 
       expect(odooService.markTicketInProgress).not.toHaveBeenCalled();
     });
@@ -747,7 +776,7 @@ describe('TasksService', () => {
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
       logRepository.findOne.mockResolvedValue({ notes: 'Se detectó disco con advertencia.' });
-      await service.updateStatus('task-1', TaskStatus.DONE, 90);
+      await service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 });
 
       expect(odooService.postInternalNote).toHaveBeenCalledWith(42, 'Se detectó disco con advertencia.', 'user-1');
     });
@@ -766,7 +795,7 @@ describe('TasksService', () => {
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
       logRepository.findOne.mockResolvedValue({ notes: null });
-      await service.updateStatus('task-1', TaskStatus.DONE, 90);
+      await service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 });
 
       expect(odooService.postInternalNote).not.toHaveBeenCalled();
     });
@@ -785,7 +814,7 @@ describe('TasksService', () => {
       odooService.closeTicket.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
       logRepository.findOne.mockResolvedValue(null);
-      await service.updateStatus('task-1', TaskStatus.DONE, 90);
+      await service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 });
 
       expect(odooService.postInternalNote).not.toHaveBeenCalled();
     });
@@ -801,10 +830,10 @@ describe('TasksService', () => {
         .mockResolvedValueOnce(taskWithTicket)
         .mockResolvedValueOnce({ ...taskWithTicket, status: TaskStatus.NOT_DONE });
       odooService.resolveEmployeeId.mockResolvedValue(22);
-      odooService.closeTicket.mockResolvedValue(undefined);
+      odooService.markTicketNotDone.mockResolvedValue(undefined);
       taskRepository.update.mockResolvedValue({ affected: 1 });
       logRepository.findOne.mockResolvedValue({ notes: 'Nota que no debe enviarse.' });
-      await service.updateStatus('task-1', TaskStatus.NOT_DONE, 0);
+      await service.updateStatus('task-1', TaskStatus.NOT_DONE, { reason: 'Cancelada' });
 
       expect(odooService.postInternalNote).not.toHaveBeenCalled();
     });
@@ -824,46 +853,68 @@ describe('TasksService', () => {
       taskRepository.update.mockResolvedValue({ affected: 1 });
       logRepository.findOne.mockResolvedValue({ notes: 'Nota.' });
       odooService.postInternalNote.mockRejectedValue(new Error('Odoo caído'));
-      await expect(service.updateStatus('task-1', TaskStatus.DONE, 90)).resolves.not.toThrow();
+      await expect(service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 })).resolves.not.toThrow();
       expect(taskRepository.update).toHaveBeenCalledWith('task-1', expect.objectContaining({ status: TaskStatus.DONE }));
     });
   });
 
-  describe('remove', () => {
-    it('elimina el log asociado y la tarea cuando la tarea existe', async () => {
-      taskRepository.findOne.mockResolvedValue(mockTask);
-      logRepository.delete.mockResolvedValue({ affected: 1 });
-      taskRepository.delete.mockResolvedValue({ affected: 1 });
+  describe('updateStatus → NOT_DONE', () => {
+    const taskWithOdoo: Task = {
+      ...mockTask,
+      id: 'task-nd',
+      status: TaskStatus.IN_PROGRESS,
+      odooTicketId: 999,
+      technician: { ...mockTechnician, user: { id: 'user-1' } as User },
+    };
 
-      await service.remove('task-1');
+    beforeEach(() => {
+      taskRepository.findOne.mockResolvedValue(taskWithOdoo);
+      taskRepository.update.mockResolvedValue(undefined);
+      odooService.resolveEmployeeId.mockResolvedValue(42);
+      odooService.markTicketNotDone.mockResolvedValue(undefined);
+      taskRepository.findOne
+        .mockResolvedValueOnce(taskWithOdoo)   // primera llamada: encontrar tarea
+        .mockResolvedValueOnce(taskWithOdoo);  // segunda llamada: loadTask
+    });
 
-      expect(taskRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 'task-1' },
+    it('llama a markTicketNotDone con ticketId, employeeId y reason', async () => {
+      await service.updateStatus('task-nd', TaskStatus.NOT_DONE, {
+        reason: 'Cliente canceló',
       });
-      expect(logRepository.delete).toHaveBeenCalledWith({ taskId: 'task-1' });
-      expect(taskRepository.delete).toHaveBeenCalledWith('task-1');
-    });
-
-    it('elimina la tarea aunque no haya log asociado (delete es no-op)', async () => {
-      taskRepository.findOne.mockResolvedValue(mockTask);
-      logRepository.delete.mockResolvedValue({ affected: 0 });
-      taskRepository.delete.mockResolvedValue({ affected: 1 });
-
-      await service.remove('task-1');
-
-      expect(logRepository.delete).toHaveBeenCalledWith({ taskId: 'task-1' });
-      expect(taskRepository.delete).toHaveBeenCalledWith('task-1');
-    });
-
-    it('lanza NotFoundException si la tarea no existe', async () => {
-      taskRepository.findOne.mockResolvedValue(null);
-
-      await expect(service.remove('nonexistent')).rejects.toThrow(
-        'Tarea no encontrada',
+      expect(odooService.markTicketNotDone).toHaveBeenCalledWith(
+        999,
+        42,
+        'Cliente canceló',
       );
+    });
 
-      expect(logRepository.delete).not.toHaveBeenCalled();
-      expect(taskRepository.delete).not.toHaveBeenCalled();
+    it('usa reason por defecto cuando no se provee', async () => {
+      await service.updateStatus('task-nd', TaskStatus.NOT_DONE, {});
+      expect(odooService.markTicketNotDone).toHaveBeenCalledWith(
+        999,
+        42,
+        'Cierre automático de fin de mes',
+      );
+    });
+
+    it('NO llama a closeTicket al marcar NOT_DONE', async () => {
+      await service.updateStatus('task-nd', TaskStatus.NOT_DONE, {
+        reason: 'Cancelada',
+      });
+      expect(odooService.closeTicket).not.toHaveBeenCalled();
+    });
+
+    it('no llama a markTicketNotDone si no hay odooTicketId', async () => {
+      taskRepository.findOne
+        .mockReset()
+        .mockResolvedValueOnce({ ...taskWithOdoo, odooTicketId: null })
+        .mockResolvedValueOnce({ ...taskWithOdoo, odooTicketId: null });
+      await service.updateStatus('task-nd', TaskStatus.NOT_DONE, {
+        reason: 'Sin ticket',
+      });
+      expect(odooService.markTicketNotDone).not.toHaveBeenCalled();
     });
   });
+
 });
+

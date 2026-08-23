@@ -141,7 +141,16 @@
   &.h-no   { color: var(--crit); }
 }
 
-.vf-notes-ff { width: 100%; }
+mat-form-field.vf-notes-ff {
+  width: 100%;
+  --mdc-outlined-text-field-container-color:        var(--elevated);
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mdc-outlined-text-field-label-text-color:       var(--tx-lo);
+  --mdc-outlined-text-field-hover-label-text-color: var(--tx-md);
+  --mdc-outlined-text-field-focus-label-text-color: var(--accent);
+}
 
 // Coverage select coloring via CSS custom properties (sin ::ng-deep)
 mat-form-field.cov--ok {

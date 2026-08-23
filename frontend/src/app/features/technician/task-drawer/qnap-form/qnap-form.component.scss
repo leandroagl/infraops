@@ -1,5 +1,41 @@
+.qf {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.qf-section-lbl {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--tx-lo);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-lo);
+  }
+}
+
 .qnap-devices-stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  margin-top: -8px;
+}
+
+mat-form-field.qnap-notes-ff {
+  width: 100%;
+  --mdc-outlined-text-field-container-color:        var(--elevated);
+  --mdc-outlined-text-field-outline-color:          var(--border);
+  --mdc-outlined-text-field-hover-outline-color:    var(--border-md);
+  --mdc-outlined-text-field-focus-outline-color:    var(--accent-bd);
+  --mdc-outlined-text-field-label-text-color:       var(--tx-lo);
+  --mdc-outlined-text-field-hover-label-text-color: var(--tx-md);
+  --mdc-outlined-text-field-focus-label-text-color: var(--accent);
 }

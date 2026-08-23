@@ -88,6 +88,7 @@ describe('InfrastructureService', () => {
       bmcIp: null,
       bmcType: null,
       os: 'VMware ESXi 7.0.0',
+      make: 'HPE',
       model: 'ProLiant DL380 Gen10',
       uri1: null,
       uri2: null,
@@ -363,6 +364,21 @@ describe('InfrastructureService', () => {
 
       expect(result.esxiHosts[0].bmcIp).toBeNull();
       expect(result.esxiHosts[0].bmcType).toBe('iLO'); // type preserved even without IP
+    });
+
+    it('popula bmcIp desde las filas de getAssets cuando getAssetInterfaces solo devuelve la interfaz primaria', async () => {
+      infradocAssetsService.getAssets.mockResolvedValue([
+        makeAsset({ asset_id: '2', asset_type: 'Server', interface_name: null,    interface_ip: '192.168.0.104' }),
+        makeAsset({ asset_id: '2', asset_type: 'Server', interface_name: 'iDRAC', interface_ip: '10.0.0.50' }),
+      ]);
+      infradocAssetsService.getAssetInterfaces.mockResolvedValue([
+        makeAsset({ interface_name: null, interface_ip: '192.168.0.104' }),
+      ]);
+
+      const result = await service.getClientInfrastructure('uuid-1');
+
+      expect(result.esxiHosts[0].bmcIp).toBe('10.0.0.50');
+      expect(result.esxiHosts[0].bmcType).toBe('iDRAC');
     });
 
     it('devuelve bmcIp null cuando getAssetInterfaces falla (degradación graceful)', async () => {

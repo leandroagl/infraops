@@ -22,6 +22,7 @@ const makeDc = (): InfraAsset => ({
   bmcIp: null,
   bmcType: null,
   os: 'Windows Server 2022',
+  make: null,
   model: null,
   uri1: null,
   uri2: null,

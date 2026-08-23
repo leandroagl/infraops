@@ -144,6 +144,8 @@ export interface ServerMaintenancePayload {
 export interface ServerHostPayload {
   type: 'SERVER_HOST_MAINTENANCE';
   esxiHosts: EsxiHostEntry[];
+  windowsHosts?: WindowsServerEntry[];
+  bmc?: BmcEntry[];
   notes?: string;
 }
 

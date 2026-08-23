@@ -19,7 +19,6 @@ describe('TasksController', () => {
     create: jest.Mock;
     update: jest.Mock;
     updateStatus: jest.Mock;
-    remove: jest.Mock;
   };
 
   const mockClient: Client = {
@@ -67,7 +66,6 @@ describe('TasksController', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatus: jest.fn(),
-      remove: jest.fn(),
     };
 
     const module = await Test.createTestingModule({
@@ -155,7 +153,7 @@ describe('TasksController', () => {
   describe('updateStatus', () => {
     const dto: UpdateTaskStatusDto = { status: TaskStatus.IN_PROGRESS };
 
-    it('llama a tasksService.updateStatus con id, status y timeSpentMinutes', async () => {
+    it('llama a tasksService.updateStatus con id, status y options', async () => {
       const updated = { ...mockTask, status: TaskStatus.IN_PROGRESS };
       tasksService.updateStatus.mockResolvedValue(updated);
 
@@ -164,15 +162,16 @@ describe('TasksController', () => {
       expect(tasksService.updateStatus).toHaveBeenCalledWith(
         'task-1',
         TaskStatus.IN_PROGRESS,
-        undefined,
+        { timeSpentMinutes: undefined, reason: undefined },
       );
       expect(result).toEqual(updated);
     });
 
-    it('pasa timeSpentMinutes cuando está presente en el dto', async () => {
+    it('pasa timeSpentMinutes y reason cuando están presentes en el dto', async () => {
       const dtoWithTime: UpdateTaskStatusDto = {
         status: TaskStatus.DONE,
         timeSpentMinutes: 90,
+        reason: 'Completado sin incidentes',
       };
       const updated = { ...mockTask, status: TaskStatus.DONE };
       tasksService.updateStatus.mockResolvedValue(updated);
@@ -182,8 +181,24 @@ describe('TasksController', () => {
       expect(tasksService.updateStatus).toHaveBeenCalledWith(
         'task-1',
         TaskStatus.DONE,
-        90,
+        { timeSpentMinutes: 90, reason: 'Completado sin incidentes' },
       );
+    });
+
+    it('pasa reason al service en PATCH status con NOT_DONE', async () => {
+      const updatedTask = { id: 'task-1', status: 'NOT_DONE' } as Task;
+      jest.spyOn(tasksService, 'updateStatus').mockResolvedValue(updatedTask);
+
+      const result = await controller.updateStatus('task-1', {
+        status: TaskStatus.NOT_DONE,
+        reason: 'Cliente canceló',
+      } as UpdateTaskStatusDto);
+
+      expect(tasksService.updateStatus).toHaveBeenCalledWith('task-1', TaskStatus.NOT_DONE, {
+        timeSpentMinutes: undefined,
+        reason: 'Cliente canceló',
+      });
+      expect(result).toBe(updatedTask);
     });
 
     it('propaga NotFoundException si la tarea no existe', async () => {
@@ -203,22 +218,5 @@ describe('TasksController', () => {
     });
   });
 
-  describe('remove', () => {
-    it('llama a tasksService.remove con el id y devuelve undefined', async () => {
-      tasksService.remove.mockResolvedValue(undefined);
-
-      const result = await controller.remove('task-1');
-
-      expect(tasksService.remove).toHaveBeenCalledWith('task-1');
-      expect(result).toBeUndefined();
-    });
-
-    it('propaga NotFoundException si la tarea no existe', async () => {
-      tasksService.remove.mockRejectedValue(new NotFoundException());
-
-      await expect(controller.remove('nonexistent')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
 });
+

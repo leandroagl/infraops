@@ -147,3 +147,116 @@ $infraops-theme: mat.define-dark-theme((
 // ── Componentes globales ──────────────────────────────────────
 @import 'styles/components';
 
+// ── Docs: estilos de contenido markdown ──────────────────────
+// Necesita estar en el scope global porque ngx-markdown inyecta
+// el HTML directamente en el DOM sin los atributos de encapsulación
+// de Angular, por lo que los estilos del componente no alcanzan.
+.docs-content {
+  markdown {
+    display: block;
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--tx-hi);
+      margin-bottom: 8px;
+      letter-spacing: -0.3px;
+    }
+
+    h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--tx-hi);
+      margin: 28px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-lo);
+    }
+
+    h3 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--tx-hi);
+      margin: 18px 0 8px;
+    }
+
+    p {
+      font-size: 13px;
+      color: var(--tx-md);
+      line-height: 1.65;
+      margin-bottom: 12px;
+    }
+
+    ul,
+    ol {
+      padding-left: 20px;
+      color: var(--tx-md);
+      font-size: 13px;
+      line-height: 1.7;
+      margin-bottom: 12px;
+
+      li {
+        margin-bottom: 4px;
+      }
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--card);
+      border: 1px solid var(--border-lo);
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: var(--accent);
+    }
+
+    blockquote {
+      border-left: 3px solid var(--accent);
+      background: var(--accent-bg);
+      border-radius: 0 6px 6px 0;
+      padding: 10px 14px;
+      margin: 16px 0;
+      color: var(--tx-md);
+      font-size: 13px;
+      line-height: 1.55;
+
+      p {
+        margin: 0;
+      }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 13px;
+
+      th {
+        text-align: left;
+        padding: 8px 12px;
+        background: var(--elevated);
+        color: var(--tx-lo);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        border-bottom: 1px solid var(--border-lo);
+      }
+
+      td {
+        padding: 9px 12px;
+        color: var(--tx-md);
+        border-bottom: 1px solid var(--border-lo);
+        vertical-align: top;
+
+        &:first-child {
+          color: var(--tx-hi);
+          font-weight: 500;
+        }
+      }
+
+      tr:hover td {
+        background: var(--hover);
+      }
+    }
+  }
+}
+

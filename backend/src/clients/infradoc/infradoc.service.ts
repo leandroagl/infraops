@@ -71,7 +71,9 @@ export class InfradocService {
 
   private extractCuit(value: string | null | undefined): string | null {
     if (!value) return null;
-    return /^\d{2}-\d{8}-\d$/.test(value) ? value : null;
+    const digits = value.replace(/-/g, '').trim();
+    if (!/^\d{11}$/.test(digits)) return null;
+    return `${digits.slice(0, 2)}-${digits.slice(2, 10)}-${digits.slice(10)}`;
   }
 
   private mapLocation(raw: Record<string, unknown>): InfradocLocation {

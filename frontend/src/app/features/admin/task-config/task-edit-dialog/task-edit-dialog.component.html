@@ -1,0 +1,40 @@
+<h2 mat-dialog-title>{{ data.config.taskType }}</h2>
+
+<mat-dialog-content [formGroup]="form">
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Tiempo predefinido (HH:MM)</mat-label>
+    <input matInput formControlName="time" placeholder="01:30">
+    <mat-hint>Horas y minutos que se imputarán en Odoo al cerrar la tarea</mat-hint>
+    <mat-error *ngIf="form.controls.time.invalid">Formato requerido: HH:MM (ej. 01:30)</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Tags de Odoo</mat-label>
+    <mat-select formControlName="tagIds" multiple>
+      <mat-option *ngFor="let tag of availableTags" [value]="tag.id">{{ tag.name }}</mat-option>
+    </mat-select>
+    <mat-hint *ngIf="loadingTags">Cargando tags desde Odoo…</mat-hint>
+    <mat-hint *ngIf="!loadingTags">{{ availableTags.length }} tags disponibles</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Descripción del ticket en Odoo</mat-label>
+    <textarea matInput formControlName="ticketDescription" rows="10" placeholder="Dejar vacío para usar la descripción predeterminada"></textarea>
+    <mat-hint>Texto plano: usar línea en blanco para separar párrafos y "- " para listas. Se convierte a HTML automáticamente al crear el ticket. Si se deja vacío se usa la descripción estándar del tipo de tarea.</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Descripción del timesheet en Odoo</mat-label>
+    <textarea matInput formControlName="timesheetDescription" rows="2" placeholder="Dejar vacío para usar la descripción predeterminada"></textarea>
+    <mat-hint>Texto que se imputa como descripción del parte de horas al cerrar la tarea. Si se deja vacío se usa "Mantenimiento realizado".</mat-hint>
+  </mat-form-field>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()" [disabled]="saving">Cancelar</button>
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="form.invalid || loadingTags || saving">
+    {{ saving ? 'Guardando…' : 'Guardar' }}
+  </button>
+</mat-dialog-actions>

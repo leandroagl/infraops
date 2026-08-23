@@ -12,6 +12,11 @@ export class QnapDeviceCardComponent {
   @Input() group!: FormGroup;
   @Input() readOnly = false;
 
+  get deviceLabel(): string {
+    const parts = [this.device.make, this.device.model].filter(Boolean);
+    return parts.length ? parts.join(' ') : this.device.name;
+  }
+
   get spaceRatio(): number {
     const v = this.group.value;
     const total = Number(v.totalSpaceGB) * (v.totalSpaceUnit === 'TB' ? 1024 : 1);
@@ -54,16 +59,16 @@ export class QnapDeviceCardComponent {
   }
 
   selectClass(value: string): string {
-    if (!value || value === 'ok') return 'mf-sel--ok';
-    if (value === 'degraded')     return 'mf-sel--warn';
-    if (value === 'failed')       return 'mf-sel--crit';
+    if (!value || value === 'ok') return 'qdc-sel--ok';
+    if (value === 'degraded')     return 'qdc-sel--warn';
+    if (value === 'failed')       return 'qdc-sel--crit';
     return '';
   }
 
   metricClass(value: number, warnThreshold: number, critThreshold: number): string {
     if (!value || isNaN(value))         return '';
-    if (value >= critThreshold)         return 'mf-inp--crit';
-    if (value >= warnThreshold)         return 'mf-inp--warn';
-    return 'mf-inp--ok';
+    if (value >= critThreshold)         return 'qdc-metric--crit';
+    if (value >= warnThreshold)         return 'qdc-metric--warn';
+    return 'qdc-metric--ok';
   }
 }

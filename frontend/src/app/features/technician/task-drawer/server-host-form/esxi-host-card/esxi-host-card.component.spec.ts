@@ -4,7 +4,7 @@ import { VmwareHealthResult } from '../../../../../core/models/maintenance-log.m
 
 const makeHost = (uri1: string | null = null, uri2: string | null = null): InfraAsset => ({
   assetId: 1, name: 'esxi01', ip: '192.168.1.10',
-  bmcIp: null, bmcType: null, os: null, model: null, uri1, uri2,
+  bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1, uri2,
 });
 
 const MOCK_RESULT: VmwareHealthResult = {

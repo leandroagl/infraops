@@ -114,6 +114,12 @@
                 <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/>
               </svg>
 
+              <svg *ngIf="item.icon === 'docs'" viewBox="0 0 24 24"
+                   style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+
               <span class="nav-item__label">{{ item.label }}</span>
 
             </a>

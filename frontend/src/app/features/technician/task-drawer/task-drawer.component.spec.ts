@@ -4,12 +4,11 @@ import { MatDialog } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 
 import { TaskDrawerComponent } from './task-drawer.component';
-import { TimeSpentDialogComponent } from './time-spent-dialog/time-spent-dialog.component';
-import { ConfirmMaintenanceDialogComponent } from './confirm-maintenance-dialog/confirm-maintenance-dialog.component';
 import { InfradocService } from '../../../core/services/infradoc.service';
 import { MaintenanceLogsService } from '../../../core/services/maintenance-logs.service';
 import { TasksService } from '../../../core/services/tasks.service';
-import { Task, TaskType, TaskStatus } from '../../../core/models/task.models';
+import { TaskConfigService } from '../../../core/services/task-config.service';
+import { Task, TaskType, TaskStatus, TaskTypeConfigDto } from '../../../core/models/task.models';
 import {
   TerminalPayload,
   MaintenancePayload,
@@ -68,16 +67,23 @@ const mockDialog = {
   open: () => ({ afterClosed: () => of(null) }),
 } as unknown as MatDialog;
 
-function makeDialogThatConfirms(timeMinutes = 90): MatDialog {
-  return {
-    open: (component: unknown) => ({
-      afterClosed: () =>
-        component === TimeSpentDialogComponent ? of(timeMinutes) : of(true),
-    }),
-  } as unknown as MatDialog;
-}
+const mockDialogThatConfirms: MatDialog = {
+  open: () => ({ afterClosed: () => of({ confirmed: true }) }),
+} as unknown as MatDialog;
 
-const mockDialogThatConfirms = makeDialogThatConfirms();
+const mockTaskConfig: TaskTypeConfigDto = {
+  taskType: 'WINDOWS_DOMAIN_MAINTENANCE',
+  defaultTimeMinutes: 90,
+  odooTagIds: [1],
+  odooTagNames: ['Mantenimiento'],
+  ticketDescription: null,
+  timesheetDescription: null,
+  updatedAt: '',
+};
+
+function makeMockTaskConfigService(config: TaskTypeConfigDto | null = mockTaskConfig): TaskConfigService {
+  return { getAll: () => of(config ? [config] : []) } as unknown as TaskConfigService;
+}
 
 // ── Pure unit tests (no TestBed) ─────────────────────────────────────────────
 
@@ -89,7 +95,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
   const mockTasks = { updateStatus: () => of({}) } as any;
 
   beforeEach(() => {
-    component = new TaskDrawerComponent(mockInfradoc, mockLogs, mockTasks, mockDialog);
+    component = new TaskDrawerComponent(mockInfradoc, mockLogs, mockTasks, mockDialog, makeMockTaskConfigService());
     component.task = makeTask();
   });
 
@@ -205,6 +211,84 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     });
   });
 
+  // ── isConfigMissing ──────────────────────────────────────────────────────
+
+  describe('isConfigMissing', () => {
+    it('es true cuando taskConfig es null', () => {
+      component.taskConfig = null;
+      expect(component.isConfigMissing).toBe(true);
+    });
+
+    it('es true cuando falta defaultTimeMinutes aunque haya tags', () => {
+      component.taskConfig = {
+        taskType: 'SERVER_HOST_MAINTENANCE',
+        defaultTimeMinutes: null,
+        odooTagIds: [1],
+        odooTagNames: ['Mantenimiento'],
+        ticketDescription: null,
+        timesheetDescription: null,
+        updatedAt: '',
+      };
+      expect(component.isConfigMissing).toBe(true);
+    });
+
+    it('es true cuando faltan tags aunque haya defaultTimeMinutes', () => {
+      component.taskConfig = {
+        taskType: 'SERVER_HOST_MAINTENANCE',
+        defaultTimeMinutes: 90,
+        odooTagIds: [],
+        odooTagNames: [],
+        ticketDescription: null,
+        timesheetDescription: null,
+        updatedAt: '',
+      };
+      expect(component.isConfigMissing).toBe(true);
+    });
+
+    it('es false cuando hay defaultTimeMinutes y tags', () => {
+      component.taskConfig = mockTaskConfig;
+      expect(component.isConfigMissing).toBe(false);
+    });
+  });
+
+  // ── canComplete ──────────────────────────────────────────────────────────
+
+  describe('canComplete', () => {
+    it('canComplete es false cuando taskConfig es null', () => {
+      component.task = { ...makeTask(), status: 'IN_PROGRESS' };
+      component['taskConfig'] = null;
+      expect(component.canComplete).toBe(false);
+    });
+
+    it('canComplete es true cuando taskConfig tiene defaultTimeMinutes y tags', () => {
+      component.task = { ...makeTask(), status: 'IN_PROGRESS' };
+      component['taskConfig'] = {
+        taskType: 'SERVER_HOST_MAINTENANCE',
+        defaultTimeMinutes: 90,
+        odooTagIds: [1],
+        odooTagNames: ['Mantenimiento'],
+        ticketDescription: null,
+        timesheetDescription: null,
+        updatedAt: '',
+      };
+      expect(component.canComplete).toBe(true);
+    });
+
+    it('canComplete es false cuando faltan los tags aunque haya tiempo configurado', () => {
+      component.task = { ...makeTask(), status: 'IN_PROGRESS' };
+      component['taskConfig'] = {
+        taskType: 'SERVER_HOST_MAINTENANCE',
+        defaultTimeMinutes: 90,
+        odooTagIds: [],
+        odooTagNames: [],
+        ticketDescription: null,
+        timesheetDescription: null,
+        updatedAt: '',
+      };
+      expect(component.canComplete).toBe(false);
+    });
+  });
+
   // ── onRequestSave ─────────────────────────────────────────────────────────
 
   describe('onRequestSave()', () => {
@@ -222,6 +306,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { create: createSpy, update: updateSpy } as any,
         { updateStatus: updateStatusSpy } as any,
         mockDialog,
+        makeMockTaskConfigService(),
       );
       saveComponent.task = makeTask({ status: 'PENDING' });
     });
@@ -310,7 +395,9 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { create: createSpy, update: updateSpy } as any,
         { updateStatus: updateStatusSpy } as any,
         mockDialogThatConfirms,
+        makeMockTaskConfigService(),
       );
+      completeComponent.taskConfig = mockTaskConfig;
     });
 
     it('hace doble transición PENDING → IN_PROGRESS → DONE cuando tarea está en PENDING', () => {
@@ -367,30 +454,51 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { getClientInfrastructure: () => of(null) } as any,
         { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } as any,
         { updateStatus: updateStatusSpy } as any,
-        makeDialogThatConfirms(45),
+        mockDialogThatConfirms,
+        makeMockTaskConfigService(),
       );
       notDoneComponent.task = makeTask({ status: 'IN_PROGRESS' });
+      notDoneComponent.taskConfig = mockTaskConfig;
     });
 
-    it('abre TimeSpentDialog y llama updateStatus con NOT_DONE y los minutos', () => {
+    it('llama updateStatus con NOT_DONE cuando se confirma', () => {
       notDoneComponent.onRequestNotDone();
 
-      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'NOT_DONE', timeSpentMinutes: 45 });
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'NOT_DONE', reason: undefined });
     });
 
-    it('no llama updateStatus si el diálogo de tiempo es cancelado', () => {
+    it('pasa el reason del diálogo a updateStatus cuando hay motivo', () => {
+      const dialogWithReason = {
+        open: () => ({ afterClosed: () => of({ confirmed: true, reason: 'Sin horas disponibles' }) }),
+      } as unknown as MatDialog;
+      const reasonComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } as any,
+        { updateStatus: updateStatusSpy } as any,
+        dialogWithReason,
+        makeMockTaskConfigService(),
+      );
+      reasonComponent.task = makeTask({ status: 'IN_PROGRESS' });
+      reasonComponent.taskConfig = mockTaskConfig;
+
+      reasonComponent.onRequestNotDone();
+
+      expect(updateStatusSpy).toHaveBeenCalledWith('task-1', { status: 'NOT_DONE', reason: 'Sin horas disponibles' });
+    });
+
+    it('no llama updateStatus si el diálogo es cancelado (retorna null)', () => {
       const cancelDialog = {
-        open: (component: unknown) => ({
-          afterClosed: () => component === TimeSpentDialogComponent ? of(null) : of(true),
-        }),
+        open: () => ({ afterClosed: () => of(null) }),
       } as unknown as MatDialog;
       const cancelComponent = new TaskDrawerComponent(
         { getClientInfrastructure: () => of(null) } as any,
         { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } as any,
         { updateStatus: updateStatusSpy } as any,
         cancelDialog,
+        makeMockTaskConfigService(),
       );
       cancelComponent.task = makeTask({ status: 'IN_PROGRESS' });
+      cancelComponent.taskConfig = mockTaskConfig;
 
       cancelComponent.onRequestNotDone();
 
@@ -443,6 +551,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { create: () => of({}), update: () => of({}), get: getLogSpy } as any,
         { updateStatus: () => of({}) } as any,
         mockDialog,
+        makeMockTaskConfigService(),
       );
       loadComponent.task = makeTask();
     });
@@ -517,6 +626,7 @@ describe('TaskDrawerComponent — template tests', () => {
         { provide: MaintenanceLogsService, useValue: { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } },
         { provide: TasksService, useValue: { updateStatus: () => of({}) } },
         { provide: MatDialog, useValue: { open: () => ({ afterClosed: () => of(false) }) } },
+        { provide: TaskConfigService, useValue: { getAll: () => of([mockTaskConfig]) } },
       ],
     }).compileComponents();
 
@@ -575,9 +685,10 @@ describe('TaskDrawerComponent — template tests', () => {
       expect(btn).toBeTruthy();
     });
 
-    it('should render "No concretada" button for SITE_VISIT', () => {
+    it('should render "No realizada" button for SITE_VISIT when role is ADMIN', () => {
+      component.userRole = 'ADMIN';
       setupWithType('SITE_VISIT');
-      const btn = findButton('No concretada');
+      const btn = findButton('No realizada');
       expect(btn).toBeTruthy();
     });
 
@@ -652,6 +763,61 @@ describe('TaskDrawerComponent — template tests', () => {
       setupWithType('WINDOWS_DOMAIN_MAINTENANCE', 'IN_PROGRESS');
       const banner = fixture.nativeElement.querySelector('.d-readonly');
       expect(banner).toBeFalsy();
+    });
+  });
+
+  // ── Advertencia de configuración faltante ──────────────────────────────────
+
+  describe('advertencia de configuración faltante', () => {
+    function setConfig(config: TaskTypeConfigDto | null): void {
+      component.taskConfig = config;
+      fixture.detectChanges();
+    }
+
+    it('muestra el banner cuando falta el tiempo predefinido', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig({ ...mockTaskConfig, defaultTimeMinutes: null });
+      expect(fixture.nativeElement.querySelector('.d-config-warn')).toBeTruthy();
+    });
+
+    it('muestra el banner cuando faltan los tags', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig({ ...mockTaskConfig, odooTagIds: [], odooTagNames: [] });
+      expect(fixture.nativeElement.querySelector('.d-config-warn')).toBeTruthy();
+    });
+
+    it('no muestra el banner cuando el tipo de tarea está totalmente configurado', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig(mockTaskConfig);
+      expect(fixture.nativeElement.querySelector('.d-config-warn')).toBeFalsy();
+    });
+
+    it('no muestra el banner en una tarea de solo lectura aunque falte configuración', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE', 'DONE');
+      setConfig({ ...mockTaskConfig, defaultTimeMinutes: null });
+      expect(fixture.nativeElement.querySelector('.d-config-warn')).toBeFalsy();
+    });
+
+    it('deshabilita "Guardar progreso" cuando falta la configuración', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig({ ...mockTaskConfig, defaultTimeMinutes: null });
+      const btn = findButton('Guardar progreso');
+      expect(btn).toBeTruthy();
+      expect(btn!.disabled).toBe(true);
+    });
+
+    it('habilita "Guardar progreso" cuando la configuración está completa', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig(mockTaskConfig);
+      const btn = findButton('Guardar progreso');
+      expect(btn!.disabled).toBe(false);
+    });
+
+    it('deshabilita "Completar mantenimiento" cuando faltan los tags aunque haya tiempo', () => {
+      setupWithType('WINDOWS_DOMAIN_MAINTENANCE');
+      setConfig({ ...mockTaskConfig, odooTagIds: [], odooTagNames: [] });
+      const btn = findButton('Completar mantenimiento');
+      expect(btn!.disabled).toBe(true);
     });
   });
 
@@ -751,22 +917,69 @@ describe('TaskDrawerComponent — template tests', () => {
       expect(btn).toBeFalsy();
     });
 
-    it('ADMIN ve el botón de eliminar', () => {
-      const fix = setup('ADMIN');
-      const btn = fix.nativeElement.querySelector('[data-testid="btn-delete"]');
-      expect(btn).toBeTruthy();
-    });
-
-    it('TECHNICIAN no ve el botón de eliminar', () => {
-      const fix = setup('TECHNICIAN');
-      const btn = fix.nativeElement.querySelector('[data-testid="btn-delete"]');
-      expect(btn).toBeFalsy();
-    });
-
     it('ciclo cerrado oculta todos los botones de acción', () => {
       const fix = setup('ADMIN', true);
       expect(fix.nativeElement.querySelector('[data-testid="btn-complete"]')).toBeFalsy();
       expect(fix.nativeElement.querySelector('[data-testid="btn-delete"]')).toBeFalsy();
+    });
+  });
+
+  // ── canMarkNotDone ──────────────────────────────────────────────────────────
+
+  describe('canMarkNotDone', () => {
+    function setup(role: UserRole): ComponentFixture<TaskDrawerComponent> {
+      const fix = TestBed.createComponent(TaskDrawerComponent);
+      fix.componentInstance.task = makeTask({ type: 'WINDOWS_DOMAIN_MAINTENANCE', scheduledDate: futureDate(10) });
+      fix.componentInstance.userRole = role;
+      fix.componentInstance.cycleClosed = false;
+      fix.detectChanges();
+      return fix;
+    }
+
+    it('es true para ADMIN con tarea activa y ciclo abierto', () => {
+      const fix = setup('ADMIN');
+      fix.componentInstance.task = { ...fix.componentInstance.task, status: 'PENDING' };
+      fix.componentInstance.cycleClosed = false;
+      fix.detectChanges();
+      expect(fix.componentInstance.canMarkNotDone).toBeTrue();
+    });
+
+    it('es true para TL con tarea activa y ciclo abierto', () => {
+      const fix = setup('TL');
+      fix.componentInstance.task = { ...fix.componentInstance.task, status: 'IN_PROGRESS' };
+      fix.componentInstance.cycleClosed = false;
+      fix.detectChanges();
+      expect(fix.componentInstance.canMarkNotDone).toBeTrue();
+    });
+
+    it('es false para TECHNICIAN', () => {
+      const fix = setup('TECHNICIAN');
+      fix.componentInstance.cycleClosed = false;
+      fix.detectChanges();
+      expect(fix.componentInstance.canMarkNotDone).toBeFalse();
+    });
+
+    it('es false cuando el ciclo está cerrado', () => {
+      const fix = setup('ADMIN');
+      fix.componentInstance.cycleClosed = true;
+      fix.detectChanges();
+      expect(fix.componentInstance.canMarkNotDone).toBeFalse();
+    });
+
+    it('es false cuando la tarea está DONE', () => {
+      const fix = setup('ADMIN');
+      fix.componentInstance.task = { ...fix.componentInstance.task, status: 'DONE' };
+      fix.detectChanges();
+      expect(fix.componentInstance.canMarkNotDone).toBeFalse();
+    });
+
+    it('no renderiza el botón "Eliminar tarea" para ningún rol', () => {
+      for (const role of ['ADMIN', 'TL', 'TECHNICIAN'] as const) {
+        const fix = setup(role);
+        fix.detectChanges();
+        const btn = fix.nativeElement.querySelector('[data-testid="btn-delete"]');
+        expect(btn).toBeNull(`rol ${role} no debería ver btn-delete`);
+      }
     });
   });
 });

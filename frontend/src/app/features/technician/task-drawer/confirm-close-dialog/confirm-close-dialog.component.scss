@@ -1,0 +1,15 @@
+.reason-field {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.not-done-warn {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-bd);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--warn);
+  line-height: 1.5;
+}

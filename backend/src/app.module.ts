@@ -3,16 +3,17 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
-import { ClientsModule } from './clients/clients.module';
 import { UsersModule } from './users/users.module';
 import { TechniciansModule } from './technicians/technicians.module';
 import { TasksModule } from './tasks/tasks.module';
 import { MaintenanceLogsModule } from './maintenance-logs/maintenance-logs.module';
 import { InfradocIntegrationModule } from './integrations/infradoc/infradoc-integration.module';
 import { OdooIntegrationModule } from './integrations/odoo/odoo-integration.module';
+import { ClientsModule } from './clients/clients.module';
 import { VmwareIntegrationModule } from './integrations/vmware/vmware-integration.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SchedulesModule } from './schedules/schedules.module';
+import { TaskConfigModule } from './task-config/task-config.module';
 
 @Module({
   imports: [
@@ -31,15 +32,16 @@ import { SchedulesModule } from './schedules/schedules.module';
     ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
+    OdooIntegrationModule,
     ClientsModule,
     TechniciansModule,
     TasksModule,
     MaintenanceLogsModule,
     InfradocIntegrationModule,
-    OdooIntegrationModule,
     VmwareIntegrationModule,
     NotificationsModule,
     SchedulesModule,
+    TaskConfigModule,
   ],
 })
 export class AppModule {}

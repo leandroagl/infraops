@@ -1,22 +1,68 @@
 <div class="shf">
 
-  <div class="shf-section-lbl">VMware ESXi</div>
-
   <div class="shf-host-list">
-    <app-esxi-host-card
-      *ngFor="let host of infrastructure.esxiHosts"
-      [host]="host"
-      [result]="vmwareResults.get(host.assetId) ?? null"
-      [loading]="loadingHosts.has(host.assetId)"
-      [error]="hostErrors.get(host.assetId) ?? null"
-      [readOnly]="readOnly"
-      (runCheck)="onRunCheck($event, host.assetId)"
-    ></app-esxi-host-card>
+    <ng-container *ngFor="let host of infrastructure.esxiHosts">
+
+      <!-- VMware ESXi host -->
+      <ng-container *ngIf="!isWindowsHost(host)">
+        <div class="shf-section-lbl">VMware ESXi</div>
+        <app-esxi-host-card
+          [host]="host"
+          [result]="vmwareResults.get(host.assetId) ?? null"
+          [loading]="loadingHosts.has(host.assetId)"
+          [error]="hostErrors.get(host.assetId) ?? null"
+          [readOnly]="readOnly"
+          (runCheck)="onRunCheck($event, host.assetId)"
+        ></app-esxi-host-card>
+      </ng-container>
+
+      <!-- Windows bare-metal host -->
+      <ng-container *ngIf="isWindowsHost(host)">
+        <div class="shf-section-lbl">Windows Server</div>
+        <div class="shf-win-row" [ngClass]="'st-' + windowsRowState(host.assetId)">
+          <div class="shf-win-stripe"></div>
+          <div class="shf-win-inner">
+            <div class="shf-win-name-cell">
+              <span class="shf-win-name">{{ host.name }}</span>
+              <span class="shf-win-ip">{{ host.ip ?? '—' }}</span>
+            </div>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                            class="shf-win-ff"
+                            [ngClass]="selectClass(getWindowsCtrl(host.assetId).updates.value)">
+              <mat-select [formControl]="getWindowsCtrl(host.assetId).updates">
+                <mat-option value="ok">Al día</mat-option>
+                <mat-option value="pending">Pendientes</mat-option>
+                <mat-option value="failed">Error</mat-option>
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                            class="shf-win-rs-ff"
+                            [ngClass]="selectClass(getWindowsCtrl(host.assetId).restartScript.value)">
+              <mat-select [formControl]="getWindowsCtrl(host.assetId).restartScript">
+                <mat-option value="ok">Ejecutándose ✓</mat-option>
+                <mat-option value="no_task">Sin tarea</mat-option>
+                <mat-option value="error">Error de ejecución</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- BMC (todos los hosts) -->
+      <div class="shf-section-lbl">BMC</div>
+      <app-bmc-host-card
+        [host]="host"
+        [savedEntry]="bmcData.get(host.assetId) ?? null"
+        [readOnly]="readOnly"
+        (bmcChange)="onBmcChange($event)"
+      ></app-bmc-host-card>
+
+    </ng-container>
   </div>
 
   <mat-form-field appearance="outline" subscriptSizing="dynamic" class="shf-form-field">
     <mat-label>Notas</mat-label>
-    <textarea matInput [formControl]="notesControl" cdkTextareaAutosize
+    <textarea matInput [formControl]="notesControl" rows="3"
               placeholder="Observaciones generales..."></textarea>
   </mat-form-field>
 

@@ -1,0 +1,40 @@
+<div class="section-header">
+  <h2 class="section-title">Configuración de tipos de tarea</h2>
+  <p class="section-subtitle">Tiempo predefinido y tags de Odoo por tipo de tarea</p>
+</div>
+
+<mat-table [dataSource]="configs" class="task-config-table">
+
+  <ng-container matColumnDef="taskType">
+    <mat-header-cell *matHeaderCellDef>Tipo de tarea</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ taskTypeLabels[row.taskType] ?? row.taskType }}</mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="defaultTimeMinutes">
+    <mat-header-cell *matHeaderCellDef>Tiempo predefinido</mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <span *ngIf="row.defaultTimeMinutes != null" class="time-chip">{{ formatMinutes(row.defaultTimeMinutes) }}</span>
+      <span *ngIf="row.defaultTimeMinutes == null" class="time-unset">— sin configurar</span>
+    </mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="odooTags">
+    <mat-header-cell *matHeaderCellDef>Tags Odoo</mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <span *ngFor="let name of row.odooTagNames" class="tag-badge">{{ name }}</span>
+      <span *ngIf="row.odooTagNames.length === 0" class="time-unset">—</span>
+    </mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="actions">
+    <mat-header-cell *matHeaderCellDef></mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <button mat-icon-button (click)="openEdit(row)" aria-label="Editar configuración">
+        <mat-icon>edit</mat-icon>
+      </button>
+    </mat-cell>
+  </ng-container>
+
+  <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+  <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+</mat-table>

@@ -11,6 +11,7 @@ import { TaskType } from '../tasks/task-type.enum';
 import { TaskStatus } from '../tasks/task-status.enum';
 import { Task } from '../tasks/task.entity';
 import { Technician } from '../technicians/technician.entity';
+import { TaskConfigService } from '../task-config/task-config.service';
 
 export interface MonthlyPreviewClientDto {
   clientId: string;
@@ -34,6 +35,7 @@ export interface MonthlyPreviewDto {
   clientsWithoutTechnician: number;
   wasGenerated: boolean;
   taskStats: TaskStatsDto | null;
+  taskTypesWithoutTags: TaskType[];
 }
 
 export interface GenerationResultDto {
@@ -75,6 +77,7 @@ export class SchedulesService {
     @InjectRepository(Technician)
     private readonly techRepo: Repository<Technician>,
     private readonly tasksService: TasksService,
+    private readonly taskConfigService: TaskConfigService,
   ) {}
 
   findAll(): Promise<ClientSchedule[]> {
@@ -217,6 +220,12 @@ export class SchedulesService {
         }
       : null;
 
+    const configs = await this.taskConfigService.findAll();
+    const configByType = new Map(configs.map(c => [c.taskType, c]));
+    const taskTypesWithoutTags = V1_TASK_TYPES.filter(
+      type => (configByType.get(type)?.odooTagIds.length ?? 0) === 0,
+    );
+
     return {
       year,
       month,
@@ -225,10 +234,44 @@ export class SchedulesService {
       clientsWithoutTechnician: clients.filter(c => !c.technicianId).length,
       wasGenerated,
       taskStats,
+      taskTypesWithoutTags,
     };
   }
 
+  private async closeUnfinishedTasksFromPreviousMonth(
+    year: number,
+    month: number,
+  ): Promise<void> {
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear  = month === 1 ? year - 1 : year;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const firstDay = `${prevYear}-${pad(prevMonth)}-01`;
+    const lastDayNum = new Date(prevYear, prevMonth, 0).getDate();
+    const lastDay = `${prevYear}-${pad(prevMonth)}-${pad(lastDayNum)}`;
+
+    const unfinished = await this.taskRepo.find({
+      where: [
+        { scheduledDate: Between(firstDay, lastDay) as unknown as string, status: TaskStatus.PENDING },
+        { scheduledDate: Between(firstDay, lastDay) as unknown as string, status: TaskStatus.IN_PROGRESS },
+      ],
+      select: ['id'],
+    });
+
+    for (const task of unfinished) {
+      try {
+        await this.tasksService.updateStatus(task.id, TaskStatus.NOT_DONE, {
+          reason: 'Cierre automático de fin de mes',
+        });
+      } catch (err) {
+        this.logger.warn(
+          `No se pudo cerrar tarea ${task.id} automáticamente: ${(err as Error).message}`,
+        );
+      }
+    }
+  }
+
   async generateMonth(year: number, month: number): Promise<GenerationResultDto> {
+    await this.closeUnfinishedTasksFromPreviousMonth(year, month);
     await this.applyRotationIfNeeded();
     const group = MONTH_TO_GROUP[month];
     const rules = await this.scheduleRepo.find({

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
@@ -15,81 +15,23 @@ import { OdooPartner } from './dto/odoo-partner.dto';
 import { OdooUser } from './dto/odoo-user.dto';
 import { OdooSyncResult } from './dto/odoo-sync-result.dto';
 import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
+import { ClientSubscriptionHoursDto } from './dto/client-subscription-hours.dto';
 import { TaskType } from '../../tasks/task-type.enum';
+import { TaskConfigService } from '../../task-config/task-config.service';
+import { TICKET_DESCRIPTION_DEFAULTS, TIMESHEET_DESCRIPTION_DEFAULT } from '../../task-config/task-description-defaults';
+import { plainTextToHtml } from '../../task-config/plain-text-to-html';
 
-const CLOSING_NOTE = '<p>Ante cualquier anomalía detectada, se creará un ticket de soporte para su seguimiento y resolución.</p>';
-
-const WINDOWS_DOMAIN_DESCRIPTION = `
-<p>Control mensual preventivo sobre la infraestructura de servidores Windows.</p>
-<p>Se verifican los siguientes puntos:</p>
-<ul>
-  <li>Estado de actualizaciones del sistema operativo (Windows Updates) en cada servidor</li>
-  <li>Revisión de logs de eventos: errores y advertencias críticas</li>
-  <li>Replicación de Active Directory y salud general de controladores de dominio</li>
-  <li>Estado del servicio DNS: resolución, SRV records y zonas configuradas</li>
-  <li>Consistencia de SYSVOL / DFSR</li>
-  <li>Espacio en disco y rendimiento general del sistema</li>
-</ul>
-${CLOSING_NOTE}
-`.trim();
-
-const SERVER_HOST_DESCRIPTION = `
-<p>Control mensual preventivo sobre los hosts de virtualización ESXi y su infraestructura asociada.</p>
-<p>Se verifican los siguientes puntos:</p>
-<ul>
-  <li>Estado general del host: versión de ESXi, uptime y alertas de hardware</li>
-  <li>Consumo de recursos: uso de CPU y memoria</li>
-  <li>Estado de datastores: capacidad total, espacio libre y accesibilidad</li>
-  <li>Máquinas virtuales: estado de encendido, snapshots acumulados y antigüedad, estado de VMware Tools</li>
-  <li>Red: estado de vSwitches y NICs, velocidades de enlace</li>
-</ul>
-${CLOSING_NOTE}
-`.trim();
-
-const QNAP_DESCRIPTION = `
-<p>Control mensual preventivo sobre el repositorio de backups QNAP/NAS.</p>
-<p>Se verifican los siguientes puntos:</p>
-<ul>
-  <li>Estado de los discos físicos: cantidad instalada y detección de fallas o alertas por unidad</li>
-  <li>Estado del volumen RAID: degradación, falta de sincronización o error crítico</li>
-  <li>Capacidad de almacenamiento: espacio utilizado sobre el total disponible</li>
-  <li>Versión de firmware del dispositivo y aplicación de actualizaciones disponibles</li>
-</ul>
-${CLOSING_NOTE}
-`.trim();
-
-const VEEAM_DESCRIPTION = `
-<p>Control mensual preventivo sobre los trabajos de backup administrados con Veeam Backup &amp; Replication.</p>
-<p>Se verifican los siguientes puntos:</p>
-<ul>
-  <li>Cobertura de backup por máquina virtual: job de Veeam, agente instalado o exclusión justificada</li>
-  <li>Cantidad de backups completos (full) realizados en el mes por cada VM</li>
-  <li>Identificación de VMs sin cobertura o con cadena de incrementales sin full base reciente</li>
-</ul>
-${CLOSING_NOTE}
-`.trim();
-
-const ROUTER_DESCRIPTION = `
-<p>Control mensual preventivo sobre routers y firewalls de la infraestructura del cliente.</p>
-<p>Se verifican los siguientes puntos:</p>
-<ul>
-  <li>Versión de firmware instalada y aplicación de actualizaciones disponibles</li>
-  <li>Generación de backup de configuración del dispositivo</li>
-</ul>
-${CLOSING_NOTE}
-`.trim();
-
-const TICKET_META: Record<TaskType, { name: string; description: string }> = {
-  [TaskType.SERVER_HOST_MAINTENANCE]:        { name: 'Mantenimiento de hosts VMware/BMC',             description: SERVER_HOST_DESCRIPTION },
-  [TaskType.WINDOWS_DOMAIN_MAINTENANCE]:     { name: 'Mantenimiento de servidores y dominio Windows', description: WINDOWS_DOMAIN_DESCRIPTION },
-  [TaskType.ROUTER_MAINTENANCE]:             { name: 'Mantenimiento de router y firewall',            description: ROUTER_DESCRIPTION },
-  [TaskType.QNAP_MAINTENANCE]:               { name: 'Mantenimiento repositorio de backups QNAP/NAS', description: QNAP_DESCRIPTION },
-  [TaskType.VEEAM_BACKUP]:                   { name: 'Mantenimiento de backups Veeam',                description: VEEAM_DESCRIPTION },
-  [TaskType.TERMINAL_MAINTENANCE]:           { name: 'Mantenimiento de terminales',                   description: 'Mantenimiento mensual de terminales.' },
-  [TaskType.SITE_VISIT]:                     { name: 'Visita técnica presencial',                     description: 'Visita técnica al cliente.' },
-  [TaskType.AV_CONTROL]:                     { name: 'Control de antivirus',                          description: 'Control mensual de antivirus.' },
-  [TaskType.UPS_CONTROL]:                    { name: 'Control de UPS',                                description: 'Control mensual de equipos UPS.' },
-  [TaskType.ENDPOINT_INVENTORY]:             { name: 'Inventario de endpoints',                       description: 'Relevamiento de endpoints.' },
+const TICKET_META: Record<TaskType, { name: string }> = {
+  [TaskType.SERVER_HOST_MAINTENANCE]:    { name: 'Mantenimiento de hosts VMware/BMC' },
+  [TaskType.WINDOWS_DOMAIN_MAINTENANCE]: { name: 'Mantenimiento de servidores y dominio Windows' },
+  [TaskType.ROUTER_MAINTENANCE]:         { name: 'Mantenimiento de router y firewall' },
+  [TaskType.QNAP_MAINTENANCE]:           { name: 'Mantenimiento repositorio de backups QNAP/NAS' },
+  [TaskType.VEEAM_BACKUP]:               { name: 'Mantenimiento de backups Veeam' },
+  [TaskType.TERMINAL_MAINTENANCE]:       { name: 'Mantenimiento de terminales' },
+  [TaskType.SITE_VISIT]:                 { name: 'Visita técnica presencial' },
+  [TaskType.AV_CONTROL]:                 { name: 'Control de antivirus' },
+  [TaskType.UPS_CONTROL]:               { name: 'Control de UPS' },
+  [TaskType.ENDPOINT_INVENTORY]:         { name: 'Inventario de endpoints' },
 };
 
 @Injectable()
@@ -97,16 +39,12 @@ export class OdooService {
   private readonly logger = new Logger(OdooService.name);
   private doneStageId: number | null = null;
   private inProgressStageId: number | null = null;
-  private qnapTagId: number | null = null;
-  private windowsAdDomainTagId: number | null = null;
-  private windowsServerTagId: number | null = null;
-  private virtualizationTagId: number | null = null;
-  private serverManagementTagId: number | null = null;
-  private routerFirewallTagId: number | null = null;
+  private notDoneStageId: number | null = null;
 
   constructor(
     private readonly systemRpc: OdooSystemRpcService,
     private readonly configService: ConfigService,
+    private readonly taskConfigService: TaskConfigService,
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,
     @InjectRepository(User)
@@ -124,7 +62,6 @@ export class OdooService {
           [
             ['is_company', '=', true],
             ['vat', '!=', false],
-            ['email', '!=', false],
           ],
         ],
         { fields: ['id', 'name', 'vat'] },
@@ -148,7 +85,7 @@ export class OdooService {
         );
         continue;
       }
-      const client = clientByCuit.get(partner.vat);
+      const client = clientByCuit.get(partner.vat.replace(/-/g, ''));
       if (client) {
         await this.clientRepo.update(client.id, {
           odooPartnerId: partner.id,
@@ -329,10 +266,89 @@ export class OdooService {
     return lines[0].id;
   }
 
+  async getSubscriptionHours(
+    partnerIds: number[],
+  ): Promise<{ partnerId: number; contracted: number; delivered: number }[]> {
+    if (partnerIds.length === 0) return [];
+
+    const lines = await this.systemRpc.callKw<
+      Array<{
+        id: number;
+        product_uom_qty: number;
+        qty_delivered: number;
+        order_id: [number, string];
+      }>
+    >(
+      'sale.order.line',
+      'search_read',
+      [
+        [
+          ['order_id.partner_id', 'in', partnerIds],
+          ['product_id.name', 'in', ['Hora Única', 'Hora Única Garantia']],
+          ['order_id.state', 'in', ['sale', 'done']],
+        ],
+      ],
+      { fields: ['product_uom_qty', 'qty_delivered', 'order_id'] },
+    );
+
+    if (lines.length === 0) return [];
+
+    const orderIds = [...new Set(lines.map((l) => l.order_id[0]))];
+    const orders = await this.systemRpc.callKw<
+      Array<{ id: number; partner_id: [number, string] }>
+    >(
+      'sale.order',
+      'read',
+      [orderIds],
+      { fields: ['partner_id'] },
+    );
+
+    const partnerByOrderId = new Map(orders.map((o) => [o.id, o.partner_id[0]]));
+
+    const totals = new Map<number, { contracted: number; delivered: number }>();
+    for (const line of lines) {
+      const partnerId = partnerByOrderId.get(line.order_id[0]);
+      if (partnerId === undefined) continue;
+      const existing = totals.get(partnerId) ?? { contracted: 0, delivered: 0 };
+      totals.set(partnerId, {
+        contracted: existing.contracted + line.product_uom_qty,
+        delivered: existing.delivered + line.qty_delivered,
+      });
+    }
+
+    return Array.from(totals.entries()).map(([partnerId, { contracted, delivered }]) => ({
+      partnerId,
+      contracted,
+      delivered,
+    }));
+  }
+
+  async getClientSubscriptionHours(): Promise<ClientSubscriptionHoursDto[]> {
+    const clients = await this.clientRepo.find({
+      where: { isActive: true, odooPartnerId: Not(IsNull()) },
+      select: { id: true, odooPartnerId: true },
+    });
+
+    if (clients.length === 0) return [];
+
+    const partnerIds = clients.map((c) => c.odooPartnerId!);
+    const hours = await this.getSubscriptionHours(partnerIds);
+
+    const partnerToClientId = new Map(clients.map((c) => [c.odooPartnerId!, c.id]));
+
+    return hours.map(({ partnerId, contracted, delivered }) => ({
+      clientId: partnerToClientId.get(partnerId)!,
+      contracted,
+      delivered,
+      available: Math.max(0, contracted - delivered),
+    }));
+  }
+
   private async logTimesheet(
     odooTicketId: number,
     employeeId: number,
     unitAmount: number,
+    description: string,
   ): Promise<void> {
     await this.systemRpc.callKw<number>(
       'account.analytic.line',
@@ -341,7 +357,7 @@ export class OdooService {
         {
           helpdesk_ticket_id: odooTicketId,
           employee_id: employeeId,
-          name: 'Mantenimiento realizado',
+          name: description,
           unit_amount: unitAmount,
           date: new Date().toISOString().split('T')[0],
         },
@@ -380,6 +396,36 @@ export class OdooService {
     return this.inProgressStageId;
   }
 
+  private async resolveNotDoneStageId(): Promise<number> {
+    if (this.notDoneStageId !== null) return this.notDoneStageId;
+
+    const teamId = parseInt(
+      this.configService.getOrThrow<string>('ODOO_HELPDESK_TEAM_ID'),
+      10,
+    );
+
+    const stages = await this.systemRpc.callKw<Array<{ id: number }>>(
+      'helpdesk.stage',
+      'search_read',
+      [
+        [
+          ['team_ids', 'in', [teamId]],
+          ['name', '=', 'No realizadas'],
+        ],
+      ],
+      { fields: ['id'], limit: 1 },
+    );
+
+    if (stages.length === 0) {
+      throw new ServiceUnavailableException(
+        'No se encontró stage "No realizadas" en Odoo para el equipo configurado',
+      );
+    }
+
+    this.notDoneStageId = stages[0].id;
+    return this.notDoneStageId;
+  }
+
   async markTicketInProgress(odooTicketId: number): Promise<void> {
     const stageId = await this.resolveInProgressStageId();
     await this.systemRpc.callKw<boolean>(
@@ -390,124 +436,19 @@ export class OdooService {
     );
   }
 
-  private async resolveQnapTagId(): Promise<number> {
-    if (this.qnapTagId !== null) return this.qnapTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Backups (NAS)']]],
-      { fields: ['id'], limit: 1 },
+  async markTicketNotDone(
+    ticketId: number,
+    employeeId: number,
+    reason: string,
+  ): Promise<void> {
+    const stageId = await this.resolveNotDoneStageId();
+    await this.logTimesheet(ticketId, employeeId, 0, reason);
+    await this.systemRpc.callKw<boolean>(
+      'helpdesk.ticket',
+      'write',
+      [[ticketId], { stage_id: stageId }],
+      {},
     );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Backups (NAS)" en Odoo',
-      );
-    }
-
-    this.qnapTagId = tags[0].id;
-    return this.qnapTagId;
-  }
-
-  private async resolveWindowsAdDomainTagId(): Promise<number> {
-    if (this.windowsAdDomainTagId !== null) return this.windowsAdDomainTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Windows AD Domain']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Windows AD Domain" en Odoo',
-      );
-    }
-
-    this.windowsAdDomainTagId = tags[0].id;
-    return this.windowsAdDomainTagId;
-  }
-
-  private async resolveWindowsServerTagId(): Promise<number> {
-    if (this.windowsServerTagId !== null) return this.windowsServerTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Windows Server']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Windows Server" en Odoo',
-      );
-    }
-
-    this.windowsServerTagId = tags[0].id;
-    return this.windowsServerTagId;
-  }
-
-  private async resolveVirtualizationTagId(): Promise<number> {
-    if (this.virtualizationTagId !== null) return this.virtualizationTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Virtualización']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Virtualización" en Odoo',
-      );
-    }
-
-    this.virtualizationTagId = tags[0].id;
-    return this.virtualizationTagId;
-  }
-
-  private async resolveServerManagementTagId(): Promise<number> {
-    if (this.serverManagementTagId !== null) return this.serverManagementTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Gestión de servidores']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Gestión de servidores" en Odoo',
-      );
-    }
-
-    this.serverManagementTagId = tags[0].id;
-    return this.serverManagementTagId;
-  }
-
-  private async resolveRouterFirewallTagId(): Promise<number> {
-    if (this.routerFirewallTagId !== null) return this.routerFirewallTagId;
-
-    const tags = await this.systemRpc.callKw<Array<{ id: number }>>(
-      'helpdesk.tag',
-      'search_read',
-      [[['name', '=', 'Router/Firewall']]],
-      { fields: ['id'], limit: 1 },
-    );
-
-    if (tags.length === 0) {
-      throw new ServiceUnavailableException(
-        'No se encontró el tag "Router/Firewall" en Odoo',
-      );
-    }
-
-    this.routerFirewallTagId = tags[0].id;
-    return this.routerFirewallTagId;
   }
 
   private async resolveDoneStageId(): Promise<number> {
@@ -540,13 +481,26 @@ export class OdooService {
     return this.doneStageId;
   }
 
+  async getHelpdeskTags(): Promise<{ id: number; name: string }[]> {
+    const tags = await this.systemRpc.callKw<Array<{ id: number; name: string }>>(
+      'helpdesk.tag',
+      'search_read',
+      [[]],
+      { fields: ['id', 'name'] },
+    );
+    return tags.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
   async closeTicket(
     odooTicketId: number,
     employeeId: number,
     unitAmount: number,
+    taskType: TaskType,
   ): Promise<void> {
     const stageId = await this.resolveDoneStageId();
-    await this.logTimesheet(odooTicketId, employeeId, unitAmount);
+    const config = await this.taskConfigService.findOne(taskType);
+    const timesheetDescription = config?.timesheetDescription ?? TIMESHEET_DESCRIPTION_DEFAULT;
+    await this.logTimesheet(odooTicketId, employeeId, unitAmount, timesheetDescription);
     await this.systemRpc.callKw<boolean>(
       'helpdesk.ticket',
       'write',
@@ -597,38 +551,20 @@ export class OdooService {
 
     const saleLineId = await this.resolveSaleLineId(clientId);
     const meta = TICKET_META[taskType];
+    const config = await this.taskConfigService.findOne(taskType);
 
     const payload: Record<string, unknown> = {
       team_id: teamId,
       partner_id: partnerId,
       user_id: odooUserId,
       name: meta.name,
-      description: meta.description,
+      description: plainTextToHtml(config?.ticketDescription ?? TICKET_DESCRIPTION_DEFAULTS[taskType]),
     };
     if (saleLineId !== null) {
       payload['sale_line_id'] = saleLineId;
     }
-    if (taskType === TaskType.WINDOWS_DOMAIN_MAINTENANCE) {
-      const adDomainTagId = await this.resolveWindowsAdDomainTagId();
-      const serverTagId = await this.resolveWindowsServerTagId();
-      payload['tag_ids'] = [[6, 0, [adDomainTagId, serverTagId]]];
-    }
-    if (taskType === TaskType.SERVER_HOST_MAINTENANCE) {
-      const virtualizationId = await this.resolveVirtualizationTagId();
-      const serverMgmtId = await this.resolveServerManagementTagId();
-      payload['tag_ids'] = [[6, 0, [virtualizationId, serverMgmtId]]];
-    }
-    if (taskType === TaskType.QNAP_MAINTENANCE) {
-      const tagId = await this.resolveQnapTagId();
-      payload['tag_ids'] = [[6, 0, [tagId]]];
-    }
-    if (taskType === TaskType.VEEAM_BACKUP) {
-      const tagId = await this.resolveQnapTagId();
-      payload['tag_ids'] = [[6, 0, [tagId]]];
-    }
-    if (taskType === TaskType.ROUTER_MAINTENANCE) {
-      const tagId = await this.resolveRouterFirewallTagId();
-      payload['tag_ids'] = [[6, 0, [tagId]]];
+    if (config && config.odooTagIds.length > 0) {
+      payload['tag_ids'] = [[6, 0, config.odooTagIds]];
     }
 
     const ticketId = await this.systemRpc.callKw<number>(

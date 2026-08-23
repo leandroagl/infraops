@@ -53,6 +53,11 @@ const routes: Routes = [
         loadChildren: () =>
           import('./features/profile/profile.module').then(m => m.ProfileModule),
       },
+      {
+        path: 'docs',
+        loadChildren: () =>
+          import('./features/docs/docs.module').then(m => m.DocsModule),
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
     ],
   },

@@ -1,32 +1,31 @@
-<div class="mf-cl-rpt qnap-card"
-     [class.mf-cl-rpt--warn]="cardHealth === 'warn'"
-     [class.qnap-card--crit]="cardHealth === 'crit'">
+<div class="qdc"
+     [class.qdc--warn]="cardHealth === 'warn'"
+     [class.qdc--crit]="cardHealth === 'crit'">
 
-  <!-- Header — solo badge RAID, espacio % se muestra junto a la barra -->
-  <div class="qnap-card-header">
-    <div class="qnap-card-identity">
-      <span class="mf-cl-rpt-label">{{ device.name }}</span>
-      <span class="mono mf-host-ip">{{ device.ip ?? '—' }}</span>
+  <!-- Header -->
+  <div class="qdc-hdr">
+    <div class="qdc-name-block">
+      <span class="qdc-name">{{ deviceLabel }}</span>
+      <span class="qdc-ip">{{ device.ip ?? '—' }}</span>
     </div>
     <span class="badge" [ngClass]="raidBadgeClass()">
       <span class="dot"></span>{{ raidBadgeLabel() }}
     </span>
   </div>
 
-  <div [formGroup]="group" class="qnap-card-body">
+  <div [formGroup]="group" class="qdc-body">
 
-    <!-- Sección almacenamiento -->
-    <div class="mf-section-lbl">Almacenamiento</div>
+    <!-- Almacenamiento -->
+    <div class="qdc-section-lbl">Almacenamiento</div>
 
-    <!-- Fila 1: info física del arreglo -->
-    <div class="qnap-disks-row">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff">
+    <div class="qdc-disks-row">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="qdc-metric-ff">
         <mat-label>Cantidad de discos</mat-label>
         <input matInput formControlName="diskCount" type="number" min="1" placeholder="0" />
       </mat-form-field>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field"
-                      [ngClass]="group.get('disksWithError')?.value?.length ? 'mf-sel--crit' : ''">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="qdc-field"
+                      [ngClass]="group.get('disksWithError')?.value?.length ? 'qdc-sel--crit' : ''">
         <mat-label>Discos con error</mat-label>
         <mat-select formControlName="disksWithError" multiple>
           <mat-option *ngFor="let slot of diskSlotOptions" [value]="slot">{{ slot }}</mat-option>
@@ -34,13 +33,12 @@
       </mat-form-field>
     </div>
 
-    <div *ngIf="group.get('disksWithError')?.value?.length" class="qnap-disk-error-chips">
-      <span *ngFor="let disk of group.get('disksWithError')?.value" class="qnap-disk-chip">{{ disk }}</span>
+    <div *ngIf="group.get('disksWithError')?.value?.length" class="qdc-disk-error-chips">
+      <span *ngFor="let disk of group.get('disksWithError')?.value" class="qdc-disk-chip">{{ disk }}</span>
     </div>
 
-    <!-- Fila 2: capacidad -->
-    <div class="qnap-space-row">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff">
+    <div class="qdc-space-row">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="qdc-metric-ff">
         <mat-label>Espacio total</mat-label>
         <input matInput formControlName="totalSpaceGB" type="number" min="0" placeholder="0" />
         <mat-select matSuffix formControlName="totalSpaceUnit" style="width:55px">
@@ -49,7 +47,7 @@
         </mat-select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-metric-ff"
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="qdc-metric-ff"
                       [ngClass]="metricClass(spaceRatio, 70, 85)">
         <mat-label>Espacio utilizado</mat-label>
         <input matInput formControlName="usedSpaceGB" type="number" min="0" placeholder="0" />
@@ -60,20 +58,18 @@
       </mat-form-field>
     </div>
 
-    <!-- Barra de progreso + % juntos -->
-    <div *ngIf="spaceRatio > 0" class="qnap-progress-wrap">
-      <div class="qnap-progress-bar">
-        <div class="qnap-progress-fill"
+    <div *ngIf="spaceRatio > 0" class="qdc-progress-wrap">
+      <div class="qdc-progress-bar">
+        <div class="qdc-progress-fill"
              [ngClass]="metricClass(spaceRatio, 70, 85)"
              [style.width.%]="spaceRatio"></div>
       </div>
-      <span class="qnap-progress-pct" [ngClass]="metricClass(spaceRatio, 70, 85)">
+      <span class="qdc-progress-pct" [ngClass]="metricClass(spaceRatio, 70, 85)">
         {{ spaceRatio | number:'1.0-0' }}%
       </span>
     </div>
 
-    <!-- Estado RAID -->
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field qnap-raid-field"
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="qdc-field qdc-raid-field"
                     [ngClass]="selectClass(group.get('raidStatus')?.value)">
       <mat-label>Estado RAID</mat-label>
       <mat-select formControlName="raidStatus">
@@ -83,21 +79,21 @@
       </mat-select>
     </mat-form-field>
 
-    <!-- Sección firmware -->
-    <div class="mf-section-lbl">Firmware</div>
+    <!-- Firmware -->
+    <div class="qdc-section-lbl">Firmware</div>
 
-    <div class="qnap-firmware-row">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="mf-form-field">
+    <div class="qdc-firmware-row">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="qdc-field">
         <mat-label>Versión instalada</mat-label>
         <input matInput formControlName="firmwareVersion" placeholder="Ej: 5.1.0.2566" />
       </mat-form-field>
-      <mat-checkbox formControlName="firmwareUpdated" class="mf-cl-mat mf-qnap-fw-check">
+      <mat-checkbox formControlName="firmwareUpdated" class="qdc-check">
         Se actualizó el firmware
       </mat-checkbox>
     </div>
 
     <mat-form-field *ngIf="firmwareUpdated"
-                    appearance="outline" subscriptSizing="dynamic" class="mf-form-field qnap-new-version">
+                    appearance="outline" subscriptSizing="dynamic" class="qdc-field qdc-new-version">
       <mat-label>Nueva versión aplicada</mat-label>
       <input matInput formControlName="firmwareNewVersion" placeholder="Ej: 5.2.0.2800" />
     </mat-form-field>

@@ -12,6 +12,11 @@ export class RouterDeviceCardComponent {
   @Input() group!: FormGroup;
   @Input() readOnly = false;
 
+  get deviceLabel(): string {
+    const parts = [this.device.make, this.device.model].filter(Boolean);
+    return parts.length ? parts.join(' ') : this.device.name;
+  }
+
   get firmwareUpdated(): boolean {
     return this.group.get('firmwareUpdated')?.value === true;
   }

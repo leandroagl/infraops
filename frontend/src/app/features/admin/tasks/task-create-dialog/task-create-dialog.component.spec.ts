@@ -16,10 +16,28 @@ import { ClientsService } from '../../../../core/services/clients.service';
 import { TechniciansService } from '../../../../core/services/technicians.service';
 import { TasksService } from '../../../../core/services/tasks.service';
 import { InfradocService } from '../../../../core/services/infradoc.service';
+import { TaskConfigService } from '../../../../core/services/task-config.service';
 import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
+import { TaskType, TaskTypeConfigDto } from '../../../../core/models/task.models';
 
 const mockClients = [{ id: 'c1', name: 'Cliente A', isActive: true }];
 const mockTechnicians = [{ id: 'tech1', user: { id: 'u1', name: 'Valen', email: 'v@ondra.com', isActive: true } }];
+
+const ALL_TASK_TYPES: TaskType[] = [
+  'WINDOWS_DOMAIN_MAINTENANCE', 'SERVER_HOST_MAINTENANCE', 'ROUTER_MAINTENANCE',
+  'QNAP_MAINTENANCE', 'VEEAM_BACKUP', 'TERMINAL_MAINTENANCE', 'SITE_VISIT',
+  'AV_CONTROL', 'UPS_CONTROL', 'ENDPOINT_INVENTORY',
+];
+
+const fullyTaggedConfigs: TaskTypeConfigDto[] = ALL_TASK_TYPES.map(taskType => ({
+  taskType,
+  defaultTimeMinutes: 60,
+  odooTagIds: [1],
+  odooTagNames: ['Tag'],
+  ticketDescription: null,
+  timesheetDescription: null,
+  updatedAt: '2026-01-01T00:00:00Z',
+}));
 
 const emptyInfra: ClientInfrastructure = {
   esxiHosts: [], windowsVMs: [], domainControllers: [], linuxVMs: [], nas: [], routers: [],
@@ -27,12 +45,12 @@ const emptyInfra: ClientInfrastructure = {
 
 const infraRoutersOnly: ClientInfrastructure = {
   ...emptyInfra,
-  routers: [{ assetId: 1, name: 'FW-01', ip: '10.0.0.1', bmcIp: null, bmcType: null, os: null, model: null, uri1: null, uri2: null }],
+  routers: [{ assetId: 1, name: 'FW-01', ip: '10.0.0.1', bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: null, uri2: null }],
 };
 
 const infraNasOnly: ClientInfrastructure = {
   ...emptyInfra,
-  nas: [{ assetId: 2, name: 'NAS-01', ip: '192.168.1.50', bmcIp: null, bmcType: null, os: null, model: null, uri1: null, uri2: null }],
+  nas: [{ assetId: 2, name: 'NAS-01', ip: '192.168.1.50', bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: null, uri2: null }],
 };
 
 describe('TaskCreateDialogComponent', () => {
@@ -43,16 +61,19 @@ describe('TaskCreateDialogComponent', () => {
   let tasksServiceSpy: jasmine.SpyObj<TasksService>;
   let dialogRefSpy: jasmine.SpyObj<MatDialogRef<TaskCreateDialogComponent>>;
   let infradocServiceSpy: jasmine.SpyObj<InfradocService>;
+  let taskConfigServiceSpy: jasmine.SpyObj<TaskConfigService>;
 
-  beforeEach(async () => {
+  async function setup(configs: TaskTypeConfigDto[] = fullyTaggedConfigs): Promise<void> {
     clientsServiceSpy = jasmine.createSpyObj('ClientsService', ['getAll']);
     techniciansServiceSpy = jasmine.createSpyObj('TechniciansService', ['getAll']);
     tasksServiceSpy = jasmine.createSpyObj('TasksService', ['create']);
     dialogRefSpy = jasmine.createSpyObj('MatDialogRef', ['close']);
     infradocServiceSpy = jasmine.createSpyObj('InfradocService', ['getClientInfrastructure']);
+    taskConfigServiceSpy = jasmine.createSpyObj('TaskConfigService', ['getAll']);
 
     clientsServiceSpy.getAll.and.returnValue(of(mockClients as any));
     techniciansServiceSpy.getAll.and.returnValue(of(mockTechnicians as any));
+    taskConfigServiceSpy.getAll.and.returnValue(of(configs));
 
     await TestBed.configureTestingModule({
       declarations: [TaskCreateDialogComponent],
@@ -75,13 +96,18 @@ describe('TaskCreateDialogComponent', () => {
         { provide: TechniciansService, useValue: techniciansServiceSpy },
         { provide: TasksService, useValue: tasksServiceSpy },
         { provide: InfradocService, useValue: infradocServiceSpy },
+        { provide: TaskConfigService, useValue: taskConfigServiceSpy },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(TaskCreateDialogComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-  });
+  }
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  beforeEach(async () => setup());
 
   it('crea el componente correctamente', () => {
     expect(component).toBeTruthy();
@@ -178,6 +204,36 @@ describe('TaskCreateDialogComponent', () => {
 
       expect(component.infraError).toBe('');
       expect(component.infra).toEqual(infraRoutersOnly);
+    });
+  });
+
+  describe('filtrado por tags de Odoo configurados', () => {
+    it('excluye tipos de tarea sin tags de Odoo configurados', async () => {
+      TestBed.resetTestingModule();
+      await setup(fullyTaggedConfigs.map(c =>
+        c.taskType === 'ROUTER_MAINTENANCE' ? { ...c, odooTagIds: [] } : c,
+      ));
+
+      const available = component.availableTaskTypes.map(t => t.value);
+      expect(available).not.toContain('ROUTER_MAINTENANCE');
+      expect(available).toContain('WINDOWS_DOMAIN_MAINTENANCE');
+    });
+
+    it('resetea el campo type si el tipo por defecto no tiene tags configurados', async () => {
+      TestBed.resetTestingModule();
+      await setup(fullyTaggedConfigs.map(c =>
+        c.taskType === 'WINDOWS_DOMAIN_MAINTENANCE' ? { ...c, odooTagIds: [] } : c,
+      ));
+
+      expect(component.form.get('type')!.value).toBeNull();
+    });
+
+    it('excluye tipos sin fila de configuración (nunca configurados)', async () => {
+      TestBed.resetTestingModule();
+      await setup(fullyTaggedConfigs.filter(c => c.taskType !== 'SITE_VISIT'));
+
+      const available = component.availableTaskTypes.map(t => t.value);
+      expect(available).not.toContain('SITE_VISIT');
     });
   });
 });

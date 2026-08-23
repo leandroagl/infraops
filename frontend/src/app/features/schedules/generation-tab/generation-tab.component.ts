@@ -1,6 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { GenerationResult, MonthlyPreview, SchedulesService } from '../schedules.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import {
+  ClientSchedule, GenerationResult, MonthlyPreview, MonthlyPreviewClient, SchedulesService,
+} from '../schedules.service';
+import { typeLabelLong } from '../../../shared/utils/task-labels';
 
 const MONTH_NAMES = ['', 'Enero','Febrero','Marzo','Abril','Mayo','Junio',
                      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -10,7 +15,7 @@ const MONTH_NAMES = ['', 'Enero','Febrero','Marzo','Abril','Mayo','Junio',
   templateUrl: './generation-tab.component.html',
   styleUrl: './generation-tab.component.scss',
 })
-export class GenerationTabComponent implements OnInit {
+export class GenerationTabComponent implements OnInit, OnDestroy {
   year = new Date().getFullYear();
   month = new Date().getMonth() + 1;
   preview: MonthlyPreview | null = null;
@@ -18,6 +23,8 @@ export class GenerationTabComponent implements OnInit {
   generating = false;
   lastResult: GenerationResult | null = null;
   displayedColumns = ['client', 'technician'];
+
+  private readonly destroy$ = new Subject<void>();
 
   get monthName(): string { return MONTH_NAMES[this.month]; }
   get isEvenGroup(): boolean { return this.preview?.group === 'BIMONTHLY_EVEN'; }
@@ -30,9 +37,14 @@ export class GenerationTabComponent implements OnInit {
     return !!this.preview &&
       !this.preview.wasGenerated &&
       this.preview.clientsWithoutTechnician === 0 &&
+      this.preview.taskTypesWithoutTags.length === 0 &&
       this.preview.clients.length > 0 &&
       !this.generating &&
       !this.isFutureMonth;
+  }
+
+  get taskTypesWithoutTagsLabel(): string {
+    return (this.preview?.taskTypesWithoutTags ?? []).map(typeLabelLong).join(', ');
   }
 
   constructor(
@@ -40,7 +52,47 @@ export class GenerationTabComponent implements OnInit {
     private readonly snack: MatSnackBar,
   ) {}
 
-  ngOnInit(): void { this.loadPreview(); }
+  ngOnInit(): void {
+    this.loadPreview();
+    this.schedulesService.scheduleUpdated$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(updated => this.applyScheduleUpdate(updated));
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /** Refleja en el preview ya cargado el cambio de grupo/técnico guardado en la pestaña de configuración, sin recargar desde la API. */
+  private applyScheduleUpdate(updated: ClientSchedule): void {
+    if (!this.preview) return;
+
+    const idx = this.preview.clients.findIndex(c => c.clientId === updated.clientId);
+    const belongsToCurrentGroup = updated.isActive && updated.scheduleGroup === this.preview.group;
+
+    let clients: MonthlyPreviewClient[];
+    if (!belongsToCurrentGroup) {
+      if (idx === -1) return;
+      clients = this.preview.clients.filter(c => c.clientId !== updated.clientId);
+    } else {
+      const entry: MonthlyPreviewClient = {
+        clientId: updated.clientId,
+        clientName: updated.client.name,
+        technicianId: updated.technicianId,
+        technicianName: updated.technician?.user?.name ?? null,
+      };
+      clients = idx !== -1
+        ? this.preview.clients.map((c, i) => (i === idx ? entry : c))
+        : [...this.preview.clients, entry];
+    }
+
+    this.preview = {
+      ...this.preview,
+      clients,
+      clientsWithoutTechnician: clients.filter(c => !c.technicianId).length,
+    };
+  }
 
   private loadPreview(): void {
     this.preview = null;

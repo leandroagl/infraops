@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>BMC Host Card v2 — Server Host Maintenance</title>
+<style>
+:root {
+  --base:     #0a0d12;
+  --surface:  #111418;
+  --card:     #181d24;
+  --elevated: #1e242e;
+  --hover:    #252c38;
+  --border-lo: rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.10);
+  --border-md: rgba(255,255,255,0.18);
+  --tx-hi: #e8eaf0;
+  --tx-md: #8896a4;
+  --tx-lo: #546272;
+  --crit:#f44336; --crit-bg:rgba(244,67,54,.12); --crit-bd:rgba(244,67,54,.25);
+  --warn:#ffb300; --warn-bg:rgba(255,179,0,.12);  --warn-bd:rgba(255,179,0,.25);
+  --ok:  #43d98a; --ok-bg:rgba(67,217,138,.12);   --ok-bd:rgba(67,217,138,.25);
+  --neutral-bg:rgba(84,110,122,.14); --neutral-bd:rgba(84,110,122,.28);
+  --accent:#4dd0e1; --accent-bg:rgba(77,208,225,.12); --accent-bd:rgba(77,208,225,.30);
+  --srv:#60a5fa;  --srv-bg:rgba(96,165,250,.12);  --srv-bd:rgba(96,165,250,.25);
+  --vmware:#4ade80; --vmware-bg:rgba(74,222,128,.12); --vmware-bd:rgba(74,222,128,.25);
+  --bmc:#fb923c;  --bmc-bg:rgba(251,146,60,.10);  --bmc-bd:rgba(251,146,60,.22);
+  --font-ui:'DM Sans',system-ui,sans-serif;
+  --font-mono:'Space Mono','Courier New',monospace;
+  --radius:8px; --radius-sm:4px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--base);font-family:var(--font-ui);color:var(--tx-hi);font-size:13px;padding:32px;}
+
+/* ── Layout ── */
+.page-title{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--tx-lo);
+  margin-bottom:6px;padding-bottom:8px;border-bottom:1px solid var(--border-lo);}
+.page-subtitle{font-size:11px;color:var(--tx-md);margin-bottom:32px;}
+
+.demo-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;align-items:start;}
+.col-lbl{font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:var(--tx-lo);
+  margin-bottom:14px;}
+
+/* ── Drawer simulado ── */
+.drawer{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px;display:flex;flex-direction:column;gap:16px;}
+
+.section-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;
+  color:var(--tx-lo);}
+
+/* ── ESXi host card (referencia — existente) ── */
+.ehc{border:1px solid var(--border);border-radius:6px;padding:12px 14px;
+  background:var(--card);display:flex;flex-direction:column;gap:8px;}
+.ehc-hdr{display:flex;align-items:center;gap:8px;}
+.ehc-dot-vmware{width:8px;height:8px;border-radius:50%;background:var(--vmware);flex-shrink:0;}
+.ehc-name-block{display:flex;flex-direction:column;flex:1;min-width:0;}
+.ehc-name{font-size:13px;font-weight:500;color:var(--tx-hi);}
+.ehc-ip{font-size:11px;color:var(--tx-lo);font-family:var(--font-mono);}
+.btn-primary{background:var(--accent);color:#0a0d12;border:none;border-radius:4px;
+  padding:5px 12px;font-size:12px;font-family:var(--font-ui);font-weight:600;cursor:pointer;
+  white-space:nowrap;}
+.ehc-section-lbl{font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:var(--tx-lo);margin-top:2px;}
+.ehc-metrics-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;}
+.kpi__label{font-size:9px;text-transform:uppercase;letter-spacing:0.6px;color:var(--tx-lo);}
+.mono{font-family:var(--font-mono);}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:3px;
+  font-size:10px;font-weight:600;letter-spacing:0.4px;white-space:nowrap;}
+.badge--ok  {background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-bd);}
+.badge--warn{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-bd);}
+.badge--crit{background:var(--crit-bg);color:var(--crit);border:1px solid var(--crit-bd);}
+.badge--neutral{background:var(--neutral-bg);color:var(--tx-md);border:1px solid var(--neutral-bd);}
+
+/* ── BMC card ── */
+.bmc{border:1px solid var(--bmc-bd);border-radius:6px;padding:12px 14px;
+  background:var(--card);display:flex;flex-direction:column;gap:10px;}
+
+/* Estado OK: borde + dot verde */
+.bmc.bmc--ok{border-color:var(--ok-bd);}
+.bmc.bmc--ok .bmc-dot{background:var(--ok);}
+
+.bmc-hdr{display:flex;align-items:center;gap:8px;}
+.bmc-dot{width:8px;height:8px;border-radius:50%;background:var(--bmc);flex-shrink:0;
+  transition:background 200ms;}
+.bmc-name-block{display:flex;flex-direction:column;flex:1;min-width:0;gap:3px;}
+.bmc-name{font-size:13px;font-weight:500;color:var(--tx-hi);}
+/* IP + chip BMC en la misma fila */
+.bmc-ip-row{display:flex;align-items:center;gap:6px;}
+.bmc-ip{font-size:11px;color:var(--tx-lo);font-family:var(--font-mono);}
+.badge--bmc{background:var(--bmc-bg);color:var(--bmc);border:1px solid var(--bmc-bd);
+  font-size:10px;font-weight:600;padding:1px 6px;border-radius:3px;letter-spacing:0.3px;}
+
+/* ── Fields dentro de BMC card ── */
+.bmc-section-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.8px;
+  color:var(--tx-lo);}
+
+.field-outline{border:1px solid var(--border-md);border-radius:4px;background:var(--elevated);
+  padding:7px 10px;font-size:13px;color:var(--tx-hi);font-family:var(--font-ui);
+  display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.field-outline .placeholder{color:var(--tx-lo);}
+.field-outline .caret{color:var(--tx-lo);font-size:10px;margin-left:8px;}
+.field-outline.selected-ok{border-color:var(--ok-bd);background:var(--ok-bg);}
+.field-outline.selected-ok .selected-val{color:var(--ok);}
+.field-outline.selected-alerta{border-color:var(--crit-bd);background:var(--crit-bg);}
+.field-outline.selected-alerta .selected-val{color:var(--crit);}
+
+/* chips de categorías */
+.categories-row{display:flex;flex-wrap:wrap;gap:5px;}
+.cat-chip{padding:3px 9px;border-radius:3px;font-size:11px;border:1px solid var(--border-md);
+  color:var(--tx-md);background:var(--elevated);cursor:pointer;}
+.cat-chip.selected{background:var(--crit-bg);border-color:var(--crit-bd);color:var(--crit);}
+
+/* textarea de alerta */
+.field-textarea{border:1px solid var(--border-md);border-radius:4px;background:var(--elevated);
+  padding:7px 10px;font-size:12px;color:var(--tx-hi);font-family:var(--font-ui);
+  min-height:56px;resize:none;width:100%;line-height:1.5;}
+
+/* firmware rows */
+.firmware-row{display:flex;align-items:center;gap:10px;}
+.check-box{width:15px;height:15px;border-radius:3px;border:1px solid var(--border-md);
+  background:var(--elevated);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.check-box.checked{background:var(--accent);border-color:var(--accent);}
+.check-box.checked::after{content:'✓';color:#0a0d12;font-size:10px;font-weight:700;}
+.fw-label{font-size:12px;color:var(--tx-md);flex:1;}
+.fw-input{border:1px solid var(--border-md);border-radius:4px;background:var(--elevated);
+  padding:5px 9px;font-size:12px;color:var(--tx-hi);font-family:var(--font-mono);width:140px;}
+.fw-input.disabled{opacity:0.3;cursor:not-allowed;}
+
+/* host pair (VMware + label BMC + BMC card juntos) */
+.host-pair{display:flex;flex-direction:column;gap:6px;}
+</style>
+</head>
+<body>
+
+<div class="page-title">BMC Host Card v2 — mockup</div>
+<div class="page-subtitle">Cambios: título "BMC" separador · IP con chip de tipo · borde verde cuando todo OK</div>
+
+<div class="demo-grid">
+
+  <!-- ── Col 1: Estado inicial ── -->
+  <div>
+    <div class="col-lbl">Estado inicial · sin datos aún</div>
+    <div class="drawer">
+
+      <div class="section-lbl">VMware ESXi</div>
+      <div class="host-pair">
+        <div class="ehc">
+          <div class="ehc-hdr">
+            <div class="ehc-dot-vmware"></div>
+            <div class="ehc-name-block">
+              <span class="ehc-name">esxi01</span>
+              <span class="ehc-ip mono">192.168.1.10</span>
+            </div>
+            <button class="btn-primary">Ejecutar control VMware</button>
+          </div>
+        </div>
+
+        <!-- ▼ NUEVO: label BMC separador -->
+        <div class="section-lbl" style="margin-top:4px;">BMC</div>
+
+        <!-- BMC card — estado inicial, borde naranja (sin selección aún) -->
+        <div class="bmc">
+          <div class="bmc-hdr">
+            <div class="bmc-dot"></div>
+            <div class="bmc-name-block">
+              <span class="bmc-name">esxi01</span>
+              <!-- ▼ NUEVO: IP + chip en la misma fila -->
+              <div class="bmc-ip-row">
+                <span class="bmc-ip">192.168.1.200</span>
+                <span class="badge--bmc">iDRAC</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bmc-section-lbl">Estado hardware</div>
+          <div class="field-outline">
+            <span class="placeholder">Seleccionar estado…</span>
+            <span class="caret">▾</span>
+          </div>
+
+          <div class="bmc-section-lbl">Firmware</div>
+          <div class="firmware-row">
+            <div class="check-box"></div>
+            <span class="fw-label">Firmware BMC actualizado</span>
+            <input class="fw-input disabled" disabled placeholder="versión" />
+          </div>
+          <div class="firmware-row">
+            <div class="check-box"></div>
+            <span class="fw-label">BIOS / UEFI actualizado</span>
+            <input class="fw-input disabled" disabled placeholder="versión" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Col 2: Con alertas ── -->
+  <div>
+    <div class="col-lbl">Con alertas de hardware · firmware BMC actualizado</div>
+    <div class="drawer">
+
+      <div class="section-lbl">VMware ESXi</div>
+      <div class="host-pair">
+        <div class="ehc">
+          <div class="ehc-hdr">
+            <div class="ehc-dot-vmware"></div>
+            <div class="ehc-name-block">
+              <span class="ehc-name">esxi01</span>
+              <span class="ehc-ip mono">192.168.1.10</span>
+            </div>
+            <button class="btn-primary">Re-ejecutar</button>
+          </div>
+          <div class="ehc-section-lbl">Host</div>
+          <div class="ehc-metrics-row">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span class="kpi__label">Versión</span>
+              <span class="mono" style="font-size:11px;">8.0.1</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span class="kpi__label">Uptime</span>
+              <span>218 h</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span class="kpi__label">CPU</span>
+              <span>34%</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span class="kpi__label">Mem</span>
+              <span>61%</span>
+            </div>
+            <span class="badge badge--ok">HW: GREEN</span>
+          </div>
+        </div>
+
+        <div class="section-lbl" style="margin-top:4px;">BMC</div>
+
+        <!-- BMC card — alertas, borde naranja -->
+        <div class="bmc">
+          <div class="bmc-hdr">
+            <div class="bmc-dot"></div>
+            <div class="bmc-name-block">
+              <span class="bmc-name">esxi01</span>
+              <div class="bmc-ip-row">
+                <span class="bmc-ip">192.168.1.200</span>
+                <span class="badge--bmc">iDRAC</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bmc-section-lbl">Estado hardware</div>
+          <div class="field-outline selected-alerta">
+            <span class="selected-val">Hay alertas</span>
+            <span class="caret">▾</span>
+          </div>
+
+          <div class="bmc-section-lbl">Categorías</div>
+          <div class="categories-row">
+            <span class="cat-chip selected">fan</span>
+            <span class="cat-chip">psu</span>
+            <span class="cat-chip selected">temperatura</span>
+            <span class="cat-chip">cpu</span>
+            <span class="cat-chip">memoria</span>
+            <span class="cat-chip">storage</span>
+            <span class="cat-chip">nic</span>
+            <span class="cat-chip">sistema</span>
+          </div>
+
+          <div class="bmc-section-lbl">Detalle</div>
+          <textarea class="field-textarea" placeholder="Descripción de la alerta…">Fan 3 corriendo a velocidad reducida. Temperatura CPU socket 0 en 78°C.</textarea>
+
+          <div class="bmc-section-lbl">Firmware</div>
+          <div class="firmware-row">
+            <div class="check-box checked"></div>
+            <span class="fw-label">Firmware BMC actualizado</span>
+            <input class="fw-input" value="6.10.30.20" />
+          </div>
+          <div class="firmware-row">
+            <div class="check-box"></div>
+            <span class="fw-label">BIOS / UEFI actualizado</span>
+            <input class="fw-input disabled" disabled placeholder="versión" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Col 3: Todo OK · read-only ── -->
+  <div>
+    <div class="col-lbl">Todo OK · read-only (log guardado)</div>
+    <div class="drawer">
+
+      <div class="section-lbl">VMware ESXi</div>
+      <div class="host-pair">
+        <div class="ehc">
+          <div class="ehc-hdr">
+            <div class="ehc-dot-vmware"></div>
+            <div class="ehc-name-block">
+              <span class="ehc-name">esxi01</span>
+              <span class="ehc-ip mono">192.168.1.10</span>
+            </div>
+            <span class="badge badge--neutral">Solo lectura</span>
+          </div>
+          <div class="ehc-section-lbl">Host</div>
+          <div class="ehc-metrics-row">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span class="kpi__label">Versión</span>
+              <span class="mono" style="font-size:11px;">8.0.1</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span class="kpi__label">CPU</span>
+              <span>34%</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <span class="kpi__label">Mem</span>
+              <span>61%</span>
+            </div>
+            <span class="badge badge--ok">HW: GREEN</span>
+          </div>
+        </div>
+
+        <div class="section-lbl" style="margin-top:4px;">BMC</div>
+
+        <!-- ▼ BMC card — todo OK: borde verde + dot verde -->
+        <div class="bmc bmc--ok" style="opacity:0.85;">
+          <div class="bmc-hdr">
+            <div class="bmc-dot"></div>
+            <div class="bmc-name-block">
+              <span class="bmc-name">esxi01</span>
+              <div class="bmc-ip-row">
+                <span class="bmc-ip">192.168.1.200</span>
+                <span class="badge--bmc">iLO</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bmc-section-lbl">Estado hardware</div>
+          <div class="field-outline selected-ok" style="cursor:default;">
+            <span class="selected-val">Todo OK</span>
+          </div>
+
+          <div class="bmc-section-lbl">Firmware</div>
+          <div class="firmware-row">
+            <div class="check-box"></div>
+            <span class="fw-label" style="opacity:.5;">Firmware BMC actualizado</span>
+            <input class="fw-input disabled" disabled placeholder="—" />
+          </div>
+          <div class="firmware-row">
+            <div class="check-box checked"></div>
+            <span class="fw-label">BIOS / UEFI actualizado</span>
+            <input class="fw-input" value="2.20.1" readonly style="opacity:.8;cursor:default;" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Aclaraciones v2 ── -->
+<div style="margin-top:40px;border-top:1px solid var(--border-lo);padding-top:20px;
+  display:flex;flex-direction:column;gap:8px;">
+  <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:var(--tx-lo);">
+    Cambios v2
+  </div>
+  <div style="font-size:12px;color:var(--tx-md);line-height:1.7;max-width:680px;">
+    · Se agrega etiqueta <strong style="color:var(--tx-hi);">BMC</strong> (section-lbl) entre la card ESXi y la card BMC de cada host.<br>
+    · El chip de tipo (iDRAC / iLO / xClarity) se movió junto a la IP en la misma fila — ya no va junto al nombre.<br>
+    · Cuando el estado es "Todo OK" la card tiene <strong style="color:var(--ok);">borde verde</strong> (--ok-bd) y el punto indicador cambia a <strong style="color:var(--ok);">verde</strong> (--ok). El select también se colorea verde como antes.<br>
+    · El chip normaliza el raw string de InfraDoc: "iDRAC Management" → "iDRAC", "iLO Port" → "iLO", etc.
+  </div>
+</div>
+
+</body>
+</html>
