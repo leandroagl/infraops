@@ -135,6 +135,12 @@ export class UsersService {
     return { plainPassword };
   }
 
+  async getMe(userId: string): Promise<UserResponse> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return this.toResponse(user);
+  }
+
   private toResponse(user: User): UserResponse {
     return {
       id: user.id,

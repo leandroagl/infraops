@@ -264,5 +264,44 @@ describe('UsersService', () => {
     });
   });
 
+  describe('getMe', () => {
+    it('retorna UserResponse del usuario autenticado', async () => {
+      const mockUser = buildMockUser({ id: 'my-uuid', name: 'Yo', avatarPath: null });
+      userRepository.findOne.mockResolvedValue(mockUser);
+
+      const result = await service.getMe('my-uuid');
+
+      expect(result.id).toBe('my-uuid');
+      expect(result.name).toBe('Yo');
+      expect(result.avatarUrl).toBeNull();
+    });
+
+    it('lanza NotFoundException si el usuario no existe', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+      await expect(service.getMe('no-existe')).rejects.toThrow(NotFoundException);
+    });
+  });
+
 });
+
+function buildMockUser(overrides: Partial<User> = {}): User {
+  return {
+    id: 'uuid-1',
+    name: 'Test User',
+    email: 'test@test.com',
+    passwordHash: 'hash',
+    role: UserRole.ADMIN,
+    mustChangePassword: false,
+    isActive: true,
+    technicianId: null,
+    avatarPath: null,
+    lastLogoutAt: null,
+    odooUserId: null,
+    odooSyncedAt: null,
+    odooEmployeeId: null,
+    createdAt: new Date(),
+    technician: null,
+    ...overrides,
+  } as User;
+}
 

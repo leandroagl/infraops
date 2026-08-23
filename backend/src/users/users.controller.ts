@@ -29,6 +29,12 @@ import {
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get('me')
+  @Roles(UserRole.ADMIN, UserRole.TL, UserRole.COORDINATOR, UserRole.TECHNICIAN)
+  getMe(@CurrentUser() currentUser: JwtPayload): Promise<UserResponse> {
+    return this.usersService.getMe(currentUser.sub);
+  }
+
   @Get()
   findAll(): Promise<UserResponse[]> {
     return this.usersService.findAll();
