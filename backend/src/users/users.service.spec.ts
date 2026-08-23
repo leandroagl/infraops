@@ -40,6 +40,7 @@ describe('UsersService', () => {
     odooUserId: null,
     odooSyncedAt: null,
     odooEmployeeId: null,
+    avatarPath: null,
     createdAt: new Date('2026-01-01'),
   };
 
@@ -54,6 +55,7 @@ describe('UsersService', () => {
     odooUserId: null,
     odooSyncedAt: null,
     odooEmployeeId: null,
+    avatarUrl: null,
     createdAt: mockUser.createdAt,
   };
 
@@ -87,6 +89,27 @@ describe('UsersService', () => {
       expect(userRepository.find).toHaveBeenCalledWith({
         order: { createdAt: 'ASC' },
       });
+    });
+
+    it('builds avatarUrl from avatarPath', async () => {
+      userRepository.find.mockResolvedValue([
+        { ...mockUser, avatarPath: 'uuid.jpg' },
+      ]);
+
+      const result = await service.findAll();
+
+      expect(result[0].avatarUrl).toBe('/avatars/uuid.jpg');
+      expect((result[0] as any).avatarPath).toBeUndefined();
+    });
+
+    it('returns null avatarUrl when avatarPath is null', async () => {
+      userRepository.find.mockResolvedValue([
+        { ...mockUser, avatarPath: null },
+      ]);
+
+      const result = await service.findAll();
+
+      expect(result[0].avatarUrl).toBeNull();
     });
   });
 

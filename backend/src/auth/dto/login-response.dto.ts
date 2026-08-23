@@ -5,8 +5,10 @@ export class LoginResponseDto {
   mustChangePassword: boolean;
   user: {
     id: string;
+    name: string;
     email: string;
     role: UserRole;
     technicianId: string | null;
+    avatarUrl: string | null;
   };
 }

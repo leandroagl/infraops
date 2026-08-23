@@ -10,12 +10,24 @@ import { Not, Repository } from 'typeorm';
 import { generateRandomPassword } from '../common/utils/password.util';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserRole } from './user-role.enum';
 import { User } from './user.entity';
 
-export type UserResponse = Omit<
-  User,
-  'passwordHash' | 'lastLogoutAt' | 'technician'
->;
+export type UserResponse = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  mustChangePassword: boolean;
+  isActive: boolean;
+  technicianId: string | null;
+  odooUserId: number | null;
+  odooSyncedAt: Date | null;
+  odooEmployeeId: number | null;
+  avatarUrl: string | null;
+  createdAt: Date;
+};
+
 export type CreateUserResponse = UserResponse & { plainPassword: string };
 
 @Injectable()
@@ -124,8 +136,19 @@ export class UsersService {
   }
 
   private toResponse(user: User): UserResponse {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, lastLogoutAt, technician, ...response } = user;
-    return response;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+      isActive: user.isActive,
+      technicianId: user.technicianId,
+      odooUserId: user.odooUserId,
+      odooSyncedAt: user.odooSyncedAt,
+      odooEmployeeId: user.odooEmployeeId,
+      avatarUrl: user.avatarPath ? `/avatars/${user.avatarPath}` : null,
+      createdAt: user.createdAt,
+    };
   }
 }
