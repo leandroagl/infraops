@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -6,6 +7,9 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
+import * as fs from 'fs/promises';
+import { join } from 'path';
 import { Not, Repository } from 'typeorm';
 import { generateRandomPassword } from '../common/utils/password.util';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -139,6 +143,35 @@ export class UsersService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
     return this.toResponse(user);
+  }
+
+  async uploadAvatar(userId: string, file: Express.Multer.File): Promise<UserResponse> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { fromBuffer } = require('file-type');
+    const detected = await fromBuffer(file.buffer);
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (!detected || !allowedMimes.includes(detected.mime)) {
+      throw new BadRequestException('Tipo de archivo no permitido');
+    }
+
+    const filename = `${randomUUID()}.${detected.ext}`;
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+
+    if (user.avatarPath) {
+      await fs.rm(
+        join(process.cwd(), 'uploads', 'avatars', user.avatarPath),
+        { force: true },
+      );
+    }
+
+    const dir = join(process.cwd(), 'uploads', 'avatars');
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(join(dir, filename), file.buffer);
+    await this.userRepository.update(userId, { avatarPath: filename });
+
+    return this.toResponse({ ...user, avatarPath: filename });
   }
 
   private toResponse(user: User): UserResponse {
