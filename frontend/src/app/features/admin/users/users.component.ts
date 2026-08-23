@@ -20,7 +20,7 @@ export class UsersComponent implements OnInit {
   users: User[] = [];
   loading = false;
   error = '';
-  readonly displayedColumns = ['user', 'role', 'status', 'actions'];
+  readonly displayedColumns = ['avatar', 'user', 'role', 'status', 'actions'];
 
   private readonly currentUserId: string;
   private readonly destroyRef = inject(DestroyRef);
