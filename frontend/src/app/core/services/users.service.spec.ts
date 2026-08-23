@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { UsersService } from './users.service';
 import { User, CreateUserPayload, CreateUserResponse } from '../models/user.models';
+import { AuthUser } from '../models/auth.models';
 import { environment } from '../../../environments/environment';
 
 const BASE = `${environment.apiUrl}/users`;
@@ -14,6 +15,7 @@ const mockUser: User = {
   mustChangePassword: false,
   isActive: true,
   technicianId: null,
+  avatarUrl: null,
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -86,6 +88,50 @@ describe('UsersService', () => {
       const req = http.expectOne(`${BASE}/uuid-1/reset-password`);
       expect(req.request.method).toBe('POST');
       req.flush({ plainPassword: 'NewPass123!' });
+    });
+  });
+
+  describe('getMe()', () => {
+    it('makes GET /users/me', () => {
+      const mockAuthUser: AuthUser = {
+        id: 'u1',
+        name: 'Test',
+        email: 't@t.com',
+        role: 'ADMIN',
+        technicianId: null,
+        avatarUrl: null,
+      };
+      service.getMe().subscribe(user => {
+        expect(user).toEqual(mockAuthUser);
+      });
+
+      const req = http.expectOne(`${environment.apiUrl}/users/me`);
+      expect(req.request.method).toBe('GET');
+      req.flush(mockAuthUser);
+    });
+  });
+
+  describe('uploadAvatar', () => {
+    it('sends POST to /users/me/avatar with FormData', () => {
+      const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
+
+      const mockResponse: AuthUser = {
+        id: 'u1',
+        name: 'Test',
+        email: 't@t.com',
+        role: 'ADMIN',
+        technicianId: null,
+        avatarUrl: '/avatars/new.jpg',
+      };
+
+      service.uploadAvatar(file).subscribe(res => {
+        expect(res).toEqual(mockResponse);
+      });
+
+      const req = http.expectOne(`${environment.apiUrl}/users/me/avatar`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body instanceof FormData).toBe(true);
+      req.flush(mockResponse);
     });
   });
 });
