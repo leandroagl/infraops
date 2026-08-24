@@ -13,6 +13,8 @@ services:
     env_file: ./backend/.env
     depends_on:
       - db
+    volumes:
+      - avatars_data:/app/uploads/avatars
 
   db:
     image: postgres:16-alpine
@@ -28,3 +30,4 @@ services:
 
 volumes:
   pgdata:
+  avatars_data:

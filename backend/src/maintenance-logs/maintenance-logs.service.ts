@@ -80,7 +80,8 @@ export class MaintenanceLogsService {
     if (dto.payload !== undefined) updateData.payload = dto.payload;
     if (dto.notes !== undefined) updateData.notes = dto.notes;
 
-    await this.logRepository.update(log.id, updateData);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await this.logRepository.update(log.id, updateData as any);
     return this.loadLog(log.id);
   }
 

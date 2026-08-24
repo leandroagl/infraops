@@ -49,8 +49,20 @@
       <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
         <mat-label>Técnico</mat-label>
         <mat-select [(value)]="techFilter" (selectionChange)="onFilterChange()">
+          <mat-select-trigger>
+            <ng-container *ngIf="selectedTechnicianObj as t">
+              <app-user-avatar [name]="t.user.name" [avatarUrl]="t.user.avatarUrl" size="sm"></app-user-avatar>
+              {{ t.user.name }}
+            </ng-container>
+            <span *ngIf="!selectedTechnicianObj" style="color:var(--tx-lo)">Todos</span>
+          </mat-select-trigger>
           <mat-option [value]="null">Todos</mat-option>
-          <mat-option *ngFor="let t of technicians" [value]="t.id">{{ t.user.name }}</mat-option>
+          <mat-option *ngFor="let t of technicians" [value]="t.id">
+            <div style="display:flex;align-items:center;gap:8px">
+              <app-user-avatar [name]="t.user.name" [avatarUrl]="t.user.avatarUrl" size="sm"></app-user-avatar>
+              {{ t.user.name }}
+            </div>
+          </mat-option>
         </mat-select>
       </mat-form-field>
 

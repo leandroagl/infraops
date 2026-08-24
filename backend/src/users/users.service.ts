@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -6,16 +7,31 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
+import * as fs from 'fs/promises';
+import { join } from 'path';
 import { Not, Repository } from 'typeorm';
 import { generateRandomPassword } from '../common/utils/password.util';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserRole } from './user-role.enum';
 import { User } from './user.entity';
 
-export type UserResponse = Omit<
-  User,
-  'passwordHash' | 'lastLogoutAt' | 'technician'
->;
+export type UserResponse = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  mustChangePassword: boolean;
+  isActive: boolean;
+  technicianId: string | null;
+  odooUserId: number | null;
+  odooSyncedAt: Date | null;
+  odooEmployeeId: number | null;
+  avatarUrl: string | null;
+  createdAt: Date;
+};
+
 export type CreateUserResponse = UserResponse & { plainPassword: string };
 
 @Injectable()
@@ -123,9 +139,55 @@ export class UsersService {
     return { plainPassword };
   }
 
+  async getMe(userId: string): Promise<UserResponse> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    return this.toResponse(user);
+  }
+
+  async uploadAvatar(userId: string, file: Express.Multer.File): Promise<UserResponse> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { fromBuffer } = require('file-type');
+    const detected = await fromBuffer(file.buffer);
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (!detected || !allowedMimes.includes(detected.mime)) {
+      throw new BadRequestException('Tipo de archivo no permitido');
+    }
+
+    const filename = `${randomUUID()}.${detected.ext}`;
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+
+    if (user.avatarPath) {
+      await fs.rm(
+        join(process.cwd(), 'uploads', 'avatars', user.avatarPath),
+        { force: true },
+      );
+    }
+
+    const dir = join(process.cwd(), 'uploads', 'avatars');
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(join(dir, filename), file.buffer);
+    await this.userRepository.update(userId, { avatarPath: filename });
+
+    return this.toResponse({ ...user, avatarPath: filename });
+  }
+
   private toResponse(user: User): UserResponse {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { passwordHash, lastLogoutAt, technician, ...response } = user;
-    return response;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      mustChangePassword: user.mustChangePassword,
+      isActive: user.isActive,
+      technicianId: user.technicianId,
+      odooUserId: user.odooUserId,
+      odooSyncedAt: user.odooSyncedAt,
+      odooEmployeeId: user.odooEmployeeId,
+      avatarUrl: user.avatarPath ? `/avatars/${user.avatarPath}` : null,
+      createdAt: user.createdAt,
+    };
   }
 }

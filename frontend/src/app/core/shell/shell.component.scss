@@ -33,12 +33,6 @@ mat-sidenav {
   flex: 1;
 }
 
-.sidebar__bottom {
-  display: flex;
-  flex-direction: column;
-  padding: 10px 0;
-  margin-top: auto;
-}
 
 .nav-item {
   display: flex;
@@ -76,15 +70,6 @@ mat-sidenav {
     color: var(--accent);
   }
 
-  &--logout {
-    color: var(--tx-lo);
-
-    &:hover {
-      background: var(--crit-bg);
-      border-color: var(--crit-bd);
-      color: var(--crit);
-    }
-  }
 }
 
 // ── Toolbar ────────────────────────────────────────────────────
@@ -109,13 +94,64 @@ mat-toolbar.shell-toolbar {
   letter-spacing: 0.5px;
 }
 
-.toolbar__user {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.toolbar__user-btn {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--elevated);
+  color: var(--tx-md);
+  transition: border-color var(--transition), background var(--transition);
+
+  &:hover {
+    border-color: var(--accent-bd);
+    background: var(--accent-bg);
+  }
 }
 
-.toolbar__role {
+.toolbar__user-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar__user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+.toolbar__user-role {
+  font-size: 9px;
+  color: var(--tx-lo);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  font-family: var(--font-mono);
+}
+
+.toolbar__user-name {
+  font-size: 11px;
+  color: var(--tx-md);
+  font-weight: 500;
+}
+
+// ── User menu panel ────────────────────────────────────────────
+.user-menu__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 16px 12px;
+  pointer-events: none;
+}
+
+.user-menu__email {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--tx-md);
+}
+
+.user-menu__role {
   font-size: 9px;
   font-weight: 600;
   font-family: var(--font-mono);
@@ -124,14 +160,13 @@ mat-toolbar.shell-toolbar {
   color: var(--tx-lo);
   background: var(--elevated);
   border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 2px 7px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  align-self: flex-start;
 }
 
-.toolbar__email {
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: var(--tx-md);
+.user-menu__logout {
+  color: var(--crit) !important;
 }
 
 // ── Content area ───────────────────────────────────────────────

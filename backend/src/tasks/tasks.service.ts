@@ -79,11 +79,12 @@ export class TasksService {
       where['scheduledDate'] = Between(`${y}-${m}-01`, `${y}-${m}-${String(lastDay).padStart(2, '0')}`);
     }
 
-    return this.taskRepository.find({
+    const tasks = await this.taskRepository.find({
       where,
       relations: ['client', 'technician', 'technician.user'],
       order: { scheduledDate: 'ASC' },
     });
+    return tasks.map(t => this.withAvatarUrl(t));
   }
 
   async create(dto: CreateTaskDto): Promise<Task> {
@@ -240,6 +241,14 @@ export class TasksService {
       relations: ['client', 'technician', 'technician.user'],
     });
     if (!task) throw new NotFoundException('Tarea no encontrada');
+    return this.withAvatarUrl(task);
+  }
+
+  private withAvatarUrl(task: Task): Task {
+    if (task.technician?.user) {
+      (task.technician.user as any).avatarUrl =
+        task.technician.user.avatarPath ? `/avatars/${task.technician.user.avatarPath}` : null;
+    }
     return task;
   }
 }

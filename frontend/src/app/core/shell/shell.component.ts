@@ -9,7 +9,7 @@ import { SidenavContextService, ClientSidenavContext } from '../services/sidenav
 interface NavItem {
   route: string;
   label: string;
-  icon: 'dashboard' | 'clients' | 'tasks' | 'notifications' | 'admin' | 'profile' | 'schedules' | 'docs';
+  icon: 'dashboard' | 'clients' | 'tasks' | 'notifications' | 'admin' | 'schedules' | 'docs';
 }
 
 @Component({
@@ -26,14 +26,13 @@ export class ShellComponent implements OnInit {
     { route: '/admin',          label: 'Admin',        icon: 'admin'         },
     { route: '/schedules',      label: 'Schedules',    icon: 'schedules'     },
     { route: '/docs',           label: 'Documentación', icon: 'docs'         },
-    { route: '/profile',        label: 'Mi perfil',    icon: 'profile'       },
   ];
 
   @ViewChild(MatSidenavContainer) private readonly sidenavContainer!: MatSidenavContainer;
 
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly currentUser: AuthUser | null;
+  currentUser: AuthUser | null;
   clientContext: ClientSidenavContext | null = null;
 
   constructor(
@@ -45,6 +44,10 @@ export class ShellComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.auth.user$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(user => { this.currentUser = user; });
+
     this.sidenavCtx.client$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(ctx => {
@@ -62,6 +65,10 @@ export class ShellComponent implements OnInit {
       fragment: 'ignored',
       matrixParams: 'ignored',
     });
+  }
+
+  goToProfile(): void {
+    this.router.navigate(['/profile']);
   }
 
   logout(): void {

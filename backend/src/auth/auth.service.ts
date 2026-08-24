@@ -43,9 +43,11 @@ export class AuthService {
       mustChangePassword: user.mustChangePassword,
       user: {
         id: user.id,
+        name: user.name,
         email: user.email,
         role: user.role,
         technicianId: user.technicianId ?? null,
+        avatarUrl: user.avatarPath ? `/avatars/${user.avatarPath}` : null,
       },
     };
   }

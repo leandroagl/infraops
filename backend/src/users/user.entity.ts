@@ -66,6 +66,9 @@ export class User {
   })
   odooEmployeeId: number | null;
 
+  @Column({ name: 'avatar_path', type: 'varchar', nullable: true, default: null })
+  avatarPath: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

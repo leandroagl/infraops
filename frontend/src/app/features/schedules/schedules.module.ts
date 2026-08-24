@@ -22,6 +22,7 @@ import { ConfigTabComponent } from './config-tab/config-tab.component';
 import { RotationModalComponent } from './config-tab/rotation-modal/rotation-modal.component';
 import { GenerationTabComponent } from './generation-tab/generation-tab.component';
 import { CalendarTabComponent } from './calendar-tab/calendar-tab.component';
+import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
   declarations: [
@@ -51,6 +52,7 @@ import { CalendarTabComponent } from './calendar-tab/calendar-tab.component';
     MatChipsModule,
     MatTooltipModule,
     SchedulesRoutingModule,
+    SharedModule,
   ],
 })
 export class SchedulesModule {}

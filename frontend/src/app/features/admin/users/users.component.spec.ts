@@ -10,6 +10,7 @@ import { UsersComponent } from './users.component';
 import { UsersService } from '../../../core/services/users.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { User } from '../../../core/models/user.models';
+import { SharedModule } from '../../../shared/shared.module';
 
 const seedAdmin: User = {
   id: 'seed-id',
@@ -19,6 +20,7 @@ const seedAdmin: User = {
   mustChangePassword: false,
   isActive: true,
   technicianId: null,
+  avatarUrl: null,
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -30,6 +32,7 @@ const techUser: User = {
   mustChangePassword: false,
   isActive: true,
   technicianId: 'tech-1',
+  avatarUrl: null,
   createdAt: '2026-01-15T00:00:00.000Z',
 };
 
@@ -47,7 +50,7 @@ describe('UsersComponent', () => {
     authServiceSpy = jasmine.createSpyObj('AuthService', ['getCurrentUser']);
     usersServiceSpy.getAll.and.returnValue(of([seedAdmin, techUser]));
     authServiceSpy.getCurrentUser.and.returnValue({
-      id: 'current-id', email: 'current@ondra.com.ar', role: 'ADMIN',
+      id: 'current-id', name: 'Current Admin', email: 'current@ondra.com.ar', role: 'ADMIN', technicianId: null, avatarUrl: null,
     });
 
     await TestBed.configureTestingModule({
@@ -59,6 +62,7 @@ describe('UsersComponent', () => {
         MatTableModule,
         MatProgressBarModule,
         NoopAnimationsModule,
+        SharedModule,
       ],
       providers: [
         { provide: UsersService, useValue: usersServiceSpy },

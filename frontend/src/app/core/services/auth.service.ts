@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthUser, LoginResponse } from '../models/auth.models';
 
@@ -10,6 +10,11 @@ export class AuthService {
   private readonly TOKEN_KEY            = 'token';
   private readonly USER_KEY             = 'user';
   private readonly MUST_CHANGE_PASS_KEY = 'mustChangePassword';
+
+  private readonly currentUserSubject = new BehaviorSubject<AuthUser | null>(
+    this.getCurrentUser(),
+  );
+  readonly user$: Observable<AuthUser | null> = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -21,11 +26,13 @@ export class AuthService {
           localStorage.setItem(this.TOKEN_KEY, res.accessToken);
           localStorage.setItem(this.USER_KEY, JSON.stringify(res.user));
           localStorage.setItem(this.MUST_CHANGE_PASS_KEY, String(res.mustChangePassword));
+          this.currentUserSubject.next(res.user);
         }),
       );
   }
 
   logout(): void {
+    this.currentUserSubject.next(null);
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
     localStorage.removeItem(this.MUST_CHANGE_PASS_KEY);
@@ -54,5 +61,10 @@ export class AuthService {
       currentPassword,
       newPassword,
     });
+  }
+
+  refreshCurrentUser(user: AuthUser): void {
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+    this.currentUserSubject.next(user);
   }
 }

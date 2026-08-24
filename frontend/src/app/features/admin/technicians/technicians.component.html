@@ -26,8 +26,11 @@
         <th mat-header-cell *matHeaderCellDef>TÉCNICO</th>
         <td mat-cell *matCellDef="let tech">
           <div class="user-info">
-            <span class="user-name">{{ tech.user.name }}</span>
-            <span class="user-email">{{ tech.user.email }}</span>
+            <app-user-avatar [name]="tech.user.name" [avatarUrl]="tech.user.avatarUrl" size="sm"></app-user-avatar>
+            <div class="user-info__text">
+              <span class="user-name">{{ tech.user.name }}</span>
+              <span class="user-email">{{ tech.user.email }}</span>
+            </div>
           </div>
         </td>
       </ng-container>

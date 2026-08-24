@@ -13,8 +13,8 @@ export type TechnicianUserResponse = {
   createdAt: Date;
   user: Omit<
     User,
-    'passwordHash' | 'lastLogoutAt' | 'technician' | 'technicianId'
-  >;
+    'passwordHash' | 'lastLogoutAt' | 'technician' | 'technicianId' | 'avatarPath'
+  > & { avatarUrl: string | null };
 };
 
 @Injectable()
@@ -46,18 +46,7 @@ export class TechniciansService {
     );
     await this.userRepository.update(userId, { technicianId: technician.id });
 
-    const {
-      passwordHash,
-      lastLogoutAt,
-      technician: _t,
-      technicianId: _tid,
-      ...userFields
-    } = user;
-    return {
-      id: technician.id,
-      createdAt: technician.createdAt,
-      user: userFields,
-    };
+    return this.toResponse({ ...user, technicianId: technician.id, technician });
   }
 
   async remove(id: string): Promise<void> {
@@ -80,12 +69,16 @@ export class TechniciansService {
       lastLogoutAt,
       technician,
       technicianId,
+      avatarPath,
       ...userFields
     } = user;
     return {
       id: technicianId!,
       createdAt: technician!.createdAt,
-      user: userFields,
+      user: {
+        ...userFields,
+        avatarUrl: avatarPath ? `/avatars/${avatarPath}` : null,
+      },
     };
   }
 }

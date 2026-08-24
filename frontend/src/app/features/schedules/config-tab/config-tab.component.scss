@@ -143,7 +143,15 @@ mat-header-cell.mat-column-months { justify-content: center; }
 
 // Select de técnico — misma altura que el toggle
 .tech-select {
-  width: 160px;
+  width: 100%;
+  max-width: 200px;
   --mat-form-field-container-height: 36px;
   --mat-form-field-container-vertical-padding: 6px;
+}
+
+// Avatar + nombre inline dentro del trigger
+.trigger-tech {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }

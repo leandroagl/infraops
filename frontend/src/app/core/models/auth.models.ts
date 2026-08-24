@@ -2,9 +2,11 @@ export type UserRole = 'ADMIN' | 'TL' | 'TECHNICIAN' | 'COORDINATOR';
 
 export interface AuthUser {
   id: string;
+  name: string;
   email: string;
   role: UserRole;
   technicianId?: string | null;
+  avatarUrl: string | null;
 }
 
 export interface LoginResponse {

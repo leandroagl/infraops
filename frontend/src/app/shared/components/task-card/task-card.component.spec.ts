@@ -243,7 +243,7 @@ describe('TaskCardComponent', () => {
     it('renderiza .tc-tech-avatar con la inicial cuando showTechnicianAvatar=true', () => {
       component.showTechnicianAvatar = true;
       component.task = makeTask({
-        technician: { id: 'tech-1', user: { id: 'u1', name: 'Valentina López', email: 'valen@ondra.com.ar' } },
+        technician: { id: 'tech-1', user: { id: 'u1', name: 'Valentina López', email: 'valen@ondra.com.ar', avatarUrl: null } },
       });
       fixture.detectChanges();
       const avatar = fixture.nativeElement.querySelector('.tc-tech-avatar');

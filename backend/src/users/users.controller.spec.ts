@@ -31,6 +31,8 @@ describe('UsersController', () => {
       update: jest.fn(),
       updateStatus: jest.fn(),
       resetPassword: jest.fn(),
+      getMe: jest.fn(),
+      uploadAvatar: jest.fn(),
     };
 
     const module = await Test.createTestingModule({
@@ -119,5 +121,74 @@ describe('UsersController', () => {
     });
   });
 
+  describe('GET /users/me', () => {
+    it('llama a usersService.getMe con el userId del token', async () => {
+      const mockUser: UserResponse = {
+        id: 'uuid-1',
+        name: 'Test',
+        email: 'test@test.com',
+        role: UserRole.ADMIN,
+        mustChangePassword: false,
+        isActive: true,
+        technicianId: null,
+        odooUserId: null,
+        odooSyncedAt: null,
+        odooEmployeeId: null,
+        avatarUrl: null,
+        createdAt: new Date(),
+      };
+      const getMeSpy = jest
+        .spyOn(usersService, 'getMe')
+        .mockResolvedValue(mockUser);
+
+      const result = await controller.getMe(currentUser);
+
+      expect(getMeSpy).toHaveBeenCalledWith('admin-id');
+      expect(result).toEqual(mockUser);
+    });
+  });
+
+  describe('POST /users/me/avatar', () => {
+    it('llama a usersService.uploadAvatar con userId y file', async () => {
+      const mockResponse: UserResponse = {
+        id: 'uuid-1',
+        name: 'Test',
+        email: 'test@test.com',
+        role: UserRole.ADMIN,
+        mustChangePassword: false,
+        isActive: true,
+        technicianId: null,
+        odooUserId: null,
+        odooSyncedAt: null,
+        odooEmployeeId: null,
+        avatarUrl: '/avatars/new-uuid.jpg',
+        createdAt: new Date(),
+      };
+      const uploadSpy = jest.spyOn(usersService, 'uploadAvatar').mockResolvedValue(mockResponse);
+      const mockFile = { buffer: Buffer.from('data'), originalname: 'photo.jpg' } as Express.Multer.File;
+      const mockJwt: JwtPayload = { sub: 'uuid-1', email: 'test@test.com', role: UserRole.ADMIN, mustChangePassword: false };
+
+      const result = await controller.uploadAvatar(mockFile, mockJwt);
+
+      expect(uploadSpy).toHaveBeenCalledWith('uuid-1', mockFile);
+      expect(result.avatarUrl).toBe('/avatars/new-uuid.jpg');
+    });
+  });
+
 });
+
+type UserResponse = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  mustChangePassword: boolean;
+  isActive: boolean;
+  technicianId: string | null;
+  odooUserId: number | null;
+  odooSyncedAt: Date | null;
+  odooEmployeeId: number | null;
+  avatarUrl: string | null;
+  createdAt: Date;
+};
 
