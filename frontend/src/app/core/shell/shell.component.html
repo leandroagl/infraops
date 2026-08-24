@@ -10,17 +10,21 @@
     <span class="toolbar__title">InfraOps</span>
     <span class="toolbar__spacer"></span>
     <button mat-button class="toolbar__user-btn" [matMenuTriggerFor]="userMenu">
-      <app-user-avatar
-        [name]="currentUser?.name ?? ''"
-        [avatarUrl]="currentUser?.avatarUrl ?? null"
-        size="md">
-      </app-user-avatar>
-      <span class="toolbar__role">{{ currentUser?.role }}</span>
-      <span class="toolbar__email">{{ currentUser?.email }}</span>
-      <svg viewBox="0 0 24 24"
-           style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0;margin-left:2px;color:var(--tx-lo)">
-        <polyline points="6 9 12 15 18 9"/>
-      </svg>
+      <span class="toolbar__user-content">
+        <span class="toolbar__user-info">
+          <span class="toolbar__user-role">{{ currentUser?.role }}</span>
+          <span class="toolbar__user-name">{{ currentUser?.name }}</span>
+        </span>
+        <app-user-avatar
+          [name]="currentUser?.name ?? ''"
+          [avatarUrl]="currentUser?.avatarUrl ?? null"
+          size="md">
+        </app-user-avatar>
+        <svg viewBox="0 0 24 24"
+             style="width:10px;height:10px;stroke:var(--tx-lo);fill:none;stroke-width:2;flex-shrink:0">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </span>
     </button>
 
     <mat-menu #userMenu="matMenu" xPosition="before">

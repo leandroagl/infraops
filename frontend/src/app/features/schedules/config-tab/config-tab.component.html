@@ -25,8 +25,10 @@
       <mat-select [(value)]="filterTechnicianId">
         <mat-select-trigger>
           <ng-container *ngIf="filterSelectedTech as t">
-            <app-user-avatar [name]="t.name" [avatarUrl]="t.avatarUrl" size="sm"></app-user-avatar>
-            {{ t.name }}
+            <span class="trigger-tech">
+              <app-user-avatar [name]="t.name" [avatarUrl]="t.avatarUrl" size="sm"></app-user-avatar>
+              {{ t.name }}
+            </span>
           </ng-container>
           <span *ngIf="!filterSelectedTech" style="color:var(--tx-lo)">Todos</span>
         </mat-select-trigger>
@@ -82,8 +84,10 @@
           <mat-select [value]="rule.technicianId" (selectionChange)="onTechnicianChange(rule, $event.value)">
             <mat-select-trigger>
               <ng-container *ngIf="getTechForRule(rule) as t">
-                <app-user-avatar [name]="t.name" [avatarUrl]="t.avatarUrl" size="sm"></app-user-avatar>
-                {{ t.name }}
+                <span class="trigger-tech">
+                  <app-user-avatar [name]="t.name" [avatarUrl]="t.avatarUrl" size="sm"></app-user-avatar>
+                  {{ t.name }}
+                </span>
               </ng-container>
               <span *ngIf="!getTechForRule(rule)" style="color:var(--tx-lo)">Sin asignar</span>
             </mat-select-trigger>
