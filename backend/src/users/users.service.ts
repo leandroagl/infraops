@@ -139,6 +139,32 @@ export class UsersService {
     return { plainPassword };
   }
 
+  async remove(id: string, currentUserId: string): Promise<void> {
+    if (id === currentUserId) {
+      throw new ForbiddenException('No podés eliminar tu propio usuario');
+    }
+
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
+    if (user.technicianId) {
+      throw new ConflictException(
+        'Este usuario tiene un perfil técnico vinculado. Quitá el perfil técnico antes de eliminarlo.',
+      );
+    }
+
+    if (user.avatarPath) {
+      await fs.rm(
+        join(process.cwd(), 'uploads', 'avatars', user.avatarPath),
+        { force: true },
+      );
+    }
+
+    await this.userRepository.delete(id);
+  }
+
   async getMe(userId: string): Promise<UserResponse> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Usuario no encontrado');

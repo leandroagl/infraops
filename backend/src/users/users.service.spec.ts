@@ -27,6 +27,7 @@ describe('UsersService', () => {
     create: jest.Mock;
     save: jest.Mock;
     update: jest.Mock;
+    delete: jest.Mock;
   };
   // keep alias for backward compat with existing tests
   let userRepository: typeof repo;
@@ -71,6 +72,7 @@ describe('UsersService', () => {
       create: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     };
     userRepository = repo;
 
@@ -267,6 +269,62 @@ describe('UsersService', () => {
       await expect(
         service.resetPassword('nonexistent', 'admin-id'),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('remove', () => {
+    it('elimina el usuario', async () => {
+      userRepository.findOne.mockResolvedValue(mockUser);
+      userRepository.delete.mockResolvedValue({ affected: 1 });
+
+      await service.remove('user-1', 'admin-id');
+
+      expect(userRepository.delete).toHaveBeenCalledWith('user-1');
+    });
+
+    it('elimina el avatar del usuario si tiene uno', async () => {
+      userRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        avatarPath: 'uuid.jpg',
+      });
+      userRepository.delete.mockResolvedValue({ affected: 1 });
+      const rmSpy = jest
+        .spyOn(require('fs/promises'), 'rm')
+        .mockResolvedValue(undefined);
+
+      await service.remove('user-1', 'admin-id');
+
+      expect(rmSpy).toHaveBeenCalledWith(
+        expect.stringContaining('uuid.jpg'),
+        { force: true },
+      );
+    });
+
+    it('lanza ForbiddenException si el id coincide con el usuario actual', async () => {
+      await expect(service.remove('user-1', 'user-1')).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(userRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('lanza NotFoundException si el usuario no existe', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.remove('nonexistent', 'admin-id'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('lanza ConflictException si el usuario tiene un perfil técnico vinculado', async () => {
+      userRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        technicianId: 'tech-1',
+      });
+
+      await expect(service.remove('user-1', 'admin-id')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(userRepository.delete).not.toHaveBeenCalled();
     });
   });
 

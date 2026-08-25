@@ -39,6 +39,10 @@ export class UsersService {
     );
   }
 
+  remove(id: string): Observable<{ ok: true }> {
+    return this.http.delete<{ ok: true }>(`${this.url}/${id}`);
+  }
+
   getMe(): Observable<AuthUser> {
     return this.http.get<AuthUser>(`${environment.apiUrl}/users/me`);
   }

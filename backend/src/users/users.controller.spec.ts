@@ -15,6 +15,7 @@ describe('UsersController', () => {
     update: jest.Mock;
     updateStatus: jest.Mock;
     resetPassword: jest.Mock;
+    remove: jest.Mock;
   };
 
   const currentUser: JwtPayload = {
@@ -31,6 +32,7 @@ describe('UsersController', () => {
       update: jest.fn(),
       updateStatus: jest.fn(),
       resetPassword: jest.fn(),
+      remove: jest.fn(),
       getMe: jest.fn(),
       uploadAvatar: jest.fn(),
     };
@@ -118,6 +120,17 @@ describe('UsersController', () => {
         'admin-id',
       );
       expect(result).toEqual(mockResult);
+    });
+  });
+
+  describe('remove', () => {
+    it('llama a usersService.remove con id y sub del usuario actual', async () => {
+      usersService.remove.mockResolvedValue(undefined);
+
+      const result = await controller.remove('user-1', currentUser);
+
+      expect(usersService.remove).toHaveBeenCalledWith('user-1', 'admin-id');
+      expect(result).toEqual({ ok: true });
     });
   });
 
