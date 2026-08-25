@@ -29,8 +29,10 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # Avatares de usuarios: proxy al backend (antes del regex de assets estáticos)
-    location /avatars/ {
+    # Avatares de usuarios: proxy al backend
+    # ^~ es necesario: sin esto, el regex de assets estáticos de abajo (que matchea
+    # .jpg/.png) le gana a este prefix match sin importar el orden en el archivo
+    location ^~ /avatars/ {
         proxy_pass http://backend:3000/avatars/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
