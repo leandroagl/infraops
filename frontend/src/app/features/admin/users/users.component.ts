@@ -8,6 +8,7 @@ import { UsersService } from '../../../core/services/users.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserFormDialogComponent } from './user-form-dialog/user-form-dialog.component';
 import { PasswordDisplayDialogComponent } from './password-display-dialog/password-display-dialog.component';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 const SEED_ADMIN_EMAIL = 'admininfraops@ondra.com.ar';
 
@@ -114,6 +115,29 @@ export class UsersComponent implements OnInit {
           duration: 3000,
           panelClass: 'snack-error',
         }),
+    });
+  }
+
+  deleteUser(user: User): void {
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      data: {
+        title: 'Eliminar usuario',
+        message: `¿Estás seguro de que querés eliminar a ${user.name}? Esta acción no se puede deshacer.`,
+      },
+      width: '420px',
+    });
+    ref.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(confirmed => {
+      if (!confirmed) return;
+      this.usersService.remove(user.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: () => {
+          this.users = this.users.filter(u => u.id !== user.id);
+        },
+        error: err =>
+          this.snackBar.open(err.error?.message ?? 'No se pudo eliminar el usuario.', '', {
+            duration: 3000,
+            panelClass: 'snack-error',
+          }),
+      });
     });
   }
 

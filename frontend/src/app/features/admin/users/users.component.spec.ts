@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
@@ -45,7 +45,7 @@ describe('UsersComponent', () => {
 
   beforeEach(async () => {
     usersServiceSpy = jasmine.createSpyObj('UsersService', [
-      'getAll', 'updateStatus', 'resetPassword',
+      'getAll', 'updateStatus', 'resetPassword', 'remove',
     ]);
     authServiceSpy = jasmine.createSpyObj('AuthService', ['getCurrentUser']);
     usersServiceSpy.getAll.and.returnValue(of([seedAdmin, techUser]));
@@ -146,6 +146,53 @@ describe('UsersComponent', () => {
       expect(openSpy).toHaveBeenCalled();
       const call = openSpy.calls.mostRecent();
       expect(call.args[1]!.data).toEqual({ name: techUser.name, plainPassword: 'Test123!' });
+    });
+  });
+
+  describe('deleteUser()', () => {
+    it('no elimina si se cancela el diálogo de confirmación', () => {
+      spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(false) } as any);
+
+      component.deleteUser(techUser);
+
+      expect(usersServiceSpy.remove).not.toHaveBeenCalled();
+    });
+
+    it('llama a usersService.remove cuando se confirma', () => {
+      spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(true) } as any);
+      usersServiceSpy.remove.and.returnValue(of({ ok: true }));
+
+      component.deleteUser(techUser);
+
+      expect(usersServiceSpy.remove).toHaveBeenCalledWith(techUser.id);
+    });
+
+    it('quita el usuario del array local sin recargar desde la API', () => {
+      spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(true) } as any);
+      usersServiceSpy.remove.and.returnValue(of({ ok: true }));
+      component.users = [seedAdmin, techUser];
+
+      component.deleteUser(techUser);
+
+      expect(component.users).toEqual([seedAdmin]);
+      expect(usersServiceSpy.getAll).toHaveBeenCalledTimes(1); // solo la carga inicial
+    });
+
+    it('muestra el mensaje de error del backend si la eliminación falla', () => {
+      spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(true) } as any);
+      usersServiceSpy.remove.and.returnValue(
+        throwError(() => ({ error: { message: 'Este usuario tiene un perfil técnico vinculado.' } })),
+      );
+      const snackBar = TestBed.inject(MatSnackBar);
+      const snackSpy = spyOn(snackBar, 'open');
+
+      component.deleteUser(techUser);
+
+      expect(snackSpy).toHaveBeenCalledWith(
+        'Este usuario tiene un perfil técnico vinculado.',
+        '',
+        jasmine.any(Object),
+      );
     });
   });
 });

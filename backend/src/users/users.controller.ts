@@ -2,7 +2,9 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -94,6 +96,16 @@ export class UsersController {
     @CurrentUser() currentUser: JwtPayload,
   ): Promise<{ plainPassword: string }> {
     return this.usersService.resetPassword(id, currentUser.sub);
+  }
+
+  @Delete(':id')
+  @HttpCode(200)
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: JwtPayload,
+  ): Promise<{ ok: true }> {
+    await this.usersService.remove(id, currentUser.sub);
+    return { ok: true };
   }
 
 }
