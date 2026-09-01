@@ -13,6 +13,7 @@ import { UserRole } from '../../core/models/auth.models';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/task-create-dialog.component';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-tasks-unified',
@@ -74,7 +75,7 @@ export class TasksUnifiedComponent implements OnInit {
   get userRole(): UserRole { return this.currentUser?.role ?? 'TECHNICIAN'; }
 
   get canCreateTask(): boolean {
-    return this.userRole === 'ADMIN';
+    return environment.allowManualTaskCreation && this.userRole === 'ADMIN';
   }
 
   get hasActiveFilters(): boolean {

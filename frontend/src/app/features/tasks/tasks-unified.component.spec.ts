@@ -13,6 +13,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ClientsService } from '../../core/services/clients.service';
 import { TechniciansService } from '../../core/services/technicians.service';
 import { Task } from '../../core/models/task.models';
+import { environment } from '../../../environments/environment';
 
 function makeTask(id: string, clientId: string, clientName: string, status: Task['status'] = 'PENDING'): Task {
   return {
@@ -194,22 +195,38 @@ describe('TasksUnifiedComponent', () => {
     expect(component.error).toBeTruthy();
   });
 
-  it('canCreateTask es true solo para ADMIN', () => {
-    authServiceSpy.getCurrentUser.and.returnValue({ id: 'u1', name: 'Admin User', email: 'a@ondra', role: 'ADMIN', technicianId: null, avatarUrl: null });
-    expect(component.canCreateTask).toBeTrue();
+  describe('canCreateTask', () => {
+    it('es true para ADMIN cuando allowManualTaskCreation está habilitado', () => {
+      environment.allowManualTaskCreation = true;
+      authServiceSpy.getCurrentUser.and.returnValue({ id: 'u1', name: 'Admin User', email: 'a@ondra', role: 'ADMIN', technicianId: null, avatarUrl: null });
+      expect(component.canCreateTask).toBeTrue();
+      environment.allowManualTaskCreation = false;
+    });
+
+    it('es false para ADMIN cuando allowManualTaskCreation está deshabilitado', () => {
+      environment.allowManualTaskCreation = false;
+      authServiceSpy.getCurrentUser.and.returnValue({ id: 'u1', name: 'Admin User', email: 'a@ondra', role: 'ADMIN', technicianId: null, avatarUrl: null });
+      expect(component.canCreateTask).toBeFalse();
+    });
+
+    it('es false para TL aunque allowManualTaskCreation esté habilitado', () => {
+      environment.allowManualTaskCreation = true;
+      authServiceSpy.getCurrentUser.and.returnValue({ id: 'u3', name: 'TL User', email: 'tl@ondra', role: 'TL', technicianId: 'tl-1', avatarUrl: null });
+      expect(component.canCreateTask).toBeFalse();
+      environment.allowManualTaskCreation = false;
+    });
+
+    it('es false para COORDINATOR aunque allowManualTaskCreation esté habilitado', () => {
+      environment.allowManualTaskCreation = true;
+      authServiceSpy.getCurrentUser.and.returnValue({ id: 'u4', name: 'Coordinator User', email: 'lau@ondra', role: 'COORDINATOR', technicianId: null, avatarUrl: null });
+      expect(component.canCreateTask).toBeFalse();
+      environment.allowManualTaskCreation = false;
+    });
   });
 
-  it('canCreateTask es false para TL', () => {
-    authServiceSpy.getCurrentUser.and.returnValue({ id: 'u3', name: 'TL User', email: 'tl@ondra', role: 'TL', technicianId: 'tl-1', avatarUrl: null });
-    expect(component.canCreateTask).toBeFalse();
-  });
-
-  it('canCreateTask es false para COORDINATOR', () => {
-    authServiceSpy.getCurrentUser.and.returnValue({ id: 'u4', name: 'Coordinator User', email: 'lau@ondra', role: 'COORDINATOR', technicianId: null, avatarUrl: null });
-    expect(component.canCreateTask).toBeFalse();
-  });
-
-  it('ADMIN ve el botón Nueva tarea', () => {
-    expect(fixture.nativeElement.querySelector('button[color="primary"]')).toBeTruthy();
+  it('botón Nueva tarea no se muestra cuando allowManualTaskCreation es false', () => {
+    environment.allowManualTaskCreation = false;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('button[color="primary"]')).toBeNull();
   });
 });
