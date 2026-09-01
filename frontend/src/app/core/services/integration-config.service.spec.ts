@@ -16,13 +16,13 @@ describe('IntegrationConfigService', () => {
   afterEach(() => http.verify());
 
   it('getOdoo hace GET a /integration-config/odoo', () => {
-    const mock: OdooConfigDto = { url: 'u', db: 'd', username: 'u', apiKey: '••••••••', helpdeskTeamId: 7, updatedAt: null, updatedBy: null };
+    const mock: OdooConfigDto = { url: 'u', db: 'd', username: 'u', apiKey: '••••••••', helpdeskTeamId: 7, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null };
     service.getOdoo().subscribe(r => expect(r).toEqual(mock));
     http.expectOne(`${base}/odoo`).flush(mock);
   });
 
   it('patchOdoo hace PATCH a /integration-config/odoo', () => {
-    const mock: OdooConfigDto = { url: 'nuevo', db: 'd', username: 'u', apiKey: '••••••••', helpdeskTeamId: 7, updatedAt: null, updatedBy: 'a' };
+    const mock: OdooConfigDto = { url: 'nuevo', db: 'd', username: 'u', apiKey: '••••••••', helpdeskTeamId: 7, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: 'a' };
     service.patchOdoo({ url: 'nuevo' }).subscribe(r => expect(r.url).toBe('nuevo'));
     const req = http.expectOne(`${base}/odoo`);
     expect(req.request.method).toBe('PATCH');

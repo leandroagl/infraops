@@ -25,7 +25,7 @@
 
   <button mat-flat-button color="primary" class="gen-btn" [disabled]="!canGenerate" (click)="generate()">
     <mat-spinner *ngIf="generating" diameter="16"></mat-spinner>
-    {{ preview?.wasGenerated ? 'Ya generado este mes' : generating ? 'Generando...' : 'Generar ' + monthName + ' ' + year + ' →' }}
+    {{ preview?.wasGenerated ? 'Ya generado este mes' : generating ? 'Generando...' : (preview?.taskTypesWithoutTags?.length ?? 0) > 0 ? 'Completar config. de tags →' : 'Generar ' + monthName + ' ' + year + ' →' }}
   </button>
 </div>
 
@@ -63,7 +63,8 @@
     Asigná un técnico a todos los clientes para habilitar la generación
   </span>
   <span class="footer-hint footer-hint--warn" *ngIf="!isFutureMonth && !preview?.wasGenerated && (preview?.taskTypesWithoutTags?.length ?? 0) > 0">
-    Configurá los tags de Odoo para {{ taskTypesWithoutTagsLabel }} en
-    <a routerLink="/admin/task-config">Configuración de tipos de tarea</a> para habilitar la generación
+    Sin tags de Odoo en
+    <a routerLink="/admin/task-config">Configuración de tipos de tarea</a>:
+    <span class="missing-type-chip" *ngFor="let label of taskTypesWithoutTagsLabels">{{ label }}</span>
   </span>
 </div>

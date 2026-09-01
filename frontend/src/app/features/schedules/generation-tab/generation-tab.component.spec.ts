@@ -66,28 +66,41 @@ describe('GenerationTabComponent', () => {
     expect(component.canGenerate).toBe(false);
   });
 
-  it('arma el listado legible de tipos sin tags configurados', () => {
+  it('arma el array de labels legibles para tipos sin tags configurados', () => {
     schedulesService.getMonthlyPreview.and.returnValue(of({
       ...basePreview,
       taskTypesWithoutTags: ['WINDOWS_DOMAIN_MAINTENANCE', 'ROUTER_MAINTENANCE'],
     }));
     fixture.detectChanges();
 
-    expect(component.taskTypesWithoutTagsLabel).toBe(
-      'Mantenimiento Windows y dominios, Mantenimiento de router y firewall',
-    );
+    expect(component.taskTypesWithoutTagsLabels).toEqual([
+      'Mantenimiento Windows y dominios',
+      'Mantenimiento de router y firewall',
+    ]);
   });
 
-  it('muestra el aviso de tags faltantes en el template', () => {
+  it('muestra texto de acción en el botón cuando faltan tags de Odoo', () => {
     schedulesService.getMonthlyPreview.and.returnValue(of({
       ...basePreview,
-      taskTypesWithoutTags: ['WINDOWS_DOMAIN_MAINTENANCE'],
+      taskTypesWithoutTags: ['VEEAM_BACKUP'],
     }));
     fixture.detectChanges();
 
-    const warning = fixture.nativeElement.querySelector('.footer-hint--warn');
-    expect(warning).toBeTruthy();
-    expect(warning.textContent).toContain('Mantenimiento Windows y dominios');
+    const btn = fixture.nativeElement.querySelector('.gen-btn');
+    expect(btn.textContent.trim()).toContain('Completar config. de tags');
+  });
+
+  it('muestra el aviso de tags faltantes en el template como chips individuales', () => {
+    schedulesService.getMonthlyPreview.and.returnValue(of({
+      ...basePreview,
+      taskTypesWithoutTags: ['WINDOWS_DOMAIN_MAINTENANCE', 'VEEAM_BACKUP'],
+    }));
+    fixture.detectChanges();
+
+    const chips = fixture.nativeElement.querySelectorAll('.missing-type-chip');
+    expect(chips.length).toBe(2);
+    expect(chips[0].textContent.trim()).toBe('Mantenimiento Windows y dominios');
+    expect(chips[1].textContent.trim()).toBe('Mantenimiento de backups Veeam');
   });
 
   describe('reactividad ante cambios guardados en configuración', () => {

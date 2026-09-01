@@ -23,8 +23,8 @@ describe('IntegracionesComponent', () => {
       'getInfraDoc', 'patchInfraDoc', 'testInfraDoc',
       'getVmware', 'patchVmware', 'testVmware',
     ]);
-    mockService.getOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, updatedAt: null, updatedBy: null }));
-    mockService.patchOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, updatedAt: null, updatedBy: null } as OdooConfigDto));
+    mockService.getOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null }));
+    mockService.patchOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null } as OdooConfigDto));
     mockService.testOdoo.and.returnValue(of({ ok: true, message: 'OK' }));
     mockService.getInfraDoc.and.returnValue(of({ url: 'https://id.test', apiKey: MASK, updatedAt: null, updatedBy: null }));
     mockService.patchInfraDoc.and.returnValue(of({ url: 'https://id.test', apiKey: MASK, updatedAt: null, updatedBy: null } as InfraDocConfigDto));
