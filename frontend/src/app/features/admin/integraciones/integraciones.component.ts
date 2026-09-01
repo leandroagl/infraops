@@ -54,25 +54,28 @@ export class IntegracionesComponent implements OnInit {
     this.svc.getOdoo().subscribe({
       next: (d) => {
         this.odooForm.patchValue(d);
-        this.odoo.loading   = false;
-        this.odoo.updatedAt = d.updatedAt;
-        this.odoo.updatedBy = d.updatedBy;
+        this.odoo.loading           = false;
+        this.odoo.updatedAt         = d.updatedAt;
+        this.odoo.updatedBy         = d.updatedBy;
+        if (d.updatedAt) this.odoo.connectionStatus = 'ok';
       },
     });
     this.svc.getInfraDoc().subscribe({
       next: (d) => {
         this.infradocForm.patchValue(d);
-        this.infradoc.loading   = false;
-        this.infradoc.updatedAt = d.updatedAt;
-        this.infradoc.updatedBy = d.updatedBy;
+        this.infradoc.loading           = false;
+        this.infradoc.updatedAt         = d.updatedAt;
+        this.infradoc.updatedBy         = d.updatedBy;
+        if (d.updatedAt) this.infradoc.connectionStatus = 'ok';
       },
     });
     this.svc.getVmware().subscribe({
       next: (d) => {
         this.vmwareForm.patchValue(d);
-        this.vmware.loading   = false;
-        this.vmware.updatedAt = d.updatedAt;
-        this.vmware.updatedBy = d.updatedBy;
+        this.vmware.loading           = false;
+        this.vmware.updatedAt         = d.updatedAt;
+        this.vmware.updatedBy         = d.updatedBy;
+        if (d.updatedAt) this.vmware.connectionStatus = 'ok';
       },
     });
   }
@@ -103,9 +106,10 @@ export class IntegracionesComponent implements OnInit {
     this.svc.patchOdoo(this.buildOdooPatchDto()).subscribe({
       next: (d) => {
         this.odooForm.patchValue(d);
-        this.odoo.saving    = false;
-        this.odoo.updatedAt = d.updatedAt;
-        this.odoo.updatedBy = d.updatedBy;
+        this.odoo.saving            = false;
+        this.odoo.updatedAt         = d.updatedAt;
+        this.odoo.updatedBy         = d.updatedBy;
+        this.odoo.connectionStatus  = 'ok';
         this.snackBar.open('Configuración de Odoo guardada', '', { duration: 3000 });
       },
       error: () => {
@@ -138,9 +142,10 @@ export class IntegracionesComponent implements OnInit {
     this.svc.patchInfraDoc(this.buildInfraDocPatchDto()).subscribe({
       next: (d) => {
         this.infradocForm.patchValue(d);
-        this.infradoc.saving    = false;
-        this.infradoc.updatedAt = d.updatedAt;
-        this.infradoc.updatedBy = d.updatedBy;
+        this.infradoc.saving            = false;
+        this.infradoc.updatedAt         = d.updatedAt;
+        this.infradoc.updatedBy         = d.updatedBy;
+        this.infradoc.connectionStatus  = 'ok';
         this.snackBar.open('Configuración de InfraDoc guardada', '', { duration: 3000 });
       },
       error: () => {
@@ -173,9 +178,10 @@ export class IntegracionesComponent implements OnInit {
     this.svc.patchVmware(this.buildVmwarePatchDto()).subscribe({
       next: (d) => {
         this.vmwareForm.patchValue(d);
-        this.vmware.saving    = false;
-        this.vmware.updatedAt = d.updatedAt;
-        this.vmware.updatedBy = d.updatedBy;
+        this.vmware.saving            = false;
+        this.vmware.updatedAt         = d.updatedAt;
+        this.vmware.updatedBy         = d.updatedBy;
+        this.vmware.connectionStatus  = 'ok';
         this.snackBar.open('Configuración de VMware guardada', '', { duration: 3000 });
       },
       error: () => {
