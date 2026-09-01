@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { ConfigService } from '@nestjs/config';
+import { IntegrationConfigService } from '../../integration-config/integration-config.service';
 import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
@@ -31,7 +31,7 @@ describe('OdooService', () => {
     count: jest.Mock;
   };
   let technicianRepo: { findOne: jest.Mock };
-  let configService: { getOrThrow: jest.Mock };
+  let integrationConfigServiceMock: { getOdooConfigDecrypted: jest.Mock };
   let taskConfigServiceMock: { findOne: jest.Mock };
 
   const makeClient = (override: Partial<Client> = {}): Client =>
@@ -96,8 +96,8 @@ describe('OdooService', () => {
       count: jest.fn(),
     };
     technicianRepo = { findOne: jest.fn() };
-    configService = {
-      getOrThrow: jest.fn().mockReturnValue('5'),
+    integrationConfigServiceMock = {
+      getOdooConfigDecrypted: jest.fn().mockResolvedValue({ url: 'u', db: 'd', username: 'u', apiKey: 'k', helpdeskTeamId: 7 }),
     };
     taskConfigServiceMock = { findOne: jest.fn().mockResolvedValue(null) };
 
@@ -107,7 +107,7 @@ describe('OdooService', () => {
         { provide: OdooSystemRpcService, useValue: odooRpc },
         { provide: getRepositoryToken(Client), useValue: clientRepo },
         { provide: getRepositoryToken(User), useValue: userRepo },
-        { provide: ConfigService, useValue: configService },
+        { provide: IntegrationConfigService, useValue: integrationConfigServiceMock },
         { provide: getRepositoryToken(Technician), useValue: technicianRepo },
         { provide: TaskConfigService, useValue: taskConfigServiceMock },
       ],
@@ -630,17 +630,6 @@ describe('OdooService', () => {
       ).rejects.toThrow(ServiceUnavailableException);
     });
 
-    it('lanza error cuando ODOO_HELPDESK_TEAM_ID no es un entero válido', async () => {
-      configService.getOrThrow.mockReturnValue('no-es-numero');
-      technicianRepo.findOne.mockResolvedValue(makeTechnician());
-      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
-
-      await expect(
-        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),
-      ).rejects.toThrow('ODOO_HELPDESK_TEAM_ID must be a valid integer');
-      expect(odooRpc.callKw).not.toHaveBeenCalled();
-    });
-
     it('lanza BadRequestException cuando el técnico no tiene usuario asociado', async () => {
       clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101 }));
       const technicianSinUsuario: Technician = {
@@ -998,7 +987,7 @@ describe('OdooService', () => {
         'search_read',
         [
           [
-            ['team_ids', 'in', [5]],
+            ['team_ids', 'in', [7]],
             ['name', '=', 'En curso'],
           ],
         ],
@@ -1059,7 +1048,7 @@ describe('OdooService', () => {
         'search_read',
         [
           [
-            ['team_ids', 'in', [5]],
+            ['team_ids', 'in', [7]],
             ['name', '=', 'No realizadas'],
           ],
         ],

@@ -4,13 +4,13 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Not, Repository } from 'typeorm';
 import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
 import { OdooSystemRpcService } from './odoo-system-rpc.service';
+import { IntegrationConfigService } from '../../integration-config/integration-config.service';
 import { OdooPartner } from './dto/odoo-partner.dto';
 import { OdooUser } from './dto/odoo-user.dto';
 import { OdooSyncResult } from './dto/odoo-sync-result.dto';
@@ -43,7 +43,7 @@ export class OdooService {
 
   constructor(
     private readonly systemRpc: OdooSystemRpcService,
-    private readonly configService: ConfigService,
+    private readonly integrationConfigService: IntegrationConfigService,
     private readonly taskConfigService: TaskConfigService,
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,
@@ -369,10 +369,7 @@ export class OdooService {
   private async resolveInProgressStageId(): Promise<number> {
     if (this.inProgressStageId !== null) return this.inProgressStageId;
 
-    const teamId = parseInt(
-      this.configService.getOrThrow<string>('ODOO_HELPDESK_TEAM_ID'),
-      10,
-    );
+    const { helpdeskTeamId: teamId } = await this.integrationConfigService.getOdooConfigDecrypted();
 
     const stages = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.stage',
@@ -399,10 +396,7 @@ export class OdooService {
   private async resolveNotDoneStageId(): Promise<number> {
     if (this.notDoneStageId !== null) return this.notDoneStageId;
 
-    const teamId = parseInt(
-      this.configService.getOrThrow<string>('ODOO_HELPDESK_TEAM_ID'),
-      10,
-    );
+    const { helpdeskTeamId: teamId } = await this.integrationConfigService.getOdooConfigDecrypted();
 
     const stages = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.stage',
@@ -454,10 +448,7 @@ export class OdooService {
   private async resolveDoneStageId(): Promise<number> {
     if (this.doneStageId !== null) return this.doneStageId;
 
-    const teamId = parseInt(
-      this.configService.getOrThrow<string>('ODOO_HELPDESK_TEAM_ID'),
-      10,
-    );
+    const { helpdeskTeamId: teamId } = await this.integrationConfigService.getOdooConfigDecrypted();
 
     const stages = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.stage',
@@ -514,15 +505,7 @@ export class OdooService {
     technicianId: string,
     taskType: TaskType,
   ): Promise<number> {
-    const teamId = parseInt(
-      this.configService.getOrThrow<string>('ODOO_HELPDESK_TEAM_ID'),
-      10,
-    );
-    if (isNaN(teamId)) {
-      throw new BadRequestException(
-        'ODOO_HELPDESK_TEAM_ID must be a valid integer',
-      );
-    }
+    const { helpdeskTeamId: teamId } = await this.integrationConfigService.getOdooConfigDecrypted();
 
     const partnerId = await this.resolvePartnerId(clientId);
     if (partnerId === null) {
