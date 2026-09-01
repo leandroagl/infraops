@@ -16,6 +16,6 @@ nav[mat-tab-nav-bar] {
 mat-tab-nav-panel {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
   display: block;
 }

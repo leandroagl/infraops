@@ -122,7 +122,7 @@ export class IntegracionesComponent implements OnInit {
         this.odoo.testing           = false;
         this.odoo.connectionStatus  = r.ok ? 'ok' : 'error';
         this.odoo.connectionMessage = r.message;
-        if (!r.ok) this.snackBar.open(r.message, '', { duration: 5000 });
+        this.snackBar.open(r.message, '', { duration: r.ok ? 3000 : 5000 });
       },
       error: (e: { error?: { message?: string } }) => {
         this.odoo.testing           = false;
@@ -157,7 +157,7 @@ export class IntegracionesComponent implements OnInit {
         this.infradoc.testing           = false;
         this.infradoc.connectionStatus  = r.ok ? 'ok' : 'error';
         this.infradoc.connectionMessage = r.message;
-        if (!r.ok) this.snackBar.open(r.message, '', { duration: 5000 });
+        this.snackBar.open(r.message, '', { duration: r.ok ? 3000 : 5000 });
       },
       error: (e: { error?: { message?: string } }) => {
         this.infradoc.testing           = false;
@@ -192,10 +192,12 @@ export class IntegracionesComponent implements OnInit {
         this.vmware.testing           = false;
         this.vmware.connectionStatus  = r.ok ? 'ok' : 'error';
         this.vmware.connectionMessage = r.message;
+        this.snackBar.open(r.message, '', { duration: 3000 });
       },
       error: () => {
         this.vmware.testing          = false;
         this.vmware.connectionStatus = 'error';
+        this.snackBar.open('Error al probar VMware', '', { duration: 5000 });
       },
     });
   }
