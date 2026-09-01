@@ -44,13 +44,21 @@ export class IntegrationConfigService {
         username: this.configService.get('ODOO_USERNAME', ''),
         apiKey: MASK,
         helpdeskTeamId: parseInt(this.configService.get('ODOO_HELPDESK_TEAM_ID', '0'), 10),
+        stageInProgressName: '',
+        stageNotDoneName: '',
+        stageDoneName: '',
         updatedAt: null,
         updatedBy: null,
       };
     }
-    return { url: row.url ?? '', db: row.db ?? '', username: row.username ?? '',
+    return {
+      url: row.url ?? '', db: row.db ?? '', username: row.username ?? '',
       apiKey: MASK, helpdeskTeamId: row.helpdeskTeamId ?? 0,
-      updatedAt: row.updatedAt, updatedBy: row.updatedBy };
+      stageInProgressName: row.stageInProgressName ?? '',
+      stageNotDoneName: row.stageNotDoneName ?? '',
+      stageDoneName: row.stageDoneName ?? '',
+      updatedAt: row.updatedAt, updatedBy: row.updatedBy,
+    };
   }
 
   async patchOdoo(dto: PatchOdooConfigDto, updatedBy: string): Promise<OdooConfigResponseDto> {
@@ -59,7 +67,10 @@ export class IntegrationConfigService {
     if (dto.url !== undefined)            existing.url            = dto.url;
     if (dto.db !== undefined)             existing.db             = dto.db;
     if (dto.username !== undefined)       existing.username       = dto.username;
-    if (dto.helpdeskTeamId !== undefined) existing.helpdeskTeamId = dto.helpdeskTeamId;
+    if (dto.helpdeskTeamId !== undefined)     existing.helpdeskTeamId     = dto.helpdeskTeamId;
+    if (dto.stageInProgressName !== undefined) existing.stageInProgressName = dto.stageInProgressName;
+    if (dto.stageNotDoneName !== undefined)    existing.stageNotDoneName    = dto.stageNotDoneName;
+    if (dto.stageDoneName !== undefined)       existing.stageDoneName       = dto.stageDoneName;
     if (dto.apiKey !== undefined && !isMasked(dto.apiKey) && dto.apiKey !== '') {
       existing.apiKey = encrypt(dto.apiKey, this.encryptKey);
     }
@@ -73,7 +84,10 @@ export class IntegrationConfigService {
     return this.getOdoo();
   }
 
-  async getOdooConfigDecrypted(): Promise<{ url: string; db: string; username: string; apiKey: string; helpdeskTeamId: number }> {
+  async getOdooConfigDecrypted(): Promise<{
+    url: string; db: string; username: string; apiKey: string; helpdeskTeamId: number;
+    stageInProgressName: string; stageNotDoneName: string; stageDoneName: string;
+  }> {
     const row = await this.odooRepo.findOne({ where: { id: 1 } });
     if (!row) {
       return {
@@ -82,6 +96,9 @@ export class IntegrationConfigService {
         username:       this.configService.get('ODOO_USERNAME', ''),
         apiKey:         this.configService.get('ODOO_API_KEY', ''),
         helpdeskTeamId: parseInt(this.configService.get('ODOO_HELPDESK_TEAM_ID', '0'), 10),
+        stageInProgressName: 'En curso',
+        stageNotDoneName:    'No realizadas',
+        stageDoneName:       'Hecho',
       };
     }
     return {
@@ -90,6 +107,9 @@ export class IntegrationConfigService {
       username:       row.username ?? '',
       apiKey:         row.apiKey   ? decrypt(row.apiKey, this.encryptKey) : '',
       helpdeskTeamId: row.helpdeskTeamId ?? 0,
+      stageInProgressName: row.stageInProgressName || 'En curso',
+      stageNotDoneName:    row.stageNotDoneName    || 'No realizadas',
+      stageDoneName:       row.stageDoneName        || 'Hecho',
     };
   }
 

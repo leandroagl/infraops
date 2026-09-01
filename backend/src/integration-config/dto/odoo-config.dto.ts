@@ -21,6 +21,18 @@ export class PatchOdooConfigDto {
   @IsInt()
   @Min(1)
   helpdeskTeamId?: number;
+
+  @IsOptional()
+  @IsString()
+  stageInProgressName?: string;
+
+  @IsOptional()
+  @IsString()
+  stageNotDoneName?: string;
+
+  @IsOptional()
+  @IsString()
+  stageDoneName?: string;
 }
 
 export class OdooConfigResponseDto {
@@ -29,6 +41,9 @@ export class OdooConfigResponseDto {
   username: string;
   apiKey: string;
   helpdeskTeamId: number;
+  stageInProgressName: string;
+  stageNotDoneName: string;
+  stageDoneName: string;
   updatedAt: Date | null;
   updatedBy: string | null;
 }

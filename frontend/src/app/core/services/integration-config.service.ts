@@ -5,7 +5,9 @@ import { environment } from '../../../environments/environment';
 
 export interface OdooConfigDto {
   url: string; db: string; username: string; apiKey: string;
-  helpdeskTeamId: number; updatedAt: Date | null; updatedBy: string | null;
+  helpdeskTeamId: number;
+  stageInProgressName: string; stageNotDoneName: string; stageDoneName: string;
+  updatedAt: Date | null; updatedBy: string | null;
 }
 export interface InfraDocConfigDto {
   url: string; apiKey: string; updatedAt: Date | null; updatedBy: string | null;

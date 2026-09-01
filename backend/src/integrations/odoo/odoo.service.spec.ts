@@ -97,7 +97,10 @@ describe('OdooService', () => {
     };
     technicianRepo = { findOne: jest.fn() };
     integrationConfigServiceMock = {
-      getOdooConfigDecrypted: jest.fn().mockResolvedValue({ url: 'u', db: 'd', username: 'u', apiKey: 'k', helpdeskTeamId: 7 }),
+      getOdooConfigDecrypted: jest.fn().mockResolvedValue({
+        url: 'u', db: 'd', username: 'u', apiKey: 'k', helpdeskTeamId: 7,
+        stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho',
+      }),
     };
     taskConfigServiceMock = { findOne: jest.fn().mockResolvedValue(null) };
 
@@ -802,20 +805,6 @@ describe('OdooService', () => {
       expect(calls[2][2]).toEqual([[42], { stage_id: 99 }]);
     });
 
-    it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
-      odooRpc.callKw
-        .mockResolvedValueOnce([{ id: 99 }]) // primera llamada: resuelve stage
-        .mockResolvedValue(true);
-
-      await service.closeTicket(42, 22, 1.5, TaskType.QNAP_MAINTENANCE);
-      await service.closeTicket(43, 22, 0.5, TaskType.QNAP_MAINTENANCE);
-
-      const stageCalls = odooRpc.callKw.mock.calls.filter(
-        (args: unknown[]) => args[0] === 'helpdesk.stage',
-      );
-      expect(stageCalls).toHaveLength(1);
-    });
-
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage de cierre', async () => {
       odooRpc.callKw.mockResolvedValueOnce([]);
 
@@ -1001,20 +990,6 @@ describe('OdooService', () => {
       ]);
     });
 
-    it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
-      odooRpc.callKw
-        .mockResolvedValueOnce([{ id: 77 }]) // primera llamada: resuelve stage
-        .mockResolvedValue(true);
-
-      await service.markTicketInProgress(42);
-      await service.markTicketInProgress(43);
-
-      const stageCalls = odooRpc.callKw.mock.calls.filter(
-        (args: unknown[]) => args[0] === 'helpdesk.stage',
-      );
-      expect(stageCalls).toHaveLength(1);
-    });
-
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage "En Curso"', async () => {
       odooRpc.callKw.mockResolvedValueOnce([]);
 
@@ -1073,20 +1048,6 @@ describe('OdooService', () => {
         [[42], { stage_id: 88 }],
         {},
       ]);
-    });
-
-    it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
-      odooRpc.callKw
-        .mockResolvedValueOnce([{ id: 88 }]) // primera llamada: resuelve stage
-        .mockResolvedValue(true);
-
-      await service.markTicketNotDone(42, 22, 'Motivo A');
-      await service.markTicketNotDone(43, 22, 'Motivo B');
-
-      const stageCalls = odooRpc.callKw.mock.calls.filter(
-        (args: unknown[]) => args[0] === 'helpdesk.stage',
-      );
-      expect(stageCalls).toHaveLength(1);
     });
 
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage "No realizadas"', async () => {

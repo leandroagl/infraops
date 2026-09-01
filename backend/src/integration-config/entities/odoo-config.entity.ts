@@ -20,6 +20,15 @@ export class OdooConfig {
   @Column({ name: 'helpdesk_team_id', type: 'int', nullable: true })
   helpdeskTeamId: number | null = null;
 
+  @Column({ name: 'stage_in_progress_name', type: 'varchar', nullable: true })
+  stageInProgressName: string | null = null;
+
+  @Column({ name: 'stage_not_done_name', type: 'varchar', nullable: true })
+  stageNotDoneName: string | null = null;
+
+  @Column({ name: 'stage_done_name', type: 'varchar', nullable: true })
+  stageDoneName: string | null = null;
+
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 

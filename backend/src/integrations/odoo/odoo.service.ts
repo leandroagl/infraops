@@ -37,9 +37,6 @@ const TICKET_META: Record<TaskType, { name: string }> = {
 @Injectable()
 export class OdooService {
   private readonly logger = new Logger(OdooService.name);
-  private doneStageId: number | null = null;
-  private inProgressStageId: number | null = null;
-  private notDoneStageId: number | null = null;
 
   constructor(
     private readonly systemRpc: OdooSystemRpcService,
@@ -367,57 +364,43 @@ export class OdooService {
   }
 
   private async resolveInProgressStageId(): Promise<number> {
-    if (this.inProgressStageId !== null) return this.inProgressStageId;
-
-    const { helpdeskTeamId: teamId } = await this.integrationConfigService.getOdooConfigDecrypted();
+    const { helpdeskTeamId: teamId, stageInProgressName } = await this.integrationConfigService.getOdooConfigDecrypted();
 
     const stages = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.stage',
       'search_read',
-      [
-        [
-          ['team_ids', 'in', [teamId]],
-          ['name', '=', 'En curso'],
-        ],
-      ],
+      [[['team_ids', 'in', [teamId]], ['name', '=', stageInProgressName]]],
       { fields: ['id'], limit: 1 },
     );
 
     if (stages.length === 0) {
+      this.logger.error(`Stage "${stageInProgressName}" no encontrado en Odoo (team_id=${teamId})`);
       throw new ServiceUnavailableException(
-        'No se encontró stage "En curso" en Odoo para el equipo configurado',
+        `No se encontró stage "${stageInProgressName}" en Odoo para el equipo configurado`,
       );
     }
 
-    this.inProgressStageId = stages[0].id;
-    return this.inProgressStageId;
+    return stages[0].id;
   }
 
   private async resolveNotDoneStageId(): Promise<number> {
-    if (this.notDoneStageId !== null) return this.notDoneStageId;
-
-    const { helpdeskTeamId: teamId } = await this.integrationConfigService.getOdooConfigDecrypted();
+    const { helpdeskTeamId: teamId, stageNotDoneName } = await this.integrationConfigService.getOdooConfigDecrypted();
 
     const stages = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.stage',
       'search_read',
-      [
-        [
-          ['team_ids', 'in', [teamId]],
-          ['name', '=', 'No realizadas'],
-        ],
-      ],
+      [[['team_ids', 'in', [teamId]], ['name', '=', stageNotDoneName]]],
       { fields: ['id'], limit: 1 },
     );
 
     if (stages.length === 0) {
+      this.logger.error(`Stage "${stageNotDoneName}" no encontrado en Odoo (team_id=${teamId})`);
       throw new ServiceUnavailableException(
-        'No se encontró stage "No realizadas" en Odoo para el equipo configurado',
+        `No se encontró stage "${stageNotDoneName}" en Odoo para el equipo configurado`,
       );
     }
 
-    this.notDoneStageId = stages[0].id;
-    return this.notDoneStageId;
+    return stages[0].id;
   }
 
   async markTicketInProgress(odooTicketId: number): Promise<void> {
@@ -446,30 +429,23 @@ export class OdooService {
   }
 
   private async resolveDoneStageId(): Promise<number> {
-    if (this.doneStageId !== null) return this.doneStageId;
-
-    const { helpdeskTeamId: teamId } = await this.integrationConfigService.getOdooConfigDecrypted();
+    const { helpdeskTeamId: teamId, stageDoneName } = await this.integrationConfigService.getOdooConfigDecrypted();
 
     const stages = await this.systemRpc.callKw<Array<{ id: number }>>(
       'helpdesk.stage',
       'search_read',
-      [
-        [
-          ['team_ids', 'in', [teamId]],
-          ['fold', '=', true],
-        ],
-      ],
+      [[['team_ids', 'in', [teamId]], ['name', '=', stageDoneName]]],
       { fields: ['id'], limit: 1 },
     );
 
     if (stages.length === 0) {
+      this.logger.error(`Stage "${stageDoneName}" no encontrado en Odoo (team_id=${teamId})`);
       throw new ServiceUnavailableException(
-        'No se encontró stage de cierre en Odoo para el equipo configurado',
+        `No se encontró stage "${stageDoneName}" en Odoo para el equipo configurado`,
       );
     }
 
-    this.doneStageId = stages[0].id;
-    return this.doneStageId;
+    return stages[0].id;
   }
 
   async getHelpdeskTags(): Promise<{ id: number; name: string }[]> {

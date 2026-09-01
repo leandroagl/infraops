@@ -66,6 +66,30 @@ describe('IntegrationConfigService', () => {
       expect(result.apiKey).toBe(MASK);
       expect(result.updatedBy).toBe('admin@ondra.com.ar');
     });
+
+    it('devuelve nombres de stage configurados desde DB', async () => {
+      odooRepo.findOne.mockResolvedValue({
+        url: 'https://odoo.test', db: 'testdb', username: 'u', apiKey: 'enc', helpdeskTeamId: 7,
+        stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho',
+        updatedAt: new Date(), updatedBy: 'admin',
+      });
+      const result = await service.getOdoo();
+      expect(result.stageInProgressName).toBe('En curso');
+      expect(result.stageNotDoneName).toBe('No realizadas');
+      expect(result.stageDoneName).toBe('Hecho');
+    });
+
+    it('devuelve strings vacíos para stage names cuando no están configurados', async () => {
+      odooRepo.findOne.mockResolvedValue({
+        url: 'https://odoo.test', db: 'testdb', username: 'u', apiKey: 'enc', helpdeskTeamId: 7,
+        stageInProgressName: null, stageNotDoneName: null, stageDoneName: null,
+        updatedAt: new Date(), updatedBy: 'admin',
+      });
+      const result = await service.getOdoo();
+      expect(result.stageInProgressName).toBe('');
+      expect(result.stageNotDoneName).toBe('');
+      expect(result.stageDoneName).toBe('');
+    });
   });
 
   describe('patchOdoo', () => {
@@ -93,6 +117,21 @@ describe('IntegrationConfigService', () => {
       expect(saved.apiKey).toContain(':'); // formato iv:authTag:ciphertext
     });
 
+    it('guarda stage names cuando se proveen en el DTO', async () => {
+      odooRepo.findOne.mockResolvedValue(null);
+      odooRepo.save.mockImplementation(async (e: OdooConfig) => e);
+
+      await service.patchOdoo(
+        { stageInProgressName: 'En curso', stageNotDoneName: 'Sin hacer', stageDoneName: 'Hecho' },
+        'admin@test.com',
+      );
+
+      const saved = odooRepo.save.mock.calls[0][0];
+      expect(saved.stageInProgressName).toBe('En curso');
+      expect(saved.stageNotDoneName).toBe('Sin hacer');
+      expect(saved.stageDoneName).toBe('Hecho');
+    });
+
     it('incrementa versión de config al guardar', async () => {
       odooRepo.findOne.mockResolvedValue(null);
       odooRepo.save.mockImplementation(async (e: OdooConfig) => e);
@@ -111,6 +150,33 @@ describe('IntegrationConfigService', () => {
       expect(saved.apiKey).toBeTruthy();
       expect(saved.apiKey).not.toBe(MASK);
       expect(decrypt(saved.apiKey, KEY)).toBe('env-odoo-key');
+    });
+  });
+
+  describe('getOdooConfigDecrypted', () => {
+    it('incluye stage names en el resultado', async () => {
+      odooRepo.findOne.mockResolvedValue({
+        url: 'https://odoo.test', db: 'testdb', username: 'u',
+        apiKey: null, helpdeskTeamId: 7,
+        stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho',
+        updatedAt: new Date(), updatedBy: 'admin',
+      });
+      const cfg = await service.getOdooConfigDecrypted();
+      expect(cfg.stageInProgressName).toBe('En curso');
+      expect(cfg.stageNotDoneName).toBe('No realizadas');
+      expect(cfg.stageDoneName).toBe('Hecho');
+    });
+
+    it('usa defaults cuando stage names son null en DB', async () => {
+      odooRepo.findOne.mockResolvedValue({
+        url: 'u', db: 'd', username: 'u', apiKey: null, helpdeskTeamId: 7,
+        stageInProgressName: null, stageNotDoneName: null, stageDoneName: null,
+        updatedAt: new Date(), updatedBy: 'admin',
+      });
+      const cfg = await service.getOdooConfigDecrypted();
+      expect(cfg.stageInProgressName).toBe('En curso');
+      expect(cfg.stageNotDoneName).toBe('No realizadas');
+      expect(cfg.stageDoneName).toBe('Hecho');
     });
   });
 

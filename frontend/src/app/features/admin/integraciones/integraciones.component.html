@@ -61,6 +61,29 @@
           <span class="field-hint">ID del equipo en Odoo donde se crean los tickets de mantenimiento. Se ve en la URL al abrir el equipo: Soporte → Equipos → [equipo].</span>
         </div>
       </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Columna "En progreso" <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="stageInProgressName" placeholder="En curso" />
+          </mat-form-field>
+          <span class="field-hint">Nombre exacto de la columna del kanban de Odoo que indica ticket en ejecución.</span>
+        </div>
+        <div class="field">
+          <label class="field-label">Columna "No realizado" <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="stageNotDoneName" placeholder="No realizadas" />
+          </mat-form-field>
+          <span class="field-hint">Nombre exacto de la columna del kanban para tareas no concretadas.</span>
+        </div>
+        <div class="field">
+          <label class="field-label">Columna "Hecho" <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="stageDoneName" placeholder="Hecho" />
+          </mat-form-field>
+          <span class="field-hint">Nombre exacto de la columna del kanban donde se cierran los tickets resueltos.</span>
+        </div>
+      </div>
     </div>
     <div class="card-actions">
       <button mat-stroked-button [disabled]="odoo.testing || odoo.saving" (click)="testOdoo()">
