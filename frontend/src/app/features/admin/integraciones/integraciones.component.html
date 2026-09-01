@@ -1,0 +1,168 @@
+<div class="integraciones-page">
+  <div class="page-header">
+    <h2 class="page-title">Integraciones externas</h2>
+    <p class="page-subtitle">Configuración de credenciales y endpoints. Los cambios toman efecto de inmediato.</p>
+  </div>
+
+  <!-- ODOO -->
+  <div class="integration-card">
+    <div class="card-header">
+      <div class="card-icon odoo">OD</div>
+      <div class="card-title-group">
+        <div class="card-title">Odoo</div>
+        <div class="card-desc">Gestión de tickets, hojas de tiempo y métricas de clientes</div>
+      </div>
+      <div class="status-badge" [ngClass]="{ ok: odoo.connectionStatus === 'ok', err: odoo.connectionStatus === 'error', unk: odoo.connectionStatus === 'unknown' }">
+        <span class="status-dot"></span>
+        {{ odoo.connectionStatus === 'ok' ? 'Conectado' : odoo.connectionStatus === 'error' ? 'Error' : 'Sin probar' }}
+      </div>
+    </div>
+    <div class="card-body" [formGroup]="odooForm">
+      <div class="field full">
+        <label class="field-label">URL <span class="req">*</span></label>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <input matInput formControlName="url" placeholder="https://ondra.odoo.com" />
+        </mat-form-field>
+        <span class="field-hint">URL base de la instancia Odoo. Incluir protocolo (https://).</span>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Base de datos <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="db" placeholder="nombre-db" />
+          </mat-form-field>
+          <span class="field-hint">Nombre exacto de la DB Odoo. Sensible a mayúsculas.</span>
+        </div>
+        <div class="field">
+          <label class="field-label">Usuario <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="username" placeholder="bot@empresa.com" />
+          </mat-form-field>
+          <span class="field-hint">Email del usuario bot que crea tickets y timesheets.</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">API Key <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="apiKey" [type]="showOdooApiKey ? 'text' : 'password'" />
+            <button matSuffix mat-icon-button type="button" (click)="showOdooApiKey = !showOdooApiKey">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </mat-form-field>
+          <span class="field-hint">Clave generada en Odoo → Config → Técnico → API Keys. Dejar vacío para no modificar.</span>
+        </div>
+        <div class="field">
+          <label class="field-label">ID Equipo Helpdesk <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="helpdeskTeamId" type="number" placeholder="7" />
+          </mat-form-field>
+          <span class="field-hint">ID del equipo Helpdesk en Odoo al que se asignan los tickets.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-actions">
+      <button mat-stroked-button [disabled]="odoo.testing || odoo.saving" (click)="testOdoo()">
+        <mat-spinner *ngIf="odoo.testing" diameter="14"></mat-spinner>
+        <span *ngIf="!odoo.testing">Probar conexión</span>
+      </button>
+      <button mat-flat-button color="primary" [disabled]="odoo.saving || odoo.testing" (click)="saveOdoo()">
+        <mat-spinner *ngIf="odoo.saving" diameter="14"></mat-spinner>
+        <span *ngIf="!odoo.saving">Guardar</span>
+      </button>
+      <span class="last-updated" *ngIf="odoo.updatedAt">{{ odoo.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ odoo.updatedBy ? ' · ' + odoo.updatedBy : '' }}</span>
+    </div>
+  </div>
+
+  <!-- INFRADOC -->
+  <div class="integration-card">
+    <div class="card-header">
+      <div class="card-icon infradoc">ID</div>
+      <div class="card-title-group">
+        <div class="card-title">InfraDoc</div>
+        <div class="card-desc">Inventario de infraestructura por cliente, consultado en tiempo real</div>
+      </div>
+      <div class="status-badge" [ngClass]="{ ok: infradoc.connectionStatus === 'ok', err: infradoc.connectionStatus === 'error', unk: infradoc.connectionStatus === 'unknown' }">
+        <span class="status-dot"></span>
+        {{ infradoc.connectionStatus === 'ok' ? 'Conectado' : infradoc.connectionStatus === 'error' ? 'Error' : 'Sin probar' }}
+      </div>
+    </div>
+    <div class="card-body" [formGroup]="infradocForm">
+      <div class="field full">
+        <label class="field-label">URL <span class="req">*</span></label>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <input matInput formControlName="url" placeholder="https://infradoc.empresa.com:6443" />
+        </mat-form-field>
+        <span class="field-hint">Endpoint de la API de InfraDoc. Incluir puerto si corresponde.</span>
+      </div>
+      <div class="field full">
+        <label class="field-label">API Key <span class="req">*</span></label>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <input matInput formControlName="apiKey" [type]="showInfradocApiKey ? 'text' : 'password'" />
+          <button matSuffix mat-icon-button type="button" (click)="showInfradocApiKey = !showInfradocApiKey">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </mat-form-field>
+        <span class="field-hint">Token de autenticación para la API de InfraDoc. Dejar vacío para no modificar.</span>
+      </div>
+    </div>
+    <div class="card-actions">
+      <button mat-stroked-button [disabled]="infradoc.testing || infradoc.saving" (click)="testInfraDoc()">
+        <mat-spinner *ngIf="infradoc.testing" diameter="14"></mat-spinner>
+        <span *ngIf="!infradoc.testing">Probar conexión</span>
+      </button>
+      <button mat-flat-button color="primary" [disabled]="infradoc.saving || infradoc.testing" (click)="saveInfraDoc()">
+        <mat-spinner *ngIf="infradoc.saving" diameter="14"></mat-spinner>
+        <span *ngIf="!infradoc.saving">Guardar</span>
+      </button>
+      <span class="last-updated" *ngIf="infradoc.updatedAt">{{ infradoc.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ infradoc.updatedBy ? ' · ' + infradoc.updatedBy : '' }}</span>
+    </div>
+  </div>
+
+  <!-- VMWARE -->
+  <div class="integration-card">
+    <div class="card-header">
+      <div class="card-icon vmware">VM</div>
+      <div class="card-title-group">
+        <div class="card-title">VMware ESXi</div>
+        <div class="card-desc">Credenciales para health checks de hosts ESXi de clientes</div>
+      </div>
+      <div class="status-badge" [ngClass]="{ ok: vmware.connectionStatus === 'ok', err: vmware.connectionStatus === 'error', unk: vmware.connectionStatus === 'unknown' }">
+        <span class="status-dot"></span>
+        {{ vmware.connectionStatus === 'ok' ? 'Guardado' : vmware.connectionStatus === 'error' ? 'Error' : 'Sin probar' }}
+      </div>
+    </div>
+    <div class="card-body" [formGroup]="vmwareForm">
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Usuario <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="username" placeholder="ondra-read" />
+          </mat-form-field>
+          <span class="field-hint">Usuario de solo lectura en los hosts ESXi. Debe existir en todos los hosts monitoreados.</span>
+        </div>
+        <div class="field">
+          <label class="field-label">Contraseña <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="password" [type]="showVmwarePassword ? 'text' : 'password'" />
+            <button matSuffix mat-icon-button type="button" (click)="showVmwarePassword = !showVmwarePassword">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </mat-form-field>
+          <span class="field-hint">Contraseña del usuario de lectura. Dejar vacío para no modificar.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-actions">
+      <button mat-stroked-button [disabled]="vmware.testing || vmware.saving" (click)="testVmware()">
+        <mat-spinner *ngIf="vmware.testing" diameter="14"></mat-spinner>
+        <span *ngIf="!vmware.testing">Probar conexión</span>
+      </button>
+      <button mat-flat-button color="primary" [disabled]="vmware.saving || vmware.testing" (click)="saveVmware()">
+        <mat-spinner *ngIf="vmware.saving" diameter="14"></mat-spinner>
+        <span *ngIf="!vmware.saving">Guardar</span>
+      </button>
+      <span class="last-updated" *ngIf="vmware.updatedAt">{{ vmware.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ vmware.updatedBy ? ' · ' + vmware.updatedBy : '' }}</span>
+    </div>
+  </div>
+</div>
