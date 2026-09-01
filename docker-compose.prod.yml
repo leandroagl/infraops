@@ -10,8 +10,7 @@ services:
       # Webroot para renovación automática
       - ./certbot/www:/var/www/certbot:ro
     ports:
-      # Solo se agrega 443 — el 80:80 viene del docker-compose.yml base
-      # Docker Compose fusiona listas de ports, no las reemplaza
+      # 80 viene del docker-compose.yml base; acá solo se agrega 443
       - "443:443"
 
   certbot:
@@ -26,3 +25,7 @@ services:
         certbot renew --webroot -w /var/www/certbot --quiet;
         sleep 12h & wait $${!};
       done"
+
+  db:
+    # En producción no exponer PostgreSQL al host
+    ports: !reset []

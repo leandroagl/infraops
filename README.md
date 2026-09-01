@@ -14,7 +14,7 @@ Sistema de orquestación de trabajo interno de ONDRA. Reemplaza planillas Excel 
 |---|---|---|---|
 | Local (desarrollo) | `feature/*` | `localhost:4200` / `localhost:3000` | No |
 | Test | `develop` | IP del servidor, puerto 80 | No |
-| Producción | `main` | IP local / VPN, puerto 443 | CA interna ONDRA |
+| Producción | `main` | Dominio público, puerto 443 | Let's Encrypt |
 
 **Ciclo de vida:**
 ```
@@ -153,123 +153,68 @@ Las migraciones de base de datos corren automáticamente al reiniciar el backend
 
 ## Producción
 
-InfraOps es una herramienta interna: no requiere dominio público ni exposición a internet. El acceso es únicamente por red local o VPN. HTTPS se implementa con una CA interna propia de ONDRA.
+El dominio de producción es `infraops.ondra.com.ar`. HTTPS con certificado Let's Encrypt (renovación automática).
+
+**Prerrequisito:** el dominio debe apuntar a la IP pública del servidor y los puertos 80 y 443 deben estar abiertos en el firewall/router.
 
 ---
 
-### Paso 1 — Generar la CA interna de ONDRA (una sola vez)
+### Primer deploy — obtener el certificado SSL
 
-Ejecutar en tu máquina local (no en el servidor). Guardar los archivos resultantes en un lugar seguro fuera del repositorio.
-
-```bash
-# Clave privada del CA (pedirá una passphrase — guardarla)
-openssl genrsa -aes256 -out ondra-ca.key 4096
-
-# Certificado raíz del CA (válido 10 años)
-openssl req -x509 -new -nodes -key ondra-ca.key \
-  -sha256 -days 3650 \
-  -out ondra-ca.crt \
-  -subj "/C=AR/ST=Buenos Aires/O=ONDRA/CN=ONDRA Internal CA"
-```
-
-| Archivo | Qué es | Dónde va |
-|---|---|---|
-| `ondra-ca.key` | Clave privada del CA | Guardarlo seguro, **nunca al repo ni al servidor** |
-| `ondra-ca.crt` | Cert público del CA | Distribuir a todos los dispositivos del equipo |
-
----
-
-### Paso 2 — Generar el certificado del servidor
-
-Reemplazar `192.168.1.x` con la IP real del servidor de producción.
-
-```bash
-# Clave privada del servidor
-openssl genrsa -out infraops-server.key 2048
-
-# Certificate Signing Request
-openssl req -new -key infraops-server.key \
-  -out infraops-server.csr \
-  -subj "/C=AR/ST=Buenos Aires/O=ONDRA/CN=192.168.1.x"
-
-# Archivo de extensiones (requerido por Chrome y Firefox modernos)
-cat > infraops-server.ext << EOF
-authorityKeyIdentifier=keyid,issuer
-basicConstraints=CA:FALSE
-keyUsage=digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
-subjectAltName=@alt_names
-
-[alt_names]
-IP.1 = 192.168.1.x
-IP.2 = 127.0.0.1
-EOF
-# Si hay hostname interno además de IP, agregar: DNS.1 = infraops.ondra.local
-
-# Firmar el cert con la CA (válido 2 años)
-openssl x509 -req -in infraops-server.csr \
-  -CA ondra-ca.crt -CAkey ondra-ca.key \
-  -CAcreateserial \
-  -out infraops-server.crt \
-  -days 730 -sha256 \
-  -extfile infraops-server.ext
-```
-
----
-
-### Paso 3 — Instalar el CA cert en los dispositivos del equipo
-
-Cada integrante del equipo instala `ondra-ca.crt` una sola vez. A partir de ahí todos los browsers confían en el cert del servidor sin advertencias.
-
-| SO | Procedimiento |
-|---|---|
-| **Windows** | `certmgr.msc` → Entidades de certificación raíz de confianza → Importar |
-| **macOS** | Keychain Access → System → importar → marcar "Always Trust" |
-| **Linux** | `sudo cp ondra-ca.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates` |
-| **Android / iOS** | Configuración → Seguridad → Instalar certificado |
-
----
-
-### Paso 4 — Copiar los certs al servidor
-
-```bash
-# Crear el directorio de certs en el servidor
-ssh usuario@192.168.1.x "mkdir -p ~/infraops/certs"
-
-# Copiar los archivos del servidor (no el CA key)
-scp infraops-server.crt infraops-server.key usuario@192.168.1.x:~/infraops/certs/
-```
-
----
-
-### Paso 5 — Configurar y levantar el stack
+Let's Encrypt requiere que el servidor responda en el puerto 80 para validar el dominio. El proceso es en dos pasos para evitar el problema del huevo y la gallina (nginx no puede arrancar con SSL si el cert no existe todavía).
 
 ```bash
 git checkout main
 
-# Configurar .env con la IP del servidor
-nano .env   # SERVER_IP=192.168.1.x
+# Configurar .env
+cp .env.example .env
+nano .env
+# Setear:
+#   DB_PASSWORD=<contraseña segura>
+#   DOMAIN=infraops.ondra.com.ar
 
-# Levantar el stack completo con HTTPS
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+# Configurar backend/.env
+cp backend/.env.example backend/.env
+nano backend/.env   # setear DB_PASSWORD, JWT_SECRET y demás
+
+# Paso 1: levantar el stack en HTTP (sin prod overlay)
+# nginx sirve /.well-known/acme-challenge/ para que certbot pueda validar
+docker compose up --build -d
+
+# Paso 2: obtener el cert con certbot (webroot, sin detener nginx)
+docker compose run --rm certbot certonly \
+  --webroot -w /var/www/certbot \
+  -d infraops.ondra.com.ar \
+  --email admin@ondra.com.ar \
+  --agree-tos --no-eff-email
+
+# Paso 3: reiniciar con el stack completo (HTTPS + renovación automática)
+docker compose down
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
 Verificar:
 
 ```bash
-curl -k https://192.168.1.x       # HTML del frontend (-k solo para verificar, sin el CA instalado)
-curl -k https://192.168.1.x/api/  # respuesta del backend
+curl https://infraops.ondra.com.ar       # HTML del frontend
+curl https://infraops.ondra.com.ar/api/  # respuesta del backend (401 o similar)
 ```
-
-Una vez instalado el CA cert en tu máquina, `curl` (y los browsers) funcionan sin `-k`.
 
 ---
 
-### Renovación del certificado
+### Renovación automática
 
-- **Cert del servidor** (cada 2 años): repetir pasos 2 y 4, luego `docker compose ... restart frontend`.
-- **Cert del CA** (cada 10 años): repetir paso 1, redistribuir `ondra-ca.crt` al equipo, y renovar el cert del servidor.
+El servicio `certbot` del compose corre en loop y renueva el cert automáticamente cuando quedan menos de 30 días. Pero nginx necesita un restart para cargar el cert renovado.
 
-No hay renovación automática — agendar en calendario antes del vencimiento.
+Agregar al crontab del servidor:
+
+```bash
+# Ejecutar en el servidor (abre el editor de crontab)
+crontab -e
+
+# Agregar esta línea — reinicia nginx los domingos a las 3am
+0 3 * * 0 cd /opt/infraops && docker compose -f docker-compose.yml -f docker-compose.prod.yml restart frontend
+```
 
 ---
 
@@ -316,12 +261,12 @@ Comportamiento:
 
 ### Producción (HTTPS)
 
-La configuración en `frontend/nginx-prod.conf.template` se monta sobre la imagen vía volume override en `docker-compose.prod.yml`. El contenedor aplica `envsubst` automáticamente reemplazando `${SERVER_IP}`.
+La configuración en `frontend/nginx-prod.conf.template` se monta sobre la imagen vía volume override en `docker-compose.prod.yml`. El contenedor aplica `envsubst` automáticamente reemplazando `${DOMAIN}`.
 
 Comportamiento adicional:
-- Puerto 80 redirige a HTTPS
+- Puerto 80 sirve el ACME challenge de certbot y redirige todo lo demás a HTTPS
 - Puerto 443 con TLS 1.2/1.3
-- Certs desde `/etc/nginx/certs/` (montado vía volume en `docker-compose.prod.yml`)
+- Certs desde `/etc/letsencrypt/live/${DOMAIN}/` (volumen compartido con el servicio certbot)
 
 Para modificar la configuración de nginx en producción:
 
