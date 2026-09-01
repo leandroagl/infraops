@@ -4,12 +4,12 @@ import { ServiceUnavailableException } from '@nestjs/common';
 import { AxiosHeaders, AxiosResponse } from 'axios';
 import { of } from 'rxjs';
 import { InfradocAssetsService } from './infradoc-assets.service';
+import { IntegrationConfigService } from '../../integration-config/integration-config.service';
 
 describe('InfradocAssetsService', () => {
   let service: InfradocAssetsService;
   let httpService: { get: jest.Mock };
-  let savedUrl: string | undefined;
-  let savedKey: string | undefined;
+  let integrationConfigService: { getInfraDocConfigDecrypted: jest.Mock };
 
   const makeRawAsset = (override: Record<string, unknown> = {}) => ({
     asset_id: '101',
@@ -30,26 +30,20 @@ describe('InfradocAssetsService', () => {
   });
 
   beforeEach(async () => {
-    savedUrl = process.env.INFRADOC_URL;
-    savedKey = process.env.INFRADOC_API_KEY;
-    process.env.INFRADOC_URL = 'http://infradoc.test';
-    process.env.INFRADOC_API_KEY = 'test-api-key';
-
     httpService = { get: jest.fn() };
+    integrationConfigService = {
+      getInfraDocConfigDecrypted: jest.fn().mockResolvedValue({ url: 'http://infradoc.test', apiKey: 'test-api-key' }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InfradocAssetsService,
         { provide: HttpService, useValue: httpService },
+        { provide: IntegrationConfigService, useValue: integrationConfigService },
       ],
     }).compile();
 
     service = module.get<InfradocAssetsService>(InfradocAssetsService);
-  });
-
-  afterEach(() => {
-    process.env.INFRADOC_URL = savedUrl;
-    process.env.INFRADOC_API_KEY = savedKey;
   });
 
   it('devuelve los assets crudos de ITFlow para el cliente', async () => {
@@ -100,20 +94,20 @@ describe('InfradocAssetsService', () => {
     expect(result).toEqual([]);
   });
 
-  it('lanza Error con mensaje descriptivo cuando INFRADOC_URL no está configurado', async () => {
-    delete process.env.INFRADOC_URL;
+  it('lanza Error con mensaje descriptivo cuando la config de InfraDoc no está configurada', async () => {
+    integrationConfigService.getInfraDocConfigDecrypted.mockResolvedValue({ url: '', apiKey: '' });
 
     await expect(service.getAssets(42)).rejects.toThrow(
-      'INFRADOC_URL and INFRADOC_API_KEY deben estar configurados',
+      'URL y API key de InfraDoc no configuradas',
     );
     expect(httpService.get).not.toHaveBeenCalled();
   });
 
-  it('lanza Error con mensaje descriptivo cuando INFRADOC_API_KEY no está configurado', async () => {
-    delete process.env.INFRADOC_API_KEY;
+  it('lanza Error cuando url está presente pero apiKey está vacío', async () => {
+    integrationConfigService.getInfraDocConfigDecrypted.mockResolvedValue({ url: 'http://infradoc.test', apiKey: '' });
 
     await expect(service.getAssets(42)).rejects.toThrow(
-      'INFRADOC_URL and INFRADOC_API_KEY deben estar configurados',
+      'URL y API key de InfraDoc no configuradas',
     );
     expect(httpService.get).not.toHaveBeenCalled();
   });
