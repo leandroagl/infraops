@@ -63,6 +63,10 @@ export class IntegrationConfigService {
     if (dto.apiKey !== undefined && !isMasked(dto.apiKey) && dto.apiKey !== '') {
       existing.apiKey = encrypt(dto.apiKey, this.encryptKey);
     }
+    if (!existing.apiKey) {
+      const envKey = this.configService.get<string>('ODOO_API_KEY', '');
+      if (envKey) existing.apiKey = encrypt(envKey, this.encryptKey);
+    }
     existing.updatedBy = updatedBy;
     await this.odooRepo.save(existing);
     this.incrementOdooVersion();
@@ -116,6 +120,10 @@ export class IntegrationConfigService {
     if (dto.apiKey !== undefined && !isMasked(dto.apiKey) && dto.apiKey !== '') {
       existing.apiKey = encrypt(dto.apiKey, this.encryptKey);
     }
+    if (!existing.apiKey) {
+      const envKey = this.configService.get<string>('INFRADOC_API_KEY', '');
+      if (envKey) existing.apiKey = encrypt(envKey, this.encryptKey);
+    }
     existing.updatedBy = updatedBy;
     await this.infradocRepo.save(existing);
     return this.getInfraDoc();
@@ -153,6 +161,10 @@ export class IntegrationConfigService {
     if (dto.username !== undefined) existing.username = dto.username;
     if (dto.password !== undefined && !isMasked(dto.password) && dto.password !== '') {
       existing.password = encrypt(dto.password, this.encryptKey);
+    }
+    if (!existing.password) {
+      const envPass = this.configService.get<string>('VMWARE_PASS', '');
+      if (envPass) existing.password = encrypt(envPass, this.encryptKey);
     }
     existing.updatedBy = updatedBy;
     await this.vmwareRepo.save(existing);

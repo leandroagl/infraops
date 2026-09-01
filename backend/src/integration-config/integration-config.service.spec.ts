@@ -7,7 +7,7 @@ import { IntegrationConfigService } from './integration-config.service';
 import { OdooConfig } from './entities/odoo-config.entity';
 import { InfraDocConfig } from './entities/infradoc-config.entity';
 import { VmwareConfig } from './entities/vmware-config.entity';
-import { MASK } from './crypto.util';
+import { MASK, decrypt } from './crypto.util';
 
 const KEY = '8b2202fa0aa8498ca124415c67472e7b479e1eb31a24d948eedeccecc2a5a5c2';
 
@@ -32,7 +32,12 @@ describe('IntegrationConfigService', () => {
         { provide: getRepositoryToken(VmwareConfig),   useValue: vmwareRepo   },
         { provide: ConfigService, useValue: {
             get: (key: string, def = '') =>
-              ({ INTEGRATIONS_ENCRYPT_KEY: KEY } as Record<string, string>)[key] ?? def,
+              ({
+                INTEGRATIONS_ENCRYPT_KEY: KEY,
+                ODOO_API_KEY:    'env-odoo-key',
+                INFRADOC_API_KEY: 'env-infradoc-key',
+                VMWARE_PASS:     'env-vmware-pass',
+              } as Record<string, string>)[key] ?? def,
           },
         },
         { provide: HttpService, useValue: { get: httpGet } },
@@ -94,6 +99,46 @@ describe('IntegrationConfigService', () => {
       const vBefore = service.getOdooVersion();
       await service.patchOdoo({ url: 'https://x.com' }, 'admin@test.com');
       expect(service.getOdooVersion()).toBe(vBefore + 1);
+    });
+
+    it('siembra apiKey desde .env al crear primera fila con masked apiKey', async () => {
+      odooRepo.findOne.mockResolvedValue(null);
+      odooRepo.save.mockImplementation(async (e: OdooConfig) => e);
+
+      await service.patchOdoo({ url: 'https://odoo.test', apiKey: MASK }, 'admin@test.com');
+
+      const saved = odooRepo.save.mock.calls[0][0];
+      expect(saved.apiKey).toBeTruthy();
+      expect(saved.apiKey).not.toBe(MASK);
+      expect(decrypt(saved.apiKey, KEY)).toBe('env-odoo-key');
+    });
+  });
+
+  describe('patchInfraDoc', () => {
+    it('siembra apiKey desde .env al crear primera fila con masked apiKey', async () => {
+      infradocRepo.findOne.mockResolvedValue(null);
+      infradocRepo.save.mockImplementation(async (e: InfraDocConfig) => e);
+
+      await service.patchInfraDoc({ url: 'https://infradoc.test', apiKey: MASK }, 'admin@test.com');
+
+      const saved = infradocRepo.save.mock.calls[0][0];
+      expect(saved.apiKey).toBeTruthy();
+      expect(saved.apiKey).not.toBe(MASK);
+      expect(decrypt(saved.apiKey, KEY)).toBe('env-infradoc-key');
+    });
+  });
+
+  describe('patchVmware', () => {
+    it('siembra password desde .env al crear primera fila con masked password', async () => {
+      vmwareRepo.findOne.mockResolvedValue(null);
+      vmwareRepo.save.mockImplementation(async (e: VmwareConfig) => e);
+
+      await service.patchVmware({ username: 'root', password: MASK }, 'admin@test.com');
+
+      const saved = vmwareRepo.save.mock.calls[0][0];
+      expect(saved.password).toBeTruthy();
+      expect(saved.password).not.toBe(MASK);
+      expect(decrypt(saved.password, KEY)).toBe('env-vmware-pass');
     });
   });
 
