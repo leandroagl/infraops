@@ -1,6 +1,6 @@
 import { encrypt, decrypt, isMasked, MASK } from './crypto.util';
 
-const KEY = '8b2202fa0aa8498ca124415c67472e7b479e1eb31a24d948eedeccecc2a5a5c2';
+const KEY = 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
 
 describe('crypto.util', () => {
   it('cifra y descifra correctamente', () => {
