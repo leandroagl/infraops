@@ -1,10 +1,8 @@
 import * as xmlrpc from 'xmlrpc';
-import { ConfigService } from '@nestjs/config';
 
-export function buildOdooClient(configService: ConfigService, path: string): xmlrpc.Client {
-  const baseUrl = configService.getOrThrow<string>('ODOO_URL');
-  const parsed  = new URL(baseUrl);
-  const opts    = {
+export function buildOdooClient(baseUrl: string, path: string): xmlrpc.Client {
+  const parsed = new URL(baseUrl);
+  const opts = {
     host: parsed.hostname,
     port: parsed.port ? parseInt(parsed.port, 10) : undefined,
     path,
