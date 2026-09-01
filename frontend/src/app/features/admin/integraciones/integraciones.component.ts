@@ -40,6 +40,10 @@ export class IntegracionesComponent implements OnInit {
   showInfradocApiKey = false;
   showVmwarePassword = false;
 
+  toggleOdooApiKey(): void     { this.showOdooApiKey     = !this.showOdooApiKey; }
+  toggleInfradocApiKey(): void { this.showInfradocApiKey = !this.showInfradocApiKey; }
+  toggleVmwarePassword(): void { this.showVmwarePassword = !this.showVmwarePassword; }
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly svc: IntegrationConfigService,
