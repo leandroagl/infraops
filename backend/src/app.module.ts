@@ -16,6 +16,7 @@ import { VmwareIntegrationModule } from './integrations/vmware/vmware-integratio
 import { NotificationsModule } from './notifications/notifications.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { TaskConfigModule } from './task-config/task-config.module';
+import { IntegrationConfigModule } from './integration-config/integration-config.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { TaskConfigModule } from './task-config/task-config.module';
     NotificationsModule,
     SchedulesModule,
     TaskConfigModule,
+    IntegrationConfigModule,
   ],
 })
 export class AppModule {}
