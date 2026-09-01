@@ -44,6 +44,24 @@
   &.p-crit { background: var(--crit-bg); border-color: var(--crit-bd); color: var(--crit); }
 }
 
+.vf-col-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 13px; // 10px padding + 3px stripe
+  margin-top: -4px;
+
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--tx-lo);
+
+  &__name  { flex: 1; min-width: 0; }
+  &__cov   { width: 110px; flex-shrink: 0; text-align: center; }
+  &__fulls { width: 60px;  flex-shrink: 0; text-align: center; }
+}
+
 .vf-vm-list {
   display: flex;
   flex-direction: column;

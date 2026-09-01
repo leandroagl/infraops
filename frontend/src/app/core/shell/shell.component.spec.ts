@@ -2,7 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { Router } from '@angular/router';
-import { BehaviorSubject } from 'rxjs';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatMenuModule } from '@angular/material/menu';
+import { BehaviorSubject, of } from 'rxjs';
+import { By } from '@angular/platform-browser';
 import { ShellComponent } from './shell.component';
 import { AuthService } from '../services/auth.service';
 import { SidenavContextService, ClientSidenavContext } from '../services/sidenav-context.service';
@@ -16,15 +19,15 @@ describe('ShellComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [ShellComponent],
-      imports: [NoopAnimationsModule],
+      imports: [NoopAnimationsModule, MatMenuModule, MatDividerModule],
       providers: [
         {
           provide: Router,
-          useValue: jasmine.createSpyObj('Router', { isActive: false }),
+          useValue: jasmine.createSpyObj('Router', { isActive: false, navigate: Promise.resolve(true) }),
         },
         {
           provide: AuthService,
-          useValue: { getCurrentUser: () => null, logout: jasmine.createSpy() },
+          useValue: { getCurrentUser: () => null, logout: jasmine.createSpy(), user$: of(null) },
         },
         {
           provide: SidenavContextService,
@@ -77,5 +80,26 @@ describe('ShellComponent', () => {
     fixture.detectChanges();
     const sidenav = fixture.nativeElement.querySelector('mat-sidenav');
     expect(sidenav?.classList.contains('sidenav--wide')).toBeTrue();
+  });
+
+  it('muestra el botón de usuario en el toolbar', () => {
+    const userBtn = fixture.nativeElement.querySelector('.toolbar__user-btn');
+    expect(userBtn).toBeTruthy();
+  });
+
+  it('no muestra el botón de logout en el sidebar', () => {
+    const logoutBtn = fixture.nativeElement.querySelector('.nav-item--logout');
+    expect(logoutBtn).toBeFalsy();
+  });
+
+  it('goToProfile() navega a /profile', () => {
+    const router = TestBed.inject(Router);
+    fixture.componentInstance.goToProfile();
+    expect(router.navigate).toHaveBeenCalledWith(['/profile']);
+  });
+
+  it('renderiza app-user-avatar con los datos del usuario autenticado', () => {
+    const avatarEl = fixture.debugElement.query(By.css('app-user-avatar'));
+    expect(avatarEl).toBeTruthy();
   });
 });

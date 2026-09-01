@@ -28,7 +28,7 @@ export interface Task {
   odooTicketId: number | null;
   createdAt: string;
   client?: { id: string; name: string };
-  technician?: { id: string; user: { id: string; name: string; email: string } };
+  technician?: { id: string; user: { id: string; name: string; email: string; avatarUrl: string | null } };
 }
 
 export interface UpdateTaskStatusPayload {

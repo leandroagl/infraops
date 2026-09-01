@@ -41,8 +41,15 @@
 
 .user-info {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+
+  &__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
 }
 
 .user-name {

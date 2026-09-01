@@ -25,8 +25,11 @@ describe('AdminGuard', () => {
   it('devuelve true cuando el usuario tiene rol ADMIN', () => {
     authSpy.getCurrentUser.and.returnValue({
       id: 'uuid-1',
+      name: 'Admin User',
       email: 'admin@ondra.com.ar',
       role: 'ADMIN',
+      technicianId: null,
+      avatarUrl: null,
     });
     expect(guard.canActivate()).toBeTrue();
   });
@@ -34,8 +37,11 @@ describe('AdminGuard', () => {
   it('devuelve false y redirige a /dashboard para rol TECHNICIAN', () => {
     authSpy.getCurrentUser.and.returnValue({
       id: 'uuid-2',
+      name: 'Tech User',
       email: 'tech@ondra.com.ar',
       role: 'TECHNICIAN',
+      technicianId: null,
+      avatarUrl: null,
     });
     const navSpy = spyOn(router, 'navigate');
     expect(guard.canActivate()).toBeFalse();

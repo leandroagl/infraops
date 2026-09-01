@@ -13,6 +13,7 @@ import { UserRole } from '../../core/models/auth.models';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/task-create-dialog.component';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-tasks-unified',
@@ -74,11 +75,16 @@ export class TasksUnifiedComponent implements OnInit {
   get userRole(): UserRole { return this.currentUser?.role ?? 'TECHNICIAN'; }
 
   get canCreateTask(): boolean {
-    return this.userRole === 'ADMIN';
+    return environment.allowManualTaskCreation && this.userRole === 'ADMIN';
   }
 
   get hasActiveFilters(): boolean {
     return !!(this.clientFilter || this.typeFilter || this.statusFilter || this.techFilter);
+  }
+
+  get selectedTechnicianObj(): Technician | null {
+    if (!this.techFilter) return null;
+    return this.technicians?.find(t => t.id === this.techFilter) ?? null;
   }
 
   /** Ciclo cerrado si el mes/año seleccionado es anterior al actual */

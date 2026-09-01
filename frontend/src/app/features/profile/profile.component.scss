@@ -73,3 +73,21 @@
 }
 
 .form-actions { display: flex; gap: 8px; }
+
+.avatar-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.avatar-wrap { position: relative; flex-shrink: 0; }
+.avatar-actions { display: flex; flex-direction: column; gap: 6px; }
+.upload-hint { font-size: 10px; color: var(--tx-lo); }
+.upload-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  &--uploading { color: var(--accent); }
+  &--success   { color: var(--ok); }
+  &--error     { color: var(--crit); }
+}

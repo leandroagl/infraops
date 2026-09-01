@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
 import { AuthService } from './auth.service';
@@ -11,8 +12,10 @@ const MOCK_RESPONSE: LoginResponse = {
   mustChangePassword: false,
   user: {
     id: '550e8400-e29b-41d4-a716-446655440000',
+    name: 'Pepe Admin',
     email: 'pepe@ondra.com.ar',
     role: 'ADMIN',
+    avatarUrl: null,
   },
 };
 
@@ -99,6 +102,67 @@ describe('AuthService', () => {
     it('should return the stored user', () => {
       localStorage.setItem('user', JSON.stringify(MOCK_RESPONSE.user));
       expect(service.getCurrentUser()).toEqual(MOCK_RESPONSE.user);
+    });
+  });
+
+  describe('user$', () => {
+    it('emits null when no user is in localStorage', (done) => {
+      localStorage.clear();
+      // Create a new service instance after clearing localStorage
+      const freshService = new AuthService(TestBed.inject(HttpClient), TestBed.inject(Router));
+      freshService.user$.subscribe(user => {
+        expect(user).toBeNull();
+        done();
+      });
+    });
+
+    it('emits the current user from localStorage on initialization', (done) => {
+      localStorage.setItem('user', JSON.stringify(MOCK_RESPONSE.user));
+      const freshService = new AuthService(TestBed.inject(HttpClient), TestBed.inject(Router));
+      freshService.user$.subscribe(user => {
+        expect(user).toEqual(MOCK_RESPONSE.user);
+        done();
+      });
+    });
+  });
+
+  describe('refreshCurrentUser', () => {
+    it('updates localStorage and emits the new user', (done) => {
+      const updated = {
+        id: 'u1',
+        name: 'Leandro',
+        email: 'l@test.com',
+        role: 'ADMIN' as const,
+        technicianId: null,
+        avatarUrl: '/avatars/uuid.jpg',
+      };
+      service.refreshCurrentUser(updated);
+
+      service.user$.subscribe(user => {
+        expect(user).toEqual(updated);
+        expect(service.getCurrentUser()).toEqual(updated);
+        done();
+      });
+    });
+  });
+
+  describe('user$ after logout', () => {
+    it('emits null after logout()', (done) => {
+      const mockUser = {
+        id: 'u1',
+        name: 'X',
+        email: 'x@test.com',
+        role: 'ADMIN' as const,
+        technicianId: null,
+        avatarUrl: null,
+      };
+      service.refreshCurrentUser(mockUser);
+      service.logout();
+
+      service.user$.subscribe(user => {
+        expect(user).toBeNull();
+        done();
+      });
     });
   });
 });

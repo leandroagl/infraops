@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { TechniciansModule } from './technicians/technicians.module';
@@ -14,6 +16,7 @@ import { VmwareIntegrationModule } from './integrations/vmware/vmware-integratio
 import { NotificationsModule } from './notifications/notifications.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { TaskConfigModule } from './task-config/task-config.module';
+import { IntegrationConfigModule } from './integration-config/integration-config.module';
 
 @Module({
   imports: [
@@ -29,6 +32,11 @@ import { TaskConfigModule } from './task-config/task-config.module';
       migrations: [__dirname + '/migrations/*{.ts,.js}'],
       synchronize: false,
     }),
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads', 'avatars'),
+      serveRoot: '/avatars',
+      serveStaticOptions: { index: false },
+    }),
     ScheduleModule.forRoot(),
     AuthModule,
     UsersModule,
@@ -42,6 +50,7 @@ import { TaskConfigModule } from './task-config/task-config.module';
     NotificationsModule,
     SchedulesModule,
     TaskConfigModule,
+    IntegrationConfigModule,
   ],
 })
 export class AppModule {}

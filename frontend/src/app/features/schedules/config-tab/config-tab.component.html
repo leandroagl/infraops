@@ -23,8 +23,22 @@
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tech-filter">
       <mat-label>Técnico</mat-label>
       <mat-select [(value)]="filterTechnicianId">
+        <mat-select-trigger>
+          <ng-container *ngIf="filterSelectedTech as t">
+            <span class="trigger-tech">
+              <app-user-avatar [name]="t.name" [avatarUrl]="t.avatarUrl" size="sm"></app-user-avatar>
+              {{ t.name }}
+            </span>
+          </ng-container>
+          <span *ngIf="!filterSelectedTech" style="color:var(--tx-lo)">Todos</span>
+        </mat-select-trigger>
         <mat-option value="ALL">Todos</mat-option>
-        <mat-option *ngFor="let tech of technicians" [value]="tech.id">{{ tech.name }}</mat-option>
+        <mat-option *ngFor="let tech of technicians" [value]="tech.id">
+          <div style="display:flex;align-items:center;gap:8px">
+            <app-user-avatar [name]="tech.name" [avatarUrl]="tech.avatarUrl" size="sm"></app-user-avatar>
+            {{ tech.name }}
+          </div>
+        </mat-option>
       </mat-select>
     </mat-form-field>
 
@@ -68,8 +82,22 @@
       <mat-cell *matCellDef="let rule">
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="tech-select">
           <mat-select [value]="rule.technicianId" (selectionChange)="onTechnicianChange(rule, $event.value)">
+            <mat-select-trigger>
+              <ng-container *ngIf="getTechForRule(rule) as t">
+                <span class="trigger-tech">
+                  <app-user-avatar [name]="t.name" [avatarUrl]="t.avatarUrl" size="sm"></app-user-avatar>
+                  {{ t.name }}
+                </span>
+              </ng-container>
+              <span *ngIf="!getTechForRule(rule)" style="color:var(--tx-lo)">Sin asignar</span>
+            </mat-select-trigger>
             <mat-option [value]="null">Sin asignar</mat-option>
-            <mat-option *ngFor="let tech of technicians" [value]="tech.id">{{ tech.name }}</mat-option>
+            <mat-option *ngFor="let tech of technicians" [value]="tech.id">
+              <div style="display:flex;align-items:center;gap:8px">
+                <app-user-avatar [name]="tech.name" [avatarUrl]="tech.avatarUrl" size="sm"></app-user-avatar>
+                {{ tech.name }}
+              </div>
+            </mat-option>
           </mat-select>
         </mat-form-field>
       </mat-cell>

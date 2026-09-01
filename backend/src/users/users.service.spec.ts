@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
@@ -6,6 +7,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
+import * as fileType from 'file-type';
 import * as passwordUtil from '../common/utils/password.util';
 import { User } from './user.entity';
 import { UserRole } from './user-role.enum';
@@ -14,17 +16,21 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 
 jest.mock('bcrypt');
+jest.mock('file-type');
 jest.mock('../common/utils/password.util');
 
 describe('UsersService', () => {
   let service: UsersService;
-  let userRepository: {
+  let repo: {
     find: jest.Mock;
     findOne: jest.Mock;
     create: jest.Mock;
     save: jest.Mock;
     update: jest.Mock;
+    delete: jest.Mock;
   };
+  // keep alias for backward compat with existing tests
+  let userRepository: typeof repo;
 
   const mockUser: User = {
     id: 'user-1',
@@ -40,6 +46,7 @@ describe('UsersService', () => {
     odooUserId: null,
     odooSyncedAt: null,
     odooEmployeeId: null,
+    avatarPath: null,
     createdAt: new Date('2026-01-01'),
   };
 
@@ -54,22 +61,25 @@ describe('UsersService', () => {
     odooUserId: null,
     odooSyncedAt: null,
     odooEmployeeId: null,
+    avatarUrl: null,
     createdAt: mockUser.createdAt,
   };
 
   beforeEach(async () => {
-    userRepository = {
+    repo = {
       find: jest.fn(),
       findOne: jest.fn(),
       create: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     };
+    userRepository = repo;
 
     const module = await Test.createTestingModule({
       providers: [
         UsersService,
-        { provide: getRepositoryToken(User), useValue: userRepository },
+        { provide: getRepositoryToken(User), useValue: repo },
       ],
     }).compile();
 
@@ -87,6 +97,27 @@ describe('UsersService', () => {
       expect(userRepository.find).toHaveBeenCalledWith({
         order: { createdAt: 'ASC' },
       });
+    });
+
+    it('builds avatarUrl from avatarPath', async () => {
+      userRepository.find.mockResolvedValue([
+        { ...mockUser, avatarPath: 'uuid.jpg' },
+      ]);
+
+      const result = await service.findAll();
+
+      expect(result[0].avatarUrl).toBe('/avatars/uuid.jpg');
+      expect((result[0] as any).avatarPath).toBeUndefined();
+    });
+
+    it('returns null avatarUrl when avatarPath is null', async () => {
+      userRepository.find.mockResolvedValue([
+        { ...mockUser, avatarPath: null },
+      ]);
+
+      const result = await service.findAll();
+
+      expect(result[0].avatarUrl).toBeNull();
     });
   });
 
@@ -241,5 +272,156 @@ describe('UsersService', () => {
     });
   });
 
+  describe('remove', () => {
+    it('elimina el usuario', async () => {
+      userRepository.findOne.mockResolvedValue(mockUser);
+      userRepository.delete.mockResolvedValue({ affected: 1 });
+
+      await service.remove('user-1', 'admin-id');
+
+      expect(userRepository.delete).toHaveBeenCalledWith('user-1');
+    });
+
+    it('elimina el avatar del usuario si tiene uno', async () => {
+      userRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        avatarPath: 'uuid.jpg',
+      });
+      userRepository.delete.mockResolvedValue({ affected: 1 });
+      const rmSpy = jest
+        .spyOn(require('fs/promises'), 'rm')
+        .mockResolvedValue(undefined);
+
+      await service.remove('user-1', 'admin-id');
+
+      expect(rmSpy).toHaveBeenCalledWith(
+        expect.stringContaining('uuid.jpg'),
+        { force: true },
+      );
+    });
+
+    it('lanza ForbiddenException si el id coincide con el usuario actual', async () => {
+      await expect(service.remove('user-1', 'user-1')).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(userRepository.findOne).not.toHaveBeenCalled();
+    });
+
+    it('lanza NotFoundException si el usuario no existe', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.remove('nonexistent', 'admin-id'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('lanza ConflictException si el usuario tiene un perfil técnico vinculado', async () => {
+      userRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        technicianId: 'tech-1',
+      });
+
+      await expect(service.remove('user-1', 'admin-id')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(userRepository.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getMe', () => {
+    it('retorna UserResponse del usuario autenticado', async () => {
+      const mockUser = buildMockUser({ id: 'my-uuid', name: 'Yo', avatarPath: null });
+      userRepository.findOne.mockResolvedValue(mockUser);
+
+      const result = await service.getMe('my-uuid');
+
+      expect(result.id).toBe('my-uuid');
+      expect(result.name).toBe('Yo');
+      expect(result.avatarUrl).toBeNull();
+    });
+
+    it('lanza NotFoundException si el usuario no existe', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+      await expect(service.getMe('no-existe')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('uploadAvatar', () => {
+    const mockPngBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47]); // magic bytes PNG
+
+    it('lanza BadRequestException si el tipo detectado no está en la whitelist', async () => {
+      (fileType.fromBuffer as jest.Mock).mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
+
+      const file = { buffer: Buffer.from('fake'), originalname: 'doc.pdf' } as Express.Multer.File;
+
+      await expect(service.uploadAvatar('uuid-1', file)).rejects.toThrow(BadRequestException);
+    });
+
+    it('lanza BadRequestException si file-type no reconoce el archivo', async () => {
+      (fileType.fromBuffer as jest.Mock).mockResolvedValue(undefined);
+
+      const file = { buffer: Buffer.from('not-an-image'), originalname: 'x.png' } as Express.Multer.File;
+
+      await expect(service.uploadAvatar('uuid-1', file)).rejects.toThrow(BadRequestException);
+    });
+
+    it('guarda el archivo y retorna UserResponse con avatarUrl actualizado', async () => {
+      (fileType.fromBuffer as jest.Mock).mockResolvedValue({ mime: 'image/png', ext: 'png' });
+
+      const mockUser = buildMockUser({ id: 'uuid-1', avatarPath: null });
+      jest.spyOn(repo, 'findOne').mockResolvedValue(mockUser);
+      jest.spyOn(repo, 'update').mockResolvedValue({ affected: 1 } as any);
+
+      jest.spyOn(require('fs/promises'), 'mkdir').mockResolvedValue(undefined);
+      jest.spyOn(require('fs/promises'), 'writeFile').mockResolvedValue(undefined);
+      jest.spyOn(require('fs/promises'), 'rm').mockResolvedValue(undefined);
+
+      const file = { buffer: mockPngBuffer, originalname: 'photo.png' } as Express.Multer.File;
+
+      const result = await service.uploadAvatar('uuid-1', file);
+
+      expect(result.avatarUrl).toMatch(/^\/avatars\/.+\.png$/);
+      expect(repo.update).toHaveBeenCalledWith('uuid-1', expect.objectContaining({ avatarPath: expect.stringMatching(/\.png$/) }));
+    });
+
+    it('elimina el avatar anterior antes de guardar el nuevo', async () => {
+      (fileType.fromBuffer as jest.Mock).mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
+
+      const mockUser = buildMockUser({ id: 'uuid-1', avatarPath: 'old-uuid.jpg' });
+      jest.spyOn(repo, 'findOne').mockResolvedValue(mockUser);
+      jest.spyOn(repo, 'update').mockResolvedValue({ affected: 1 } as any);
+
+      const rmSpy = jest.spyOn(require('fs/promises'), 'rm').mockResolvedValue(undefined);
+      jest.spyOn(require('fs/promises'), 'mkdir').mockResolvedValue(undefined);
+      jest.spyOn(require('fs/promises'), 'writeFile').mockResolvedValue(undefined);
+
+      const file = { buffer: Buffer.from('jpg-data'), originalname: 'new.jpg' } as Express.Multer.File;
+      await service.uploadAvatar('uuid-1', file);
+
+      expect(rmSpy).toHaveBeenCalledWith(expect.stringContaining('old-uuid.jpg'), { force: true });
+    });
+  });
+
 });
+
+function buildMockUser(overrides: Partial<User> = {}): User {
+  return {
+    id: 'uuid-1',
+    name: 'Test User',
+    email: 'test@test.com',
+    passwordHash: 'hash',
+    role: UserRole.ADMIN,
+    mustChangePassword: false,
+    isActive: true,
+    technicianId: null,
+    avatarPath: null,
+    lastLogoutAt: null,
+    odooUserId: null,
+    odooSyncedAt: null,
+    odooEmployeeId: null,
+    createdAt: new Date(),
+    technician: null,
+    ...overrides,
+  } as User;
+}
 

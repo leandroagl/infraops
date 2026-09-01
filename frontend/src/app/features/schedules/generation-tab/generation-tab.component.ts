@@ -43,8 +43,8 @@ export class GenerationTabComponent implements OnInit, OnDestroy {
       !this.isFutureMonth;
   }
 
-  get taskTypesWithoutTagsLabel(): string {
-    return (this.preview?.taskTypesWithoutTags ?? []).map(typeLabelLong).join(', ');
+  get taskTypesWithoutTagsLabels(): string[] {
+    return (this.preview?.taskTypesWithoutTags ?? []).map(typeLabelLong);
   }
 
   constructor(

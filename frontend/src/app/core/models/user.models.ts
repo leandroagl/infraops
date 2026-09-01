@@ -8,6 +8,7 @@ export interface User {
   mustChangePassword: boolean;
   isActive: boolean;
   technicianId: string | null;
+  avatarUrl: string | null;
   createdAt: string;
 }
 

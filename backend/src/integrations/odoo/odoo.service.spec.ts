@@ -4,7 +4,7 @@ import {
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { ConfigService } from '@nestjs/config';
+import { IntegrationConfigService } from '../../integration-config/integration-config.service';
 import { Client } from '../../clients/client.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
@@ -31,7 +31,7 @@ describe('OdooService', () => {
     count: jest.Mock;
   };
   let technicianRepo: { findOne: jest.Mock };
-  let configService: { getOrThrow: jest.Mock };
+  let integrationConfigServiceMock: { getOdooConfigDecrypted: jest.Mock };
   let taskConfigServiceMock: { findOne: jest.Mock };
 
   const makeClient = (override: Partial<Client> = {}): Client =>
@@ -96,8 +96,11 @@ describe('OdooService', () => {
       count: jest.fn(),
     };
     technicianRepo = { findOne: jest.fn() };
-    configService = {
-      getOrThrow: jest.fn().mockReturnValue('5'),
+    integrationConfigServiceMock = {
+      getOdooConfigDecrypted: jest.fn().mockResolvedValue({
+        url: 'u', db: 'd', username: 'u', apiKey: 'k', helpdeskTeamId: 7,
+        stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho',
+      }),
     };
     taskConfigServiceMock = { findOne: jest.fn().mockResolvedValue(null) };
 
@@ -107,7 +110,7 @@ describe('OdooService', () => {
         { provide: OdooSystemRpcService, useValue: odooRpc },
         { provide: getRepositoryToken(Client), useValue: clientRepo },
         { provide: getRepositoryToken(User), useValue: userRepo },
-        { provide: ConfigService, useValue: configService },
+        { provide: IntegrationConfigService, useValue: integrationConfigServiceMock },
         { provide: getRepositoryToken(Technician), useValue: technicianRepo },
         { provide: TaskConfigService, useValue: taskConfigServiceMock },
       ],
@@ -630,17 +633,6 @@ describe('OdooService', () => {
       ).rejects.toThrow(ServiceUnavailableException);
     });
 
-    it('lanza error cuando ODOO_HELPDESK_TEAM_ID no es un entero válido', async () => {
-      configService.getOrThrow.mockReturnValue('no-es-numero');
-      technicianRepo.findOne.mockResolvedValue(makeTechnician());
-      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
-
-      await expect(
-        service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),
-      ).rejects.toThrow('ODOO_HELPDESK_TEAM_ID must be a valid integer');
-      expect(odooRpc.callKw).not.toHaveBeenCalled();
-    });
-
     it('lanza BadRequestException cuando el técnico no tiene usuario asociado', async () => {
       clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: 101 }));
       const technicianSinUsuario: Technician = {
@@ -811,20 +803,6 @@ describe('OdooService', () => {
       expect(calls[2][0]).toBe('helpdesk.ticket');
       expect(calls[2][1]).toBe('write');
       expect(calls[2][2]).toEqual([[42], { stage_id: 99 }]);
-    });
-
-    it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
-      odooRpc.callKw
-        .mockResolvedValueOnce([{ id: 99 }]) // primera llamada: resuelve stage
-        .mockResolvedValue(true);
-
-      await service.closeTicket(42, 22, 1.5, TaskType.QNAP_MAINTENANCE);
-      await service.closeTicket(43, 22, 0.5, TaskType.QNAP_MAINTENANCE);
-
-      const stageCalls = odooRpc.callKw.mock.calls.filter(
-        (args: unknown[]) => args[0] === 'helpdesk.stage',
-      );
-      expect(stageCalls).toHaveLength(1);
     });
 
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage de cierre', async () => {
@@ -998,7 +976,7 @@ describe('OdooService', () => {
         'search_read',
         [
           [
-            ['team_ids', 'in', [5]],
+            ['team_ids', 'in', [7]],
             ['name', '=', 'En curso'],
           ],
         ],
@@ -1010,20 +988,6 @@ describe('OdooService', () => {
         [[42], { stage_id: 77 }],
         {},
       ]);
-    });
-
-    it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
-      odooRpc.callKw
-        .mockResolvedValueOnce([{ id: 77 }]) // primera llamada: resuelve stage
-        .mockResolvedValue(true);
-
-      await service.markTicketInProgress(42);
-      await service.markTicketInProgress(43);
-
-      const stageCalls = odooRpc.callKw.mock.calls.filter(
-        (args: unknown[]) => args[0] === 'helpdesk.stage',
-      );
-      expect(stageCalls).toHaveLength(1);
     });
 
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage "En Curso"', async () => {
@@ -1059,7 +1023,7 @@ describe('OdooService', () => {
         'search_read',
         [
           [
-            ['team_ids', 'in', [5]],
+            ['team_ids', 'in', [7]],
             ['name', '=', 'No realizadas'],
           ],
         ],
@@ -1084,20 +1048,6 @@ describe('OdooService', () => {
         [[42], { stage_id: 88 }],
         {},
       ]);
-    });
-
-    it('reutiliza el stage cacheado en llamadas subsiguientes sin volver a consultar Odoo', async () => {
-      odooRpc.callKw
-        .mockResolvedValueOnce([{ id: 88 }]) // primera llamada: resuelve stage
-        .mockResolvedValue(true);
-
-      await service.markTicketNotDone(42, 22, 'Motivo A');
-      await service.markTicketNotDone(43, 22, 'Motivo B');
-
-      const stageCalls = odooRpc.callKw.mock.calls.filter(
-        (args: unknown[]) => args[0] === 'helpdesk.stage',
-      );
-      expect(stageCalls).toHaveLength(1);
     });
 
     it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage "No realizadas"', async () => {

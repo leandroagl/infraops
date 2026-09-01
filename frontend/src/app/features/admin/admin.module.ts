@@ -30,6 +30,7 @@ import { SyncComponent } from './sync/sync.component';
 import { TaskConfigComponent } from './task-config/task-config.component';
 import { TaskEditDialogComponent } from './task-config/task-edit-dialog/task-edit-dialog.component';
 import { SharedModule } from '../../shared/shared.module';
+import { IntegracionesComponent } from './integraciones/integraciones.component';
 
 @NgModule({
   declarations: [
@@ -42,6 +43,7 @@ import { SharedModule } from '../../shared/shared.module';
     SyncComponent,
     TaskConfigComponent,
     TaskEditDialogComponent,
+    IntegracionesComponent,
   ],
   imports: [
     CommonModule,

@@ -1,6 +1,7 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { IntegrationConfigService } from '../../integration-config/integration-config.service';
 
 export interface RawInfradocAsset {
   asset_id: string;
@@ -18,15 +19,15 @@ export interface RawInfradocAsset {
 
 @Injectable()
 export class InfradocAssetsService {
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly integrationConfigService: IntegrationConfigService,
+  ) {}
 
   async getAssets(infradocClientId: number): Promise<RawInfradocAsset[]> {
-    const baseUrl = process.env.INFRADOC_URL;
-    const apiKey = process.env.INFRADOC_API_KEY;
+    const { url: baseUrl, apiKey } = await this.integrationConfigService.getInfraDocConfigDecrypted();
     if (!baseUrl || !apiKey) {
-      throw new Error(
-        'INFRADOC_URL and INFRADOC_API_KEY deben estar configurados',
-      );
+      throw new Error('URL y API key de InfraDoc no configuradas');
     }
     const url = `${baseUrl}/api/v1/assets/read.php`;
     const response = await firstValueFrom(
@@ -47,12 +48,9 @@ export class InfradocAssetsService {
   }
 
   async getAssetInterfaces(assetId: number): Promise<RawInfradocAsset[]> {
-    const baseUrl = process.env.INFRADOC_URL;
-    const apiKey = process.env.INFRADOC_API_KEY;
+    const { url: baseUrl, apiKey } = await this.integrationConfigService.getInfraDocConfigDecrypted();
     if (!baseUrl || !apiKey) {
-      throw new Error(
-        'INFRADOC_URL and INFRADOC_API_KEY deben estar configurados',
-      );
+      throw new Error('URL y API key de InfraDoc no configuradas');
     }
     const url = `${baseUrl}/api/v1/assets/read.php`;
     const response = await firstValueFrom(

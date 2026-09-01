@@ -6,6 +6,34 @@
 
   <div class="profile-section">
     <div class="section-header">
+      <span class="section-title">Foto de perfil</span>
+    </div>
+    <div class="section-body avatar-section">
+      <div class="avatar-wrap">
+        <app-user-avatar [name]="user.name" [avatarUrl]="user.avatarUrl" size="lg"></app-user-avatar>
+        <input type="file" hidden #fileInput accept=".jpg,.jpeg,.png,.webp"
+               (change)="onFileSelected($event)" />
+      </div>
+      <div class="avatar-actions">
+        <button mat-stroked-button (click)="fileInput.click()" [disabled]="uploadState === 'uploading'">
+          Cambiar foto
+        </button>
+        <span class="upload-hint">JPG, PNG o WEBP · máx. 2 MB</span>
+        <div *ngIf="uploadState === 'uploading'" class="upload-status upload-status--uploading">
+          <mat-spinner diameter="14"></mat-spinner> Subiendo…
+        </div>
+        <div *ngIf="uploadState === 'success'" class="upload-status upload-status--success">
+          Foto actualizada
+        </div>
+        <div *ngIf="uploadState === 'error'" class="upload-status upload-status--error">
+          {{ uploadError }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-section">
+    <div class="section-header">
       <span class="section-title">Cuenta InfraOps</span>
     </div>
     <div class="section-body">

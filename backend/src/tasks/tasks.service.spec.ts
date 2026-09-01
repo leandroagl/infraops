@@ -154,6 +154,30 @@ describe('TasksService', () => {
       expect(result[0].id).toBe('task-1');
     });
 
+    it('incluye avatarUrl en el técnico del response', async () => {
+      const taskWithAvatar = {
+        ...mockTask,
+        technician: { ...mockTechnician, user: { id: 'user-1', avatarPath: 'photo.jpg' } as User },
+      };
+      taskRepository.find.mockResolvedValue([taskWithAvatar]);
+
+      const result = await service.findAll({});
+
+      expect((result[0].technician.user as any).avatarUrl).toBe('/avatars/photo.jpg');
+    });
+
+    it('retorna avatarUrl null cuando el técnico no tiene foto', async () => {
+      const taskWithNoAvatar = {
+        ...mockTask,
+        technician: { ...mockTechnician, user: { id: 'user-1', avatarPath: null } as User },
+      };
+      taskRepository.find.mockResolvedValue([taskWithNoAvatar]);
+
+      const result = await service.findAll({});
+
+      expect((result[0].technician.user as any).avatarUrl).toBeNull();
+    });
+
     it('aplica filtro por status cuando se provee', async () => {
       taskRepository.find.mockResolvedValue([]);
 

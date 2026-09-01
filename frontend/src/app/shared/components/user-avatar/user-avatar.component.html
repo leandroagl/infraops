@@ -1,0 +1,9 @@
+<div class="av" [ngClass]="['av--' + size, colorClass]">
+  <img
+    *ngIf="avatarUrl && !showFallback"
+    [src]="avatarUrl"
+    [alt]="name"
+    (error)="onImageError()"
+  />
+  <span class="av__initial" *ngIf="!avatarUrl || showFallback">{{ initials }}</span>
+</div>

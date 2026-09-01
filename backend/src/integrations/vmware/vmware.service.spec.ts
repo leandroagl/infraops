@@ -1,7 +1,9 @@
 import { BadGatewayException, GatewayTimeoutException } from '@nestjs/common';
 import * as cp from 'child_process';
 import { EventEmitter } from 'events';
+import { Test, TestingModule } from '@nestjs/testing';
 import { VmwareService } from './vmware.service';
+import { IntegrationConfigService } from '../../integration-config/integration-config.service';
 
 jest.mock('child_process');
 
@@ -42,8 +44,20 @@ function makeProc(opts: { stdout?: string; stderr?: string; exitCode?: number; h
 describe('VmwareService', () => {
   let service: VmwareService;
 
-  beforeEach(() => {
-    service = new VmwareService();
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        VmwareService,
+        {
+          provide: IntegrationConfigService,
+          useValue: {
+            getVmwareConfigDecrypted: jest.fn().mockResolvedValue({ username: 'ondra-read', password: 'pass' }),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<VmwareService>(VmwareService);
     jest.clearAllMocks();
   });
 
@@ -85,6 +99,9 @@ describe('VmwareService', () => {
     jest.useFakeTimers();
     const proc = makeProc({ hang: true });
     const promise = service.runHealthCheck('192.168.1.10:344');
+    // Flush the microtask queue so getVmwareConfigDecrypted resolves and
+    // the internal setTimeout is registered before we advance fake timers.
+    await Promise.resolve();
     jest.advanceTimersByTime(30_001);
     await expect(promise).rejects.toThrow(GatewayTimeoutException);
     expect(proc.kill).toHaveBeenCalledWith('SIGTERM');

@@ -31,6 +31,7 @@ describe('AuthService', () => {
     odooSyncedAt: null,
     odooEmployeeId: null,
     technician: null,
+    avatarPath: null,
   };
 
   beforeEach(async () => {
@@ -63,9 +64,11 @@ describe('AuthService', () => {
       expect(result.mustChangePassword).toBe(false);
       expect(result.user).toEqual({
         id: 'user-1',
+        name: 'Lea Aguilera',
         email: 'lea@ondra.com',
         role: UserRole.TL,
         technicianId: null,
+        avatarUrl: null,
       });
       expect(jwtService.sign).toHaveBeenCalledWith({
         sub: 'user-1',
@@ -105,6 +108,34 @@ describe('AuthService', () => {
       userRepository.findOne.mockResolvedValue(null); // isActive:true filter returns null
 
       await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should include name and avatarUrl in login user response', async () => {
+      userRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        name: 'Test User',
+        avatarPath: 'abc123.jpg',
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      jwtService.sign.mockReturnValue('jwt-token');
+
+      const result = await service.login(dto);
+
+      expect(result.user.name).toBe('Test User');
+      expect(result.user.avatarUrl).toBe('/avatars/abc123.jpg');
+    });
+
+    it('should set avatarUrl to null when avatarPath is null', async () => {
+      userRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        avatarPath: null,
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      jwtService.sign.mockReturnValue('jwt-token');
+
+      const result = await service.login(dto);
+
+      expect(result.user.avatarUrl).toBeNull();
     });
 
   });

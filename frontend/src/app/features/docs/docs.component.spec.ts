@@ -12,7 +12,7 @@ import { UserRole } from '../../core/models/auth.models';
 
 function buildAuthSpy(role: UserRole) {
   const spy = jasmine.createSpyObj<AuthService>('AuthService', ['getCurrentUser']);
-  spy.getCurrentUser.and.returnValue({ id: '1', email: 'test@ondra.com', role });
+  spy.getCurrentUser.and.returnValue({ id: '1', name: 'Test User', email: 'test@ondra.com', role, technicianId: null, avatarUrl: null });
   return spy;
 }
 

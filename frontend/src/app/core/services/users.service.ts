@@ -8,6 +8,7 @@ import {
   UpdateUserPayload,
   CreateUserResponse,
 } from '../models/user.models';
+import { AuthUser } from '../models/auth.models';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
@@ -36,5 +37,19 @@ export class UsersService {
       `${this.url}/${id}/reset-password`,
       {},
     );
+  }
+
+  remove(id: string): Observable<{ ok: true }> {
+    return this.http.delete<{ ok: true }>(`${this.url}/${id}`);
+  }
+
+  getMe(): Observable<AuthUser> {
+    return this.http.get<AuthUser>(`${environment.apiUrl}/users/me`);
+  }
+
+  uploadAvatar(file: File): Observable<AuthUser> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<AuthUser>(`${environment.apiUrl}/users/me/avatar`, form);
   }
 }

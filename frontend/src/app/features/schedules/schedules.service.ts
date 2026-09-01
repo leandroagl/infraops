@@ -108,8 +108,8 @@ export class SchedulesService {
     return this.http.get<RotationPreview>(`${this.base}/rotation/preview`);
   }
 
-  getTechnicians(): Observable<Array<{ id: string; user: { name: string } }>> {
-    return this.http.get<Array<{ id: string; user: { name: string } }>>(`${environment.apiUrl}/technicians`);
+  getTechnicians(): Observable<Array<{ id: string; user: { name: string; avatarUrl: string | null } }>> {
+    return this.http.get<Array<{ id: string; user: { name: string; avatarUrl: string | null } }>>(`${environment.apiUrl}/technicians`);
   }
 
   getClients(): Observable<Array<{ id: string; name: string; isActive: boolean }>> {
