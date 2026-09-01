@@ -9,6 +9,12 @@
     <span class="vf-pill" [class.p-crit]="summaryNo > 0">{{ summaryNo }} Sin cobertura</span>
   </div>
 
+  <div class="vf-col-hdr">
+    <span class="vf-col-hdr__name">VM</span>
+    <span class="vf-col-hdr__cov">Tipo de job</span>
+    <span class="vf-col-hdr__fulls">Fulls/mes</span>
+  </div>
+
   <div class="vf-vm-list" formArrayName="vmRows">
     <div
       *ngFor="let _ of vmRows.controls; let i = index"
