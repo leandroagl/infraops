@@ -24,4 +24,17 @@ describe('crypto.util', () => {
     expect(isMasked(null)).toBe(false);
     expect(isMasked('valor-real')).toBe(false);
   });
+
+  it('encrypt lanza error descriptivo cuando la clave está vacía', () => {
+    expect(() => encrypt('valor', '')).toThrow(/INTEGRATIONS_ENCRYPT_KEY/);
+  });
+
+  it('encrypt lanza error descriptivo cuando la clave no tiene 64 chars hex', () => {
+    expect(() => encrypt('valor', 'clave-corta')).toThrow(/INTEGRATIONS_ENCRYPT_KEY/);
+  });
+
+  it('decrypt lanza error descriptivo cuando la clave está vacía', () => {
+    const stored = encrypt('valor', KEY);
+    expect(() => decrypt(stored, '')).toThrow(/INTEGRATIONS_ENCRYPT_KEY/);
+  });
 });

@@ -7,8 +7,17 @@ export function isMasked(value: string | null | undefined): boolean {
   return value === MASK;
 }
 
+function keyBuffer(keyHex: string): Buffer {
+  if (!keyHex || !/^[0-9a-fA-F]{64}$/.test(keyHex)) {
+    throw new Error(
+      'INTEGRATIONS_ENCRYPT_KEY no está configurada o no tiene el formato esperado (64 caracteres hex / 32 bytes)',
+    );
+  }
+  return Buffer.from(keyHex, 'hex');
+}
+
 export function encrypt(plaintext: string, keyHex: string): string {
-  const key = Buffer.from(keyHex, 'hex');
+  const key = keyBuffer(keyHex);
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
@@ -18,7 +27,7 @@ export function encrypt(plaintext: string, keyHex: string): string {
 
 export function decrypt(stored: string, keyHex: string): string {
   const [ivB64, authTagB64, ciphertextB64] = stored.split(':');
-  const key = Buffer.from(keyHex, 'hex');
+  const key = keyBuffer(keyHex);
   const iv = Buffer.from(ivB64, 'base64');
   const authTag = Buffer.from(authTagB64, 'base64');
   const ciphertext = Buffer.from(ciphertextB64, 'base64');
