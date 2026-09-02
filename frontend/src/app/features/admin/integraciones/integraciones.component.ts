@@ -64,7 +64,6 @@ export class IntegracionesComponent implements OnInit {
         this.odoo.loading           = false;
         this.odoo.updatedAt         = d.updatedAt;
         this.odoo.updatedBy         = d.updatedBy;
-        if (d.updatedAt) this.odoo.connectionStatus = 'ok';
       },
     });
     this.svc.getInfraDoc().subscribe({
@@ -73,7 +72,6 @@ export class IntegracionesComponent implements OnInit {
         this.infradoc.loading           = false;
         this.infradoc.updatedAt         = d.updatedAt;
         this.infradoc.updatedBy         = d.updatedBy;
-        if (d.updatedAt) this.infradoc.connectionStatus = 'ok';
       },
     });
     this.svc.getVmware().subscribe({
@@ -82,7 +80,6 @@ export class IntegracionesComponent implements OnInit {
         this.vmware.loading           = false;
         this.vmware.updatedAt         = d.updatedAt;
         this.vmware.updatedBy         = d.updatedBy;
-        if (d.updatedAt) this.vmware.connectionStatus = 'ok';
       },
     });
   }
@@ -124,12 +121,11 @@ export class IntegracionesComponent implements OnInit {
         this.odoo.saving            = false;
         this.odoo.updatedAt         = d.updatedAt;
         this.odoo.updatedBy         = d.updatedBy;
-        this.odoo.connectionStatus  = 'ok';
         this.snackBar.open('Configuración de Odoo guardada', '', { duration: 3000 });
       },
-      error: () => {
+      error: (e: { error?: { message?: string } }) => {
         this.odoo.saving = false;
-        this.snackBar.open('Error al guardar configuración de Odoo', '', { duration: 4000 });
+        this.snackBar.open(e?.error?.message ?? 'Error al guardar configuración de Odoo', '', { duration: 4000 });
       },
     });
   }
@@ -160,12 +156,11 @@ export class IntegracionesComponent implements OnInit {
         this.infradoc.saving            = false;
         this.infradoc.updatedAt         = d.updatedAt;
         this.infradoc.updatedBy         = d.updatedBy;
-        this.infradoc.connectionStatus  = 'ok';
         this.snackBar.open('Configuración de InfraDoc guardada', '', { duration: 3000 });
       },
-      error: () => {
+      error: (e: { error?: { message?: string } }) => {
         this.infradoc.saving = false;
-        this.snackBar.open('Error al guardar configuración de InfraDoc', '', { duration: 4000 });
+        this.snackBar.open(e?.error?.message ?? 'Error al guardar configuración de InfraDoc', '', { duration: 4000 });
       },
     });
   }
@@ -196,12 +191,11 @@ export class IntegracionesComponent implements OnInit {
         this.vmware.saving            = false;
         this.vmware.updatedAt         = d.updatedAt;
         this.vmware.updatedBy         = d.updatedBy;
-        this.vmware.connectionStatus  = 'ok';
         this.snackBar.open('Configuración de VMware guardada', '', { duration: 3000 });
       },
-      error: () => {
+      error: (e: { error?: { message?: string } }) => {
         this.vmware.saving = false;
-        this.snackBar.open('Error al guardar configuración de VMware', '', { duration: 4000 });
+        this.snackBar.open(e?.error?.message ?? 'Error al guardar configuración de VMware', '', { duration: 4000 });
       },
     });
   }
