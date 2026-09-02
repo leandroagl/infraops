@@ -72,15 +72,15 @@ export class IntegrationConfigService {
   async patchOdoo(dto: PatchOdooConfigDto, updatedBy: string): Promise<OdooConfigResponseDto> {
     const existing = (await this.odooRepo.findOne({ where: { id: 1 } })) ?? new OdooConfig();
     existing.id = 1;
-    if (dto.url !== undefined)            existing.url            = dto.url;
-    if (dto.db !== undefined)             existing.db             = dto.db;
-    if (dto.username !== undefined)       existing.username       = dto.username;
+    if (dto.url !== undefined)            existing.url            = dto.url.trim();
+    if (dto.db !== undefined)             existing.db             = dto.db.trim();
+    if (dto.username !== undefined)       existing.username       = dto.username.trim();
     if (dto.helpdeskTeamId !== undefined)     existing.helpdeskTeamId     = dto.helpdeskTeamId;
     if (dto.stageInProgressName !== undefined) existing.stageInProgressName = dto.stageInProgressName;
     if (dto.stageNotDoneName !== undefined)    existing.stageNotDoneName    = dto.stageNotDoneName;
     if (dto.stageDoneName !== undefined)       existing.stageDoneName       = dto.stageDoneName;
-    if (dto.apiKey !== undefined && !isMasked(dto.apiKey) && dto.apiKey !== '') {
-      existing.apiKey = this.safeEncrypt(dto.apiKey);
+    if (dto.apiKey !== undefined && !isMasked(dto.apiKey) && dto.apiKey.trim() !== '') {
+      existing.apiKey = this.safeEncrypt(dto.apiKey.trim());
     }
     if (!existing.apiKey) {
       const envKey = this.configService.get<string>('ODOO_API_KEY', '');
@@ -144,9 +144,9 @@ export class IntegrationConfigService {
   async patchInfraDoc(dto: PatchInfraDocConfigDto, updatedBy: string): Promise<InfraDocConfigResponseDto> {
     const existing = (await this.infradocRepo.findOne({ where: { id: 1 } })) ?? new InfraDocConfig();
     existing.id = 1;
-    if (dto.url !== undefined) existing.url = dto.url;
-    if (dto.apiKey !== undefined && !isMasked(dto.apiKey) && dto.apiKey !== '') {
-      existing.apiKey = this.safeEncrypt(dto.apiKey);
+    if (dto.url !== undefined) existing.url = dto.url.trim();
+    if (dto.apiKey !== undefined && !isMasked(dto.apiKey) && dto.apiKey.trim() !== '') {
+      existing.apiKey = this.safeEncrypt(dto.apiKey.trim());
     }
     if (!existing.apiKey) {
       const envKey = this.configService.get<string>('INFRADOC_API_KEY', '');
@@ -186,9 +186,9 @@ export class IntegrationConfigService {
   async patchVmware(dto: PatchVmwareConfigDto, updatedBy: string): Promise<VmwareConfigResponseDto> {
     const existing = (await this.vmwareRepo.findOne({ where: { id: 1 } })) ?? new VmwareConfig();
     existing.id = 1;
-    if (dto.username !== undefined) existing.username = dto.username;
-    if (dto.password !== undefined && !isMasked(dto.password) && dto.password !== '') {
-      existing.password = this.safeEncrypt(dto.password);
+    if (dto.username !== undefined) existing.username = dto.username.trim();
+    if (dto.password !== undefined && !isMasked(dto.password) && dto.password.trim() !== '') {
+      existing.password = this.safeEncrypt(dto.password.trim());
     }
     if (!existing.password) {
       const envPass = this.configService.get<string>('VMWARE_PASS', '');
