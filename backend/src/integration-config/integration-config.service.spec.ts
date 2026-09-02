@@ -152,6 +152,22 @@ describe('IntegrationConfigService', () => {
       expect(saved.apiKey).not.toBe(MASK);
       expect(decrypt(saved.apiKey, KEY)).toBe('env-odoo-key');
     });
+
+    it('recorta espacios en blanco de url, db, username y apiKey antes de guardar', async () => {
+      odooRepo.findOne.mockResolvedValue(null);
+      odooRepo.save.mockImplementation(async (e: OdooConfig) => e);
+
+      await service.patchOdoo(
+        { url: '  https://odoo.test  ', db: '  midb  ', username: '  bot@test.com \n', apiKey: '  clave-con-espacios \n' },
+        'admin@test.com',
+      );
+
+      const saved = odooRepo.save.mock.calls[0][0];
+      expect(saved.url).toBe('https://odoo.test');
+      expect(saved.db).toBe('midb');
+      expect(saved.username).toBe('bot@test.com');
+      expect(decrypt(saved.apiKey, KEY)).toBe('clave-con-espacios');
+    });
   });
 
   describe('getOdooConfigDecrypted', () => {
@@ -193,6 +209,17 @@ describe('IntegrationConfigService', () => {
       expect(saved.apiKey).not.toBe(MASK);
       expect(decrypt(saved.apiKey, KEY)).toBe('env-infradoc-key');
     });
+
+    it('recorta espacios en blanco de url y apiKey antes de guardar', async () => {
+      infradocRepo.findOne.mockResolvedValue(null);
+      infradocRepo.save.mockImplementation(async (e: InfraDocConfig) => e);
+
+      await service.patchInfraDoc({ url: '  https://infradoc.test  ', apiKey: '  clave-con-espacios \n' }, 'admin@test.com');
+
+      const saved = infradocRepo.save.mock.calls[0][0];
+      expect(saved.url).toBe('https://infradoc.test');
+      expect(decrypt(saved.apiKey, KEY)).toBe('clave-con-espacios');
+    });
   });
 
   describe('patchVmware', () => {
@@ -206,6 +233,17 @@ describe('IntegrationConfigService', () => {
       expect(saved.password).toBeTruthy();
       expect(saved.password).not.toBe(MASK);
       expect(decrypt(saved.password, KEY)).toBe('env-vmware-pass');
+    });
+
+    it('recorta espacios en blanco de username y password antes de guardar', async () => {
+      vmwareRepo.findOne.mockResolvedValue(null);
+      vmwareRepo.save.mockImplementation(async (e: VmwareConfig) => e);
+
+      await service.patchVmware({ username: '  ondra-read  ', password: '  clave-con-espacios \n' }, 'admin@test.com');
+
+      const saved = vmwareRepo.save.mock.calls[0][0];
+      expect(saved.username).toBe('ondra-read');
+      expect(decrypt(saved.password, KEY)).toBe('clave-con-espacios');
     });
   });
 
