@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -27,6 +27,14 @@ export class IntegrationConfigService {
 
   private get encryptKey(): string {
     return this.configService.get<string>('INTEGRATIONS_ENCRYPT_KEY', '');
+  }
+
+  private safeEncrypt(plaintext: string): string {
+    try {
+      return encrypt(plaintext, this.encryptKey);
+    } catch (err) {
+      throw new BadRequestException((err as Error).message);
+    }
   }
 
   // ── Version tracking (permite a OdooSystemRpcService invalidar uid cache) ──
@@ -72,11 +80,11 @@ export class IntegrationConfigService {
     if (dto.stageNotDoneName !== undefined)    existing.stageNotDoneName    = dto.stageNotDoneName;
     if (dto.stageDoneName !== undefined)       existing.stageDoneName       = dto.stageDoneName;
     if (dto.apiKey !== undefined && !isMasked(dto.apiKey) && dto.apiKey !== '') {
-      existing.apiKey = encrypt(dto.apiKey, this.encryptKey);
+      existing.apiKey = this.safeEncrypt(dto.apiKey);
     }
     if (!existing.apiKey) {
       const envKey = this.configService.get<string>('ODOO_API_KEY', '');
-      if (envKey) existing.apiKey = encrypt(envKey, this.encryptKey);
+      if (envKey) existing.apiKey = this.safeEncrypt(envKey);
     }
     existing.updatedBy = updatedBy;
     await this.odooRepo.save(existing);
@@ -138,11 +146,11 @@ export class IntegrationConfigService {
     existing.id = 1;
     if (dto.url !== undefined) existing.url = dto.url;
     if (dto.apiKey !== undefined && !isMasked(dto.apiKey) && dto.apiKey !== '') {
-      existing.apiKey = encrypt(dto.apiKey, this.encryptKey);
+      existing.apiKey = this.safeEncrypt(dto.apiKey);
     }
     if (!existing.apiKey) {
       const envKey = this.configService.get<string>('INFRADOC_API_KEY', '');
-      if (envKey) existing.apiKey = encrypt(envKey, this.encryptKey);
+      if (envKey) existing.apiKey = this.safeEncrypt(envKey);
     }
     existing.updatedBy = updatedBy;
     await this.infradocRepo.save(existing);
@@ -180,11 +188,11 @@ export class IntegrationConfigService {
     existing.id = 1;
     if (dto.username !== undefined) existing.username = dto.username;
     if (dto.password !== undefined && !isMasked(dto.password) && dto.password !== '') {
-      existing.password = encrypt(dto.password, this.encryptKey);
+      existing.password = this.safeEncrypt(dto.password);
     }
     if (!existing.password) {
       const envPass = this.configService.get<string>('VMWARE_PASS', '');
-      if (envPass) existing.password = encrypt(envPass, this.encryptKey);
+      if (envPass) existing.password = this.safeEncrypt(envPass);
     }
     existing.updatedBy = updatedBy;
     await this.vmwareRepo.save(existing);

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
+import { BadRequestException } from '@nestjs/common';
 import { of, throwError } from 'rxjs';
 import { IntegrationConfigService } from './integration-config.service';
 import { OdooConfig } from './entities/odoo-config.entity';
@@ -205,6 +206,54 @@ describe('IntegrationConfigService', () => {
       expect(saved.password).toBeTruthy();
       expect(saved.password).not.toBe(MASK);
       expect(decrypt(saved.password, KEY)).toBe('env-vmware-pass');
+    });
+  });
+
+  describe('errores de clave de encriptación', () => {
+    let brokenService: IntegrationConfigService;
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          IntegrationConfigService,
+          { provide: getRepositoryToken(OdooConfig),     useValue: odooRepo     },
+          { provide: getRepositoryToken(InfraDocConfig), useValue: infradocRepo },
+          { provide: getRepositoryToken(VmwareConfig),   useValue: vmwareRepo   },
+          { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } }, // INTEGRATIONS_ENCRYPT_KEY vacía
+          { provide: HttpService, useValue: { get: httpGet } },
+        ],
+      }).compile();
+      brokenService = module.get<IntegrationConfigService>(IntegrationConfigService);
+    });
+
+    it('patchOdoo lanza BadRequestException con mensaje claro cuando la clave falta', async () => {
+      odooRepo.findOne.mockResolvedValue(null);
+      await expect(brokenService.patchOdoo({ apiKey: 'nueva-api-key' }, 'admin@test.com'))
+        .rejects.toThrow(BadRequestException);
+      await expect(brokenService.patchOdoo({ apiKey: 'nueva-api-key' }, 'admin@test.com'))
+        .rejects.toThrow(/INTEGRATIONS_ENCRYPT_KEY/);
+    });
+
+    it('patchInfraDoc lanza BadRequestException con mensaje claro cuando la clave falta', async () => {
+      infradocRepo.findOne.mockResolvedValue(null);
+      await expect(brokenService.patchInfraDoc({ apiKey: 'nueva-api-key' }, 'admin@test.com'))
+        .rejects.toThrow(/INTEGRATIONS_ENCRYPT_KEY/);
+    });
+
+    it('patchVmware lanza BadRequestException con mensaje claro cuando la clave falta', async () => {
+      vmwareRepo.findOne.mockResolvedValue(null);
+      await expect(brokenService.patchVmware({ password: 'nueva-pass' }, 'admin@test.com'))
+        .rejects.toThrow(/INTEGRATIONS_ENCRYPT_KEY/);
+    });
+
+    it('testOdoo devuelve mensaje claro de config cuando la clave falta y hay apiKey guardada', async () => {
+      odooRepo.findOne.mockResolvedValue({
+        url: 'https://odoo.test', db: 'd', username: 'u', apiKey: 'iv:tag:cipher', helpdeskTeamId: 7,
+        updatedAt: new Date(), updatedBy: 'admin',
+      });
+      const result = await brokenService.testOdoo();
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/INTEGRATIONS_ENCRYPT_KEY/);
     });
   });
 
