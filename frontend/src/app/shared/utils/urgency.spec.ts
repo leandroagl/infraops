@@ -1,4 +1,4 @@
-import { daysFromToday, urgencyLabel, urgencyClass } from './urgency';
+import { daysFromToday, daysUntilCycleClose, urgencyLabel, urgencyClass } from './urgency';
 
 /** Genera una fecha ISO YYYY-MM-DD como hora local, N días desde hoy. */
 function localIsoDate(offsetDays: number): string {
@@ -32,28 +32,20 @@ describe('urgency utils', () => {
   });
 
   describe('urgencyLabel()', () => {
-    it('days < 0 → "+Nd vencido"', () => {
-      expect(urgencyLabel(-3)).toBe('+3d vencido');
+    it('days === 0 → "cierra hoy"', () => {
+      expect(urgencyLabel(0)).toBe('cierra hoy');
     });
 
-    it('days === 0 → "vence en 0d"', () => {
-      expect(urgencyLabel(0)).toBe('vence en 0d');
+    it('days === 7 → "cierra en 7d"', () => {
+      expect(urgencyLabel(7)).toBe('cierra en 7d');
     });
 
-    it('days === 7 → "vence en 7d"', () => {
-      expect(urgencyLabel(7)).toBe('vence en 7d');
-    });
-
-    it('days > 7 → "Nd restantes"', () => {
-      expect(urgencyLabel(15)).toBe('15d restantes');
+    it('days > 7 → "Nd para el cierre"', () => {
+      expect(urgencyLabel(15)).toBe('15d para el cierre');
     });
   });
 
   describe('urgencyClass()', () => {
-    it('days < 0 → "urg-crit"', () => {
-      expect(urgencyClass(-1)).toBe('urg-crit');
-    });
-
     it('days === 0 → "urg-warn"', () => {
       expect(urgencyClass(0)).toBe('urg-warn');
     });
@@ -64,6 +56,21 @@ describe('urgency utils', () => {
 
     it('days > 7 → "urg-ok"', () => {
       expect(urgencyClass(8)).toBe('urg-ok');
+    });
+  });
+
+  describe('daysUntilCycleClose()', () => {
+    it('retorna los días restantes hasta el último día del mes actual', () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      lastDay.setHours(0, 0, 0, 0);
+      const expected = Math.round((lastDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      expect(daysUntilCycleClose()).toBe(expected);
+    });
+
+    it('nunca es negativo dentro del mes actual', () => {
+      expect(daysUntilCycleClose()).toBeGreaterThanOrEqual(0);
     });
   });
 

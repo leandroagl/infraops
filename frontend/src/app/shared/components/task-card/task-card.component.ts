@@ -1,7 +1,7 @@
 // frontend/src/app/shared/components/task-card/task-card.component.ts
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Task } from '../../../core/models/task.models';
-import { daysFromToday, urgencyLabel, urgencyClass } from '../../utils/urgency';
+import { daysUntilCycleClose, urgencyLabel, urgencyClass } from '../../utils/urgency';
 import { typeLabel, typeBadge } from '../../utils/task-labels';
 import { formatOdooTicketId, odooTicketUrl } from '../../utils/odoo';
 
@@ -20,11 +20,11 @@ export class TaskCardComponent {
     return this.task.status === 'PENDING' || this.task.status === 'IN_PROGRESS';
   }
 
-  get days(): number { return daysFromToday(this.task.scheduledDate); }
+  /** Días restantes hasta el cierre de ciclo — iguales para toda tarea activa. */
+  get days(): number { return daysUntilCycleClose(); }
 
   get borderClass(): string {
     if (!this.isActive) return 'tc-done';
-    if (this.days < 0) return 'tc-crit';
     const t = this.task.type;
     if (t === 'TERMINAL_MAINTENANCE' || t === 'SITE_VISIT') return 'tc-visit';
     return 'tc-srv';
