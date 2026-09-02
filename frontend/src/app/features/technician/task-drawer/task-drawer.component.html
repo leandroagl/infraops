@@ -10,8 +10,8 @@
     <div class="d-client">{{ task.client?.name ?? task.clientId }}</div>
     <span class="badge badge--type" [ngClass]="typeBadge(task.type)">{{ typeLabel(task.type) }}</span>
     <div class="d-meta">
-      <span class="urg" [ngClass]="urgencyClass(daysFromToday(task.scheduledDate))">
-        {{ urgencyLabel(daysFromToday(task.scheduledDate)) }}
+      <span class="urg" [ngClass]="urgencyClass(daysUntilCycleClose())">
+        {{ urgencyLabel(daysUntilCycleClose()) }}
       </span>
       <span class="badge" [ngClass]="statusBadge(task.status)">{{ statusLabel(task.status) }}</span>
       <a

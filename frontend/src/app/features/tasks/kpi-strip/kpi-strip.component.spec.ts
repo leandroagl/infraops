@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { KpiStripComponent } from './kpi-strip.component';
 import { CycleStats } from '../../../core/models/task.models';
+import { daysUntilCycleClose, urgencyLabel } from '../../../shared/utils/urgency';
 
 const STATS: CycleStats = { assigned: 24, inprogress: 4, pending: 10, done: 8 };
 
@@ -30,8 +31,8 @@ describe('KpiStripComponent', () => {
     expect(el.textContent).toContain('8');
   });
 
-  it('muestra badge "Ciclo abierto" cuando closed=false', () => {
-    expect(fixture.nativeElement.textContent).toContain('Ciclo abierto');
+  it('muestra el indicador de cierre de ciclo cuando closed=false', () => {
+    expect(fixture.nativeElement.textContent).toContain(urgencyLabel(daysUntilCycleClose()));
   });
 
   it('muestra badge "Ciclo cerrado" cuando closed=true', () => {

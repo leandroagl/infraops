@@ -34,12 +34,6 @@ function makeTask(overrides: Partial<Task> = {}): Task {
   };
 }
 
-function pastDate(daysAgo: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return d.toISOString().split('T')[0];
-}
-
 function futureDate(daysAhead: number): string {
   const d = new Date();
   d.setDate(d.getDate() + daysAhead);
@@ -102,40 +96,26 @@ describe('TaskDrawerComponent — pure unit tests', () => {
   // ── drawerIconStyle ────────────────────────────────────────────────────────
 
   describe('drawerIconStyle()', () => {
-    it('should return crit colors when task is overdue', () => {
-      component.task = makeTask({ scheduledDate: pastDate(3) });
-      const style = component.drawerIconStyle();
-      expect(style.background).toBe('var(--crit-bg)');
-      expect(style.borderColor).toBe('var(--crit-bd)');
-      expect(style.color).toBe('var(--crit)');
-    });
-
-    it('should return purple colors for SITE_VISIT regardless of urgency', () => {
-      component.task = makeTask({ type: 'SITE_VISIT', scheduledDate: futureDate(30) });
+    it('should return purple colors for SITE_VISIT', () => {
+      component.task = makeTask({ type: 'SITE_VISIT' });
       const style = component.drawerIconStyle();
       expect(style.background).toBe('var(--purple-bg)');
       expect(style.borderColor).toBe('var(--purple-bd)');
       expect(style.color).toBe('var(--purple)');
     });
 
-    it('should return purple colors for TERMINAL_MAINTENANCE not overdue', () => {
-      component.task = makeTask({ type: 'TERMINAL_MAINTENANCE', scheduledDate: futureDate(10) });
+    it('should return purple colors for TERMINAL_MAINTENANCE', () => {
+      component.task = makeTask({ type: 'TERMINAL_MAINTENANCE' });
       const style = component.drawerIconStyle();
       expect(style.background).toBe('var(--purple-bg)');
     });
 
-    it('should return srv colors for WINDOWS_DOMAIN_MAINTENANCE not overdue', () => {
-      component.task = makeTask({ type: 'WINDOWS_DOMAIN_MAINTENANCE', scheduledDate: futureDate(10) });
+    it('should return srv colors for WINDOWS_DOMAIN_MAINTENANCE', () => {
+      component.task = makeTask({ type: 'WINDOWS_DOMAIN_MAINTENANCE' });
       const style = component.drawerIconStyle();
       expect(style.background).toBe('var(--srv-bg)');
       expect(style.borderColor).toBe('var(--srv-bd)');
       expect(style.color).toBe('var(--srv)');
-    });
-
-    it('should return crit colors for SITE_VISIT when overdue (overdue takes priority)', () => {
-      component.task = makeTask({ type: 'SITE_VISIT', scheduledDate: pastDate(5) });
-      const style = component.drawerIconStyle();
-      expect(style.background).toBe('var(--crit-bg)');
     });
   });
 
