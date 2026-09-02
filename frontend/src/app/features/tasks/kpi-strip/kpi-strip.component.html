@@ -34,6 +34,6 @@
   <span class="kpi-cycle-badge"
         [class.kpi-cycle-badge--closed]="closed"
         [class.kpi-cycle-badge--open]="!closed">
-    {{ closed ? '✓ Ciclo cerrado' : '● Ciclo abierto' }}
+    {{ closed ? '✓ Ciclo cerrado' : ('● ' + closeLabel) }}
   </span>
 </div>

@@ -37,7 +37,7 @@ import {
 import { TaskConfigService } from '../../../core/services/task-config.service';
 import { TaskTypeConfigDto } from '../../../core/models/task.models';
 import { statusLabel, statusBadge, typeLabel, typeBadge } from '../../../shared/utils/task-labels';
-import { daysFromToday, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
+import { daysUntilCycleClose, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
 import { formatOdooTicketId, odooTicketUrl } from '../../../shared/utils/odoo';
 
 @Component({
@@ -135,16 +135,13 @@ export class TaskDrawerComponent implements OnChanges {
 
   // ── Urgency helpers ─────────────────────────────────────────────────────────
 
-  daysFromToday(date: string): number { return daysFromToday(date); }
-  urgencyLabel(days: number): string  { return urgencyLabel(days); }
-  urgencyClass(days: number): string  { return urgencyClass(days); }
+  daysUntilCycleClose(): number      { return daysUntilCycleClose(); }
+  urgencyLabel(days: number): string { return urgencyLabel(days); }
+  urgencyClass(days: number): string { return urgencyClass(days); }
 
   // ── Icon style ──────────────────────────────────────────────────────────────
 
   drawerIconStyle(): { background: string; borderColor: string; color: string } {
-    if (daysFromToday(this.task.scheduledDate) < 0) {
-      return { background: 'var(--crit-bg)', borderColor: 'var(--crit-bd)', color: 'var(--crit)' };
-    }
     if (this.task.type === 'TERMINAL_MAINTENANCE' || this.task.type === 'SITE_VISIT') {
       return { background: 'var(--purple-bg)', borderColor: 'var(--purple-bd)', color: 'var(--purple)' };
     }

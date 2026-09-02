@@ -5,6 +5,7 @@ import { MatCardModule } from '@angular/material/card';
 import { CommonModule } from '@angular/common';
 import { TaskCardComponent } from './task-card.component';
 import { Task } from '../../../core/models/task.models';
+import { daysUntilCycleClose, urgencyLabel } from '../../utils/urgency';
 
 function dateOffsetDays(offset: number): string {
   const d = new Date();
@@ -42,30 +43,18 @@ describe('TaskCardComponent', () => {
 
   // ── borderClass ────────────────────────────────────────────
   describe('borderClass', () => {
-    it('returns tc-crit when PENDING and overdue', () => {
-      component.task = makeTask({ status: 'PENDING', scheduledDate: dateOffsetDays(-3) });
-      expect(component.borderClass).toBe('tc-crit');
-    });
-
-    it('returns tc-crit when IN_PROGRESS and overdue — urgency gana sobre tipo', () => {
-      component.task = makeTask({
-        status: 'IN_PROGRESS', type: 'TERMINAL_MAINTENANCE', scheduledDate: dateOffsetDays(-1),
-      });
-      expect(component.borderClass).toBe('tc-crit');
-    });
-
-    it('returns tc-visit when TERMINAL_MAINTENANCE not overdue', () => {
-      component.task = makeTask({ type: 'TERMINAL_MAINTENANCE', scheduledDate: dateOffsetDays(3) });
+    it('returns tc-visit when TERMINAL_MAINTENANCE and active', () => {
+      component.task = makeTask({ status: 'PENDING', type: 'TERMINAL_MAINTENANCE' });
       expect(component.borderClass).toBe('tc-visit');
     });
 
-    it('returns tc-visit when SITE_VISIT not overdue', () => {
-      component.task = makeTask({ type: 'SITE_VISIT', scheduledDate: dateOffsetDays(5) });
+    it('returns tc-visit when SITE_VISIT and active', () => {
+      component.task = makeTask({ status: 'IN_PROGRESS', type: 'SITE_VISIT' });
       expect(component.borderClass).toBe('tc-visit');
     });
 
-    it('returns tc-srv when WINDOWS_DOMAIN_MAINTENANCE not overdue', () => {
-      component.task = makeTask({ type: 'WINDOWS_DOMAIN_MAINTENANCE', scheduledDate: dateOffsetDays(10) });
+    it('returns tc-srv when WINDOWS_DOMAIN_MAINTENANCE and active', () => {
+      component.task = makeTask({ status: 'PENDING', type: 'WINDOWS_DOMAIN_MAINTENANCE' });
       expect(component.borderClass).toBe('tc-srv');
     });
 
@@ -116,22 +105,34 @@ describe('TaskCardComponent', () => {
 
   // ── urgency badge ──────────────────────────────────────────
   describe('urgency badge', () => {
-    it('muestra badge de urgencia para tareas PENDING', () => {
-      component.task = makeTask({ status: 'PENDING', scheduledDate: dateOffsetDays(3) });
+    it('muestra el indicador de cierre de ciclo para tareas PENDING', () => {
+      component.task = makeTask({ status: 'PENDING' });
       fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain('vence en 3d');
+      expect(fixture.nativeElement.textContent).toContain(urgencyLabel(daysUntilCycleClose()));
     });
 
-    it('muestra badge de urgencia para tareas IN_PROGRESS', () => {
-      component.task = makeTask({ status: 'IN_PROGRESS', scheduledDate: dateOffsetDays(-2) });
+    it('muestra el indicador de cierre de ciclo para tareas IN_PROGRESS', () => {
+      component.task = makeTask({ status: 'IN_PROGRESS' });
       fixture.detectChanges();
-      expect(fixture.nativeElement.textContent).toContain('+2d vencido');
+      expect(fixture.nativeElement.textContent).toContain(urgencyLabel(daysUntilCycleClose()));
     });
 
     it('no renderiza .urg para tareas DONE', () => {
       component.task = makeTask({ status: 'DONE' });
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('.urg')).toBeNull();
+    });
+
+    it('muestra el mismo indicador en dos tareas activas distintas — no depende de la tarea', () => {
+      component.task = makeTask({ status: 'PENDING', type: 'ROUTER_MAINTENANCE', scheduledDate: dateOffsetDays(-10) });
+      fixture.detectChanges();
+      const textA = fixture.nativeElement.querySelector('.urg').textContent.trim();
+
+      component.task = makeTask({ status: 'IN_PROGRESS', type: 'UPS_CONTROL', scheduledDate: dateOffsetDays(20) });
+      fixture.detectChanges();
+      const textB = fixture.nativeElement.querySelector('.urg').textContent.trim();
+
+      expect(textA).toBe(textB);
     });
   });
 
