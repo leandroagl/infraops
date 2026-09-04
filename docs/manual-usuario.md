@@ -279,6 +279,47 @@ La sincronización automática ocurre cada 4 horas. Usar este botón si se acaba
 
 ---
 
+### Integraciones externas
+
+Accesible solo para **ADMIN**. Permite configurar las credenciales y endpoints de los tres sistemas externos sin tocar el servidor. Los cambios toman efecto de inmediato.
+
+Cada sistema tiene su propio card con:
+- **Badge de estado:** Conectado · Error · Sin probar — se actualiza al presionar "Probar conexión"
+- **Botón "Probar conexión":** verifica las credenciales actuales contra el sistema externo
+- **Botón "Guardar":** persiste la configuración en la base de datos (cifrada)
+- **Última actualización:** fecha, hora y usuario que realizó el último cambio
+
+#### Odoo
+
+| Campo | Descripción |
+|---|---|
+| URL | URL base de la instancia Odoo, con protocolo (ej: `https://ondra.odoo.com`) |
+| Base de datos | Nombre exacto de la DB Odoo (sensible a mayúsculas) |
+| Usuario | Email del usuario bot que crea tickets y timesheets |
+| API Key | Clave generada en Odoo → Config → Técnico → API Keys. Dejar vacío para no modificar |
+| ID Ticketera Mantenimientos | ID del equipo en Odoo donde se crean los tickets. Visible en la URL al abrir el equipo |
+| Columna "En progreso" | Nombre exacto de la columna del kanban Odoo para tickets en ejecución |
+| Columna "No realizado" | Nombre exacto de la columna para tareas no concretadas |
+| Columna "Hecho" | Nombre exacto de la columna donde se cierran los tickets resueltos |
+
+#### InfraDoc
+
+| Campo | Descripción |
+|---|---|
+| URL | Endpoint de la API de InfraDoc, incluir puerto si corresponde |
+| API Key | Token de autenticación para la API de InfraDoc. Dejar vacío para no modificar |
+
+#### VMware ESXi
+
+| Campo | Descripción |
+|---|---|
+| Usuario | Usuario de solo lectura en los hosts ESXi (debe existir en todos los hosts monitoreados) |
+| Contraseña | Contraseña del usuario de lectura. Dejar vacío para no modificar |
+
+> Los campos de API Key y contraseñas se muestran enmascarados (`••••••••`). Usar el ícono del ojo para revelarlos temporalmente. Al guardar con el campo vacío, la credencial guardada no se modifica.
+
+---
+
 ## Clientes
 
 Accesible para todos los roles.
@@ -318,7 +359,40 @@ Al hacer clic en un cliente se ve:
 
 Accesible para todos los usuarios desde el menú de navegación.
 
-Muestra los datos del usuario logueado: email y rol en el sistema.
+### Foto de perfil
+
+Muestra el avatar actual del usuario (o las iniciales si no hay foto). Para cambiar la foto:
+
+1. Presionar **"Cambiar foto"**
+2. Seleccionar un archivo JPG, PNG o WEBP de hasta 2 MB
+3. La foto se sube automáticamente y aparece de inmediato en la toolbar y en las tablas donde aparece el técnico
+
+### Cuenta InfraOps
+
+Muestra el email y el rol del usuario logueado en el sistema.
+
+---
+
+## Documentación
+
+Accesible para todos los usuarios desde el menú de navegación (ruta `/docs`).
+
+Ayuda contextual integrada en la propia aplicación. El contenido se filtra según el rol del usuario: cada sección es visible solo para los roles que la necesitan.
+
+**Secciones disponibles:**
+
+| Sección | Roles que la ven |
+|---|---|
+| ¿Qué es InfraOps? | Todos |
+| Primer acceso | Todos |
+| Vista de tareas | Todos |
+| Ejecutar mantenimiento | Todos |
+| Estados de tarea | Todos |
+| Asignación de técnicos | TL, ADMIN |
+| Coordinación de visitas | TL, ADMIN, COORDINATOR |
+| Gestión de usuarios | ADMIN |
+
+La navegación es por sidebar a la izquierda. Hacer clic en una sección carga el contenido a la derecha.
 
 ---
 

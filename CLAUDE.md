@@ -61,18 +61,19 @@ TDD:       Jest (backend) · Angular Testing Library (frontend)
 ```
 backend/src/
 ├── auth/              # JWT, login, guards, decorators de rol
-├── users/             # Entidad User, roles, gestión interna
+├── users/             # Entidad User, roles, gestión interna, avatar upload
 ├── clients/           # Entidad Client (~35 clientes activos)
 ├── technicians/       # Entidad Technician (relación con User)
-├── assets/            # Servidor, terminal, UPS, router
-├── tasks/             # MaintenanceTask + Schedule + TaskStatus
+├── tasks/             # MaintenanceTask + TaskStatus, transiciones validadas
 ├── maintenance-logs/  # MaintenanceLog + payload jsonb por tipo
-├── ups/               # UpsDevice + UpsServiceRecord
+├── schedules/         # Generación mensual de tareas, cierre automático de mes anterior
+├── task-config/       # Configuración por TaskType: tags Odoo, tiempos, descripciones
 ├── notifications/     # Alertas de vencimiento (licencias, dominios, baterías)
+├── integration-config/# Credenciales Odoo/InfraDoc/VMware cifradas en DB (AES-256-GCM)
 ├── integrations/
 │   ├── infradoc/      # Lectura de inventario de infraestructura
-│   ├── odoo/          # Apertura/cierre de tickets, métricas
-│   └── manage-engine/ # Inventario de parque informático
+│   ├── odoo/          # Apertura/cierre de tickets, timesheet, tags por TaskType
+│   └── vmware/        # Health check de hosts ESXi
 └── common/            # Guards, decorators, DTOs compartidos, interceptors
 ```
 
@@ -320,10 +321,12 @@ frontend/src/app/shared/
 Cuando un componente nuevo duplique lógica existente, **refactorizar primero** y luego continuar.
 
 ### Vistas definidas
-- `Panel Admin` — gestión de tareas + indicadores generales
-- `Vista Técnico` — mantenimientos asignados + ejecución
-- `Perfil de cliente` — métricas, logs, alertas por cliente
-- `Dashboard general` — tabla global de estado de todos los clientes
+- `/tasks` — Vista unificada de tareas por ciclo (todos los roles, comportamiento varía por rol)
+- `/admin` — Panel Admin: usuarios, técnicos, alertas, programación, sync, integraciones
+- `/clients` — Lista de clientes con horas de suscripción y detalle por cliente
+- `/docs` — Módulo de documentación integrada, contenido filtrado por rol
+- `/profile` — Perfil del usuario, cambio de contraseña, avatar upload
+- `/dashboard` — Dashboard general (en desarrollo)
 
 ---
 
