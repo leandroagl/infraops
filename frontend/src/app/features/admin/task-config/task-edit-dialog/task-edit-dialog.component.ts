@@ -1,6 +1,8 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
+import { MatChipInputEvent } from '@angular/material/chips';
+import { COMMA, ENTER } from '@angular/cdk/keycodes';
 import { TaskConfigService } from '../../../../core/services/task-config.service';
 import { OdooHelpdeskTagDto, TaskTypeConfigDto } from '../../../../core/models/task.models';
 
@@ -14,11 +16,13 @@ export class TaskEditDialogComponent implements OnInit {
   availableTags: OdooHelpdeskTagDto[] = [];
   loadingTags = true;
   saving = false;
+  ondraHosts: string[] = [];
+  readonly separatorKeys = [ENTER, COMMA] as const;
 
   form = new FormGroup({
-    time:                new FormControl('', [Validators.required, Validators.pattern(TIME_PATTERN)]),
-    tagIds:              new FormControl<number[]>([]),
-    ticketDescription:   new FormControl<string>(''),
+    time:                 new FormControl('', [Validators.required, Validators.pattern(TIME_PATTERN)]),
+    tagIds:               new FormControl<number[]>([]),
+    ticketDescription:    new FormControl<string>(''),
     timesheetDescription: new FormControl<string>(''),
   });
 
@@ -33,13 +37,17 @@ export class TaskEditDialogComponent implements OnInit {
       defaultTimeMinutes, odooTagIds,
       ticketDescription, defaultTicketDescription,
       timesheetDescription, defaultTimesheetDescription,
+      ondraOwnedHosts,
     } = this.data.config;
+
     this.form.patchValue({
       time:                 defaultTimeMinutes != null ? this.minutesToTime(defaultTimeMinutes) : '',
-      tagIds:                odooTagIds,
-      ticketDescription:     ticketDescription ?? defaultTicketDescription ?? '',
+      tagIds:               odooTagIds,
+      ticketDescription:    ticketDescription ?? defaultTicketDescription ?? '',
       timesheetDescription: timesheetDescription ?? defaultTimesheetDescription ?? '',
     });
+
+    this.ondraHosts = [...(ondraOwnedHosts ?? [])];
 
     this.taskConfigService.getHelpdeskTags().subscribe({
       next: tags => { this.availableTags = tags; this.loadingTags = false; },
@@ -47,22 +55,34 @@ export class TaskEditDialogComponent implements OnInit {
     });
   }
 
+  addHost(event: MatChipInputEvent): void {
+    const value = (event.value || '').trim();
+    if (value) this.ondraHosts = [...this.ondraHosts, value];
+    event.chipInput!.clear();
+  }
+
+  removeHost(host: string): void {
+    this.ondraHosts = this.ondraHosts.filter(h => h !== host);
+  }
+
   save(): void {
     if (this.form.invalid) return;
     this.saving = true;
 
     const minutes = this.timeToMinutes(this.form.value.time!);
-    const tagIds  = this.form.value.tagIds ?? [];
+    const tagIds   = this.form.value.tagIds ?? [];
     const tagNames = tagIds.map(id => this.availableTags.find(t => t.id === id)?.name ?? '');
-    const ticketDescription = this.form.value.ticketDescription ?? '';
-    const timesheetDescription = this.form.value.timesheetDescription ?? '';
+    const ticketDescription     = this.form.value.ticketDescription ?? '';
+    const timesheetDescription  = this.form.value.timesheetDescription ?? '';
+    const isServerHostTask = this.data.config.taskType === 'SERVER_HOST_MAINTENANCE';
 
     this.taskConfigService.update(this.data.config.taskType, {
-      defaultTimeMinutes:   minutes,
-      odooTagIds:           tagIds,
-      odooTagNames:         tagNames,
-      ticketDescription:    ticketDescription || undefined,
+      defaultTimeMinutes:  minutes,
+      odooTagIds:          tagIds,
+      odooTagNames:        tagNames,
+      ticketDescription:   ticketDescription || undefined,
       timesheetDescription: timesheetDescription || undefined,
+      ondraOwnedHosts:     isServerHostTask ? this.ondraHosts : undefined,
     }).subscribe({
       next: updated => { this.saving = false; this.dialogRef.close(updated); },
       error: () => { this.saving = false; },

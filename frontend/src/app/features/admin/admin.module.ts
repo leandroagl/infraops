@@ -19,6 +19,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatChipsModule } from '@angular/material/chips';
 import { AdminRoutingModule } from './admin-routing.module';
 import { AdminLayoutComponent } from './admin-layout/admin-layout.component';
 import { UsersComponent } from './users/users.component';
@@ -67,6 +68,7 @@ import { IntegracionesComponent } from './integraciones/integraciones.component'
     MatAutocompleteModule,
     MatIconModule,
     MatTooltipModule,
+    MatChipsModule,
     AdminRoutingModule,
     SharedModule,
   ],

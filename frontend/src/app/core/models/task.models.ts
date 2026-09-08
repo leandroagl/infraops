@@ -60,6 +60,7 @@ export interface TaskTypeConfigDto {
   defaultTicketDescription?: string;
   timesheetDescription: string | null;
   defaultTimesheetDescription?: string;
+  ondraOwnedHosts: string[];
   updatedAt: string;
 }
 
@@ -74,4 +75,5 @@ export interface UpdateTaskConfigPayload {
   odooTagNames?: string[];
   ticketDescription?: string;
   timesheetDescription?: string;
+  ondraOwnedHosts?: string[];
 }
