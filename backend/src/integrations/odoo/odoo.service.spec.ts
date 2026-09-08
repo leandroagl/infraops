@@ -1160,6 +1160,56 @@ describe('OdooService', () => {
     });
   });
 
+  describe('getClientSubscriptionHours con month y year', () => {
+    it('cuando se pasan month y year, llama account.analytic.line con rango de fechas', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      // Primera llamada: sale.order.line para contracted
+      // Segunda llamada: account.analytic.line para delivered del período
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { product_uom_qty: 20, qty_delivered: 0, order_id: [1, 'SO001'] },
+        ])
+        .mockResolvedValueOnce([{ id: 1, partner_id: [101, 'ACME'] }])
+        .mockResolvedValueOnce([
+          { unit_amount: 8, partner_id: [101, 'ACME'] },
+        ]);
+
+      const result = await service.getClientSubscriptionHours(9, 2026);
+
+      // Verifica que se consultó account.analytic.line con fechas de Sep 2026
+      const thirdCall = odooRpc.callKw.mock.calls[2];
+      expect(thirdCall[0]).toBe('account.analytic.line');
+      const domain = thirdCall[2][0];
+      expect(domain).toContainEqual(['date', '>=', '2026-09-01']);
+      expect(domain).toContainEqual(['date', '<=', '2026-09-30']);
+
+      expect(result).toEqual([
+        { clientId: 'c1', contracted: 20, delivered: 8, available: 12 },
+      ]);
+    });
+
+    it('cuando no se pasan params, usa qty_delivered de sale.order.line (comportamiento actual)', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { product_uom_qty: 20, qty_delivered: 8, order_id: [1, 'SO001'] },
+        ])
+        .mockResolvedValueOnce([{ id: 1, partner_id: [101, 'ACME'] }]);
+
+      const result = await service.getClientSubscriptionHours();
+
+      // Solo 2 llamadas a callKw (no hay tercera para account.analytic.line)
+      expect(odooRpc.callKw).toHaveBeenCalledTimes(2);
+      expect(result).toEqual([
+        { clientId: 'c1', contracted: 20, delivered: 8, available: 12 },
+      ]);
+    });
+  });
+
   describe('resolveSaleLineId', () => {
     it('busca sale.order.line por partner_id y producto Hora Única, cachea y retorna', async () => {
       clientRepo.findOne.mockResolvedValue(

@@ -24,9 +24,21 @@ describe('SubscriptionHoursController', () => {
     ];
     odooService.getClientSubscriptionHours.mockResolvedValue(mockData);
 
-    const result = await controller.getAll();
+    const result = await controller.getAll({});
 
     expect(odooService.getClientSubscriptionHours).toHaveBeenCalled();
     expect(result).toEqual(mockData);
+  });
+
+  it('llama getClientSubscriptionHours sin params cuando no se pasan query params', async () => {
+    odooService.getClientSubscriptionHours.mockResolvedValue([]);
+    await controller.getAll({});
+    expect(odooService.getClientSubscriptionHours).toHaveBeenCalledWith(undefined, undefined);
+  });
+
+  it('llama getClientSubscriptionHours con month y year cuando se pasan query params', async () => {
+    odooService.getClientSubscriptionHours.mockResolvedValue([]);
+    await controller.getAll({ month: 9, year: 2026 });
+    expect(odooService.getClientSubscriptionHours).toHaveBeenCalledWith(9, 2026);
   });
 });

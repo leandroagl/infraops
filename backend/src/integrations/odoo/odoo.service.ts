@@ -320,7 +320,10 @@ export class OdooService {
     }));
   }
 
-  async getClientSubscriptionHours(): Promise<ClientSubscriptionHoursDto[]> {
+  async getClientSubscriptionHours(
+    month?: number,
+    year?: number,
+  ): Promise<ClientSubscriptionHoursDto[]> {
     const clients = await this.clientRepo.find({
       where: { isActive: true, odooPartnerId: Not(IsNull()) },
       select: { id: true, odooPartnerId: true },
@@ -329,16 +332,65 @@ export class OdooService {
     if (clients.length === 0) return [];
 
     const partnerIds = clients.map((c) => c.odooPartnerId!);
-    const hours = await this.getSubscriptionHours(partnerIds);
+    const contracted = await this.getSubscriptionHours(partnerIds);
+    const contractedMap = new Map(contracted.map((h) => [h.partnerId, h.contracted]));
+
+    let deliveredMap: Map<number, number>;
+
+    if (month !== undefined && year !== undefined) {
+      deliveredMap = await this.getDeliveredHoursForPeriod(partnerIds, month, year);
+    } else {
+      deliveredMap = new Map(contracted.map((h) => [h.partnerId, h.delivered]));
+    }
 
     const partnerToClientId = new Map(clients.map((c) => [c.odooPartnerId!, c.id]));
 
-    return hours.map(({ partnerId, contracted, delivered }) => ({
-      clientId: partnerToClientId.get(partnerId)!,
-      contracted,
-      delivered,
-      available: Math.max(0, contracted - delivered),
-    }));
+    return Array.from(partnerToClientId.entries())
+      .filter(([partnerId]) => contractedMap.has(partnerId))
+      .map(([partnerId, clientId]) => {
+        const contractedVal = contractedMap.get(partnerId) ?? 0;
+        const deliveredVal  = deliveredMap.get(partnerId) ?? 0;
+        return {
+          clientId,
+          contracted: contractedVal,
+          delivered:  deliveredVal,
+          available:  Math.max(0, contractedVal - deliveredVal),
+        };
+      });
+  }
+
+  private async getDeliveredHoursForPeriod(
+    partnerIds: number[],
+    month: number,
+    year: number,
+  ): Promise<Map<number, number>> {
+    if (partnerIds.length === 0) return new Map();
+
+    const dateFrom = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay  = new Date(year, month, 0).getDate();
+    const dateTo   = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+    const lines = await this.systemRpc.callKw<
+      Array<{ unit_amount: number; partner_id: [number, string] | false }>
+    >(
+      'account.analytic.line',
+      'search_read',
+      [[
+        ['partner_id', 'in', partnerIds],
+        ['date', '>=', dateFrom],
+        ['date', '<=', dateTo],
+        ['product_id.name', 'in', ['Hora Única', 'Hora Única Garantia']],
+      ]],
+      { fields: ['unit_amount', 'partner_id'] },
+    );
+
+    const totals = new Map<number, number>();
+    for (const line of lines) {
+      if (!line.partner_id) continue;
+      const pid = line.partner_id[0];
+      totals.set(pid, (totals.get(pid) ?? 0) + line.unit_amount);
+    }
+    return totals;
   }
 
   private async logTimesheet(
