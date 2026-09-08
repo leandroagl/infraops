@@ -1,22 +1,55 @@
 <div class="kpi-strip">
-  <div class="kpi-block">
-    <div class="kpi-label">Asignadas</div>
-    <div class="kpi-val kpi-val--assigned">{{ stats.assigned }}</div>
+
+  <!-- Escal. / No realizadas -->
+  <div class="kpi-zone kpi-zone--crit">
+    <div class="kpi-zone__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span class="kpi-zone__icon-label">Escal. / No real.</span>
+    </div>
+    <div class="kpi-zone__main">
+      <span class="kpi-zone__val">{{ stats.escalated ?? 0 }}</span>
+      <span class="kpi-zone__pct">{{ zonePct(stats.escalated ?? 0) }}%</span>
+    </div>
+    <div class="kpi-zone__foot">Con incidencia</div>
   </div>
-  <div class="kpi-sep"></div>
-  <div class="kpi-block">
-    <div class="kpi-label">En curso</div>
-    <div class="kpi-val kpi-val--inprogress">{{ stats.inprogress }}</div>
+
+  <!-- Pendientes -->
+  <div class="kpi-zone kpi-zone--warn">
+    <div class="kpi-zone__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span class="kpi-zone__icon-label">Pendientes</span>
+    </div>
+    <div class="kpi-zone__main">
+      <span class="kpi-zone__val">{{ stats.pending }}</span>
+      <span class="kpi-zone__pct">{{ zonePct(stats.pending) }}%</span>
+    </div>
+    <div class="kpi-zone__foot">Sin iniciar</div>
   </div>
-  <div class="kpi-sep"></div>
-  <div class="kpi-block">
-    <div class="kpi-label">Pendientes</div>
-    <div class="kpi-val kpi-val--pending">{{ stats.pending }}</div>
+
+  <!-- En curso -->
+  <div class="kpi-zone kpi-zone--low">
+    <div class="kpi-zone__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span class="kpi-zone__icon-label">En curso</span>
+    </div>
+    <div class="kpi-zone__main">
+      <span class="kpi-zone__val">{{ stats.inprogress }}</span>
+      <span class="kpi-zone__pct">{{ zonePct(stats.inprogress) }}%</span>
+    </div>
+    <div class="kpi-zone__foot">En proceso</div>
   </div>
-  <div class="kpi-sep"></div>
-  <div class="kpi-block">
-    <div class="kpi-label">Completadas</div>
-    <div class="kpi-val kpi-val--done">{{ stats.done }}</div>
+
+  <!-- Completadas -->
+  <div class="kpi-zone kpi-zone--ok">
+    <div class="kpi-zone__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <span class="kpi-zone__icon-label">Completadas</span>
+    </div>
+    <div class="kpi-zone__main">
+      <span class="kpi-zone__val">{{ stats.done }}</span>
+      <span class="kpi-zone__pct">{{ zonePct(stats.done) }}%</span>
+    </div>
+    <div class="kpi-zone__foot">Finalizadas</div>
   </div>
 
   <ng-content></ng-content>

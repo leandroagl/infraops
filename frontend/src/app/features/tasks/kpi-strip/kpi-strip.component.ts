@@ -16,6 +16,11 @@ export class KpiStripComponent {
     return Math.round((this.stats.done / this.stats.assigned) * 100);
   }
 
+  zonePct(val: number): number {
+    if (!this.stats?.assigned) return 0;
+    return Math.round((val / this.stats.assigned) * 100);
+  }
+
   /** Mismo indicador de cierre de ciclo que se muestra en cada chip de tarea activa. */
   get closeLabel(): string {
     return urgencyLabel(daysUntilCycleClose());

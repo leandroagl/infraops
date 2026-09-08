@@ -394,7 +394,7 @@
 
 .col-hdr {
   display: grid;
-  grid-template-columns: 1fr 300px 110px;
+  grid-template-columns: 1fr 460px 110px;
   padding: 9px 16px;
   background: var(--card);
   border-bottom: 1px solid var(--border-lo);
@@ -409,6 +409,24 @@
     letter-spacing: .5px;
     color: var(--tx-lo);
     font-family: var(--font-ui);
+
+    &--sortable {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: color .12s ease;
+
+      &:hover { color: var(--tx-md); }
+      &.sort-active { color: var(--accent); }
+    }
+  }
+
+  .sort-icon {
+    width: 8px;
+    height: 12px;
+    flex-shrink: 0;
   }
 }
 
@@ -420,7 +438,7 @@
 
 .client-row {
   display: grid;
-  grid-template-columns: 1fr 300px 110px;
+  grid-template-columns: 1fr 460px 110px;
   padding: 9px 16px;
   border-bottom: 1px solid var(--border-lo);
   align-items: center;

@@ -180,9 +180,51 @@
   <div class="clients-table-wrap">
 
     <div class="col-hdr">
-      <div class="col-hdr-cell">Cliente</div>
-      <div class="col-hdr-cell">Horas del mes</div>
-      <div class="col-hdr-cell">Estado</div>
+      <div class="col-hdr-cell col-hdr-cell--sortable" [class.sort-active]="sortCol === 'name'" (click)="setSort('name')">
+        Cliente
+        <svg class="sort-icon" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <ng-container *ngIf="sortCol !== 'name'">
+            <polyline points="2,4 4,1 6,4" stroke-width="1.5" opacity="0.4"/>
+            <polyline points="2,8 4,11 6,8" stroke-width="1.5" opacity="0.4"/>
+          </ng-container>
+          <ng-container *ngIf="sortCol === 'name' && sortDir === 'asc'">
+            <polyline points="2,8 4,11 6,8" stroke-width="2"/>
+          </ng-container>
+          <ng-container *ngIf="sortCol === 'name' && sortDir === 'desc'">
+            <polyline points="2,4 4,1 6,4" stroke-width="2"/>
+          </ng-container>
+        </svg>
+      </div>
+      <div class="col-hdr-cell col-hdr-cell--sortable" [class.sort-active]="sortCol === 'hours'" (click)="setSort('hours')">
+        Horas del mes
+        <svg class="sort-icon" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <ng-container *ngIf="sortCol !== 'hours'">
+            <polyline points="2,4 4,1 6,4" stroke-width="1.5" opacity="0.4"/>
+            <polyline points="2,8 4,11 6,8" stroke-width="1.5" opacity="0.4"/>
+          </ng-container>
+          <ng-container *ngIf="sortCol === 'hours' && sortDir === 'asc'">
+            <polyline points="2,8 4,11 6,8" stroke-width="2"/>
+          </ng-container>
+          <ng-container *ngIf="sortCol === 'hours' && sortDir === 'desc'">
+            <polyline points="2,4 4,1 6,4" stroke-width="2"/>
+          </ng-container>
+        </svg>
+      </div>
+      <div class="col-hdr-cell col-hdr-cell--sortable" [class.sort-active]="sortCol === 'status'" (click)="setSort('status')">
+        Estado
+        <svg class="sort-icon" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <ng-container *ngIf="sortCol !== 'status'">
+            <polyline points="2,4 4,1 6,4" stroke-width="1.5" opacity="0.4"/>
+            <polyline points="2,8 4,11 6,8" stroke-width="1.5" opacity="0.4"/>
+          </ng-container>
+          <ng-container *ngIf="sortCol === 'status' && sortDir === 'asc'">
+            <polyline points="2,8 4,11 6,8" stroke-width="2"/>
+          </ng-container>
+          <ng-container *ngIf="sortCol === 'status' && sortDir === 'desc'">
+            <polyline points="2,4 4,1 6,4" stroke-width="2"/>
+          </ng-container>
+        </svg>
+      </div>
     </div>
 
     <div class="client-row" *ngFor="let row of filteredClients"

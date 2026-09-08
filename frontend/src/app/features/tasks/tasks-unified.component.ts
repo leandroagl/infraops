@@ -117,6 +117,11 @@ export class TasksUnifiedComponent implements OnInit {
     return Array.from(map.values());
   }
 
+  get isCurrentMonth(): boolean {
+    const now = new Date();
+    return this.currentYear === now.getFullYear() && this.currentMonth === (now.getMonth() + 1);
+  }
+
   /** KPIs del ciclo actual */
   get stats(): CycleStats {
     return {
@@ -124,6 +129,7 @@ export class TasksUnifiedComponent implements OnInit {
       inprogress: this.tasks.filter(t => t.status === 'IN_PROGRESS').length,
       pending:    this.tasks.filter(t => t.status === 'PENDING').length,
       done:       this.tasks.filter(t => t.status === 'DONE').length,
+      escalated:  this.tasks.filter(t => t.status === 'ESCALATED' || t.status === 'NOT_DONE').length,
     };
   }
 

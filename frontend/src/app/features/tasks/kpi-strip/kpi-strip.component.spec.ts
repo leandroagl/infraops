@@ -5,7 +5,7 @@ import { KpiStripComponent } from './kpi-strip.component';
 import { CycleStats } from '../../../core/models/task.models';
 import { daysUntilCycleClose, urgencyLabel } from '../../../shared/utils/urgency';
 
-const STATS: CycleStats = { assigned: 24, inprogress: 4, pending: 10, done: 8 };
+const STATS: CycleStats = { assigned: 24, inprogress: 4, pending: 10, done: 8, escalated: 2 };
 
 describe('KpiStripComponent', () => {
   let component: KpiStripComponent;
@@ -25,10 +25,10 @@ describe('KpiStripComponent', () => {
 
   it('renderiza los cuatro valores de KPI', () => {
     const el: HTMLElement = fixture.nativeElement;
-    expect(el.textContent).toContain('24');
-    expect(el.textContent).toContain('4');
-    expect(el.textContent).toContain('10');
-    expect(el.textContent).toContain('8');
+    expect(el.textContent).toContain('2');   // escalated
+    expect(el.textContent).toContain('10');  // pending
+    expect(el.textContent).toContain('4');   // inprogress
+    expect(el.textContent).toContain('8');   // done
   });
 
   it('muestra el indicador de cierre de ciclo cuando closed=false', () => {

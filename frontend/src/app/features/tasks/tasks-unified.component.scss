@@ -6,20 +6,37 @@
   position: relative;
 }
 
-.controls-bar {
+.month-nav-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 24px;
+  gap: 8px;
+  padding: 8px 24px;
   background: var(--surface);
   border-bottom: 1px solid var(--border-lo);
   flex-shrink: 0;
 }
 
-.month-nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.month-nav-btn {
+  width: 28px !important;
+  height: 28px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  border: 1px solid var(--border-lo) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--tx-md) !important;
+
+  svg { width: 13px; height: 13px; stroke: currentColor; fill: none; flex-shrink: 0; }
+
+  &:hover:not([disabled]) {
+    background: var(--elevated) !important;
+    border-color: var(--border-md) !important;
+    color: var(--tx-hi) !important;
+  }
+
+  &[disabled] { opacity: .35; }
 }
 
 .month-label {
@@ -31,7 +48,31 @@
   color: var(--tx-hi);
 }
 
-.controls-spacer { flex: 1; }
+.month-nav-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-lo);
+  margin: 0 6px;
+}
+
+.month-past-badge {
+  font-size: 9px;
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--neutral-bg, rgba(84,110,122,.12));
+  border: 1px solid var(--neutral-bd, rgba(84,110,122,.25));
+  color: var(--tx-lo);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+
+  &.visible { opacity: 1; }
+}
+
+.month-nav-spacer { flex: 1; }
 
 .kpi-filters-block {
   background: var(--card);
@@ -50,6 +91,8 @@
 .filter-field {
   width: 150px;
   --mdc-outlined-text-field-container-shape: 6px;
+  --mat-form-field-container-height: 32px;
+  --mat-form-field-container-vertical-padding: 4px;
 }
 
 .clear-btn {

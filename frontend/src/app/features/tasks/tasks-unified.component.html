@@ -1,17 +1,15 @@
-<!-- Barra de controles: navegación de mes y botón nueva tarea -->
-<div class="controls-bar">
-  <div class="month-nav">
-    <button mat-icon-button (click)="prevMonth()">
-      <mat-icon>chevron_left</mat-icon>
-    </button>
-    <span class="month-label">{{ monthLabel }}</span>
-    <button mat-icon-button (click)="nextMonth()">
-      <mat-icon>chevron_right</mat-icon>
-    </button>
-  </div>
-
-  <div class="controls-spacer"></div>
-
+<!-- Barra de navegación de mes -->
+<div class="month-nav-bar">
+  <button mat-icon-button class="month-nav-btn" (click)="prevMonth()" aria-label="Mes anterior">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <span class="month-label">{{ monthLabel }}</span>
+  <button mat-icon-button class="month-nav-btn" (click)="nextMonth()" [disabled]="isCurrentMonth" aria-label="Mes siguiente">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+  <span class="month-nav-sep"></span>
+  <span class="month-past-badge" [class.visible]="cycleClosed">Período cerrado</span>
+  <span class="month-nav-spacer"></span>
   <button *ngIf="canCreateTask" mat-flat-button color="primary" (click)="openCreateDialog()">
     <mat-icon>add</mat-icon>
     Nueva tarea

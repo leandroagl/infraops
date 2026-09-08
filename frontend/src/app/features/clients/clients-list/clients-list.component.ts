@@ -30,6 +30,8 @@ export class ClientsListComponent implements OnInit {
   loadError     = false;
   selectedMonth: number;
   selectedYear:  number;
+  sortCol: 'name' | 'hours' | 'status' = 'name';
+  sortDir: 'asc' | 'desc' = 'asc';
 
   private readonly load$ = new Subject<void>();
   private readonly destroyRef = inject(DestroyRef);
@@ -120,6 +122,8 @@ export class ClientsListComponent implements OnInit {
   get filteredClients(): ClientWithHours[] {
     const q    = this.quickFilter.trim().toLowerCase();
     const zone = this.selectedZone;
+    const dir  = this.sortDir === 'asc' ? 1 : -1;
+
     return this.allClients
       .filter((c) => {
         const textMatch = !q || c.name.toLowerCase().includes(q);
@@ -127,7 +131,35 @@ export class ClientsListComponent implements OnInit {
           && this.getHoursState(c.hours) === zone);
         return textMatch && zoneMatch;
       })
-      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+      .sort((a, b) => {
+        switch (this.sortCol) {
+          case 'name':
+            return dir * a.name.localeCompare(b.name, 'es');
+          case 'hours': {
+            const pA = a.hours?.contracted ?? -1;
+            const pB = b.hours?.contracted ?? -1;
+            return dir * (pA - pB);
+          }
+          case 'status': {
+            const oA = a.hours?.contracted ? this.ZONE_ORDER[this.getHoursState(a.hours)] : -1;
+            const oB = b.hours?.contracted ? this.ZONE_ORDER[this.getHoursState(b.hours)] : -1;
+            return dir * (oA - oB);
+          }
+          default:
+            return 0;
+        }
+      });
+  }
+
+  private readonly ZONE_ORDER: Record<HoursZone, number> = { crit: 0, low: 1, ok: 2, warn: 3 };
+
+  setSort(col: 'name' | 'hours' | 'status'): void {
+    if (this.sortCol === col) {
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortCol = col;
+      this.sortDir = 'asc';
+    }
   }
 
   toggleZone(zone: HoursZone): void {
