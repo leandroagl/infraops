@@ -5,10 +5,10 @@ export class AddIsInternalToClients1788800000000 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "clients" ADD COLUMN "is_internal" boolean NOT NULL DEFAULT false`,
+      `ALTER TABLE "clients" ADD COLUMN "isInternal" boolean NOT NULL DEFAULT false`,
     );
     await queryRunner.query(
-      `ALTER TABLE "clients" ALTER COLUMN "infradoc_id" DROP NOT NULL`,
+      `ALTER TABLE "clients" ALTER COLUMN "infradocId" DROP NOT NULL`,
     );
   }
 
@@ -17,10 +17,10 @@ export class AddIsInternalToClients1788800000000 implements MigrationInterface {
     // (their infradoc_id is NULL). Delete internal clients manually before
     // running this down migration, or handle the NOT NULL constraint separately.
     await queryRunner.query(
-      `ALTER TABLE "clients" ALTER COLUMN "infradoc_id" SET NOT NULL`,
+      `ALTER TABLE "clients" ALTER COLUMN "infradocId" SET NOT NULL`,
     );
     await queryRunner.query(
-      `ALTER TABLE "clients" DROP COLUMN "is_internal"`,
+      `ALTER TABLE "clients" DROP COLUMN "isInternal"`,
     );
   }
 }
