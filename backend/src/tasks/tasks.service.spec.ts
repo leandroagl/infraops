@@ -37,7 +37,6 @@ describe('TasksService', () => {
     closeTicket: jest.Mock;
     markTicketNotDone: jest.Mock;
     resolveEmployeeId: jest.Mock;
-    markTicketInProgress: jest.Mock;
     postInternalNote: jest.Mock;
   };
   let infrastructureService: { getClientInfrastructure: jest.Mock };
@@ -114,7 +113,6 @@ describe('TasksService', () => {
       closeTicket: jest.fn(),
       markTicketNotDone: jest.fn().mockResolvedValue(undefined),
       resolveEmployeeId: jest.fn(),
-      markTicketInProgress: jest.fn(),
       postInternalNote: jest.fn().mockResolvedValue(undefined),
     };
     infrastructureService = { getClientInfrastructure: jest.fn() };
@@ -717,72 +715,6 @@ describe('TasksService', () => {
       await expect(
         service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 60 }),
       ).rejects.toThrow(BadRequestException);
-      expect(taskRepository.update).not.toHaveBeenCalled();
-    });
-
-    it('llama markTicketInProgress al transicionar a IN_PROGRESS cuando la tarea tiene odooTicketId', async () => {
-      const pendingTaskWithTicket = {
-        ...mockTask,
-        status: TaskStatus.PENDING,
-        odooTicketId: 42,
-        technician: { user: mockUserWithOdooId },
-      };
-      taskRepository.findOne
-        .mockResolvedValueOnce(pendingTaskWithTicket)
-        .mockResolvedValueOnce({
-          ...pendingTaskWithTicket,
-          status: TaskStatus.IN_PROGRESS,
-        });
-      odooService.markTicketInProgress.mockResolvedValue(undefined);
-      taskRepository.update.mockResolvedValue({ affected: 1 });
-      await service.updateStatus('task-1', TaskStatus.IN_PROGRESS);
-
-      expect(odooService.markTicketInProgress).toHaveBeenCalledWith(42);
-    });
-
-    it('no llama markTicketInProgress al transicionar a IN_PROGRESS cuando odooTicketId es null', async () => {
-      taskRepository.findOne
-        .mockResolvedValueOnce(mockTask) // mockTask ya tiene odooTicketId: null
-        .mockResolvedValueOnce({ ...mockTask, status: TaskStatus.IN_PROGRESS });
-      taskRepository.update.mockResolvedValue({ affected: 1 });
-
-      await service.updateStatus('task-1', TaskStatus.IN_PROGRESS);
-
-      expect(odooService.markTicketInProgress).not.toHaveBeenCalled();
-    });
-
-    it('no llama markTicketInProgress al transicionar a DONE', async () => {
-      const inProgressTask = {
-        ...mockTask,
-        status: TaskStatus.IN_PROGRESS,
-        odooTicketId: 42,
-        technician: { user: mockUserWithOdooId },
-      };
-      taskRepository.findOne
-        .mockResolvedValueOnce(inProgressTask)
-        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
-      odooService.resolveEmployeeId.mockResolvedValue(22);
-      odooService.closeTicket.mockResolvedValue(undefined);
-      taskRepository.update.mockResolvedValue({ affected: 1 });
-      await service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 });
-
-      expect(odooService.markTicketInProgress).not.toHaveBeenCalled();
-    });
-
-    it('propaga el error de Odoo y no actualiza el status en DB cuando markTicketInProgress falla', async () => {
-      const pendingTaskWithTicket = {
-        ...mockTask,
-        status: TaskStatus.PENDING,
-        odooTicketId: 42,
-        technician: { user: mockUserWithOdooId },
-      };
-      taskRepository.findOne.mockResolvedValueOnce(pendingTaskWithTicket);
-      odooService.markTicketInProgress.mockRejectedValue(
-        new ServiceUnavailableException('Odoo caído'),
-      );
-      await expect(
-        service.updateStatus('task-1', TaskStatus.IN_PROGRESS),
-      ).rejects.toThrow(ServiceUnavailableException);
       expect(taskRepository.update).not.toHaveBeenCalled();
     });
 

@@ -455,16 +455,6 @@ export class OdooService {
     return stages[0].id;
   }
 
-  async markTicketInProgress(odooTicketId: number): Promise<void> {
-    const stageId = await this.resolveInProgressStageId();
-    await this.systemRpc.callKw<boolean>(
-      'helpdesk.ticket',
-      'write',
-      [[odooTicketId], { stage_id: stageId }],
-      {},
-    );
-  }
-
   async markTicketNotDone(
     ticketId: number,
     employeeId: number,
@@ -577,6 +567,9 @@ export class OdooService {
     if (config && config.odooTagIds.length > 0) {
       payload['tag_ids'] = [[6, 0, config.odooTagIds]];
     }
+
+    const inProgressStageId = await this.resolveInProgressStageId();
+    payload['stage_id'] = inProgressStageId;
 
     const ticketId = await this.systemRpc.callKw<number>(
       'helpdesk.ticket',

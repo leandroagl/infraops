@@ -163,10 +163,6 @@ export class TasksService {
       );
     }
 
-    if (newStatus === TaskStatus.IN_PROGRESS && task.odooTicketId !== null) {
-      await this.odooService.markTicketInProgress(task.odooTicketId);
-    }
-
     const isTerminal = VALID_TRANSITIONS[newStatus].length === 0;
     const completedDate = isTerminal ? new Date() : null;
 

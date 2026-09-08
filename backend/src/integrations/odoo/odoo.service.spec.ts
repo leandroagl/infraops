@@ -405,8 +405,9 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       taskConfigServiceMock.findOne.mockResolvedValue(null);
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line search → sin resultado
-        .mockResolvedValueOnce(42);  // helpdesk.ticket create
+        .mockResolvedValueOnce([])           // sale.order.line search → sin resultado
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage search_read → En Curso
+        .mockResolvedValueOnce(42);          // helpdesk.ticket create
 
       const ticketId = await service.createTicket(
         'client-uuid-1',
@@ -435,8 +436,9 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       taskConfigServiceMock.findOne.mockResolvedValue(null);
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line
-        .mockResolvedValueOnce(55);  // helpdesk.ticket create
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(55);          // helpdesk.ticket create
 
       const ticketId = await service.createTicket(
         'client-uuid-1',
@@ -466,8 +468,9 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       taskConfigServiceMock.findOne.mockResolvedValue(null);
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line
-        .mockResolvedValueOnce(77);  // helpdesk.ticket create
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(77);          // helpdesk.ticket create
 
       const ticketId = await service.createTicket(
         'client-uuid-1',
@@ -495,8 +498,9 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       taskConfigServiceMock.findOne.mockResolvedValue(null);
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line
-        .mockResolvedValueOnce(88);  // helpdesk.ticket create
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(88);          // helpdesk.ticket create
 
       const ticketId = await service.createTicket(
         'client-uuid-1',
@@ -524,8 +528,9 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       taskConfigServiceMock.findOne.mockResolvedValue(null);
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line
-        .mockResolvedValueOnce(66);  // helpdesk.ticket create
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(66);          // helpdesk.ticket create
 
       const ticketId = await service.createTicket(
         'client-uuid-1',
@@ -552,7 +557,9 @@ describe('OdooService', () => {
       technicianRepo.findOne.mockResolvedValue(makeTechnician());
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       taskConfigServiceMock.findOne.mockResolvedValue(null);
-      odooRpc.callKw.mockResolvedValueOnce(99); // helpdesk.ticket create
+      odooRpc.callKw
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(99);           // helpdesk.ticket create
 
       await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
 
@@ -572,8 +579,9 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       taskConfigServiceMock.findOne.mockResolvedValue(null);
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line
-        .mockResolvedValueOnce(99);  // helpdesk.ticket create
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(99);          // helpdesk.ticket create
 
       await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
 
@@ -625,8 +633,9 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       taskConfigServiceMock.findOne.mockResolvedValue(null);
       odooRpc.callKw
-        .mockResolvedValueOnce([])    // sale.order.line
-        .mockResolvedValueOnce(false); // helpdesk.ticket create → false
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(false);       // helpdesk.ticket create → false
 
       await expect(
         service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE),
@@ -647,6 +656,28 @@ describe('OdooService', () => {
       ).rejects.toThrow(BadRequestException);
       expect(odooRpc.callKw).not.toHaveBeenCalled();
     });
+
+    it('incluye stage_id "En Curso" en el payload al crear el ticket', async () => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ odooPartnerId: 101, odooSaleLineId: null }),
+      );
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      taskConfigServiceMock.findOne.mockResolvedValue(null);
+      odooRpc.callKw
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 55 }]) // helpdesk.stage → stageId = 55
+        .mockResolvedValueOnce(100);         // helpdesk.ticket create
+
+      await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.WINDOWS_DOMAIN_MAINTENANCE);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'create',
+        [expect.objectContaining({ stage_id: 55 })],
+        {},
+      );
+    });
   });
 
   describe('createTicket - tags desde DB', () => {
@@ -661,8 +692,9 @@ describe('OdooService', () => {
         odooTagNames: ['Tag A', 'Tag B'],
       });
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line
-        .mockResolvedValueOnce(99);  // helpdesk.ticket create
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(99);          // helpdesk.ticket create
 
       await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.QNAP_MAINTENANCE);
 
@@ -685,8 +717,9 @@ describe('OdooService', () => {
         odooTagNames: [],
       });
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line
-        .mockResolvedValueOnce(99);  // helpdesk.ticket create
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(99);          // helpdesk.ticket create
 
       await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.QNAP_MAINTENANCE);
 
@@ -704,8 +737,9 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       taskConfigServiceMock.findOne.mockResolvedValue(null);
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line
-        .mockResolvedValueOnce(99);  // helpdesk.ticket create
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(99);          // helpdesk.ticket create
 
       await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.ROUTER_MAINTENANCE);
 
@@ -725,8 +759,9 @@ describe('OdooService', () => {
       userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
       taskConfigServiceMock.findOne.mockResolvedValue(null);
       odooRpc.callKw
-        .mockResolvedValueOnce([])   // sale.order.line
-        .mockResolvedValueOnce(55);  // helpdesk.ticket create
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(55);          // helpdesk.ticket create
 
       await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.QNAP_MAINTENANCE);
 
@@ -750,8 +785,9 @@ describe('OdooService', () => {
         ticketDescription: 'Línea uno.\n\n- Punto A\n- Punto B',
       });
       odooRpc.callKw
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce(55);
+        .mockResolvedValueOnce([])           // sale.order.line
+        .mockResolvedValueOnce([{ id: 99 }]) // helpdesk.stage
+        .mockResolvedValueOnce(55);          // helpdesk.ticket create
 
       await service.createTicket('client-uuid-1', 'tech-uuid-1', TaskType.QNAP_MAINTENANCE);
 
@@ -960,52 +996,6 @@ describe('OdooService', () => {
       await expect(
         service.closeTicket(42, 22, 1.5, TaskType.QNAP_MAINTENANCE),
       ).rejects.toThrow(ServiceUnavailableException);
-    });
-  });
-
-  describe('markTicketInProgress', () => {
-    it('resuelve stage "En Curso" por nombre y escribe stage_id en el ticket', async () => {
-      odooRpc.callKw
-        .mockResolvedValueOnce([{ id: 77 }]) // helpdesk.stage search_read
-        .mockResolvedValueOnce(true);         // helpdesk.ticket write
-
-      await service.markTicketInProgress(42);
-
-      expect(odooRpc.callKw.mock.calls[0]).toEqual([
-        'helpdesk.stage',
-        'search_read',
-        [
-          [
-            ['team_ids', 'in', [7]],
-            ['name', '=', 'En curso'],
-          ],
-        ],
-        { fields: ['id'], limit: 1 },
-      ]);
-      expect(odooRpc.callKw.mock.calls[1]).toEqual([
-        'helpdesk.ticket',
-        'write',
-        [[42], { stage_id: 77 }],
-        {},
-      ]);
-    });
-
-    it('lanza ServiceUnavailableException cuando Odoo no devuelve ningún stage "En Curso"', async () => {
-      odooRpc.callKw.mockResolvedValueOnce([]);
-
-      await expect(service.markTicketInProgress(42)).rejects.toThrow(
-        ServiceUnavailableException,
-      );
-    });
-
-    it('propaga ServiceUnavailableException cuando Odoo falla al ejecutar write', async () => {
-      odooRpc.callKw
-        .mockResolvedValueOnce([{ id: 77 }])
-        .mockRejectedValueOnce(new ServiceUnavailableException('Odoo caído'));
-
-      await expect(service.markTicketInProgress(42)).rejects.toThrow(
-        ServiceUnavailableException,
-      );
     });
   });
 
