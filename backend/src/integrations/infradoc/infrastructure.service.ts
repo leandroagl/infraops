@@ -90,10 +90,11 @@ export class InfrastructureService {
       uriMap.set(id, this.resolveVmwareUris(merged));
     });
 
-    const filteredRaw = raw.filter(
-      (a) => !ondraOwnedHosts.includes(a.asset_name),
+    const result = this.groupAssets(raw, bmcMap, uriMap);
+    result.esxiHosts = result.esxiHosts.filter(
+      (h) => !ondraOwnedHosts.includes(h.name),
     );
-    return this.groupAssets(filteredRaw, bmcMap, uriMap);
+    return result;
   }
 
   private stubAsset(name: string): InfraAssetDto {
