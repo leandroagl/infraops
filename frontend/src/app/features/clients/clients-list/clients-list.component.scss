@@ -1,36 +1,16 @@
-// frontend/src/app/features/clients/clients-list/clients-list.component.scss
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-ui);
+}
 
 .page {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-}
-
-// ── Page header ──────────────────────────────────────────────
-.page-hdr {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 24px 0;
-  flex-shrink: 0;
-}
-
-.page-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--tx-hi);
-  letter-spacing: -.2px;
-}
-
-.page-count {
-  font-size: 11px;
-  font-family: var(--font-mono);
-  color: var(--tx-lo);
-  background: var(--card);
-  border: 1px solid var(--border-lo);
-  border-radius: 10px;
-  padding: 1px 8px;
 }
 
 // ── Month nav bar ─────────────────────────────────────────────
@@ -68,10 +48,11 @@
 }
 
 .month-label {
-  font-size: 14px;
+  font-family: var(--font-ui);
+  font-size: 15px;
   font-weight: 600;
   color: var(--tx-hi);
-  min-width: 160px;
+  min-width: 164px;
   text-align: center;
 }
 
@@ -84,7 +65,7 @@
 
 .month-past-badge {
   font-size: 9px;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   text-transform: uppercase;
   letter-spacing: .6px;
   padding: 2px 8px;
@@ -157,7 +138,7 @@
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: .7px;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   opacity: .7;
   transition: opacity 180ms ease;
   .kpi-zone.active & { opacity: 1; }
@@ -175,7 +156,7 @@
 }
 
 .kpi-zone__val {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 26px;
   font-weight: 500;
   line-height: 1;
@@ -187,7 +168,7 @@
 }
 
 .kpi-zone__pct {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 11px;
   color: var(--tx-lo);
   margin-bottom: 2px;
@@ -216,7 +197,7 @@
 .kpi-zone__foot {
   font-size: 9px;
   color: var(--tx-lo);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
 }
 
 // ── Horas del mes (progress block) ──
@@ -241,8 +222,8 @@
   font-size: 9px;
   color: var(--tx-lo);
   text-transform: uppercase;
-  letter-spacing: .7px;
-  font-family: var(--font-mono);
+  letter-spacing: .6px;
+  font-family: var(--font-ui);
   white-space: nowrap;
 }
 
@@ -256,7 +237,7 @@
 .kpi-hours__pct {
   font-size: 18px;
   font-weight: 600;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   line-height: 1;
 
   &--ok   { color: var(--ok); }
@@ -267,7 +248,7 @@
 .kpi-hours__pct-lbl {
   font-size: 10px;
   color: var(--tx-lo);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
 }
 
 .kpi-hours__bar {
@@ -305,7 +286,7 @@
 }
 
 .kpi-hours__metric-val {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 16px;
   font-weight: 600;
   line-height: 1;
@@ -320,9 +301,9 @@
 .kpi-hours__metric-lbl {
   font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: .7px;
+  letter-spacing: .6px;
   color: var(--tx-lo);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
 }
 
 // ── Controls / search bar ─────────────────────────────────────
@@ -376,7 +357,7 @@
 
 .result-count {
   font-size: 11px;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   color: var(--tx-lo);
   white-space: nowrap;
   transition: color 180ms ease;
@@ -388,10 +369,10 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
+  padding: 3px 10px;
   border-radius: 20px;
   font-size: 10px;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   cursor: pointer;
   transition: opacity 180ms ease;
 
@@ -408,15 +389,15 @@
 .clients-table-wrap {
   flex: 1;
   overflow-y: auto;
-  background: var(--surface);
+  background: var(--base);
 }
 
 .col-hdr {
   display: grid;
   grid-template-columns: 1fr 300px 110px;
-  padding: 8px 24px;
+  padding: 9px 16px;
   background: var(--card);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-lo);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -425,21 +406,27 @@
     font-size: 9px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: .6px;
+    letter-spacing: .5px;
     color: var(--tx-lo);
-    font-family: var(--font-mono);
+    font-family: var(--font-ui);
   }
 }
 
 // ── Client row ──
+@keyframes row-appear {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 .client-row {
   display: grid;
   grid-template-columns: 1fr 300px 110px;
-  padding: 11px 24px;
+  padding: 9px 16px;
   border-bottom: 1px solid var(--border-lo);
   align-items: center;
   cursor: pointer;
-  transition: background 180ms ease, opacity 220ms ease, transform 220ms ease;
+  transition: background .12s ease;
+  animation: row-appear 160ms ease both;
 
   &:last-child { border-bottom: none; }
   &:hover { background: var(--hover); }
@@ -449,33 +436,10 @@
 .client-name {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.client-initial {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-xs);
-  background: var(--elevated);
-  border: 1px solid var(--border-lo);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  color: var(--tx-md);
-  flex-shrink: 0;
-  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
-
-  .client-row:hover & {
-    background: var(--accent-bg);
-    border-color: var(--accent-bd);
-    color: var(--accent);
-  }
 }
 
 .client-name-text {
+  font-family: var(--font-ui);
   font-size: 13px;
   font-weight: 500;
   color: var(--tx-hi);
@@ -516,9 +480,9 @@
 .metric__label {
   font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: .7px;
+  letter-spacing: .5px;
   color: var(--tx-lo);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
 }
 
 .hours-bar {
@@ -566,11 +530,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: .4px;
+  font-family: var(--font-ui);
   padding: 2px 8px;
   border-radius: 10px;
 
@@ -606,12 +568,13 @@
   gap: 12px;
   padding: 64px 24px;
   color: var(--tx-lo);
+  font-family: var(--font-ui);
 
   svg { width: 36px; height: 36px; stroke: currentColor; fill: none; opacity: .35; }
 }
 
 .empty-state__title { font-size: 13px; color: var(--tx-md); }
-.empty-state__sub   { font-size: 11px; color: var(--tx-lo); }
+.empty-state__sub   { font-size: 12px; color: var(--tx-lo); }
 
 // ── Error banner ──────────────────────────────────────────────
 .error-banner {
@@ -623,8 +586,9 @@
   border: 1px solid var(--crit-bd);
   border-radius: var(--radius-sm);
   color: var(--crit);
+  font-family: var(--font-ui);
   font-size: 12px;
   margin: 0 24px;
 }
 
-.no-data { color: var(--tx-lo); font-size: 12px; }
+.no-data { color: var(--tx-lo); font-size: 12px; font-family: var(--font-ui); }

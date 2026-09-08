@@ -1,12 +1,6 @@
 <!-- frontend/src/app/features/clients/clients-list/clients-list.component.html -->
 <div class="page">
 
-  <!-- ── Page header ── -->
-  <div class="page-hdr">
-    <span class="page-title">Clientes</span>
-    <span class="page-count">{{ allClients.length }} activos</span>
-  </div>
-
   <!-- ── Month nav bar ── -->
   <div class="month-nav-bar">
     <button mat-icon-button class="month-nav-btn" (click)="navigateMonth(-1)" aria-label="Mes anterior">
@@ -195,7 +189,6 @@
          (click)="navigateToClient(row.id)">
 
       <div class="client-name">
-        <div class="client-initial">{{ row.name.slice(0,2).toUpperCase() }}</div>
         <span class="client-name-text">{{ row.name }}</span>
       </div>
 
