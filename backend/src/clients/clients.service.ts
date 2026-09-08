@@ -147,6 +147,7 @@ export class ClientsService implements OnModuleInit {
     let archived = 0;
     for (const local of localClients) {
       if (local.isInternal) continue;
+      if (local.infradocId === null) continue;
       if (!infradocIds.has(local.infradocId) && local.isActive) {
         await this.clientRepository.update(local.id, {
           isActive: false,
