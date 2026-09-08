@@ -1,10 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { MatTableModule } from '@angular/material/table';
-import { MatSortModule } from '@angular/material/sort';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
 import { of, NEVER } from 'rxjs';
 import { ClientsListComponent } from './clients-list.component';
@@ -19,10 +18,9 @@ const MATERIAL_IMPORTS = [
   NoopAnimationsModule,
   RouterTestingModule,
   FormsModule,
-  MatTableModule,
-  MatSortModule,
   MatFormFieldModule,
   MatInputModule,
+  MatButtonModule,
 ];
 
 async function buildFixture(
@@ -81,15 +79,15 @@ describe('ClientsListComponent', () => {
     expect(getHoursSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('filtra clientes inactivos y popula dataSource', async () => {
+  it('filtra clientes inactivos y popula allClients', async () => {
     TestBed.resetTestingModule();
     const clients = [makeClient({ id: 'c1', isActive: true }), makeClient({ id: 'c2', isActive: false })];
     const spy1 = jasmine.createSpy('getAll').and.returnValue(of(clients));
     const spy2 = jasmine.createSpy('getSubscriptionHours').and.returnValue(NEVER);
     const f = await buildFixture(spy1, spy2);
 
-    expect(f.componentInstance.dataSource.data).toHaveSize(1);
-    expect(f.componentInstance.dataSource.data[0].id).toBe('c1');
+    expect(f.componentInstance.allClients).toHaveSize(1);
+    expect(f.componentInstance.allClients[0].id).toBe('c1');
   });
 
   it('hours es undefined (skeleton) antes de que lleguen las horas', async () => {
@@ -98,7 +96,7 @@ describe('ClientsListComponent', () => {
     const spy2 = jasmine.createSpy('getSubscriptionHours').and.returnValue(NEVER);
     const f = await buildFixture(spy1, spy2);
 
-    expect(f.componentInstance.dataSource.data[0].hours).toBeUndefined();
+    expect(f.componentInstance.allClients[0].hours).toBeUndefined();
   });
 
   it('mergea horas sin volver a llamar getAll', async () => {
@@ -110,8 +108,107 @@ describe('ClientsListComponent', () => {
     const spy2 = jasmine.createSpy('getSubscriptionHours').and.returnValue(of(hours));
     const f = await buildFixture(spy1, spy2);
 
-    expect(f.componentInstance.dataSource.data[0].hours).toEqual(hours[0]);
+    expect(f.componentInstance.allClients[0].hours).toEqual(hours[0]);
     expect(spy1).toHaveBeenCalledTimes(1);
+  });
+
+  describe('month state', () => {
+    it('inicializa selectedMonth y selectedYear con el mes y año actuales', () => {
+      const now = new Date();
+      expect(component.selectedMonth).toBe(now.getMonth() + 1);
+      expect(component.selectedYear).toBe(now.getFullYear());
+    });
+
+    it('monthLabel retorna el nombre del mes y el año', () => {
+      component.selectedMonth = 9;
+      component.selectedYear  = 2026;
+      expect(component.monthLabel).toBe('Septiembre 2026');
+    });
+
+    it('isPastMonth es false cuando es el mes actual', () => {
+      const now = new Date();
+      component.selectedMonth = now.getMonth() + 1;
+      component.selectedYear  = now.getFullYear();
+      expect(component.isPastMonth).toBeFalse();
+    });
+
+    it('isPastMonth es true cuando el mes es anterior al actual', () => {
+      component.selectedMonth = 1;
+      component.selectedYear  = 2026;
+      expect(component.isPastMonth).toBeTrue();
+    });
+  });
+
+  describe('navigateMonth', () => {
+    it('navegar -1 decrementa el mes', () => {
+      component.selectedMonth = 9;
+      component.selectedYear  = 2026;
+      component.navigateMonth(-1);
+      expect(component.selectedMonth).toBe(8);
+      expect(component.selectedYear).toBe(2026);
+    });
+
+    it('navegar -1 desde enero pasa a diciembre del año anterior', () => {
+      component.selectedMonth = 1;
+      component.selectedYear  = 2026;
+      component.navigateMonth(-1);
+      expect(component.selectedMonth).toBe(12);
+      expect(component.selectedYear).toBe(2025);
+    });
+
+    it('navegar +1 desde diciembre pasa a enero del año siguiente', () => {
+      component.selectedMonth = 12;
+      component.selectedYear  = 2025;
+      component.navigateMonth(1);
+      expect(component.selectedMonth).toBe(1);
+      expect(component.selectedYear).toBe(2026);
+    });
+
+    it('no navega al futuro (mes siguiente al actual)', () => {
+      const now = new Date();
+      component.selectedMonth = now.getMonth() + 1;
+      component.selectedYear  = now.getFullYear();
+      component.navigateMonth(1);
+      expect(component.selectedMonth).toBe(now.getMonth() + 1);
+    });
+  });
+
+  describe('filteredClients', () => {
+    beforeEach(() => {
+      component.allClients = [
+        { id: 'c1', name: 'Acme', isActive: true, primaryAddress: null, createdAt: '',
+          hours: { clientId: 'c1', contracted: 10, delivered: 0,  available: 10 } },  // crit
+        { id: 'c2', name: 'Beta', isActive: true, primaryAddress: null, createdAt: '',
+          hours: { clientId: 'c2', contracted: 10, delivered: 8,  available: 2  } },  // ok
+        { id: 'c3', name: 'Gamma', isActive: true, primaryAddress: null, createdAt: '',
+          hours: { clientId: 'c3', contracted: 10, delivered: 12, available: 0  } },  // warn
+      ];
+    });
+
+    it('sin filtros retorna todos los clientes ordenados por nombre ASC', () => {
+      expect(component.filteredClients.map(c => c.id)).toEqual(['c1','c2','c3']);
+    });
+
+    it('filtra por zona cuando selectedZone está activo', () => {
+      component.selectedZone = 'ok';
+      expect(component.filteredClients.map(c => c.id)).toEqual(['c2']);
+    });
+
+    it('filtra por texto cuando quickFilter tiene valor', () => {
+      component.quickFilter = 'bet';
+      expect(component.filteredClients.map(c => c.id)).toEqual(['c2']);
+    });
+
+    it('combina filtro de zona y texto', () => {
+      component.allClients = [
+        ...component.allClients,
+        { id: 'c4', name: 'Beta Dos', isActive: true, primaryAddress: null, createdAt: '',
+          hours: { clientId: 'c4', contracted: 10, delivered: 0, available: 10 } },  // crit
+      ];
+      component.quickFilter = 'beta';
+      component.selectedZone = 'ok';
+      expect(component.filteredClients.map(c => c.id)).toEqual(['c2']);
+    });
   });
 
   describe('getHoursState', () => {
@@ -171,13 +268,34 @@ describe('ClientsListComponent', () => {
     });
   });
 
+  describe('getHoursBarState', () => {
+    const makeH = (contracted: number, delivered: number): ClientSubscriptionHours =>
+      ({ clientId: 'c', contracted, delivered, available: contracted - delivered });
+
+    it('retorna crit cuando contracted es 0', () => {
+      expect(component.getHoursBarState(makeH(0, 0))).toBe('crit');
+    });
+    it('retorna crit cuando pct < 15% (uso casi nulo)', () => {
+      expect(component.getHoursBarState(makeH(20, 2))).toBe('crit');   // 10%
+    });
+    it('retorna warn en rango 15-49%', () => {
+      expect(component.getHoursBarState(makeH(20, 8))).toBe('warn');   // 40%
+    });
+    it('retorna ok en rango 50-100%', () => {
+      expect(component.getHoursBarState(makeH(10, 7))).toBe('ok');     // 70%
+    });
+    it('retorna warn cuando excede 100% (excedente)', () => {
+      expect(component.getHoursBarState(makeH(10, 12))).toBe('warn');  // 120%
+    });
+  });
+
   describe('kpiHours', () => {
     it('retorna ceros cuando no hay datos cargados', () => {
       expect(component.kpiHours).toEqual({ contracted: 0, delivered: 0, available: 0 });
     });
 
     it('suma horas de todos los clientes visibles con contracted > 0', () => {
-      component.dataSource.data = [
+      component.allClients = [
         { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 20, delivered: 8, available: 12 } },
         { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 6, available: 4  } },
       ];
@@ -185,7 +303,7 @@ describe('ClientsListComponent', () => {
     });
 
     it('excluye clientes con contracted = 0', () => {
-      component.dataSource.data = [
+      component.allClients = [
         { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 0, delivered: 0, available: 0 } },
         { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 4, available: 6 } },
       ];
@@ -193,7 +311,7 @@ describe('ClientsListComponent', () => {
     });
 
     it('excluye clientes sin hours cargado (skeleton)', () => {
-      component.dataSource.data = [
+      component.allClients = [
         { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: undefined },
         { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 4, available: 6 } },
       ];
@@ -207,7 +325,7 @@ describe('ClientsListComponent', () => {
     });
 
     it('clasifica correctamente clientes por rango de consumo', () => {
-      component.dataSource.data = [
+      component.allClients = [
         { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 4,  available: 6  } }, // 40% low
         { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 8,  available: 2  } }, // 80% ok
         { id: 'c3', name: 'C', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c3', contracted: 10, delivered: 12, available: 0  } }, // 120% warn
@@ -217,7 +335,7 @@ describe('ClientsListComponent', () => {
     });
 
     it('excluye clientes sin contracted (sin abono)', () => {
-      component.dataSource.data = [
+      component.allClients = [
         { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 0, delivered: 0, available: 0 } },
         { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 9, available: 1 } },
       ];
@@ -225,7 +343,7 @@ describe('ClientsListComponent', () => {
     });
 
     it('no se ve afectado por el filtro de zona seleccionado (solo por el buscador de texto)', () => {
-      component.dataSource.data = [
+      component.allClients = [
         { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 4, available: 6 } }, // low
         { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 8, available: 2 } }, // ok
       ];
@@ -240,7 +358,7 @@ describe('ClientsListComponent', () => {
     });
 
     it('retorna el % que representa un conteo sobre el total de kpiStates', () => {
-      component.dataSource.data = [
+      component.allClients = [
         { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 0, available: 10 } }, // 0% crit
         { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 8, available: 2 } }, // ok
         { id: 'c3', name: 'C', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c3', contracted: 10, delivered: 8, available: 2 } }, // ok
@@ -253,7 +371,7 @@ describe('ClientsListComponent', () => {
 
   describe('toggleZone', () => {
     beforeEach(() => {
-      component.dataSource.data = [
+      component.allClients = [
         { id: 'c1', name: 'Acme', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 0,  available: 10 } }, // crit
         { id: 'c2', name: 'Beta', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 8,  available: 2 } }, // ok
         { id: 'c3', name: 'Gamma', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c3', contracted: 10, delivered: 12, available: 0 } }, // warn
@@ -264,34 +382,33 @@ describe('ClientsListComponent', () => {
     it('activa una zona y filtra la tabla a esa zona', () => {
       component.toggleZone('crit');
       expect(component.selectedZone).toBe('crit');
-      expect(component.dataSource.filteredData.map((c) => c.id)).toEqual(['c1']);
+      expect(component.filteredClients.map((c) => c.id)).toEqual(['c1']);
     });
 
     it('filtra la tabla a la zona low (uso entre 1% y 59%)', () => {
       component.toggleZone('low');
       expect(component.selectedZone).toBe('low');
-      expect(component.dataSource.filteredData.map((c) => c.id)).toEqual(['c4']);
+      expect(component.filteredClients.map((c) => c.id)).toEqual(['c4']);
     });
 
     it('clickear la misma zona activa la desactiva (single-select)', () => {
       component.toggleZone('ok');
       component.toggleZone('ok');
       expect(component.selectedZone).toBeNull();
-      expect(component.dataSource.filteredData).toHaveSize(4);
+      expect(component.filteredClients).toHaveSize(4);
     });
 
     it('clickear otra zona reemplaza la selección anterior', () => {
       component.toggleZone('crit');
       component.toggleZone('warn');
       expect(component.selectedZone).toBe('warn');
-      expect(component.dataSource.filteredData.map((c) => c.id)).toEqual(['c3']);
+      expect(component.filteredClients.map((c) => c.id)).toEqual(['c3']);
     });
 
     it('combina el filtro de zona con el buscador de texto', () => {
       component.quickFilter = 'be';
-      component.applyFilter();
       component.toggleZone('ok');
-      expect(component.dataSource.filteredData.map((c) => c.id)).toEqual(['c2']);
+      expect(component.filteredClients.map((c) => c.id)).toEqual(['c2']);
     });
   });
 });

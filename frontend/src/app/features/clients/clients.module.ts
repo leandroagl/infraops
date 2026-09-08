@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatTableModule } from '@angular/material/table';
-import { MatSortModule } from '@angular/material/sort';
+import { MatButtonModule } from '@angular/material/button';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ClientsRoutingModule } from './clients-routing.module';
 import { ClientsListComponent } from './clients-list/clients-list.component';
@@ -25,8 +24,7 @@ import { SharedModule } from '../../shared/shared.module';
     FormsModule,
     MatFormFieldModule,
     MatInputModule,
-    MatTableModule,
-    MatSortModule,
+    MatButtonModule,
     MatTabsModule,
     ClientsRoutingModule,
     SharedModule,

@@ -2,14 +2,14 @@
   <div class="page-hdr">
     <div class="page-hdr__left">
       <span class="page-title">Clientes</span>
-      <span class="page-count">{{ dataSource.data.length }} clientes activos</span>
+      <span class="page-count">{{ allClients.length }} clientes activos</span>
     </div>
   </div>
 
   <div class="filter-bar">
     <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
       <mat-label>Buscar cliente</mat-label>
-      <input matInput [(ngModel)]="quickFilter" (ngModelChange)="applyFilter()" placeholder="Nombre de cliente...">
+      <input matInput [(ngModel)]="quickFilter" placeholder="Nombre de cliente...">
     </mat-form-field>
 
     <div class="kpi-row">
@@ -129,18 +129,19 @@
     Error al cargar los clientes. Intentá recargar la página.
   </div>
 
-  <mat-table [dataSource]="dataSource" class="clients-table" matSort matSortActive="name" matSortDirection="asc">
+  <div class="clients-table">
+    <div class="clients-table__header">
+      <div class="clients-table__col clients-table__col--name">Cliente</div>
+      <div class="clients-table__col clients-table__col--hours">Horas del mes</div>
+    </div>
 
-    <ng-container matColumnDef="name">
-      <mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</mat-header-cell>
-      <mat-cell *matCellDef="let row" class="client-name" (click)="navigateToClient(row.id)">
+    <div *ngIf="filteredClients.length === 0" class="no-data-row">Sin clientes</div>
+
+    <div *ngFor="let row of filteredClients" class="clients-table__row">
+      <div class="clients-table__col clients-table__col--name client-name" (click)="navigateToClient(row.id)">
         {{ row.name }}
-      </mat-cell>
-    </ng-container>
-
-    <ng-container matColumnDef="hours">
-      <mat-header-cell *matHeaderCellDef mat-sort-header>Horas del mes</mat-header-cell>
-      <mat-cell *matCellDef="let row">
+      </div>
+      <div class="clients-table__col clients-table__col--hours">
 
         <ng-container *ngIf="row.hours; else skeleton">
           <ng-container *ngIf="row.hours.contracted > 0; else noData">
@@ -162,11 +163,11 @@
             </div>
             <div class="hours-bar">
               <div class="bar-track">
-                <div class="bar-fill" [ngClass]="'bar-fill--' + getHoursState(row.hours)"
+                <div class="bar-fill" [ngClass]="'bar-fill--' + getHoursBarState(row.hours)"
                      [style.width.%]="getHoursBarWidth(row.hours)">
                 </div>
               </div>
-              <span class="bar-pct" [ngClass]="'bar-pct--' + getHoursState(row.hours)">{{ getHoursPct(row.hours) }}%</span>
+              <span class="bar-pct" [ngClass]="'bar-pct--' + getHoursBarState(row.hours)">{{ getHoursPct(row.hours) }}%</span>
             </div>
           </ng-container>
         </ng-container>
@@ -195,12 +196,7 @@
           </div>
         </ng-template>
 
-      </mat-cell>
-    </ng-container>
-
-    <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-    <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
-    <div *matNoDataRow class="no-data-row">Sin clientes</div>
-
-  </mat-table>
+      </div>
+    </div>
+  </div>
 </div>
