@@ -13,6 +13,9 @@ export class AddIsInternalToClients1788800000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    // NOTE: This rollback will fail if any client with is_internal=true exists
+    // (their infradoc_id is NULL). Delete internal clients manually before
+    // running this down migration, or handle the NOT NULL constraint separately.
     await queryRunner.query(
       `ALTER TABLE "clients" ALTER COLUMN "infradoc_id" SET NOT NULL`,
     );
