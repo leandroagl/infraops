@@ -69,6 +69,17 @@ export class ClientsService implements OnModuleInit {
     return client?.infradocId ?? null;
   }
 
+  async findClientMeta(
+    id: string,
+  ): Promise<{ isInternal: boolean; infradocId: number | null } | null> {
+    const client = await this.clientRepository.findOne({
+      where: { id },
+      select: ['id', 'isInternal', 'infradocId'],
+    });
+    if (!client) return null;
+    return { isInternal: client.isInternal, infradocId: client.infradocId };
+  }
+
   async syncWithInfradoc(skipCooldown = false): Promise<SyncResult> {
     if (!skipCooldown && this.lastSyncAt !== null) {
       const elapsed = Date.now() - this.lastSyncAt.getTime();
@@ -96,7 +107,9 @@ export class ClientsService implements OnModuleInit {
     }
 
     const localByInfradocId = new Map(
-      localClients.map((c) => [c.infradocId, c]),
+      localClients
+        .filter((c) => !c.isInternal)
+        .map((c) => [c.infradocId, c]),
     );
     const infradocIds = new Set(infradocClients.map((c) => c.infradocId));
 
@@ -133,6 +146,7 @@ export class ClientsService implements OnModuleInit {
 
     let archived = 0;
     for (const local of localClients) {
+      if (local.isInternal) continue;
       if (!infradocIds.has(local.infradocId) && local.isActive) {
         await this.clientRepository.update(local.id, {
           isActive: false,

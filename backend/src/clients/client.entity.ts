@@ -10,8 +10,11 @@ export class Client {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
-  infradocId: number;
+  @Column({ unique: true, nullable: true, type: 'int' })
+  infradocId: number | null;
+
+  @Column({ default: false })
+  isInternal: boolean;
 
   @Column()
   name: string;
