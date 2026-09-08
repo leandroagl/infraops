@@ -1,148 +1,200 @@
+<!-- frontend/src/app/features/clients/clients-list/clients-list.component.html -->
 <div class="page">
+
+  <!-- ── Page header ── -->
   <div class="page-hdr">
-    <div class="page-hdr__left">
-      <span class="page-title">Clientes</span>
-      <span class="page-count">{{ allClients.length }} clientes activos</span>
-    </div>
+    <span class="page-title">Clientes</span>
+    <span class="page-count">{{ allClients.length }} activos</span>
   </div>
 
-  <div class="filter-bar">
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
-      <mat-label>Buscar cliente</mat-label>
-      <input matInput [(ngModel)]="quickFilter" placeholder="Nombre de cliente...">
-    </mat-form-field>
-
-    <div class="kpi-row">
-
-      <div class="kpi-card kpi-card--hours">
-        <div class="kpi-card__head">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
-          <span class="kpi-card__title">Horas del mes</span>
-        </div>
-
-        <div class="kpi-card__body--hours">
-          <div class="kpi-ring">
-            <svg viewBox="0 0 72 72">
-              <circle class="track" cx="36" cy="36" r="29" pathLength="100"/>
-              <circle class="progress" cx="36" cy="36" r="29" pathLength="100" [attr.stroke-dasharray]="kpiHoursPct + ' 100'"/>
-            </svg>
-            <div class="kpi-ring__label">
-              <span class="kpi-ring__pct">{{ kpiHoursPct }}%</span>
-              <span class="kpi-ring__sub">usado</span>
-            </div>
-          </div>
-          <div class="kpi-stats">
-            <div class="kpi-stat">
-              <span class="kpi-stat__value kpi-stat__value--neutral">{{ kpiHours.contracted }}</span>
-              <span class="kpi-stat__label">Contratadas</span>
-            </div>
-            <div class="kpi-stat">
-              <span class="kpi-stat__value kpi-stat__value--accent">{{ kpiHours.delivered }}</span>
-              <span class="kpi-stat__label">Usadas</span>
-            </div>
-            <div class="kpi-stat">
-              <span class="kpi-stat__value kpi-stat__value--hi">{{ kpiHours.available }}</span>
-              <span class="kpi-stat__label">Disponibles</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="kpi-card kpi-card--states">
-        <div class="kpi-card__head">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V4M16 20v-6M4 20h12"/></svg>
-          <span class="kpi-card__title">Clientes por consumo</span>
-        </div>
-
-        <div class="kpi-card__body--states">
-          <div class="kpi-tile kpi-tile--crit" [class.kpi-tile--active]="selectedZone === 'crit'"
-               role="button" tabindex="0" [attr.aria-pressed]="selectedZone === 'crit'"
-               (click)="toggleZone('crit')" (keydown.enter)="toggleZone('crit')" (keydown.space)="toggleZone('crit'); $event.preventDefault()">
-            <span class="kpi-tile__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 3.5A8.5 8.5 0 1 0 20.5 15 7 7 0 0 1 14.5 3.5z"/></svg>
-            </span>
-            <span class="kpi-tile__text">
-              <span class="kpi-tile__label">Sin actividad</span>
-              <span class="kpi-tile__range">0%</span>
-            </span>
-            <span class="kpi-tile__num">
-              <span class="kpi-tile__value">{{ kpiStates.crit }}</span>
-              <span class="kpi-tile__of">{{ zonePct(kpiStates.crit) }}%</span>
-            </span>
-            <svg class="kpi-tile__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <div class="kpi-tile kpi-tile--low" [class.kpi-tile--active]="selectedZone === 'low'"
-               role="button" tabindex="0" [attr.aria-pressed]="selectedZone === 'low'"
-               (click)="toggleZone('low')" (keydown.enter)="toggleZone('low')" (keydown.space)="toggleZone('low'); $event.preventDefault()">
-            <span class="kpi-tile__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15h16M8 19l-4-4 4-4M16 9l4 4-4 4"/></svg>
-            </span>
-            <span class="kpi-tile__text">
-              <span class="kpi-tile__label">Uso bajo</span>
-              <span class="kpi-tile__range">1–59%</span>
-            </span>
-            <span class="kpi-tile__num">
-              <span class="kpi-tile__value">{{ kpiStates.low }}</span>
-              <span class="kpi-tile__of">{{ zonePct(kpiStates.low) }}%</span>
-            </span>
-            <svg class="kpi-tile__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <div class="kpi-tile kpi-tile--ok" [class.kpi-tile--active]="selectedZone === 'ok'"
-               role="button" tabindex="0" [attr.aria-pressed]="selectedZone === 'ok'"
-               (click)="toggleZone('ok')" (keydown.enter)="toggleZone('ok')" (keydown.space)="toggleZone('ok'); $event.preventDefault()">
-            <span class="kpi-tile__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>
-            </span>
-            <span class="kpi-tile__text">
-              <span class="kpi-tile__label">Uso normal</span>
-              <span class="kpi-tile__range">60–100%</span>
-            </span>
-            <span class="kpi-tile__num">
-              <span class="kpi-tile__value">{{ kpiStates.ok }}</span>
-              <span class="kpi-tile__of">{{ zonePct(kpiStates.ok) }}%</span>
-            </span>
-            <svg class="kpi-tile__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-          </div>
-          <div class="kpi-tile kpi-tile--warn" [class.kpi-tile--active]="selectedZone === 'warn'"
-               role="button" tabindex="0" [attr.aria-pressed]="selectedZone === 'warn'"
-               (click)="toggleZone('warn')" (keydown.enter)="toggleZone('warn')" (keydown.space)="toggleZone('warn'); $event.preventDefault()">
-            <span class="kpi-tile__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l5.5-6 4 4L20 6"/><path d="M14 6h6v6"/></svg>
-            </span>
-            <span class="kpi-tile__text">
-              <span class="kpi-tile__label">Excedente</span>
-              <span class="kpi-tile__range">&gt; 100%</span>
-            </span>
-            <span class="kpi-tile__num">
-              <span class="kpi-tile__value">{{ kpiStates.warn }}</span>
-              <span class="kpi-tile__of">{{ zonePct(kpiStates.warn) }}%</span>
-            </span>
-            <svg class="kpi-tile__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
-          </div>
-        </div>
-      </div>
-
-    </div>
+  <!-- ── Month nav bar ── -->
+  <div class="month-nav-bar">
+    <button mat-icon-button class="month-nav-btn" (click)="navigateMonth(-1)" aria-label="Mes anterior">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="month-label">{{ monthLabel }}</span>
+    <button mat-icon-button class="month-nav-btn" (click)="navigateMonth(1)" [disabled]="isCurrentMonth" aria-label="Mes siguiente">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <span class="month-nav-sep"></span>
+    <span class="month-past-badge" [class.visible]="isPastMonth">Período cerrado</span>
   </div>
 
+  <!-- ── KPI strip ── -->
+  <div class="kpi-strip">
+
+    <!-- Sin actividad -->
+    <div class="kpi-zone kpi-zone--crit" [class.active]="selectedZone === 'crit'"
+         role="button" tabindex="0"
+         (click)="toggleZone('crit')"
+         (keydown.enter)="toggleZone('crit')"
+         (keydown.space)="toggleZone('crit'); $event.preventDefault()">
+      <div class="kpi-zone__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/></svg>
+        <span class="kpi-zone__icon-label">Sin actividad</span>
+      </div>
+      <div class="kpi-zone__main">
+        <span class="kpi-zone__val">{{ kpiStates.crit }}</span>
+        <span class="kpi-zone__pct">{{ zonePct(kpiStates.crit) }}%</span>
+        <span class="kpi-zone__check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+        </span>
+      </div>
+      <div class="kpi-zone__foot">0% uso</div>
+    </div>
+
+    <!-- Uso bajo -->
+    <div class="kpi-zone kpi-zone--low" [class.active]="selectedZone === 'low'"
+         role="button" tabindex="0"
+         (click)="toggleZone('low')"
+         (keydown.enter)="toggleZone('low')"
+         (keydown.space)="toggleZone('low'); $event.preventDefault()">
+      <div class="kpi-zone__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+        <span class="kpi-zone__icon-label">Uso bajo</span>
+      </div>
+      <div class="kpi-zone__main">
+        <span class="kpi-zone__val">{{ kpiStates.low }}</span>
+        <span class="kpi-zone__pct">{{ zonePct(kpiStates.low) }}%</span>
+        <span class="kpi-zone__check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+        </span>
+      </div>
+      <div class="kpi-zone__foot">1–59%</div>
+    </div>
+
+    <!-- Uso normal -->
+    <div class="kpi-zone kpi-zone--ok" [class.active]="selectedZone === 'ok'"
+         role="button" tabindex="0"
+         (click)="toggleZone('ok')"
+         (keydown.enter)="toggleZone('ok')"
+         (keydown.space)="toggleZone('ok'); $event.preventDefault()">
+      <div class="kpi-zone__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span class="kpi-zone__icon-label">Uso normal</span>
+      </div>
+      <div class="kpi-zone__main">
+        <span class="kpi-zone__val">{{ kpiStates.ok }}</span>
+        <span class="kpi-zone__pct">{{ zonePct(kpiStates.ok) }}%</span>
+        <span class="kpi-zone__check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+        </span>
+      </div>
+      <div class="kpi-zone__foot">60–100%</div>
+    </div>
+
+    <!-- Excedente -->
+    <div class="kpi-zone kpi-zone--warn" [class.active]="selectedZone === 'warn'"
+         role="button" tabindex="0"
+         (click)="toggleZone('warn')"
+         (keydown.enter)="toggleZone('warn')"
+         (keydown.space)="toggleZone('warn'); $event.preventDefault()">
+      <div class="kpi-zone__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        <span class="kpi-zone__icon-label">Excedente</span>
+      </div>
+      <div class="kpi-zone__main">
+        <span class="kpi-zone__val">{{ kpiStates.warn }}</span>
+        <span class="kpi-zone__pct">{{ zonePct(kpiStates.warn) }}%</span>
+        <span class="kpi-zone__check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+        </span>
+      </div>
+      <div class="kpi-zone__foot">&gt;100%</div>
+    </div>
+
+    <!-- Horas del mes -->
+    <div class="kpi-hours">
+      <div class="kpi-hours__head">
+        <span class="kpi-hours__label">Horas del mes · {{ monthLabel }}</span>
+        <div class="kpi-hours__pct-badge">
+          <span class="kpi-hours__pct" [ngClass]="'kpi-hours__pct--' + globalHoursBarState">{{ kpiHoursPct }}%</span>
+          <span class="kpi-hours__pct-lbl">consumido</span>
+        </div>
+      </div>
+      <div class="kpi-hours__bar">
+        <div class="kpi-hours__fill" [ngClass]="'kpi-hours__fill--' + globalHoursBarState"
+             [style.width.%]="kpiHoursPct > 100 ? 100 : kpiHoursPct"></div>
+      </div>
+      <div class="kpi-hours__metrics">
+        <div class="kpi-hours__metric">
+          <span class="kpi-hours__metric-val kpi-hours__metric-val--neutral">{{ kpiHours.contracted }}h</span>
+          <span class="kpi-hours__metric-lbl">Contratadas</span>
+        </div>
+        <div class="kpi-hours__metric">
+          <span class="kpi-hours__metric-val" [ngClass]="'kpi-hours__metric-val--' + globalHoursBarState">{{ kpiHours.delivered }}h</span>
+          <span class="kpi-hours__metric-lbl">Usadas</span>
+        </div>
+        <div class="kpi-hours__metric">
+          <span class="kpi-hours__metric-val kpi-hours__metric-val--hi">{{ kpiHours.available }}h</span>
+          <span class="kpi-hours__metric-lbl">Disponibles</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /kpi-strip -->
+
+  <!-- ── Controls / search bar ── -->
+  <div class="controls-bar">
+    <div class="search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
+        <input matInput [(ngModel)]="quickFilter" placeholder="Buscar cliente...">
+      </mat-form-field>
+      <button mat-icon-button class="search-clear" *ngIf="quickFilter" (click)="quickFilter = ''" aria-label="Limpiar búsqueda">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <span class="filter-chip filter-chip--crit" *ngIf="selectedZone === 'crit'" (click)="toggleZone('crit')">
+      Sin actividad
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </span>
+    <span class="filter-chip filter-chip--low" *ngIf="selectedZone === 'low'" (click)="toggleZone('low')">
+      Uso bajo
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </span>
+    <span class="filter-chip filter-chip--ok" *ngIf="selectedZone === 'ok'" (click)="toggleZone('ok')">
+      Uso normal
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </span>
+    <span class="filter-chip filter-chip--warn" *ngIf="selectedZone === 'warn'" (click)="toggleZone('warn')">
+      Excedente
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </span>
+
+    <span class="controls-spacer"></span>
+    <span class="result-count" [class.filtered]="selectedZone || quickFilter">
+      <ng-container *ngIf="selectedZone || quickFilter">{{ filteredClients.length }} de {{ allClients.length }}</ng-container>
+      <ng-container *ngIf="!selectedZone && !quickFilter">{{ allClients.length }}</ng-container>
+      clientes
+    </span>
+  </div>
+
+  <!-- ── Error banner ── -->
   <div *ngIf="loadError" class="error-banner">
     Error al cargar los clientes. Intentá recargar la página.
   </div>
 
-  <div class="clients-table">
-    <div class="clients-table__header">
-      <div class="clients-table__col clients-table__col--name">Cliente</div>
-      <div class="clients-table__col clients-table__col--hours">Horas del mes</div>
+  <!-- ── Table ── -->
+  <div class="clients-table-wrap">
+
+    <div class="col-hdr">
+      <div class="col-hdr-cell">Cliente</div>
+      <div class="col-hdr-cell">Horas del mes</div>
+      <div class="col-hdr-cell">Estado</div>
     </div>
 
-    <div *ngIf="filteredClients.length === 0" class="no-data-row">Sin clientes</div>
+    <div class="client-row" *ngFor="let row of filteredClients"
+         [class.row-in]="true"
+         (click)="navigateToClient(row.id)">
 
-    <div *ngFor="let row of filteredClients" class="clients-table__row">
-      <div class="clients-table__col clients-table__col--name client-name" (click)="navigateToClient(row.id)">
-        {{ row.name }}
+      <div class="client-name">
+        <div class="client-initial">{{ row.name.slice(0,2).toUpperCase() }}</div>
+        <span class="client-name-text">{{ row.name }}</span>
       </div>
-      <div class="clients-table__col clients-table__col--hours">
 
+      <div class="hours-cell">
         <ng-container *ngIf="row.hours; else skeleton">
           <ng-container *ngIf="row.hours.contracted > 0; else noData">
             <div class="hours-metrics">
@@ -151,9 +203,7 @@
                 <span class="metric__label">Contratadas</span>
               </div>
               <div class="metric">
-                <span class="metric__value" [ngClass]="'metric__value--' + getHoursState(row.hours)">
-                  {{ row.hours.delivered }}
-                </span>
+                <span class="metric__value" [ngClass]="'metric__value--' + getHoursBarState(row.hours)">{{ row.hours.delivered }}</span>
                 <span class="metric__label">Usadas</span>
               </div>
               <div class="metric">
@@ -164,8 +214,7 @@
             <div class="hours-bar">
               <div class="bar-track">
                 <div class="bar-fill" [ngClass]="'bar-fill--' + getHoursBarState(row.hours)"
-                     [style.width.%]="getHoursBarWidth(row.hours)">
-                </div>
+                     [style.width.%]="getHoursBarWidth(row.hours)"></div>
               </div>
               <span class="bar-pct" [ngClass]="'bar-pct--' + getHoursBarState(row.hours)">{{ getHoursPct(row.hours) }}%</span>
             </div>
@@ -178,25 +227,30 @@
 
         <ng-template #skeleton>
           <div class="hours-metrics">
-            <div class="metric">
-              <span class="skeleton sk-val"></span>
-              <span class="metric__label">Contratadas</span>
-            </div>
-            <div class="metric">
-              <span class="skeleton sk-val"></span>
-              <span class="metric__label">Usadas</span>
-            </div>
-            <div class="metric">
-              <span class="skeleton sk-val"></span>
-              <span class="metric__label">Disponibles</span>
-            </div>
+            <div class="metric"><span class="skeleton sk-val"></span><span class="metric__label">Contratadas</span></div>
+            <div class="metric"><span class="skeleton sk-val"></span><span class="metric__label">Usadas</span></div>
+            <div class="metric"><span class="skeleton sk-val"></span><span class="metric__label">Disponibles</span></div>
           </div>
-          <div class="hours-bar">
-            <div class="bar-track"><span class="skeleton sk-bar"></span></div>
-          </div>
+          <div class="hours-bar"><div class="bar-track"><span class="skeleton sk-bar"></span></div></div>
         </ng-template>
-
       </div>
+
+      <div class="status-col">
+        <ng-container *ngIf="row.hours && row.hours.contracted > 0">
+          <span class="zone-badge" [ngClass]="'zone-badge--' + getHoursState(row.hours)">
+            {{ { crit: 'Sin actividad', low: 'Uso bajo', ok: 'Normal', warn: 'Excedente' }[getHoursState(row.hours)] }}
+          </span>
+        </ng-container>
+      </div>
+
+    </div><!-- /ngFor -->
+
+    <div class="empty-state" *ngIf="filteredClients.length === 0 && allClients.length > 0">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      <span class="empty-state__title">Sin resultados</span>
+      <span class="empty-state__sub">Ningún cliente coincide con los filtros aplicados</span>
     </div>
-  </div>
-</div>
+
+  </div><!-- /clients-table-wrap -->
+
+</div><!-- /page -->
