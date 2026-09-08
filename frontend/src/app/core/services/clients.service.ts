@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Client, ClientSubscriptionHours } from '../models/client.models';
@@ -18,7 +18,10 @@ export class ClientsService {
     return this.http.get<Client>(`${this.base}/${id}`);
   }
 
-  getSubscriptionHours(): Observable<ClientSubscriptionHours[]> {
-    return this.http.get<ClientSubscriptionHours[]>(`${this.base}/subscription-hours`);
+  getSubscriptionHours(month?: number, year?: number): Observable<ClientSubscriptionHours[]> {
+    let params = new HttpParams();
+    if (month !== undefined) params = params.set('month', month);
+    if (year  !== undefined) params = params.set('year',  year);
+    return this.http.get<ClientSubscriptionHours[]>(`${this.base}/subscription-hours`, { params });
   }
 }

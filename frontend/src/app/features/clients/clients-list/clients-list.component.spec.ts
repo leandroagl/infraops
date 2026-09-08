@@ -9,7 +9,7 @@ import { FormsModule } from '@angular/forms';
 import { of, NEVER } from 'rxjs';
 import { ClientsListComponent } from './clients-list.component';
 import { ClientsService } from '../../../core/services/clients.service';
-import { Client, ClientSubscriptionHours } from '../../../core/models/client.models';
+import { Client, ClientSubscriptionHours, hoursBarState } from '../../../core/models/client.models';
 
 const makeClient = (override: Partial<Client> = {}): Client => ({
   id: 'c1', name: 'ACME Corp', primaryAddress: null, isActive: true, createdAt: '2026-01-01', ...override,
@@ -39,6 +39,17 @@ async function buildFixture(
   f.detectChanges();
   return f;
 }
+
+describe('hoursBarState', () => {
+  it('retorna crit cuando pct < 15 (0%)', () => expect(hoursBarState(0)).toBe('crit'));
+  it('retorna crit cuando pct es 14', () => expect(hoursBarState(14)).toBe('crit'));
+  it('retorna warn en el límite exacto 15%', () => expect(hoursBarState(15)).toBe('warn'));
+  it('retorna warn en el rango 15-49%', () => expect(hoursBarState(40)).toBe('warn'));
+  it('retorna ok en el límite 50%', () => expect(hoursBarState(50)).toBe('ok'));
+  it('retorna ok en el rango 50-100%', () => expect(hoursBarState(75)).toBe('ok'));
+  it('retorna ok en 100%', () => expect(hoursBarState(100)).toBe('ok'));
+  it('retorna warn cuando excede 100% (excedente)', () => expect(hoursBarState(112)).toBe('warn'));
+});
 
 describe('ClientsListComponent', () => {
   let component: ClientsListComponent;
