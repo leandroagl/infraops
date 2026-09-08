@@ -9,16 +9,19 @@ const TIME_PATTERN = /^[0-9]{1,2}:[0-5][0-9]$/;
 @Component({
   selector: 'app-task-edit-dialog',
   templateUrl: './task-edit-dialog.component.html',
+  styleUrls: ['./task-edit-dialog.component.scss'],
 })
 export class TaskEditDialogComponent implements OnInit {
   availableTags: OdooHelpdeskTagDto[] = [];
   loadingTags = true;
   saving = false;
+  ondraHosts: string[] = [];
+  hostInput = new FormControl('');
 
   form = new FormGroup({
-    time:                new FormControl('', [Validators.required, Validators.pattern(TIME_PATTERN)]),
-    tagIds:              new FormControl<number[]>([]),
-    ticketDescription:   new FormControl<string>(''),
+    time:                 new FormControl('', [Validators.required, Validators.pattern(TIME_PATTERN)]),
+    tagIds:               new FormControl<number[]>([]),
+    ticketDescription:    new FormControl<string>(''),
     timesheetDescription: new FormControl<string>(''),
   });
 
@@ -33,13 +36,17 @@ export class TaskEditDialogComponent implements OnInit {
       defaultTimeMinutes, odooTagIds,
       ticketDescription, defaultTicketDescription,
       timesheetDescription, defaultTimesheetDescription,
+      ondraOwnedHosts,
     } = this.data.config;
+
     this.form.patchValue({
       time:                 defaultTimeMinutes != null ? this.minutesToTime(defaultTimeMinutes) : '',
-      tagIds:                odooTagIds,
-      ticketDescription:     ticketDescription ?? defaultTicketDescription ?? '',
+      tagIds:               odooTagIds,
+      ticketDescription:    ticketDescription ?? defaultTicketDescription ?? '',
       timesheetDescription: timesheetDescription ?? defaultTimesheetDescription ?? '',
     });
+
+    this.ondraHosts = [...(ondraOwnedHosts ?? [])];
 
     this.taskConfigService.getHelpdeskTags().subscribe({
       next: tags => { this.availableTags = tags; this.loadingTags = false; },
@@ -47,22 +54,36 @@ export class TaskEditDialogComponent implements OnInit {
     });
   }
 
+  addHost(): void {
+    const value = (this.hostInput.value ?? '').trim();
+    if (value) {
+      this.ondraHosts = [...this.ondraHosts, value];
+      this.hostInput.setValue('');
+    }
+  }
+
+  removeHost(host: string): void {
+    this.ondraHosts = this.ondraHosts.filter(h => h !== host);
+  }
+
   save(): void {
     if (this.form.invalid) return;
     this.saving = true;
 
     const minutes = this.timeToMinutes(this.form.value.time!);
-    const tagIds  = this.form.value.tagIds ?? [];
+    const tagIds   = this.form.value.tagIds ?? [];
     const tagNames = tagIds.map(id => this.availableTags.find(t => t.id === id)?.name ?? '');
-    const ticketDescription = this.form.value.ticketDescription ?? '';
-    const timesheetDescription = this.form.value.timesheetDescription ?? '';
+    const ticketDescription     = this.form.value.ticketDescription ?? '';
+    const timesheetDescription  = this.form.value.timesheetDescription ?? '';
+    const isServerHostTask = this.data.config.taskType === 'SERVER_HOST_MAINTENANCE';
 
     this.taskConfigService.update(this.data.config.taskType, {
-      defaultTimeMinutes:   minutes,
-      odooTagIds:           tagIds,
-      odooTagNames:         tagNames,
-      ticketDescription:    ticketDescription || undefined,
+      defaultTimeMinutes:  minutes,
+      odooTagIds:          tagIds,
+      odooTagNames:        tagNames,
+      ticketDescription:   ticketDescription || undefined,
       timesheetDescription: timesheetDescription || undefined,
+      ondraOwnedHosts:     isServerHostTask ? this.ondraHosts : undefined,
     }).subscribe({
       next: updated => { this.saving = false; this.dialogRef.close(updated); },
       error: () => { this.saving = false; },

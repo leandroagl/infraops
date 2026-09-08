@@ -6,14 +6,20 @@ import {
   RawInfradocAsset,
 } from './infradoc-assets.service';
 import { InfrastructureService } from './infrastructure.service';
+import { TaskConfigService } from '../../task-config/task-config.service';
+import { TaskType } from '../../tasks/task-type.enum';
 
 describe('InfrastructureService', () => {
   let service: InfrastructureService;
-  let clientsService: { findInfradocId: jest.Mock };
+  let clientsService: {
+    findInfradocId: jest.Mock;
+    findClientMeta: jest.Mock;
+  };
   let infradocAssetsService: {
     getAssets: jest.Mock;
     getAssetInterfaces: jest.Mock;
   };
+  let taskConfigService: { findOne: jest.Mock };
 
   const makeAsset = (
     override: Partial<RawInfradocAsset> = {},
@@ -32,11 +38,35 @@ describe('InfrastructureService', () => {
     ...override,
   });
 
+  const mockRawServer = (name: string, id = '1') => ({
+    asset_id: id,
+    asset_name: name,
+    asset_type: 'server',
+    asset_make: 'Dell',
+    asset_model: 'R740',
+    asset_os: 'VMware ESXi',
+    asset_description: null,
+    interface_ip: '10.0.0.1',
+    interface_name: null,
+    asset_uri: null,
+    asset_uri_2: null,
+  });
+
   beforeEach(async () => {
-    clientsService = { findInfradocId: jest.fn().mockResolvedValue(42) };
+    clientsService = {
+      findInfradocId: jest.fn().mockResolvedValue(42),
+      findClientMeta: jest
+        .fn()
+        .mockResolvedValue({ isInternal: false, infradocId: 42 }),
+    };
     infradocAssetsService = {
       getAssets: jest.fn().mockResolvedValue([]),
       getAssetInterfaces: jest.fn().mockResolvedValue([]),
+    };
+    taskConfigService = {
+      findOne: jest
+        .fn()
+        .mockResolvedValue({ ondraOwnedHosts: [] }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -44,6 +74,7 @@ describe('InfrastructureService', () => {
         InfrastructureService,
         { provide: ClientsService, useValue: clientsService },
         { provide: InfradocAssetsService, useValue: infradocAssetsService },
+        { provide: TaskConfigService, useValue: taskConfigService },
       ],
     }).compile();
 
@@ -51,7 +82,7 @@ describe('InfrastructureService', () => {
   });
 
   it('lanza NotFoundException si el cliente no existe en InfraOps', async () => {
-    clientsService.findInfradocId.mockResolvedValue(null);
+    clientsService.findClientMeta.mockResolvedValue(null);
 
     await expect(
       service.getClientInfrastructure('uuid-no-existe'),
@@ -59,12 +90,14 @@ describe('InfrastructureService', () => {
   });
 
   it('pasa el infradocId correcto a getAssets', async () => {
-    clientsService.findInfradocId.mockResolvedValue(99);
+    clientsService.findClientMeta.mockResolvedValue({
+      isInternal: false,
+      infradocId: 99,
+    });
     infradocAssetsService.getAssets.mockResolvedValue([]);
 
     await service.getClientInfrastructure('uuid-1');
 
-    expect(clientsService.findInfradocId).toHaveBeenCalledWith('uuid-1');
     expect(infradocAssetsService.getAssets).toHaveBeenCalledWith(99);
   });
 
@@ -248,7 +281,10 @@ describe('InfrastructureService', () => {
 
     infradocAssetsService.getAssets.mockResolvedValue([rawServer]);
     infradocAssetsService.getAssetInterfaces.mockResolvedValue([rawServer]);
-    clientsService.findInfradocId.mockResolvedValue(42);
+    clientsService.findClientMeta.mockResolvedValue({
+      isInternal: false,
+      infradocId: 42,
+    });
 
     const result = await service.getClientInfrastructure('uuid-client');
     expect(result.esxiHosts[0].uri1).toBe('https://esxi.cliente.com:344');
@@ -535,6 +571,47 @@ describe('InfrastructureService', () => {
       expect(result.domainControllers[0].name).toBe('DC01');
       expect(result.linuxVMs).toHaveLength(1);
       expect(result.linuxVMs[0].name).toBe('SRV-LINUX');
+    });
+  });
+
+  describe('ONDRA internal client', () => {
+    it('filters ondra-owned hosts from regular client esxiHosts', async () => {
+      clientsService.findClientMeta.mockResolvedValue({ isInternal: false, infradocId: 5 });
+      taskConfigService.findOne.mockResolvedValue({
+        ondraOwnedHosts: ['srv1-cloud.ondravirtual.com.ar'],
+      } as any);
+      infradocAssetsService.getAssets.mockResolvedValue([
+        mockRawServer('srv1-cloud.ondravirtual.com.ar', '1'),
+        mockRawServer('srv-client.cliente.com', '2'),
+      ]);
+      infradocAssetsService.getAssetInterfaces.mockResolvedValue([]);
+
+      const result = await service.getClientInfrastructure('client-id');
+
+      expect(result.esxiHosts.map((h) => h.name)).toEqual(['srv-client.cliente.com']);
+    });
+
+    it('returns stub esxiHosts for ONDRA internal client without calling InfraDoc', async () => {
+      clientsService.findClientMeta.mockResolvedValue({ isInternal: true, infradocId: null });
+      taskConfigService.findOne.mockResolvedValue({
+        ondraOwnedHosts: ['srv1-cloud.ondravirtual.com.ar'],
+      } as any);
+
+      const result = await service.getClientInfrastructure('ondra-id');
+
+      expect(result.esxiHosts).toHaveLength(1);
+      expect(result.esxiHosts[0].name).toBe('srv1-cloud.ondravirtual.com.ar');
+      expect(result.windowsVMs).toEqual([]);
+      expect(infradocAssetsService.getAssets).not.toHaveBeenCalled();
+    });
+
+    it('returns empty esxiHosts for ONDRA when ondraOwnedHosts not configured', async () => {
+      clientsService.findClientMeta.mockResolvedValue({ isInternal: true, infradocId: null });
+      taskConfigService.findOne.mockResolvedValue(null);
+
+      const result = await service.getClientInfrastructure('ondra-id');
+
+      expect(result.esxiHosts).toEqual([]);
     });
   });
 });

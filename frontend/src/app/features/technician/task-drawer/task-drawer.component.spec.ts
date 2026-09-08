@@ -72,6 +72,7 @@ const mockTaskConfig: TaskTypeConfigDto = {
   odooTagNames: ['Mantenimiento'],
   ticketDescription: null,
   timesheetDescription: null,
+  ondraOwnedHosts: [],
   updatedAt: '',
 };
 
@@ -207,6 +208,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         odooTagNames: ['Mantenimiento'],
         ticketDescription: null,
         timesheetDescription: null,
+        ondraOwnedHosts: [],
         updatedAt: '',
       };
       expect(component.isConfigMissing).toBe(true);
@@ -220,6 +222,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         odooTagNames: [],
         ticketDescription: null,
         timesheetDescription: null,
+        ondraOwnedHosts: [],
         updatedAt: '',
       };
       expect(component.isConfigMissing).toBe(true);
@@ -249,6 +252,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         odooTagNames: ['Mantenimiento'],
         ticketDescription: null,
         timesheetDescription: null,
+        ondraOwnedHosts: [],
         updatedAt: '',
       };
       expect(component.canComplete).toBe(true);
@@ -263,6 +267,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         odooTagNames: [],
         ticketDescription: null,
         timesheetDescription: null,
+        ondraOwnedHosts: [],
         updatedAt: '',
       };
       expect(component.canComplete).toBe(false);

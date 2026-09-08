@@ -23,6 +23,7 @@ describe('ClientsService', () => {
   const makeLocal = (override: Partial<Client> = {}): Client => ({
     id: 'uuid-1',
     infradocId: 1,
+    isInternal: false,
     name: 'ACME Corp',
     abbreviation: 'ACME',
     type: 'Empresa',
@@ -37,6 +38,7 @@ describe('ClientsService', () => {
     notes: null,
     odooPartnerId: null,
     odooSyncedAt: null,
+    odooSaleLineId: null,
     isActive: true,
     lastSyncedAt: null,
     createdAt: new Date('2026-01-01'),
@@ -290,6 +292,45 @@ describe('ClientsService', () => {
       const result = await service.findInfradocId('uuid-no-existe');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('findClientMeta', () => {
+    it('returns null when client not found', async () => {
+      jest.spyOn(clientRepository, 'findOne').mockResolvedValue(null);
+      const result = await service.findClientMeta('non-existent-id');
+      expect(result).toBeNull();
+    });
+
+    it('returns isInternal and infradocId for a regular client', async () => {
+      const mockClient = { id: 'abc', isInternal: false, infradocId: 42 } as any;
+      jest.spyOn(clientRepository, 'findOne').mockResolvedValue(mockClient);
+      const result = await service.findClientMeta('abc');
+      expect(result).toEqual({ isInternal: false, infradocId: 42 });
+    });
+
+    it('returns isInternal=true and infradocId=null for internal client', async () => {
+      const mockClient = { id: 'ondra', isInternal: true, infradocId: null } as any;
+      jest.spyOn(clientRepository, 'findOne').mockResolvedValue(mockClient);
+      const result = await service.findClientMeta('ondra');
+      expect(result).toEqual({ isInternal: true, infradocId: null });
+    });
+  });
+
+  describe('syncWithInfradoc — internal clients', () => {
+    it('should not archive internal clients during sync', async () => {
+      const ondraClient = { id: 'ondra-id', isInternal: true, infradocId: null, isActive: true } as any;
+      jest.spyOn(clientRepository, 'find').mockResolvedValue([ondraClient]);
+      jest.spyOn(infradocService, 'getClients').mockResolvedValue([]);
+      jest.spyOn(infradocService, 'getLocations').mockResolvedValue([]);
+      const updateSpy = jest.spyOn(clientRepository, 'update').mockResolvedValue({} as any);
+
+      await service.syncWithInfradoc(true);
+
+      expect(updateSpy).not.toHaveBeenCalledWith(
+        'ondra-id',
+        expect.objectContaining({ isActive: false }),
+      );
     });
   });
 });

@@ -21,6 +21,7 @@ const baseData: ConfirmCloseDialogData = {
     odooTagNames: ['Virtualización'],
     ticketDescription: null,
     timesheetDescription: null,
+    ondraOwnedHosts: [],
     updatedAt: '2026-01-01T00:00:00Z',
   },
   odooTicketId: 1234,

@@ -37,6 +37,7 @@ const fullyTaggedConfigs: TaskTypeConfigDto[] = ALL_TASK_TYPES.map(taskType => (
   odooTagNames: ['Tag'],
   ticketDescription: null,
   timesheetDescription: null,
+  ondraOwnedHosts: [],
   updatedAt: '2026-01-01T00:00:00Z',
 }));
 

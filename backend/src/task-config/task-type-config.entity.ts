@@ -15,6 +15,9 @@ export class TaskTypeConfig {
   @Column({ name: 'odoo_tag_names', type: 'text', array: true, default: [] })
   odooTagNames: string[];
 
+  @Column({ name: 'ondra_owned_hosts', type: 'text', array: true, default: [] })
+  ondraOwnedHosts: string[];
+
   @Column({ name: 'ticket_description', type: 'text', nullable: true, default: null })
   ticketDescription: string | null;
 

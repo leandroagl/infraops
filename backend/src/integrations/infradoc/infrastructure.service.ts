@@ -8,22 +8,43 @@ import {
   ClientInfrastructureDto,
   InfraAssetDto,
 } from './dto/client-infrastructure.dto';
+import { TaskConfigService } from '../../task-config/task-config.service';
+import { TaskType } from '../../tasks/task-type.enum';
 
 @Injectable()
 export class InfrastructureService {
   constructor(
     private readonly clientsService: ClientsService,
     private readonly infradocAssetsService: InfradocAssetsService,
+    private readonly taskConfigService: TaskConfigService,
   ) {}
 
   async getClientInfrastructure(
     clientId: string,
   ): Promise<ClientInfrastructureDto> {
-    const infradocId = await this.clientsService.findInfradocId(clientId);
-    if (infradocId === null)
+    const meta = await this.clientsService.findClientMeta(clientId);
+    if (!meta) throw new NotFoundException('Cliente no encontrado');
+
+    const config = await this.taskConfigService.findOne(
+      TaskType.SERVER_HOST_MAINTENANCE,
+    );
+    const ondraOwnedHosts = config?.ondraOwnedHosts ?? [];
+
+    if (meta.isInternal) {
+      return {
+        esxiHosts: ondraOwnedHosts.map((name) => this.stubAsset(name)),
+        windowsVMs: [],
+        domainControllers: [],
+        linuxVMs: [],
+        nas: [],
+        routers: [],
+      };
+    }
+
+    if (meta.infradocId === null)
       throw new NotFoundException('Cliente no encontrado');
 
-    const raw = await this.infradocAssetsService.getAssets(infradocId);
+    const raw = await this.infradocAssetsService.getAssets(meta.infradocId);
 
     // getAssets returns one row per interface (a server with iDRAC has 2 rows).
     // Group them so we can use the raw rows as a fallback for BMC resolution.
@@ -69,7 +90,26 @@ export class InfrastructureService {
       uriMap.set(id, this.resolveVmwareUris(merged));
     });
 
-    return this.groupAssets(raw, bmcMap, uriMap);
+    const result = this.groupAssets(raw, bmcMap, uriMap);
+    result.esxiHosts = result.esxiHosts.filter(
+      (h) => !ondraOwnedHosts.includes(h.name),
+    );
+    return result;
+  }
+
+  private stubAsset(name: string): InfraAssetDto {
+    return {
+      assetId: 0,
+      name,
+      ip: null,
+      bmcIp: null,
+      bmcType: null,
+      os: null,
+      make: null,
+      model: null,
+      uri1: null,
+      uri2: null,
+    };
   }
 
   private resolveVmwareUris(

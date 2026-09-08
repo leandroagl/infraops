@@ -23,4 +23,9 @@ export class UpdateTaskConfigDto {
   @IsOptional()
   @IsString()
   timesheetDescription?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  ondraOwnedHosts?: string[];
 }

@@ -17,6 +17,7 @@ const mockConfigs: TaskTypeConfigDto[] = [
     odooTagNames: ['Virtualización'],
     ticketDescription: null,
     timesheetDescription: null,
+    ondraOwnedHosts: ['srv1.ondra.com'],
     updatedAt: '2026-01-01T00:00:00Z',
   },
   {
@@ -26,6 +27,7 @@ const mockConfigs: TaskTypeConfigDto[] = [
     odooTagNames: [],
     ticketDescription: null,
     timesheetDescription: null,
+    ondraOwnedHosts: [],
     updatedAt: '2026-01-01T00:00:00Z',
   },
 ];

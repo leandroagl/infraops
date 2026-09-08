@@ -38,6 +38,7 @@ export class TaskConfigService {
     if (dto.odooTagNames !== undefined)        existing.odooTagNames        = dto.odooTagNames;
     if (dto.ticketDescription !== undefined)   existing.ticketDescription   = dto.ticketDescription;
     if (dto.timesheetDescription !== undefined) existing.timesheetDescription = dto.timesheetDescription;
+    if (dto.ondraOwnedHosts !== undefined) existing.ondraOwnedHosts = dto.ondraOwnedHosts;
     const saved = await this.repo.save(existing);
     saved.defaultTicketDescription = TICKET_DESCRIPTION_DEFAULTS[taskType];
     saved.defaultTimesheetDescription = TIMESHEET_DESCRIPTION_DEFAULT;
@@ -52,6 +53,7 @@ export class TaskConfigService {
     config.odooTagNames         = [];
     config.ticketDescription    = null;
     config.timesheetDescription = null;
+    config.ondraOwnedHosts = [];
     return config;
   }
 }

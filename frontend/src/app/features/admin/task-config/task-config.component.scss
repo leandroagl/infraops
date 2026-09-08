@@ -29,3 +29,14 @@
   border: 1px solid var(--accent-bd);
   margin-right: 4px;
 }
+
+.hosts-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--srv-bg, rgba(99, 179, 237, 0.08));
+  color: var(--srv, #63b3ed);
+  border: 1px solid var(--srv-bd, rgba(99, 179, 237, 0.2));
+}

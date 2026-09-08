@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ClientsModule } from '../../clients/clients.module';
 import { IntegrationConfigModule } from '../../integration-config/integration-config.module';
+import { TaskConfigModule } from '../../task-config/task-config.module';
 import { InfradocAssetsService } from './infradoc-assets.service';
 import { InfrastructureController } from './infrastructure.controller';
 import { InfrastructureService } from './infrastructure.service';
@@ -12,6 +13,7 @@ import { InfrastructureService } from './infrastructure.service';
     HttpModule.register({ httpsAgent: new https.Agent({ rejectUnauthorized: false }) }),
     ClientsModule,
     IntegrationConfigModule,
+    TaskConfigModule,
   ],
   controllers: [InfrastructureController],
   providers: [InfrastructureService, InfradocAssetsService],
