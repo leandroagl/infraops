@@ -26,6 +26,7 @@
     <!-- Sin actividad -->
     <div class="kpi-zone kpi-zone--crit" [class.active]="selectedZone === 'crit'"
          role="button" tabindex="0"
+         [attr.aria-pressed]="selectedZone === 'crit'"
          (click)="toggleZone('crit')"
          (keydown.enter)="toggleZone('crit')"
          (keydown.space)="toggleZone('crit'); $event.preventDefault()">
@@ -46,6 +47,7 @@
     <!-- Uso bajo -->
     <div class="kpi-zone kpi-zone--low" [class.active]="selectedZone === 'low'"
          role="button" tabindex="0"
+         [attr.aria-pressed]="selectedZone === 'low'"
          (click)="toggleZone('low')"
          (keydown.enter)="toggleZone('low')"
          (keydown.space)="toggleZone('low'); $event.preventDefault()">
@@ -66,6 +68,7 @@
     <!-- Uso normal -->
     <div class="kpi-zone kpi-zone--ok" [class.active]="selectedZone === 'ok'"
          role="button" tabindex="0"
+         [attr.aria-pressed]="selectedZone === 'ok'"
          (click)="toggleZone('ok')"
          (keydown.enter)="toggleZone('ok')"
          (keydown.space)="toggleZone('ok'); $event.preventDefault()">
@@ -86,6 +89,7 @@
     <!-- Excedente -->
     <div class="kpi-zone kpi-zone--warn" [class.active]="selectedZone === 'warn'"
          role="button" tabindex="0"
+         [attr.aria-pressed]="selectedZone === 'warn'"
          (click)="toggleZone('warn')"
          (keydown.enter)="toggleZone('warn')"
          (keydown.space)="toggleZone('warn'); $event.preventDefault()">
@@ -186,7 +190,6 @@
     </div>
 
     <div class="client-row" *ngFor="let row of filteredClients"
-         [class.row-in]="true"
          (click)="navigateToClient(row.id)">
 
       <div class="client-name">

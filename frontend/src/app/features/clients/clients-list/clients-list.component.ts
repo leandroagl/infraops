@@ -13,8 +13,6 @@ import {
 
 export type HoursZone = 'crit' | 'low' | 'ok' | 'warn';
 
-interface TableFilter { q: string; zone: HoursZone | null; }
-
 const MONTH_NAMES = [
   'Enero','Febrero','Marzo','Abril','Mayo','Junio',
   'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
