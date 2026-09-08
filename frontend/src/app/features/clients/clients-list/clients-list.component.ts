@@ -136,9 +136,11 @@ export class ClientsListComponent implements OnInit {
           case 'name':
             return dir * a.name.localeCompare(b.name, 'es');
           case 'hours': {
-            const pA = a.hours?.contracted ?? -1;
-            const pB = b.hours?.contracted ?? -1;
-            return dir * (pA - pB);
+            const getPct = (h: ClientSubscriptionHours | null | undefined) => {
+              if (!h || !h.contracted) return -1;
+              return h.delivered / h.contracted;
+            };
+            return dir * (getPct(a.hours) - getPct(b.hours));
           }
           case 'status': {
             const oA = a.hours?.contracted ? this.ZONE_ORDER[this.getHoursState(a.hours)] : -1;

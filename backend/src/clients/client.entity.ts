@@ -13,7 +13,7 @@ export class Client {
   @Column({ unique: true, nullable: true, type: 'int' })
   infradocId: number | null;
 
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
   isInternal: boolean;
 
   @Column()
