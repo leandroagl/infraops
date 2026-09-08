@@ -30,29 +30,35 @@
     <mat-hint>Texto que se imputa como descripción del parte de horas al cerrar la tarea. Si se deja vacío se usa "Mantenimiento realizado".</mat-hint>
   </mat-form-field>
 
-  <mat-form-field
-    *ngIf="data.config.taskType === 'SERVER_HOST_MAINTENANCE'"
-    appearance="outline"
-    subscriptSizing="dynamic"
-    style="margin-top: 16px;">
-    <mat-label>Hosts de infraestructura ONDRA</mat-label>
-    <mat-chip-grid #chipGrid>
-      <mat-chip-row
-        *ngFor="let host of ondraHosts"
-        (removed)="removeHost(host)">
-        {{ host }}
-        <button matChipRemove aria-label="Quitar host">
-          <mat-icon>cancel</mat-icon>
-        </button>
-      </mat-chip-row>
-      <input
-        placeholder="ej. srv1-cloud.ondravirtual.com.ar"
-        [matChipInputFor]="chipGrid"
-        [matChipInputSeparatorKeyCodes]="separatorKeys"
-        (matChipInputTokenEnd)="addHost($event)" />
-    </mat-chip-grid>
-    <mat-hint>Servidores VMware propios de ONDRA. Se excluyen del mantenimiento de clientes y se asignan al cliente interno ONDRA.</mat-hint>
-  </mat-form-field>
+  <div *ngIf="data.config.taskType === 'SERVER_HOST_MAINTENANCE'" class="hosts-section">
+
+    <div class="hosts-add-row">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="hosts-input">
+        <mat-label>Agregar host ONDRA</mat-label>
+        <input matInput [formControl]="hostInput" placeholder="ej. srv1-cloud.ondravirtual.com.ar" (keydown.enter)="addHost()">
+      </mat-form-field>
+      <button mat-stroked-button class="hosts-add-btn" (click)="addHost()" [disabled]="!hostInput.value?.trim()">
+        <mat-icon>add</mat-icon> Agregar
+      </button>
+    </div>
+
+    <div class="hosts-list-header">
+      Servidores configurados
+      <span class="hosts-count">{{ ondraHosts.length }}</span>
+    </div>
+
+    <p *ngIf="ondraHosts.length === 0" class="hosts-empty">Ningún host configurado aún</p>
+
+    <div *ngFor="let host of ondraHosts" class="host-row">
+      <mat-icon class="host-icon">dns</mat-icon>
+      <span class="host-name">{{ host }}</span>
+      <button mat-icon-button class="host-remove-btn" (click)="removeHost(host)" aria-label="Quitar host">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <p class="hosts-hint">Servidores VMware propios de ONDRA. Se excluyen del mantenimiento de clientes y se asignan al cliente interno ONDRA.</p>
+  </div>
 
 </mat-dialog-content>
 

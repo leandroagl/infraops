@@ -11,7 +11,7 @@ import { TaskEditDialogComponent } from './task-edit-dialog/task-edit-dialog.com
 })
 export class TaskConfigComponent implements OnInit {
   configs: TaskTypeConfigDto[] = [];
-  displayedColumns = ['taskType', 'defaultTimeMinutes', 'odooTags', 'actions'];
+  displayedColumns = ['taskType', 'defaultTimeMinutes', 'odooTags', 'ondraHosts', 'actions'];
   loading = true;
 
   constructor(

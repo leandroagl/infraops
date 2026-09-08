@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TaskEditDialogComponent } from './task-edit-dialog.component';
 import { TaskConfigService } from '../../../../core/services/task-config.service';
@@ -21,6 +22,7 @@ const mockConfig: TaskTypeConfigDto = {
   defaultTicketDescription: '<p>Descripción predeterminada del sistema.</p>',
   timesheetDescription: 'Mantenimiento de hosts realizado',
   defaultTimesheetDescription: 'Mantenimiento realizado',
+  ondraOwnedHosts: ['srv1-cloud.ondravirtual.com.ar'],
   updatedAt: '2026-01-01T00:00:00Z',
 };
 
@@ -47,6 +49,7 @@ describe('TaskEditDialogComponent', () => {
         MatInputModule,
         MatSelectModule,
         MatButtonModule,
+        MatIconModule,
         MatProgressSpinnerModule,
       ],
       providers: [
@@ -119,6 +122,38 @@ describe('TaskEditDialogComponent', () => {
     expect(service.update).toHaveBeenCalledWith(
       'SERVER_HOST_MAINTENANCE',
       jasmine.objectContaining({ timesheetDescription: 'Mantenimiento QNAP realizado' })
+    );
+  });
+
+  it('pre-llena ondraHosts desde la config al iniciar', () => {
+    expect(component.ondraHosts).toEqual(['srv1-cloud.ondravirtual.com.ar']);
+  });
+
+  it('agrega un host válido y limpia el input', () => {
+    component.hostInput.setValue('srv2-cloud.ondravirtual.com.ar');
+    component.addHost();
+    expect(component.ondraHosts).toContain('srv2-cloud.ondravirtual.com.ar');
+    expect(component.hostInput.value).toBe('');
+  });
+
+  it('no agrega un host vacío', () => {
+    component.hostInput.setValue('   ');
+    component.addHost();
+    expect(component.ondraHosts.length).toBe(1);
+  });
+
+  it('elimina un host de la lista', () => {
+    component.removeHost('srv1-cloud.ondravirtual.com.ar');
+    expect(component.ondraHosts).toEqual([]);
+  });
+
+  it('incluye ondraOwnedHosts en el payload al guardar', () => {
+    component.ondraHosts = ['srv1.ondra.com', 'srv2.ondra.com'];
+    component.form.patchValue({ time: '01:30', tagIds: [1] });
+    component.save();
+    expect(service.update).toHaveBeenCalledWith(
+      'SERVER_HOST_MAINTENANCE',
+      jasmine.objectContaining({ ondraOwnedHosts: ['srv1.ondra.com', 'srv2.ondra.com'] })
     );
   });
 

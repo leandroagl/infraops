@@ -1,8 +1,6 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { MatChipInputEvent } from '@angular/material/chips';
-import { COMMA, ENTER } from '@angular/cdk/keycodes';
 import { TaskConfigService } from '../../../../core/services/task-config.service';
 import { OdooHelpdeskTagDto, TaskTypeConfigDto } from '../../../../core/models/task.models';
 
@@ -11,13 +9,14 @@ const TIME_PATTERN = /^[0-9]{1,2}:[0-5][0-9]$/;
 @Component({
   selector: 'app-task-edit-dialog',
   templateUrl: './task-edit-dialog.component.html',
+  styleUrls: ['./task-edit-dialog.component.scss'],
 })
 export class TaskEditDialogComponent implements OnInit {
   availableTags: OdooHelpdeskTagDto[] = [];
   loadingTags = true;
   saving = false;
   ondraHosts: string[] = [];
-  readonly separatorKeys = [ENTER, COMMA] as const;
+  hostInput = new FormControl('');
 
   form = new FormGroup({
     time:                 new FormControl('', [Validators.required, Validators.pattern(TIME_PATTERN)]),
@@ -55,10 +54,12 @@ export class TaskEditDialogComponent implements OnInit {
     });
   }
 
-  addHost(event: MatChipInputEvent): void {
-    const value = (event.value || '').trim();
-    if (value) this.ondraHosts = [...this.ondraHosts, value];
-    event.chipInput!.clear();
+  addHost(): void {
+    const value = (this.hostInput.value ?? '').trim();
+    if (value) {
+      this.ondraHosts = [...this.ondraHosts, value];
+      this.hostInput.setValue('');
+    }
   }
 
   removeHost(host: string): void {
