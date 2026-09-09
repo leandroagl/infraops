@@ -6,6 +6,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { IntegrationConfigService } from '../../integration-config/integration-config.service';
 import { Client } from '../../clients/client.entity';
+import { ClientSubscriptionHourSnapshot } from '../../clients/client-subscription-hour-snapshot.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
 import { OdooSystemRpcService } from './odoo-system-rpc.service';
@@ -31,6 +32,7 @@ describe('OdooService', () => {
     count: jest.Mock;
   };
   let technicianRepo: { findOne: jest.Mock };
+  let snapshotRepo: { find: jest.Mock; upsert: jest.Mock };
   let integrationConfigServiceMock: { getOdooConfigDecrypted: jest.Mock };
   let taskConfigServiceMock: { findOne: jest.Mock };
 
@@ -96,6 +98,7 @@ describe('OdooService', () => {
       count: jest.fn(),
     };
     technicianRepo = { findOne: jest.fn() };
+    snapshotRepo = { find: jest.fn().mockResolvedValue([]), upsert: jest.fn().mockResolvedValue(undefined) };
     integrationConfigServiceMock = {
       getOdooConfigDecrypted: jest.fn().mockResolvedValue({
         url: 'u', db: 'd', username: 'u', apiKey: 'k', helpdeskTeamId: 7,
@@ -113,6 +116,7 @@ describe('OdooService', () => {
         { provide: IntegrationConfigService, useValue: integrationConfigServiceMock },
         { provide: getRepositoryToken(Technician), useValue: technicianRepo },
         { provide: TaskConfigService, useValue: taskConfigServiceMock },
+        { provide: getRepositoryToken(ClientSubscriptionHourSnapshot), useValue: snapshotRepo },
       ],
     }).compile();
 
@@ -1155,34 +1159,40 @@ describe('OdooService', () => {
       jest.useRealTimers();
     });
 
-    it('cuando se pide un mes ya cerrado, llama account.analytic.line con rango de fechas', async () => {
+    it('cuando se pide un mes ya cerrado con snapshot guardado, devuelve esos valores sin consultar Odoo', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-09-15T12:00:00Z'));
       clientRepo.find.mockResolvedValue([
         makeClient({ id: 'c1', odooPartnerId: 101 }),
       ]);
-      // Primera llamada: sale.order.line para contracted
-      // Segunda llamada: account.analytic.line para delivered del período
-      odooRpc.callKw
-        .mockResolvedValueOnce([
-          { product_uom_qty: 20, qty_delivered: 0, order_id: [1, 'SO001'] },
-        ])
-        .mockResolvedValueOnce([{ id: 1, partner_id: [101, 'ACME'] }])
-        .mockResolvedValueOnce([
-          { unit_amount: 8, partner_id: [101, 'ACME'] },
-        ]);
+      snapshotRepo.find.mockResolvedValue([
+        { clientId: 'c1', year: 2026, month: 8, contracted: 20, delivered: 8, available: 12 },
+      ]);
 
       // Agosto 2026 ya cerró (estamos en septiembre)
       const result = await service.getClientSubscriptionHours(8, 2026);
 
-      // Verifica que se consultó account.analytic.line con fechas de Ago 2026
-      const thirdCall = odooRpc.callKw.mock.calls[2];
-      expect(thirdCall[0]).toBe('account.analytic.line');
-      const domain = thirdCall[2][0];
-      expect(domain).toContainEqual(['date', '>=', '2026-08-01']);
-      expect(domain).toContainEqual(['date', '<=', '2026-08-31']);
-
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+      expect(snapshotRepo.find).toHaveBeenCalledWith({
+        where: { clientId: expect.anything(), year: 2026, month: 8 },
+      });
       expect(result).toEqual([
         { clientId: 'c1', contracted: 20, delivered: 8, available: 12 },
+      ]);
+    });
+
+    it('cuando se pide un mes ya cerrado sin snapshot guardado, devuelve ceros para ese cliente', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-09-15T12:00:00Z'));
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      snapshotRepo.find.mockResolvedValue([]);
+
+      // Julio 2026 cerró antes de que existiera este feature — no hay snapshot
+      const result = await service.getClientSubscriptionHours(7, 2026);
+
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+      expect(result).toEqual([
+        { clientId: 'c1', contracted: 0, delivered: 0, available: 0 },
       ]);
     });
 
@@ -1224,6 +1234,58 @@ describe('OdooService', () => {
       expect(result).toEqual([
         { clientId: 'c1', contracted: 20, delivered: 8, available: 12 },
       ]);
+    });
+  });
+
+  describe('snapshotCurrentMonthHours', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('guarda (upsert) las horas en vivo de todos los clientes para el mes/año en curso', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-09-15T12:00:00Z'));
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { product_uom_qty: 20, qty_delivered: 8, order_id: [1, 'SO001'] },
+        ])
+        .mockResolvedValueOnce([{ id: 1, partner_id: [101, 'ACME'] }]);
+
+      await service.snapshotCurrentMonthHours();
+
+      expect(snapshotRepo.upsert).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({
+            clientId: 'c1',
+            year: 2026,
+            month: 9,
+            contracted: 20,
+            delivered: 8,
+            available: 12,
+          }),
+        ],
+        ['clientId', 'year', 'month'],
+      );
+    });
+
+    it('no llama a upsert cuando no hay clientes con horas', async () => {
+      clientRepo.find.mockResolvedValue([]);
+
+      await service.snapshotCurrentMonthHours();
+
+      expect(snapshotRepo.upsert).not.toHaveBeenCalled();
+    });
+
+    it('loguea el error y no propaga la excepción si falla la consulta a Odoo', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw.mockRejectedValue(new Error('Odoo no disponible'));
+
+      await expect(service.snapshotCurrentMonthHours()).resolves.toBeUndefined();
+      expect(snapshotRepo.upsert).not.toHaveBeenCalled();
     });
   });
 

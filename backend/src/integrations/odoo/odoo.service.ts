@@ -4,9 +4,11 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
 import { Client } from '../../clients/client.entity';
+import { ClientSubscriptionHourSnapshot } from '../../clients/client-subscription-hour-snapshot.entity';
 import { User } from '../../users/user.entity';
 import { Technician } from '../../technicians/technician.entity';
 import { OdooSystemRpcService } from './odoo-system-rpc.service';
@@ -48,6 +50,8 @@ export class OdooService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(Technician)
     private readonly technicianRepo: Repository<Technician>,
+    @InjectRepository(ClientSubscriptionHourSnapshot)
+    private readonly snapshotRepo: Repository<ClientSubscriptionHourSnapshot>,
   ) {}
 
   async syncPartners(): Promise<OdooSyncResult> {
@@ -331,21 +335,16 @@ export class OdooService {
 
     if (clients.length === 0) return [];
 
+    if (month !== undefined && year !== undefined && !this.isCurrentPeriod(month, year)) {
+      // Mes ya cerrado: Odoo resetea qty_delivered el día 1, así que el único
+      // dato confiable es el snapshot que guardamos nosotros antes del reset.
+      return this.getHistoricalSubscriptionHours(clients, month, year);
+    }
+
     const partnerIds = clients.map((c) => c.odooPartnerId!);
     const contracted = await this.getSubscriptionHours(partnerIds);
     const contractedMap = new Map(contracted.map((h) => [h.partnerId, h.contracted]));
-
-    let deliveredMap: Map<number, number>;
-
-    if (month !== undefined && year !== undefined && !this.isCurrentPeriod(month, year)) {
-      // Mes ya cerrado: se reconstruye desde los partes de horas del período.
-      deliveredMap = await this.getDeliveredHoursForPeriod(partnerIds, month, year);
-    } else {
-      // Mes en curso (o sin mes/año): qty_delivered en vivo de la suscripción,
-      // que es el dato real y siempre actualizado — no tiene sentido histórico
-      // para un período que todavía está abierto.
-      deliveredMap = new Map(contracted.map((h) => [h.partnerId, h.delivered]));
-    }
+    const deliveredMap  = new Map(contracted.map((h) => [h.partnerId, h.delivered]));
 
     const partnerToClientId = new Map(clients.map((c) => [c.odooPartnerId!, c.id]));
 
@@ -368,38 +367,57 @@ export class OdooService {
     return month === now.getMonth() + 1 && year === now.getFullYear();
   }
 
-  private async getDeliveredHoursForPeriod(
-    partnerIds: number[],
+  private async getHistoricalSubscriptionHours(
+    clients: Pick<Client, 'id' | 'odooPartnerId'>[],
     month: number,
     year: number,
-  ): Promise<Map<number, number>> {
-    if (partnerIds.length === 0) return new Map();
+  ): Promise<ClientSubscriptionHoursDto[]> {
+    const clientIds = clients.map((c) => c.id);
+    const snapshots = await this.snapshotRepo.find({
+      where: { clientId: In(clientIds), year, month },
+    });
+    const byClientId = new Map(snapshots.map((s) => [s.clientId, s]));
 
-    const dateFrom = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDay  = new Date(year, month, 0).getDate();
-    const dateTo   = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    return clients.map((c) => {
+      const snapshot = byClientId.get(c.id);
+      return {
+        clientId: c.id,
+        contracted: snapshot?.contracted ?? 0,
+        delivered:  snapshot?.delivered ?? 0,
+        available:  snapshot?.available ?? 0,
+      };
+    });
+  }
 
-    const lines = await this.systemRpc.callKw<
-      Array<{ unit_amount: number; partner_id: [number, string] | false }>
-    >(
-      'account.analytic.line',
-      'search_read',
-      [[
-        ['partner_id', 'in', partnerIds],
-        ['date', '>=', dateFrom],
-        ['date', '<=', dateTo],
-        ['product_id.name', 'in', ['Hora Única', 'Hora Única Garantia']],
-      ]],
-      { fields: ['unit_amount', 'partner_id'] },
-    );
+  /** Corre los últimos días del mes, antes de que Odoo resetee qty_delivered
+   * el día 1. Es idempotente (upsert por clientId+year+month) para que una
+   * corrida posterior en el mismo período pise el snapshot con el valor más
+   * reciente, y para que perder una corrida puntual no pierda el mes entero. */
+  @Cron('0 23 28-31 * *')
+  async snapshotCurrentMonthHours(): Promise<void> {
+    try {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
 
-    const totals = new Map<number, number>();
-    for (const line of lines) {
-      if (!line.partner_id) continue;
-      const pid = line.partner_id[0];
-      totals.set(pid, (totals.get(pid) ?? 0) + line.unit_amount);
+      const hours = await this.getClientSubscriptionHours();
+      if (hours.length === 0) return;
+
+      await this.snapshotRepo.upsert(
+        hours.map((h) => ({
+          clientId: h.clientId,
+          year,
+          month,
+          contracted: h.contracted,
+          delivered: h.delivered,
+          available: h.available,
+          snapshotAt: new Date(),
+        })),
+        ['clientId', 'year', 'month'],
+      );
+    } catch (err: unknown) {
+      this.logger.error('Snapshot mensual de horas de suscripción falló', err);
     }
-    return totals;
   }
 
   private async logTimesheet(
