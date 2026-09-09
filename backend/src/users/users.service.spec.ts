@@ -9,6 +9,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import * as fileType from 'file-type';
 import * as passwordUtil from '../common/utils/password.util';
+import { Technician } from '../technicians/technician.entity';
 import { User } from './user.entity';
 import { UserRole } from './user-role.enum';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -27,6 +28,11 @@ describe('UsersService', () => {
     create: jest.Mock;
     save: jest.Mock;
     update: jest.Mock;
+    delete: jest.Mock;
+  };
+  let techRepo: {
+    create: jest.Mock;
+    save: jest.Mock;
     delete: jest.Mock;
   };
   // keep alias for backward compat with existing tests
@@ -74,12 +80,18 @@ describe('UsersService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     };
+    techRepo = {
+      create: jest.fn().mockReturnValue({}),
+      save: jest.fn().mockResolvedValue({ id: 'tech-new', createdAt: new Date() }),
+      delete: jest.fn().mockResolvedValue({ affected: 1 }),
+    };
     userRepository = repo;
 
     const module = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: getRepositoryToken(User), useValue: repo },
+        { provide: getRepositoryToken(Technician), useValue: techRepo },
       ],
     }).compile();
 
@@ -163,6 +175,37 @@ describe('UsersService', () => {
       );
     });
 
+    it('auto-crea perfil técnico si el rol es TECHNICIAN', async () => {
+      userRepository.findOne.mockResolvedValue(null);
+      (passwordUtil.generateRandomPassword as jest.Mock).mockReturnValue('plain123');
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_plain123');
+      userRepository.create.mockReturnValue(savedUser);
+      userRepository.save.mockResolvedValue(savedUser);
+      techRepo.create.mockReturnValue({});
+      techRepo.save.mockResolvedValue({ id: 'tech-new' });
+
+      await service.create(dto);
+
+      expect(techRepo.create).toHaveBeenCalled();
+      expect(techRepo.save).toHaveBeenCalled();
+      expect(userRepository.update).toHaveBeenCalledWith(savedUser.id, { technicianId: 'tech-new' });
+    });
+
+    it('no crea perfil técnico si el rol no es TECHNICIAN', async () => {
+      const adminDto: CreateUserDto = { ...dto, role: UserRole.ADMIN };
+      const adminUser = { ...savedUser, role: UserRole.ADMIN };
+      userRepository.findOne.mockResolvedValue(null);
+      (passwordUtil.generateRandomPassword as jest.Mock).mockReturnValue('plain123');
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_plain123');
+      userRepository.create.mockReturnValue(adminUser);
+      userRepository.save.mockResolvedValue(adminUser);
+
+      await service.create(adminDto);
+
+      expect(techRepo.create).not.toHaveBeenCalled();
+      expect(techRepo.save).not.toHaveBeenCalled();
+    });
+
     it('lanza ConflictException si el email ya existe', async () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
@@ -208,6 +251,45 @@ describe('UsersService', () => {
       await expect(service.update('user-1', 'admin-id', dto)).rejects.toThrow(
         ConflictException,
       );
+    });
+
+    it('auto-crea perfil técnico si el rol cambia a TECHNICIAN', async () => {
+      const userWithoutTech = { ...mockUser, role: UserRole.TL, technicianId: null };
+      userRepository.findOne.mockResolvedValueOnce(userWithoutTech);
+      userRepository.findOne.mockResolvedValueOnce(null);
+      userRepository.update.mockResolvedValue({ affected: 1 });
+      techRepo.create.mockReturnValue({});
+      techRepo.save.mockResolvedValue({ id: 'tech-new' });
+
+      const result = await service.update('user-1', 'admin-id', { role: UserRole.TECHNICIAN });
+
+      expect(techRepo.save).toHaveBeenCalled();
+      expect(userRepository.update).toHaveBeenCalledWith('user-1', { technicianId: 'tech-new' });
+      expect(result.technicianId).toBe('tech-new');
+    });
+
+    it('auto-elimina perfil técnico si el rol cambia desde TECHNICIAN', async () => {
+      const techUser = { ...mockUser, role: UserRole.TECHNICIAN, technicianId: 'tech-1' };
+      userRepository.findOne.mockResolvedValueOnce(techUser);
+      userRepository.findOne.mockResolvedValueOnce(null);
+      userRepository.update.mockResolvedValue({ affected: 1 });
+
+      const result = await service.update('user-1', 'admin-id', { role: UserRole.TL });
+
+      expect(techRepo.delete).toHaveBeenCalledWith('tech-1');
+      expect(userRepository.update).toHaveBeenCalledWith({ technicianId: 'tech-1' }, { technicianId: null });
+      expect(result.technicianId).toBeNull();
+    });
+
+    it('no modifica perfil técnico si el rol no cambia a o desde TECHNICIAN', async () => {
+      userRepository.findOne.mockResolvedValueOnce(mockUser);
+      userRepository.findOne.mockResolvedValueOnce(null);
+      userRepository.update.mockResolvedValue({ affected: 1 });
+
+      await service.update('user-1', 'admin-id', { role: UserRole.ADMIN });
+
+      expect(techRepo.create).not.toHaveBeenCalled();
+      expect(techRepo.delete).not.toHaveBeenCalled();
     });
   });
 
@@ -315,16 +397,18 @@ describe('UsersService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('lanza ConflictException si el usuario tiene un perfil técnico vinculado', async () => {
+    it('auto-elimina el perfil técnico si el usuario es técnico antes de eliminarlo', async () => {
       userRepository.findOne.mockResolvedValue({
         ...mockUser,
         technicianId: 'tech-1',
       });
+      userRepository.delete.mockResolvedValue({ affected: 1 });
 
-      await expect(service.remove('user-1', 'admin-id')).rejects.toThrow(
-        ConflictException,
-      );
-      expect(userRepository.delete).not.toHaveBeenCalled();
+      await service.remove('user-1', 'admin-id');
+
+      expect(userRepository.update).toHaveBeenCalledWith({ technicianId: 'tech-1' }, { technicianId: null });
+      expect(techRepo.delete).toHaveBeenCalledWith('tech-1');
+      expect(userRepository.delete).toHaveBeenCalledWith('user-1');
     });
   });
 

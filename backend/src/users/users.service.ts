@@ -12,6 +12,7 @@ import * as fs from 'fs/promises';
 import { join } from 'path';
 import { Not, Repository } from 'typeorm';
 import { generateRandomPassword } from '../common/utils/password.util';
+import { Technician } from '../technicians/technician.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserRole } from './user-role.enum';
@@ -39,6 +40,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Technician)
+    private readonly technicianRepository: Repository<Technician>,
   ) {}
 
   async findAll(): Promise<UserResponse[]> {
@@ -68,6 +71,15 @@ export class UsersService {
     });
 
     const saved = await this.userRepository.save(user);
+
+    if (dto.role === UserRole.TECHNICIAN) {
+      const technician = await this.technicianRepository.save(
+        this.technicianRepository.create(),
+      );
+      await this.userRepository.update(saved.id, { technicianId: technician.id });
+      saved.technicianId = technician.id;
+    }
+
     return { ...this.toResponse(saved), plainPassword };
   }
 
@@ -95,7 +107,26 @@ export class UsersService {
     }
 
     await this.userRepository.update(id, dto);
-    return this.toResponse({ ...user, ...dto });
+    const updated: User = { ...user, ...dto };
+
+    if (dto.role !== undefined && dto.role !== user.role) {
+      if (dto.role === UserRole.TECHNICIAN && !user.technicianId) {
+        const technician = await this.technicianRepository.save(
+          this.technicianRepository.create(),
+        );
+        await this.userRepository.update(id, { technicianId: technician.id });
+        updated.technicianId = technician.id;
+      } else if (dto.role !== UserRole.TECHNICIAN && user.technicianId) {
+        await this.userRepository.update(
+          { technicianId: user.technicianId },
+          { technicianId: null },
+        );
+        await this.technicianRepository.delete(user.technicianId);
+        updated.technicianId = null;
+      }
+    }
+
+    return this.toResponse(updated);
   }
 
   async updateStatus(
@@ -150,9 +181,11 @@ export class UsersService {
     }
 
     if (user.technicianId) {
-      throw new ConflictException(
-        'Este usuario tiene un perfil técnico vinculado. Quitá el perfil técnico antes de eliminarlo.',
+      await this.userRepository.update(
+        { technicianId: user.technicianId },
+        { technicianId: null },
       );
+      await this.technicianRepository.delete(user.technicianId);
     }
 
     if (user.avatarPath) {
