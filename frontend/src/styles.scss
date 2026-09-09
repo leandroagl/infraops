@@ -55,6 +55,18 @@ $infraops-theme: mat.define-dark-theme((
   border: 1px solid var(--border) !important;
 }
 
+.mat-mdc-option {
+  min-height: 32px !important;
+
+  .mdc-list-item__primary-text {
+    font-size: 12px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 .mat-mdc-form-field .mdc-text-field--filled {
   background-color: var(--card) !important;
 }
