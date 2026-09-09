@@ -186,6 +186,12 @@ export class TasksUnifiedComponent implements OnInit {
     this.load();
   }
 
+  onStatusFilterChange(status: string | null): void {
+    this.statusFilter = status as TaskStatus | null;
+    this.selectedTask = null;
+    this.load();
+  }
+
   onFilterChange(): void {
     this.selectedTask = null;
     this.load();

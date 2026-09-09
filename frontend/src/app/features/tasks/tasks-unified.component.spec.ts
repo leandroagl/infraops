@@ -150,6 +150,20 @@ describe('TasksUnifiedComponent', () => {
     );
   });
 
+  it('onStatusFilterChange setea statusFilter y recarga', () => {
+    component.onStatusFilterChange('PENDING');
+    expect(component.statusFilter).toBe('PENDING');
+    expect(tasksServiceSpy.getAll).toHaveBeenCalledWith(
+      jasmine.objectContaining({ status: 'PENDING' })
+    );
+  });
+
+  it('onStatusFilterChange con null limpia statusFilter', () => {
+    component.statusFilter = 'DONE';
+    component.onStatusFilterChange(null);
+    expect(component.statusFilter).toBeNull();
+  });
+
   it('clearFilters resetea todos los filtros y recarga', () => {
     component.clientFilter = 'c1';
     component.typeFilter   = 'AV_CONTROL';

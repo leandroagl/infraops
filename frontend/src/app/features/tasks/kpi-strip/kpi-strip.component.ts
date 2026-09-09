@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CycleStats } from '../../../core/models/task.models';
 import { daysUntilCycleClose, urgencyLabel } from '../../../shared/utils/urgency';
 
@@ -10,6 +10,12 @@ import { daysUntilCycleClose, urgencyLabel } from '../../../shared/utils/urgency
 export class KpiStripComponent {
   @Input() stats!: CycleStats;
   @Input() closed = false;
+  @Input() activeStatusFilter: string | null = null;
+  @Output() statusFilterChange = new EventEmitter<string | null>();
+
+  toggleStatusFilter(status: string): void {
+    this.statusFilterChange.emit(this.activeStatusFilter === status ? null : status);
+  }
 
   get progressPct(): number {
     if (!this.stats?.assigned) return 0;

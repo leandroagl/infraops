@@ -1,10 +1,26 @@
 <div class="kpi-strip">
 
-  <!-- Escal. / No realizadas -->
-  <div class="kpi-zone kpi-zone--crit">
+  <!-- Total -->
+  <div class="kpi-zone kpi-zone--total"
+       [class.kpi-zone--active]="activeStatusFilter === null"
+       (click)="statusFilterChange.emit(null)">
+    <div class="kpi-zone__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      <span class="kpi-zone__icon-label">Total</span>
+    </div>
+    <div class="kpi-zone__main">
+      <span class="kpi-zone__val">{{ stats.assigned }}</span>
+    </div>
+    <div class="kpi-zone__foot">Asignadas</div>
+  </div>
+
+  <!-- No realizados -->
+  <div class="kpi-zone kpi-zone--crit"
+       [class.kpi-zone--active]="activeStatusFilter === 'NOT_DONE'"
+       (click)="toggleStatusFilter('NOT_DONE')">
     <div class="kpi-zone__icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span class="kpi-zone__icon-label">Escal. / No real.</span>
+      <span class="kpi-zone__icon-label">No realizados</span>
     </div>
     <div class="kpi-zone__main">
       <span class="kpi-zone__val">{{ stats.escalated ?? 0 }}</span>
@@ -14,7 +30,9 @@
   </div>
 
   <!-- Pendientes -->
-  <div class="kpi-zone kpi-zone--warn">
+  <div class="kpi-zone kpi-zone--warn"
+       [class.kpi-zone--active]="activeStatusFilter === 'PENDING'"
+       (click)="toggleStatusFilter('PENDING')">
     <div class="kpi-zone__icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       <span class="kpi-zone__icon-label">Pendientes</span>
@@ -27,7 +45,9 @@
   </div>
 
   <!-- En curso -->
-  <div class="kpi-zone kpi-zone--low">
+  <div class="kpi-zone kpi-zone--low"
+       [class.kpi-zone--active]="activeStatusFilter === 'IN_PROGRESS'"
+       (click)="toggleStatusFilter('IN_PROGRESS')">
     <div class="kpi-zone__icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       <span class="kpi-zone__icon-label">En curso</span>
@@ -40,7 +60,9 @@
   </div>
 
   <!-- Completadas -->
-  <div class="kpi-zone kpi-zone--ok">
+  <div class="kpi-zone kpi-zone--ok"
+       [class.kpi-zone--active]="activeStatusFilter === 'DONE'"
+       (click)="toggleStatusFilter('DONE')">
     <div class="kpi-zone__icon">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
       <span class="kpi-zone__icon-label">Completadas</span>
