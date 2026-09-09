@@ -82,11 +82,6 @@ export class TasksUnifiedComponent implements OnInit {
     return !!(this.clientFilter || this.typeFilter || this.statusFilter || this.techFilter);
   }
 
-  get selectedTechnicianObj(): Technician | null {
-    if (!this.techFilter) return null;
-    return this.technicians?.find(t => t.id === this.techFilter) ?? null;
-  }
-
   /** Ciclo cerrado si el mes/año seleccionado es anterior al actual */
   get cycleClosed(): boolean {
     const now = new Date();
@@ -195,6 +190,16 @@ export class TasksUnifiedComponent implements OnInit {
   onFilterChange(): void {
     this.selectedTask = null;
     this.load();
+  }
+
+  onTypeFilterChange(value: string | null): void {
+    this.typeFilter = value as TaskType | null;
+    this.onFilterChange();
+  }
+
+  onTechFilterChange(value: string | null): void {
+    this.techFilter = value;
+    this.onFilterChange();
   }
 
   clearFilters(): void {

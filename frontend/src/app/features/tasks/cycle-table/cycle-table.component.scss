@@ -20,6 +20,24 @@
     padding: 9px 14px;
     text-align: left;
   }
+
+  thead th.col-type-filter,
+  thead th.col-tech-filter {
+    padding: 4px 8px;
+  }
+}
+
+.th-filter-field {
+  width: 100%;
+  min-width: 160px;
+  --mdc-outlined-text-field-container-shape: 6px;
+  --mat-form-field-container-height: 30px;
+  --mat-form-field-container-vertical-padding: 3px;
+  --mat-select-trigger-text-size: 11px;
+  --mat-select-trigger-text-tracking: normal;
+  --mat-select-trigger-text-weight: 500;
+  --mat-select-placeholder-text-color: var(--tx-lo);
+  --mat-select-trigger-text-color: var(--tx-md);
 }
 
 .group-header td {

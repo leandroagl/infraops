@@ -1,8 +1,35 @@
 <table class="cycle-table">
   <thead>
     <tr>
-      <th>Tipo</th>
-      <th>Técnico</th>
+      <th class="col-type-filter">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="th-filter-field">
+          <mat-select [value]="typeFilter" placeholder="Tipo"
+                      (selectionChange)="onTypeFilterChange($event.value)">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let t of taskTypes" [value]="t.value">{{ t.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </th>
+      <th class="col-tech-filter">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="th-filter-field">
+          <mat-select [value]="techFilter" placeholder="Técnico"
+                      (selectionChange)="onTechFilterChange($event.value)">
+            <mat-select-trigger>
+              <ng-container *ngIf="selectedTechnicianObj as t">
+                <app-user-avatar [name]="t.user.name" [avatarUrl]="t.user.avatarUrl" size="sm"></app-user-avatar>
+                {{ t.user.name }}
+              </ng-container>
+            </mat-select-trigger>
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let t of technicians" [value]="t.id">
+              <div style="display:flex;align-items:center;gap:8px">
+                <app-user-avatar [name]="t.user.name" [avatarUrl]="t.user.avatarUrl" size="sm"></app-user-avatar>
+                {{ t.user.name }}
+              </div>
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </th>
       <th>Estado</th>
       <th>Ticket Odoo</th>
       <th>Notas</th>
