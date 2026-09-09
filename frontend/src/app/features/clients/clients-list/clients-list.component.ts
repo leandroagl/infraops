@@ -35,6 +35,8 @@ export class ClientsListComponent implements OnInit {
 
   private readonly load$ = new Subject<void>();
   private readonly destroyRef = inject(DestroyRef);
+  private hoursData: ClientSubscriptionHours[] = [];
+  private hoursLoaded = false;
 
   constructor(
     private readonly clientsService: ClientsService,
@@ -51,9 +53,7 @@ export class ClientsListComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
-          this.allClients = data
-            .filter((c) => c.isActive)
-            .map((c) => ({ ...c, hours: undefined }));
+          this.allClients = this.mergeHours(data.filter((c) => c.isActive));
         },
         error: () => { this.loadError = true; },
       });
@@ -68,21 +68,32 @@ export class ClientsListComponent implements OnInit {
       )
       .subscribe({
         next: (hoursData) => {
-          const map = new Map(hoursData.map((h) => [h.clientId, h]));
-          this.allClients = this.allClients.map((c) => ({
-            ...c,
-            hours: map.get(c.id) ?? { clientId: c.id, contracted: 0, delivered: 0, available: 0 },
-          }));
+          this.hoursData = hoursData;
+          this.hoursLoaded = true;
+          this.allClients = this.mergeHours(this.allClients);
         },
         error: () => {
-          this.allClients = this.allClients.map((c) => ({
-            ...c,
-            hours: { clientId: c.id, contracted: 0, delivered: 0, available: 0 },
-          }));
+          this.hoursData = [];
+          this.hoursLoaded = true;
+          this.allClients = this.mergeHours(this.allClients);
         },
       });
 
     this.load$.next();
+  }
+
+  // Combina la lista de clientes con las horas ya recibidas, sin importar
+  // el orden de llegada de getAll() y getSubscriptionHours() (evita la
+  // condición de carrera entre ambos requests paralelos).
+  private mergeHours(clients: ClientWithHours[]): ClientWithHours[] {
+    if (!this.hoursLoaded) {
+      return clients.map((c) => ({ ...c, hours: undefined }));
+    }
+    const map = new Map(this.hoursData.map((h) => [h.clientId, h]));
+    return clients.map((c) => ({
+      ...c,
+      hours: map.get(c.id) ?? { clientId: c.id, contracted: 0, delivered: 0, available: 0 },
+    }));
   }
 
   // ── Month navigation ────────────────────────────────────────
