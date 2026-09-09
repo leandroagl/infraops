@@ -5,7 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { FormsModule } from '@angular/forms';
-import { of, NEVER } from 'rxjs';
+import { of, NEVER, Subject } from 'rxjs';
 import { ClientsListComponent } from './clients-list.component';
 import { ClientsService } from '../../../core/services/clients.service';
 import { Client, ClientSubscriptionHours, hoursBarState } from '../../../core/models/client.models';
@@ -110,6 +110,25 @@ describe('ClientsListComponent', () => {
 
     expect(f.componentInstance.allClients[0].hours).toEqual(hours[0]);
     expect(spy1).toHaveBeenCalledTimes(1);
+  });
+
+  it('no pisa las horas cuando subscription-hours resuelve antes que getAll (race condition)', async () => {
+    TestBed.resetTestingModule();
+    const hours: ClientSubscriptionHours[] = [
+      { clientId: 'c1', contracted: 20, delivered: 8, available: 12 },
+    ];
+    const clients$ = new Subject<Client[]>();
+    const hours$ = new Subject<ClientSubscriptionHours[]>();
+    const spy1 = jasmine.createSpy('getAll').and.returnValue(clients$.asObservable());
+    const spy2 = jasmine.createSpy('getSubscriptionHours').and.returnValue(hours$.asObservable());
+    const f = await buildFixture(spy1, spy2);
+
+    // Las horas llegan primero (el navegador podría recibir la respuesta más chica antes)
+    hours$.next(hours);
+    // getAll llega después
+    clients$.next([makeClient()]);
+
+    expect(f.componentInstance.allClients[0].hours).toEqual(hours[0]);
   });
 
   describe('month state', () => {
