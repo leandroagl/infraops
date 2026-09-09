@@ -1151,7 +1151,12 @@ describe('OdooService', () => {
   });
 
   describe('getClientSubscriptionHours con month y year', () => {
-    it('cuando se pasan month y year, llama account.analytic.line con rango de fechas', async () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('cuando se pide un mes ya cerrado, llama account.analytic.line con rango de fechas', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-09-15T12:00:00Z'));
       clientRepo.find.mockResolvedValue([
         makeClient({ id: 'c1', odooPartnerId: 101 }),
       ]);
@@ -1166,15 +1171,37 @@ describe('OdooService', () => {
           { unit_amount: 8, partner_id: [101, 'ACME'] },
         ]);
 
-      const result = await service.getClientSubscriptionHours(9, 2026);
+      // Agosto 2026 ya cerró (estamos en septiembre)
+      const result = await service.getClientSubscriptionHours(8, 2026);
 
-      // Verifica que se consultó account.analytic.line con fechas de Sep 2026
+      // Verifica que se consultó account.analytic.line con fechas de Ago 2026
       const thirdCall = odooRpc.callKw.mock.calls[2];
       expect(thirdCall[0]).toBe('account.analytic.line');
       const domain = thirdCall[2][0];
-      expect(domain).toContainEqual(['date', '>=', '2026-09-01']);
-      expect(domain).toContainEqual(['date', '<=', '2026-09-30']);
+      expect(domain).toContainEqual(['date', '>=', '2026-08-01']);
+      expect(domain).toContainEqual(['date', '<=', '2026-08-31']);
 
+      expect(result).toEqual([
+        { clientId: 'c1', contracted: 20, delivered: 8, available: 12 },
+      ]);
+    });
+
+    it('cuando month/year corresponden al mes actual (en curso), usa qty_delivered en vivo en vez de account.analytic.line', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-09-15T12:00:00Z'));
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { product_uom_qty: 20, qty_delivered: 8, order_id: [1, 'SO001'] },
+        ])
+        .mockResolvedValueOnce([{ id: 1, partner_id: [101, 'ACME'] }]);
+
+      // Septiembre 2026 es el mes en curso (fecha del sistema congelada arriba)
+      const result = await service.getClientSubscriptionHours(9, 2026);
+
+      // Solo 2 llamadas: no debe consultar account.analytic.line para el mes abierto
+      expect(odooRpc.callKw).toHaveBeenCalledTimes(2);
       expect(result).toEqual([
         { clientId: 'c1', contracted: 20, delivered: 8, available: 12 },
       ]);
