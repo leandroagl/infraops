@@ -59,11 +59,14 @@
     [selectedTaskId]="selectedTask?.id ?? null"
     [taskTypes]="taskTypes"
     [technicians]="technicians"
+    [taskStatuses]="taskStatuses"
     [typeFilter]="typeFilter"
     [techFilter]="techFilter"
+    [statusFilter]="statusFilter"
     (taskSelected)="selectTask($event)"
     (typeFilterChange)="onTypeFilterChange($event)"
-    (techFilterChange)="onTechFilterChange($event)">
+    (techFilterChange)="onTechFilterChange($event)"
+    (statusFilterChange)="onStatusFilterChange($event)">
   </app-cycle-table>
 </div>
 

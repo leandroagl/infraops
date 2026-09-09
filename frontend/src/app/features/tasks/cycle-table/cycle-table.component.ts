@@ -14,11 +14,14 @@ export class CycleTableComponent {
   @Input() selectedTaskId: string | null = null;
   @Input() taskTypes: { value: string; label: string }[] = [];
   @Input() technicians: Technician[] = [];
+  @Input() taskStatuses: { value: string; label: string }[] = [];
   @Input() typeFilter: string | null = null;
   @Input() techFilter: string | null = null;
+  @Input() statusFilter: string | null = null;
   @Output() taskSelected = new EventEmitter<Task>();
   @Output() typeFilterChange = new EventEmitter<string | null>();
   @Output() techFilterChange = new EventEmitter<string | null>();
+  @Output() statusFilterChange = new EventEmitter<string | null>();
 
   get selectedTechnicianObj(): Technician | null {
     if (!this.techFilter) return null;
@@ -31,6 +34,10 @@ export class CycleTableComponent {
 
   onTechFilterChange(value: string | null): void {
     this.techFilterChange.emit(value);
+  }
+
+  onStatusFilterChange(value: string | null): void {
+    this.statusFilterChange.emit(value);
   }
 
   groupDoneCount(group: TaskGroup): number {

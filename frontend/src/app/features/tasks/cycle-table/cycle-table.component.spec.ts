@@ -23,6 +23,11 @@ const TASK_TYPES = [
   { value: 'VEEAM_BACKUP', label: 'Veeam Backup' },
 ];
 
+const TASK_STATUSES = [
+  { value: 'PENDING', label: 'Pendiente' },
+  { value: 'DONE', label: 'Hecho' },
+];
+
 function makeTask(id: string, clientId: string, techId: string, status: Task['status'] = 'PENDING'): Task {
   return {
     id, clientId, technicianId: techId,
@@ -60,6 +65,7 @@ describe('CycleTableComponent', () => {
     component.selectedTaskId = null;
     component.taskTypes = TASK_TYPES;
     component.technicians = TECHNICIANS;
+    component.taskStatuses = TASK_STATUSES;
     fixture.detectChanges();
   });
 
@@ -145,6 +151,28 @@ describe('CycleTableComponent', () => {
       const headers: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('thead th');
       const headerText = Array.from(headers).map(h => h.textContent?.trim());
       expect(headerText.some(t => t?.includes('Cliente'))).toBeFalse();
+    });
+
+    it('renderiza un mat-select de Estado con las opciones de taskStatuses', () => {
+      const select: HTMLElement = fixture.nativeElement.querySelector('.col-status-filter mat-select');
+      expect(select).toBeTruthy();
+    });
+
+    it('emite statusFilterChange al elegir un estado', () => {
+      const emitted: (string | null)[] = [];
+      component.statusFilterChange.subscribe((v: string | null) => emitted.push(v));
+
+      component.onStatusFilterChange('DONE');
+
+      expect(emitted).toEqual(['DONE']);
+    });
+
+    it('el trigger de Técnico agrupa avatar y nombre en un contenedor con clase tech-trigger', () => {
+      component.techFilter = 'tech1';
+      fixture.detectChanges();
+      const trigger: HTMLElement = fixture.nativeElement.querySelector('.col-tech-filter .tech-trigger');
+      expect(trigger).toBeTruthy();
+      expect(trigger.textContent).toContain('Valen');
     });
   });
 });

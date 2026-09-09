@@ -15,22 +15,30 @@
           <mat-select [value]="techFilter" placeholder="Técnico"
                       (selectionChange)="onTechFilterChange($event.value)">
             <mat-select-trigger>
-              <ng-container *ngIf="selectedTechnicianObj as t">
+              <div class="tech-trigger" *ngIf="selectedTechnicianObj as t">
                 <app-user-avatar [name]="t.user.name" [avatarUrl]="t.user.avatarUrl" size="sm"></app-user-avatar>
-                {{ t.user.name }}
-              </ng-container>
+                <span class="tech-trigger__name">{{ t.user.name }}</span>
+              </div>
             </mat-select-trigger>
             <mat-option [value]="null">Todos</mat-option>
             <mat-option *ngFor="let t of technicians" [value]="t.id">
-              <div style="display:flex;align-items:center;gap:8px">
+              <div class="tech-trigger">
                 <app-user-avatar [name]="t.user.name" [avatarUrl]="t.user.avatarUrl" size="sm"></app-user-avatar>
-                {{ t.user.name }}
+                <span class="tech-trigger__name">{{ t.user.name }}</span>
               </div>
             </mat-option>
           </mat-select>
         </mat-form-field>
       </th>
-      <th>Estado</th>
+      <th class="col-status-filter">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="th-filter-field">
+          <mat-select [value]="statusFilter" placeholder="Estado"
+                      (selectionChange)="onStatusFilterChange($event.value)">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let s of taskStatuses" [value]="s.value">{{ s.label }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </th>
       <th>Ticket Odoo</th>
       <th>Notas</th>
     </tr>
