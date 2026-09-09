@@ -337,9 +337,13 @@ export class OdooService {
 
     let deliveredMap: Map<number, number>;
 
-    if (month !== undefined && year !== undefined) {
+    if (month !== undefined && year !== undefined && !this.isCurrentPeriod(month, year)) {
+      // Mes ya cerrado: se reconstruye desde los partes de horas del período.
       deliveredMap = await this.getDeliveredHoursForPeriod(partnerIds, month, year);
     } else {
+      // Mes en curso (o sin mes/año): qty_delivered en vivo de la suscripción,
+      // que es el dato real y siempre actualizado — no tiene sentido histórico
+      // para un período que todavía está abierto.
       deliveredMap = new Map(contracted.map((h) => [h.partnerId, h.delivered]));
     }
 
@@ -357,6 +361,11 @@ export class OdooService {
           available:  Math.max(0, contractedVal - deliveredVal),
         };
       });
+  }
+
+  private isCurrentPeriod(month: number, year: number): boolean {
+    const now = new Date();
+    return month === now.getMonth() + 1 && year === now.getFullYear();
   }
 
   private async getDeliveredHoursForPeriod(
