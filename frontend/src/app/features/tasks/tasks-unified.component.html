@@ -30,34 +30,6 @@
         </mat-select>
       </mat-form-field>
 
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
-        <mat-label>Tipo de tarea</mat-label>
-        <mat-select [(value)]="typeFilter" (selectionChange)="onFilterChange()">
-          <mat-option [value]="null">Todos</mat-option>
-          <mat-option *ngFor="let t of taskTypes" [value]="t.value">{{ t.label }}</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-field">
-        <mat-label>Técnico</mat-label>
-        <mat-select [(value)]="techFilter" (selectionChange)="onFilterChange()">
-          <mat-select-trigger>
-            <ng-container *ngIf="selectedTechnicianObj as t">
-              <app-user-avatar [name]="t.user.name" [avatarUrl]="t.user.avatarUrl" size="sm"></app-user-avatar>
-              {{ t.user.name }}
-            </ng-container>
-            <span *ngIf="!selectedTechnicianObj" style="color:var(--tx-lo)">Todos</span>
-          </mat-select-trigger>
-          <mat-option [value]="null">Todos</mat-option>
-          <mat-option *ngFor="let t of technicians" [value]="t.id">
-            <div style="display:flex;align-items:center;gap:8px">
-              <app-user-avatar [name]="t.user.name" [avatarUrl]="t.user.avatarUrl" size="sm"></app-user-avatar>
-              {{ t.user.name }}
-            </div>
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-
       <button *ngIf="hasActiveFilters" mat-button class="clear-btn" (click)="clearFilters()">
         <mat-icon>close</mat-icon>
         Limpiar
@@ -85,7 +57,13 @@
   <app-cycle-table
     [groups]="groups"
     [selectedTaskId]="selectedTask?.id ?? null"
-    (taskSelected)="selectTask($event)">
+    [taskTypes]="taskTypes"
+    [technicians]="technicians"
+    [typeFilter]="typeFilter"
+    [techFilter]="techFilter"
+    (taskSelected)="selectTask($event)"
+    (typeFilterChange)="onTypeFilterChange($event)"
+    (techFilterChange)="onTechFilterChange($event)">
   </app-cycle-table>
 </div>
 
