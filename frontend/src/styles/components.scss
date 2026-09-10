@@ -169,10 +169,10 @@
 }
 
 // ── Angular Material form field — altura estándar del sistema ─
-// Todos los mat-form-field heredan esta altura. No sobreescribir salvo
-// excepción documentada (th-filter-field compactos en headers de tabla,
-// clases específicas del task drawer como .mf-form-field o .mf-srv-ff).
-mat-form-field {
+// .mat-mdc-form-field tiene misma especificidad que las reglas de densidad
+// que genera Material, pero al estar después en el cascade las sobreescribe.
+// No usar mat-form-field (elemento) que tiene menor especificidad y pierde.
+.mat-mdc-form-field {
   --mat-form-field-container-height: var(--field-h);
   --mat-form-field-container-vertical-padding: var(--field-pad);
   --mdc-outlined-text-field-container-shape: var(--field-radius);
