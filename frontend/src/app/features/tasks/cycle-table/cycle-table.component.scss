@@ -32,8 +32,7 @@
   width: 100%;
   min-width: 160px;
   text-transform: none; // el th ancestro fuerza uppercase; el contenido del select no debe heredarlo
-  --mdc-outlined-text-field-container-shape: 6px;
-  --mat-form-field-container-height: 30px;
+  --mat-form-field-container-height: 30px; // excepción: compacto para header de tabla
   --mat-form-field-container-vertical-padding: 3px;
   --mat-select-trigger-text-size: 11px;
   --mat-select-trigger-text-tracking: normal;

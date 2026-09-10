@@ -168,6 +168,16 @@
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
+// ── Angular Material form field — altura estándar del sistema ─
+// Todos los mat-form-field heredan esta altura. No sobreescribir salvo
+// excepción documentada (th-filter-field compactos en headers de tabla,
+// clases específicas del task drawer como .mf-form-field o .mf-srv-ff).
+mat-form-field {
+  --mat-form-field-container-height: var(--field-h);
+  --mat-form-field-container-vertical-padding: var(--field-pad);
+  --mdc-outlined-text-field-container-shape: var(--field-radius);
+}
+
 // ── Inputs ───────────────────────────────────────────────────
 .input {
   background: var(--card);
