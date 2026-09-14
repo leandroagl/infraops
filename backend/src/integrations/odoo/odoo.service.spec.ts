@@ -1442,7 +1442,7 @@ describe('OdooService', () => {
       );
     });
 
-    it('excluye del dominio los productos de horas (Hora Única / Hora Única Garantia)', async () => {
+    it('excluye del dominio los productos de horas, con y sin tilde en Garantía', async () => {
       odooRpc.callKw
         .mockResolvedValueOnce([
           { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
@@ -1461,7 +1461,7 @@ describe('OdooService', () => {
           expect.arrayContaining([
             ['order_id.partner_id', 'in', [101]],
             ['order_id.is_subscription', '=', true],
-            ['product_id.name', 'not in', ['Hora Única', 'Hora Única Garantia']],
+            ['product_id.name', 'not in', ['Hora Única', 'Hora Única Garantia', 'Hora Única Garantía']],
           ]),
         ]),
         expect.objectContaining({ fields: expect.arrayContaining(['product_id', 'order_id']) }),

@@ -391,7 +391,7 @@
 
 .col-hdr {
   display: grid;
-  grid-template-columns: 1fr 300px 270px 110px;
+  grid-template-columns: minmax(190px, 1fr) minmax(280px, 1.4fr) 270px 110px;
   padding: 9px 16px;
   background: var(--card);
   border-bottom: 1px solid var(--border-lo);
@@ -435,7 +435,7 @@
 
 .client-row {
   display: grid;
-  grid-template-columns: 1fr 300px 270px 110px;
+  grid-template-columns: minmax(190px, 1fr) minmax(280px, 1.4fr) 270px 110px;
   padding: 9px 16px;
   border-bottom: 1px solid var(--border-lo);
   align-items: center;
@@ -473,6 +473,7 @@
 
 .svc-chip {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   font-size: 10px;
   font-family: var(--font-mono);
@@ -499,6 +500,7 @@
 
 .svc-overflow {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   font-size: 10px;
   font-family: var(--font-mono);
