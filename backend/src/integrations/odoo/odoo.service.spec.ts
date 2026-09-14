@@ -1442,6 +1442,32 @@ describe('OdooService', () => {
       );
     });
 
+    it('excluye del dominio los productos de horas (Hora Única / Hora Única Garantia)', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      await service.getActiveServices([101]);
+
+      expect(odooRpc.callKw).toHaveBeenNthCalledWith(
+        1,
+        'sale.order.line',
+        'search_read',
+        expect.arrayContaining([
+          expect.arrayContaining([
+            ['order_id.partner_id', 'in', [101]],
+            ['order_id.is_subscription', '=', true],
+            ['product_id.name', 'not in', ['Hora Única', 'Hora Única Garantia']],
+          ]),
+        ]),
+        expect.objectContaining({ fields: expect.arrayContaining(['product_id', 'order_id']) }),
+      );
+    });
+
     it('agrupa líneas de múltiples partners correctamente', async () => {
       odooRpc.callKw
         .mockResolvedValueOnce([
