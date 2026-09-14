@@ -464,11 +464,11 @@
 // ── Services cell ──
 .services-cell {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  align-content: center;
   align-items: center;
   gap: 4px;
-  padding-right: 12px;
-  overflow: hidden;
+  padding: 4px 12px 4px 0;
 }
 
 .svc-chip {
@@ -496,21 +496,6 @@
     text-decoration: line-through;
     text-decoration-color: rgba(84, 98, 114, .5);
   }
-}
-
-.svc-overflow {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  font-size: 10px;
-  font-family: var(--font-mono);
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: var(--neutral-bg, rgba(84,110,122,.12));
-  border: 1px solid var(--neutral-bd, rgba(84,110,122,.25));
-  color: var(--tx-lo);
-  white-space: nowrap;
-  line-height: 1.4;
 }
 
 .svc-none {

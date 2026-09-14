@@ -239,14 +239,11 @@
         <ng-container *ngIf="row.activeServices; else servicesSkeleton">
           <ng-container *ngIf="row.activeServices.services.length > 0; else noServices">
             <span
-              *ngFor="let svc of getVisibleServices(row.activeServices)"
+              *ngFor="let svc of row.activeServices.services"
               class="svc-chip"
               [class.svc-chip--active]="svc.active"
               [class.svc-chip--inactive]="!svc.active">
               {{ svc.name }}
-            </span>
-            <span *ngIf="getOverflowCount(row.activeServices) > 0" class="svc-overflow">
-              +{{ getOverflowCount(row.activeServices) }}
             </span>
           </ng-container>
         </ng-container>
