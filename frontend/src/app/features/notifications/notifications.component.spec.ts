@@ -4,6 +4,8 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatTableModule } from '@angular/material/table';
 import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
 import { NotificationsComponent } from './notifications.component';
 import { NotificationsService } from '../../core/services/notifications.service';
@@ -35,7 +37,7 @@ describe('NotificationsComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [NotificationsComponent],
-      imports: [NoopAnimationsModule, MatTableModule, MatSelectModule, FormsModule],
+      imports: [NoopAnimationsModule, MatTableModule, MatSelectModule, MatFormFieldModule, MatInputModule, FormsModule],
       providers: [{ provide: NotificationsService, useValue: serviceSpy }],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
@@ -207,20 +209,51 @@ describe('NotificationsComponent', () => {
     expect(component.ticketPending(makeItem({ odooTicketId: 142, daysUntil: 10 }))).toBeFalse();
   });
 
-  it('toggleSort invierte la dirección de orden por cliente', () => {
+  it('setSort("client") invierte la dirección si ya estaba activa esa columna', () => {
+    expect(component.sortCol).toBe('client');
     expect(component.sortDir).toBe('asc');
-    component.toggleSort();
+    component.setSort('client');
     expect(component.sortDir).toBe('desc');
   });
 
-  it('filteredItems ordena por nombre de cliente', () => {
+  it('setSort a una columna distinta la activa en orden asc', () => {
+    component.setSort('client');
+    expect(component.sortDir).toBe('desc');
+    component.setSort('expireDate');
+    expect(component.sortCol).toBe('expireDate');
+    expect(component.sortDir).toBe('asc');
+  });
+
+  it('filteredItems ordena por nombre de cliente por defecto', () => {
     component.items = [
       makeItem({ clientName: 'Zeta' }),
       makeItem({ clientName: 'Acme' }),
     ];
     expect(component.filteredItems.map(i => i.clientName)).toEqual(['Acme', 'Zeta']);
-    component.toggleSort();
+    component.setSort('client');
     expect(component.filteredItems.map(i => i.clientName)).toEqual(['Zeta', 'Acme']);
+  });
+
+  it('setSort("expireDate") ordena por días hasta el vencimiento', () => {
+    component.items = [
+      makeItem({ clientName: 'A', daysUntil: 30 }),
+      makeItem({ clientName: 'B', daysUntil: -5 }),
+      makeItem({ clientName: 'C', daysUntil: 10 }),
+    ];
+    component.setSort('expireDate');
+    expect(component.filteredItems.map(i => i.clientName)).toEqual(['B', 'C', 'A']);
+    component.setSort('expireDate');
+    expect(component.filteredItems.map(i => i.clientName)).toEqual(['A', 'C', 'B']);
+  });
+
+  it('quickFilter reduce filteredItems por nombre de cliente', () => {
+    component.items = [
+      makeItem({ clientName: 'Acme Industrial' }),
+      makeItem({ clientName: 'Beta Servicios' }),
+    ];
+    component.quickFilter = 'acme';
+    expect(component.filteredItems.length).toBe(1);
+    expect(component.filteredItems[0].clientName).toBe('Acme Industrial');
   });
 
   it('muestra error cuando el servicio falla', () => {

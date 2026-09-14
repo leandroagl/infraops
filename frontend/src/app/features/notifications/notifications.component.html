@@ -68,14 +68,30 @@
 
   </div><!-- /kpi-strip -->
 
+  <!-- ── Controls ── -->
+  <div class="controls-bar">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
+      <span matPrefix class="search-prefix-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      </span>
+      <input matInput [(ngModel)]="quickFilter" placeholder="Buscar cliente...">
+      <button matSuffix mat-icon-button class="search-clear" *ngIf="quickFilter" (click)="quickFilter = ''" aria-label="Limpiar búsqueda">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </mat-form-field>
+    <span class="controls-spacer"></span>
+    <span class="result-count">{{ totalShown }} vencimientos</span>
+  </div>
+
   <mat-table [dataSource]="filteredItems" class="exp-table">
 
     <ng-container matColumnDef="client">
-      <mat-header-cell *matHeaderCellDef class="col-hdr-cell--sortable" (click)="toggleSort()">
+      <mat-header-cell *matHeaderCellDef class="col-hdr-cell--sortable" [class.col-hdr-cell--active]="sortCol === 'client'" (click)="setSort('client')">
         Cliente
         <svg class="sort-icon" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-          <polyline *ngIf="sortDir === 'asc'"  points="2,8 4,11 6,8" stroke-width="2"/>
-          <polyline *ngIf="sortDir === 'desc'" points="2,4 4,1 6,4" stroke-width="2"/>
+          <polyline *ngIf="sortCol !== 'client'" points="2,8 4,11 6,8" stroke-width="1.5" opacity=".4"/>
+          <polyline *ngIf="sortCol === 'client' && sortDir === 'asc'"  points="2,8 4,11 6,8" stroke-width="2"/>
+          <polyline *ngIf="sortCol === 'client' && sortDir === 'desc'" points="2,4 4,1 6,4" stroke-width="2"/>
         </svg>
       </mat-header-cell>
       <mat-cell *matCellDef="let item">{{ item.clientName }}</mat-cell>
@@ -90,9 +106,10 @@
     </ng-container>
 
     <ng-container matColumnDef="type">
-      <mat-header-cell *matHeaderCellDef>
+      <mat-header-cell *matHeaderCellDef class="type-hdr">
+        <span class="type-hdr__label">Tipo</span>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="th-filter-field">
-          <mat-select [(ngModel)]="filterType" placeholder="Tipo">
+          <mat-select [(ngModel)]="filterType" placeholder="Todos">
             <mat-option value="">Todos</mat-option>
             <mat-option value="asset_warranty">Garantía</mat-option>
             <mat-option value="certificate">Certificado</mat-option>
@@ -107,7 +124,14 @@
     </ng-container>
 
     <ng-container matColumnDef="expireDate">
-      <mat-header-cell *matHeaderCellDef>Vence</mat-header-cell>
+      <mat-header-cell *matHeaderCellDef class="col-hdr-cell--sortable" [class.col-hdr-cell--active]="sortCol === 'expireDate'" (click)="setSort('expireDate')">
+        Vence
+        <svg class="sort-icon" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <polyline *ngIf="sortCol !== 'expireDate'" points="2,8 4,11 6,8" stroke-width="1.5" opacity=".4"/>
+          <polyline *ngIf="sortCol === 'expireDate' && sortDir === 'asc'"  points="2,8 4,11 6,8" stroke-width="2"/>
+          <polyline *ngIf="sortCol === 'expireDate' && sortDir === 'desc'" points="2,4 4,1 6,4" stroke-width="2"/>
+        </svg>
+      </mat-header-cell>
       <mat-cell *matCellDef="let item" class="expire-cell">
         <span class="expire-cell__date">{{ item.expireDate }}</span>
         <span class="badge expire-cell__badge" [ngClass]="urgencyClass(item)">{{ urgencyLabel(item) }}</span>
@@ -132,5 +156,9 @@
     </mat-row>
 
   </mat-table>
+
+  <div class="empty-state" *ngIf="!loading && filteredItems.length === 0 && items.length > 0">
+    Ningún vencimiento coincide con los filtros aplicados.
+  </div>
 
 </div>
