@@ -464,10 +464,11 @@
 // ── Services cell ──
 .services-cell {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 4px;
   padding-right: 12px;
+  overflow: hidden;
 }
 
 .svc-chip {
