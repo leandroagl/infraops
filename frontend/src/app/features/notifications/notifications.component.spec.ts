@@ -12,7 +12,7 @@ import { ExpirationItem, ExpirationType } from '../../core/models/notification.m
 
 function makeItem(overrides: Partial<ExpirationItem> = {}): ExpirationItem {
   return {
-    type: 'domain', clientId: 1, clientName: 'Acme', itemName: 'acme.com',
+    sourceId: 'd1', type: 'domain', clientId: 1, clientName: 'Acme', itemName: 'acme.com',
     expireDate: '2026-07-15', daysUntil: 17, ...overrides,
   };
 }

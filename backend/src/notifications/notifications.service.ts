@@ -50,20 +50,20 @@ export class NotificationsService {
     const items: ExpirationItemDto[] = [];
 
     for (const r of this.safe(assetsRes.data)) {
-      if (!r.asset_warranty_expire || !r.asset_client_id) continue;
-      items.push(this.toItem('asset_warranty', r.asset_client_id, r.asset_name, r.asset_warranty_expire, clientMap, today, r.asset_make ?? undefined, r.asset_model ?? undefined, r.asset_serial ?? undefined));
+      if (!r.asset_id || !r.asset_warranty_expire || !r.asset_client_id) continue;
+      items.push(this.toItem(r.asset_id, 'asset_warranty', r.asset_client_id, r.asset_name, r.asset_warranty_expire, clientMap, today, r.asset_make ?? undefined, r.asset_model ?? undefined, r.asset_serial ?? undefined));
     }
     for (const r of this.safe(certsRes.data)) {
-      if (!r.certificate_expire || !r.certificate_client_id) continue;
-      items.push(this.toItem('certificate', r.certificate_client_id, r.certificate_name, r.certificate_expire, clientMap, today));
+      if (!r.certificate_id || !r.certificate_expire || !r.certificate_client_id) continue;
+      items.push(this.toItem(r.certificate_id, 'certificate', r.certificate_client_id, r.certificate_name, r.certificate_expire, clientMap, today));
     }
     for (const r of this.safe(domainsRes.data)) {
-      if (!r.domain_expire || !r.domain_client_id) continue;
-      items.push(this.toItem('domain', r.domain_client_id, r.domain_name, r.domain_expire, clientMap, today));
+      if (!r.domain_id || !r.domain_expire || !r.domain_client_id) continue;
+      items.push(this.toItem(r.domain_id, 'domain', r.domain_client_id, r.domain_name, r.domain_expire, clientMap, today));
     }
     for (const r of this.safe(softwareRes.data)) {
-      if (!r.software_expire || !r.software_client_id) continue;
-      items.push(this.toItem('software', r.software_client_id, r.software_name, r.software_expire, clientMap, today));
+      if (!r.software_id || !r.software_expire || !r.software_client_id) continue;
+      items.push(this.toItem(r.software_id, 'software', r.software_client_id, r.software_name, r.software_expire, clientMap, today));
     }
 
     return this.filterAndSort(items, days);
@@ -74,6 +74,7 @@ export class NotificationsService {
   }
 
   private toItem(
+    sourceId: string,
     type: ExpirationType,
     rawClientId: string,
     name: string,
@@ -89,6 +90,7 @@ export class NotificationsService {
     expire.setHours(0, 0, 0, 0);
     const daysUntil = Math.round((expire.getTime() - today.getTime()) / 86_400_000);
     return {
+      sourceId: String(sourceId),
       type,
       clientId,
       clientName: clientMap.get(String(clientId)) ?? `Cliente ${clientId}`,

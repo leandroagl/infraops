@@ -67,6 +67,7 @@ describe('NotificationsService', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
+      sourceId: '101',
       type: 'asset_warranty',
       clientId: 1,
       clientName: 'Acme SA',
@@ -74,6 +75,26 @@ describe('NotificationsService', () => {
       expireDate: '2026-07-05',
       daysUntil: 7,
     });
+  });
+
+  it('sourceId se normaliza a string aunque InfraDoc lo mande numérico', async () => {
+    setupMock([{
+      asset_id: 101, asset_name: 'Server Dell R640',
+      asset_warranty_expire: '2026-07-05', asset_client_id: '1',
+    }]);
+
+    const result = await service.getExpirations(90);
+    expect(result[0].sourceId).toBe('101');
+  });
+
+  it('descarta items sin id de origen', async () => {
+    setupMock([{
+      asset_id: null, asset_name: 'Sin id',
+      asset_warranty_expire: '2026-07-05', asset_client_id: '1',
+    }]);
+
+    const result = await service.getExpirations(90);
+    expect(result).toHaveLength(0);
   });
 
   it('omite assets sin asset_warranty_expire', async () => {
@@ -135,6 +156,7 @@ describe('NotificationsService', () => {
     const result = await service.getExpirations(90);
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
+      sourceId: '1',
       type: 'software',
       clientId: 1,
       clientName: 'Acme SA',
@@ -153,6 +175,7 @@ describe('NotificationsService', () => {
     const result = await service.getExpirations(90);
     expect(result[0].type).toBe('domain');
     expect(result[0].itemName).toBe('acme.com.ar');
+    expect(result[0].sourceId).toBe('1');
   });
 
   it('ignora un tipo cuya respuesta InfraDoc tiene success False — no lanza', async () => {
@@ -169,6 +192,7 @@ describe('NotificationsService', () => {
     const result = await service.getExpirations(90);
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('certificate');
+    expect(result[0].sourceId).toBe('1');
   });
 
   it('omite items cuyo client_id es null — no genera "Cliente NaN"', async () => {

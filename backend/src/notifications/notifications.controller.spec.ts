@@ -9,7 +9,7 @@ describe('NotificationsController', () => {
   let service: { getExpirations: jest.Mock };
 
   const makeItem = (): ExpirationItemDto => ({
-    type: 'domain', clientId: 1, clientName: 'Acme',
+    sourceId: 'd1', type: 'domain', clientId: 1, clientName: 'Acme',
     itemName: 'acme.com', expireDate: '2026-07-15', daysUntil: 17,
   });
 
