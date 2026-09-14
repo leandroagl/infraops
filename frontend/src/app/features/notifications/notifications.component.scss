@@ -10,14 +10,10 @@
 .page-hdr {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-}
-
-.page-hdr__left {
-  display: flex;
-  align-items: baseline;
   gap: 10px;
 }
+
+.page-hdr__spacer { flex: 1; }
 
 .page-title {
   font-size: 16px;
@@ -31,44 +27,58 @@
   font-family: var(--font-mono);
 }
 
-.kpi-chip {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  padding: 4px 9px;
-  border-radius: var(--radius);
-  background: var(--surface);
-  border: 1px solid var(--border-lo);
-
-  &__val {
-    font-size: 13px;
-    font-weight: 600;
-    font-family: var(--font-mono);
-    color: var(--tx-hi);
-    line-height: 1;
-  }
-
-  &__lbl {
-    font-size: 10px;
-    color: var(--tx-lo);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  &--vencido .kpi-chip__val { color: var(--crit); }
-  &--crit    .kpi-chip__val { color: var(--warn); }
-  &--warn    .kpi-chip__val { color: var(--accent); }
-}
-
-.filter-bar {
+// ── KPI strip — mismo lenguaje visual que /clients y /tasks, sin barra de ciclo ──
+.kpi-strip {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  align-items: stretch;
+  background: var(--card);
+  border: 1px solid var(--border-lo);
+  border-radius: var(--radius);
+  overflow: hidden;
+  min-height: 76px;
 }
 
-.filter-sep { flex: 1; }
+.kpi-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 20px;
+  border-right: 1px solid var(--border-lo);
+  cursor: pointer;
+  position: relative;
+  transition: background 180ms ease;
+  gap: 5px;
 
+  &:last-child { border-right: none; }
+  &:hover { background: var(--hover); }
+  &:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 0 0 2px 2px;
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+  &--active::before { opacity: 1; }
+
+  &--crit   { color: var(--crit);   &::before { background: var(--crit); }   &.kpi-zone--active { background: rgba(244,67,54,.12); } }
+  &--warn   { color: var(--warn);   &::before { background: var(--warn); }   &.kpi-zone--active { background: rgba(255,179,0,.12); } }
+  &--accent { color: var(--accent); &::before { background: var(--accent); } &.kpi-zone--active { background: rgba(77,208,225,.12); } }
+}
+
+.kpi-zone__icon { display: flex; align-items: center; gap: 6px; opacity: .85; }
+.kpi-zone__icon svg { width: 13px; height: 13px; }
+.kpi-zone__icon-label { font-size: 9px; text-transform: uppercase; letter-spacing: .7px; color: inherit; }
+.kpi-zone__main { display: flex; align-items: baseline; gap: 7px; }
+.kpi-zone__val { font-size: 24px; font-weight: 500; line-height: 1; color: inherit; }
+.kpi-zone__pct { font-size: 11px; color: var(--tx-lo); margin-bottom: 2px; }
+.kpi-zone__foot { font-size: 9px; color: var(--tx-lo); }
+
+// ── Table ──
 .exp-table {
   width: 100%;
   background: var(--surface);
@@ -76,9 +86,40 @@
   border-radius: var(--radius);
 }
 
-.cell--mono      { font-family: var(--font-mono); font-size: 11px; }
-.cell--name      { font-size: 11px; color: var(--tx-md); }
-.cell--secondary { font-size: 11px; color: var(--tx-lo); }
+.col-hdr-cell--sortable {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+.sort-icon { width: 8px; height: 12px; flex-shrink: 0; }
+
+// filtro estilo mat-select embebido en el header, igual que cycle-table de /tasks
+.th-filter-field {
+  width: 110px;
+
+  ::ng-deep .mat-mdc-text-field-wrapper { padding: 0 8px; }
+}
+
+.item-cell { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; }
+.item-cell__name { font-size: 13px; color: var(--tx-hi); }
+.item-cell__meta { font-size: 10px; font-family: var(--font-mono); color: var(--tx-lo); }
+
+.expire-cell { display: flex; flex-direction: column; gap: 3px; padding: 8px 0; }
+.expire-cell__date { font-size: 12px; font-family: var(--font-mono); color: var(--tx-hi); }
+.expire-cell__badge { width: fit-content; }
+
+.ticket-link {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--accent-bd);
+}
+.ticket-link:hover { color: var(--tx-hi); border-bottom-color: var(--tx-hi); }
+.ticket-pending { font-size: 11px; color: var(--warn); font-family: var(--font-mono); }
+.ticket-none    { font-size: 11px; color: var(--tx-lo); font-family: var(--font-mono); }
 
 .exp-row--expired {
   --mat-table-row-item-container-color: rgba(248, 113, 113, 0.04);
