@@ -23,8 +23,8 @@ describe('IntegracionesComponent', () => {
       'getInfraDoc', 'patchInfraDoc', 'testInfraDoc',
       'getVmware', 'patchVmware', 'testVmware',
     ]);
-    mockService.getOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null }));
-    mockService.patchOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null } as OdooConfigDto));
+    mockService.getOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null }));
+    mockService.patchOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null } as OdooConfigDto));
     mockService.testOdoo.and.returnValue(of({ ok: true, message: 'OK' }));
     mockService.getInfraDoc.and.returnValue(of({ url: 'https://id.test', apiKey: MASK, updatedAt: null, updatedBy: null }));
     mockService.patchInfraDoc.and.returnValue(of({ url: 'https://id.test', apiKey: MASK, updatedAt: null, updatedBy: null } as InfraDocConfigDto));
@@ -64,11 +64,20 @@ describe('IntegracionesComponent', () => {
     expect(comp.buildOdooPatchDto().apiKey).toBe('nueva-key');
   });
 
+  it('buildOdooPatchDto incluye expirationsHelpdeskTeamId del form', () => {
+    comp.odooForm.patchValue({ expirationsHelpdeskTeamId: 12 });
+    expect(comp.buildOdooPatchDto().expirationsHelpdeskTeamId).toBe(12);
+  });
+
+  it('carga expirationsHelpdeskTeamId en el form al iniciar', () => {
+    expect(comp.odooForm.value.expirationsHelpdeskTeamId).toBe(9);
+  });
+
   it('no marca connectionStatus como "ok" solo porque la config tiene updatedAt (sin haber probado la conexión)', () => {
     // Reconfigura el mock para simular una config ya guardada previamente (updatedAt seteado)
     // pero cuya conexión nunca fue probada exitosamente en esta sesión.
     mockService.getOdoo.and.returnValue(of({
-      url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7,
+      url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9,
       stageInProgressName: '', stageNotDoneName: '', stageDoneName: '',
       updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar',
     }));

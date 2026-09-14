@@ -51,6 +51,7 @@ export class IntegracionesComponent implements OnInit {
   ) {
     this.odooForm     = this.fb.group({
       url: [''], db: [''], username: [''], apiKey: [MASK], helpdeskTeamId: [null],
+      expirationsHelpdeskTeamId: [null],
       stageInProgressName: [''], stageNotDoneName: [''], stageDoneName: [''],
     });
     this.infradocForm = this.fb.group({ url: [''], apiKey: [MASK] });
@@ -87,10 +88,12 @@ export class IntegracionesComponent implements OnInit {
   buildOdooPatchDto(): Partial<OdooConfigDto> {
     const v = this.odooForm.value as {
       url: string; db: string; username: string; apiKey: string; helpdeskTeamId: number;
+      expirationsHelpdeskTeamId: number;
       stageInProgressName: string; stageNotDoneName: string; stageDoneName: string;
     };
     const dto: Partial<OdooConfigDto> = {
       url: v.url, db: v.db, username: v.username, helpdeskTeamId: v.helpdeskTeamId,
+      expirationsHelpdeskTeamId: v.expirationsHelpdeskTeamId,
       stageInProgressName: v.stageInProgressName,
       stageNotDoneName: v.stageNotDoneName,
       stageDoneName: v.stageDoneName,
