@@ -19,8 +19,10 @@ export class NotificationsComponent implements OnInit {
   items: ExpirationItem[] = [];
   loading = false;
   error = '';
+  quickFilter = '';
   filterType: ExpirationType | '' = '';
   selectedUrgency: UrgencyZone | null = null;
+  sortCol: 'client' | 'expireDate' = 'client';
   sortDir: 'asc' | 'desc' = 'asc';
 
   readonly displayedColumns = ['client', 'item', 'type', 'expireDate', 'ticket'];
@@ -48,9 +50,11 @@ export class NotificationsComponent implements OnInit {
   }
 
   get filteredItems(): ExpirationItem[] {
+    const q = this.quickFilter.trim().toLowerCase();
     const dir = this.sortDir === 'asc' ? 1 : -1;
     return this.items
       .filter(item => {
+        if (q && !item.clientName.toLowerCase().includes(q)) return false;
         if (this.filterType && item.type !== this.filterType) return false;
         if (this.selectedUrgency) {
           const u = this.selectedUrgency;
@@ -61,7 +65,9 @@ export class NotificationsComponent implements OnInit {
         }
         return true;
       })
-      .sort((a, b) => dir * a.clientName.localeCompare(b.clientName, 'es'));
+      .sort((a, b) => this.sortCol === 'client'
+        ? dir * a.clientName.localeCompare(b.clientName, 'es')
+        : dir * (a.daysUntil - b.daysUntil));
   }
 
   get expiredCount():   number { return this.items.filter(i => i.daysUntil < 0).length; }
@@ -78,8 +84,13 @@ export class NotificationsComponent implements OnInit {
     this.selectedUrgency = this.selectedUrgency === zone ? null : zone;
   }
 
-  toggleSort(): void {
-    this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+  setSort(col: 'client' | 'expireDate'): void {
+    if (this.sortCol === col) {
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortCol = col;
+      this.sortDir = 'asc';
+    }
   }
 
   urgencyClass(item: ExpirationItem): string {
