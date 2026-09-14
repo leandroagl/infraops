@@ -1,5 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
-import { ExpirationType } from './dto/expiration-item.dto';
+import type { ExpirationType } from './dto/expiration-item.dto';
 
 @Entity('expiration_tickets')
 @Unique(['type', 'sourceId', 'expireDate'])
