@@ -275,15 +275,4 @@ export class ClientsListComponent implements OnInit {
   get globalHoursBarState(): HoursBarState {
     return hoursBarState(this.kpiHoursPct);
   }
-
-  // ── Services helpers ─────────────────────────────────────────
-  readonly MAX_VISIBLE_CHIPS = 3;
-
-  getVisibleServices(activeServices: ClientActiveServices): { name: string; active: boolean }[] {
-    return activeServices.services.slice(0, this.MAX_VISIBLE_CHIPS);
-  }
-
-  getOverflowCount(activeServices: ClientActiveServices): number {
-    return Math.max(0, activeServices.services.length - this.MAX_VISIBLE_CHIPS);
-  }
 }
