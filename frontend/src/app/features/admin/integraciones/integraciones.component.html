@@ -63,6 +63,15 @@
       </div>
       <div class="field-row">
         <div class="field">
+          <label class="field-label">ID Ticketera Vencimientos <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="expirationsHelpdeskTeamId" type="number" placeholder="9" />
+          </mat-form-field>
+          <span class="field-hint">ID del equipo de Odoo donde InfraOps crea automáticamente los tickets de vencimientos. Debe ser distinto al de mantenimientos.</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
           <label class="field-label">Columna "En progreso" <span class="req">*</span></label>
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
             <input matInput formControlName="stageInProgressName" placeholder="En curso" />

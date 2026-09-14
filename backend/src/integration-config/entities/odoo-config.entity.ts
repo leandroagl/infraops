@@ -20,6 +20,9 @@ export class OdooConfig {
   @Column({ name: 'helpdesk_team_id', type: 'int', nullable: true })
   helpdeskTeamId: number | null = null;
 
+  @Column({ name: 'expirations_helpdesk_team_id', type: 'int', nullable: true })
+  expirationsHelpdeskTeamId: number | null = null;
+
   @Column({ name: 'stage_in_progress_name', type: 'varchar', nullable: true })
   stageInProgressName: string | null = null;
 

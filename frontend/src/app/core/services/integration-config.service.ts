@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 export interface OdooConfigDto {
   url: string; db: string; username: string; apiKey: string;
   helpdeskTeamId: number;
+  expirationsHelpdeskTeamId: number;
   stageInProgressName: string; stageNotDoneName: string; stageDoneName: string;
   updatedAt: Date | null; updatedBy: string | null;
 }
