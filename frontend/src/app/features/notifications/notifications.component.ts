@@ -25,8 +25,6 @@ export class NotificationsComponent implements OnInit {
   sortCol: 'client' | 'expireDate' = 'client';
   sortDir: 'asc' | 'desc' = 'asc';
 
-  readonly displayedColumns = ['client', 'item', 'type', 'expireDate', 'ticket'];
-
   private readonly destroyRef = inject(DestroyRef);
   private loadSub?: Subscription;
 

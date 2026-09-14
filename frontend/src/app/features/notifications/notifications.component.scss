@@ -118,62 +118,90 @@
   white-space: nowrap;
 }
 
-// ── Table ──
-.exp-table {
-  width: 100%;
+// ── Tabla — mismo patrón de grid CSS que /clients ───────────────
+.exp-table-wrap {
   background: var(--surface);
   border: 1px solid var(--border-lo);
   border-radius: var(--radius);
+  overflow: hidden;
 }
 
-// Header y celdas alineados a la izquierda de forma explícita, y con
-// ancho fijo por columna para que header y filas queden en la misma
-// posición sin importar el largo del contenido.
-.mat-mdc-header-cell, .mat-mdc-cell {
-  justify-content: flex-start;
-  text-align: left;
+$exp-grid: minmax(160px, 0.8fr) minmax(240px, 1.6fr) 160px 180px 110px;
+
+.col-hdr {
+  display: grid;
+  grid-template-columns: $exp-grid;
+  padding: 9px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border-lo);
+
+  .col-hdr-cell {
+    display: flex;
+    align-items: center;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--tx-lo);
+    font-family: var(--font-ui);
+
+    &--sortable {
+      gap: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: color .12s ease;
+
+      &:hover { color: var(--tx-md); }
+      &.sort-active { color: var(--accent); }
+    }
+  }
+
+  .sort-icon { width: 8px; height: 12px; flex-shrink: 0; }
 }
 
-.mat-column-client     { flex: 0 0 190px; }
-.mat-column-item       { flex: 1 1 auto; min-width: 0; }
-.mat-column-type       { flex: 0 0 190px; }
-.mat-column-expireDate { flex: 0 0 190px; }
-.mat-column-ticket     { flex: 0 0 100px; }
-
-.col-hdr-cell--sortable {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  user-select: none;
-  transition: color .12s ease;
-
-  &:hover { color: var(--tx-md); }
-}
-.col-hdr-cell--active { color: var(--accent); }
-.sort-icon { width: 8px; height: 12px; flex-shrink: 0; }
-
-.type-hdr {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.type-hdr { gap: 8px; }
 .type-hdr__label { white-space: nowrap; }
 
 // filtro estilo mat-select embebido en el header, igual que cycle-table de /tasks
 .th-filter-field {
-  width: 110px;
+  width: 100px;
 
   ::ng-deep .mat-mdc-text-field-wrapper { padding: 0 8px; }
 }
 
-.item-cell { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; }
+.exp-row {
+  display: grid;
+  grid-template-columns: $exp-grid;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--border-lo);
+  align-items: center;
+  transition: background .12s ease;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--hover); }
+
+  &--expired { --row-tint: rgba(248, 113, 113, 0.04); background: var(--row-tint); }
+  &--expired:hover { background: var(--hover); }
+}
+
+.client-name {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tx-hi);
+}
+
+.item-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .item-cell__name { font-size: 13px; color: var(--tx-hi); }
 .item-cell__meta { font-size: 10px; font-family: var(--font-mono); color: var(--tx-lo); }
 
-.expire-cell { display: flex; flex-direction: column; gap: 3px; padding: 8px 0; }
+.type-cell { display: flex; }
+
+.expire-cell { display: flex; flex-direction: column; gap: 3px; }
 .expire-cell__date { font-size: 12px; font-family: var(--font-mono); color: var(--tx-hi); }
 .expire-cell__badge { width: fit-content; }
+
+.ticket-cell { display: flex; }
 
 .ticket-link {
   font-family: var(--font-mono);
@@ -186,16 +214,9 @@
 .ticket-pending { font-size: 11px; color: var(--warn); font-family: var(--font-mono); }
 .ticket-none    { font-size: 11px; color: var(--tx-lo); font-family: var(--font-mono); }
 
-.exp-row--expired {
-  --mat-table-row-item-container-color: rgba(248, 113, 113, 0.04);
-}
-
 .empty-state {
   padding: 24px;
   text-align: center;
   font-size: 12px;
   color: var(--tx-lo);
-  background: var(--surface);
-  border: 1px solid var(--border-lo);
-  border-radius: var(--radius);
 }
