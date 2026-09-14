@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Vencimientos — con tickets automáticos (v1)</title>
+<style>
+:root {
+  --base:     #0a0d12;
+  --surface:  #111418;
+  --card:     #181d24;
+  --elevated: #1e242e;
+  --hover:    #252c38;
+  --border-lo: rgba(255,255,255,0.06);
+  --border:    rgba(255,255,255,0.10);
+  --border-md: rgba(255,255,255,0.18);
+  --tx-hi: #e8eaf0;
+  --tx-md: #8896a4;
+  --tx-lo: #546272;
+
+  --crit:    #f44336; --crit-bg:  rgba(244, 67, 54,.12);  --crit-bd:  rgba(244, 67, 54,.25);
+  --warn:    #ffb300; --warn-bg:  rgba(255,179,  0,.12);  --warn-bd:  rgba(255,179,  0,.25);
+  --ok:      #43d98a; --ok-bg:    rgba( 67,217,138,.12);  --ok-bd:    rgba( 67,217,138,.25);
+  --neutral: #546e7a; --neutral-bg:rgba(84,110,122,.12);  --neutral-bd:rgba(84,110,122,.25);
+  --accent:    #4dd0e1; --accent-bg: rgba(77,208,225,.12); --accent-bd: rgba(77,208,225,.30);
+
+  --win: #818cf8; --win-bg: rgba(129,140,248,.12); --win-bd: rgba(129,140,248,.25);
+  --nas: #2dd4bf; --nas-bg: rgba(45,212,191,.12);  --nas-bd: rgba(45,212,191,.25);
+  --srv: #60a5fa; --srv-bg: rgba(96,165,250,.12);  --srv-bd: rgba(96,165,250,.25);
+  --bkp: #a3e635; --bkp-bg: rgba(163,230,53,.12);  --bkp-bd: rgba(163,230,53,.25);
+
+  --font-ui:   'DM Sans', system-ui, sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --radius:    8px;
+  --radius-sm: 4px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--base);
+  font-family: var(--font-ui);
+  color: var(--tx-hi);
+  font-size: 13px;
+  padding: 32px 40px 60px;
+}
+
+/* ── Page header ── */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.page-header__title { font-size: 18px; font-weight: 600; color: var(--tx-hi); margin-bottom: 2px; }
+.page-header__count { font-size: 11px; color: var(--tx-lo); }
+.topbar-note {
+  font-size: 11px;
+  color: var(--tx-lo);
+  background: var(--card);
+  border: 1px solid var(--border-lo);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+}
+.topbar-note b { color: var(--tx-md); }
+
+/* ── KPI strip (mismo lenguaje visual que /clients y /tasks, sin barra de ciclo) ── */
+.kpi-strip {
+  display: flex;
+  align-items: stretch;
+  background: var(--card);
+  border: 1px solid var(--border-lo);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 20px;
+  min-height: 80px;
+}
+
+.kpi-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 20px;
+  border-right: 1px solid var(--border-lo);
+  cursor: pointer;
+  position: relative;
+  transition: background 180ms ease;
+  gap: 5px;
+}
+.kpi-zone:last-child { border-right: none; }
+.kpi-zone:hover { background: var(--hover); }
+.kpi-zone::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  border-radius: 0 0 2px 2px; opacity: 0; transition: opacity 180ms ease;
+}
+.kpi-zone--active::before { opacity: 1; }
+.kpi-zone--crit { color: var(--crit); }
+.kpi-zone--crit::before { background: var(--crit); }
+.kpi-zone--crit.kpi-zone--active { background: rgba(244,67,54,.12); }
+.kpi-zone--warn { color: var(--warn); }
+.kpi-zone--warn::before { background: var(--warn); }
+.kpi-zone--warn.kpi-zone--active { background: rgba(255,179,0,.12); }
+.kpi-zone--accent { color: var(--accent); }
+.kpi-zone--accent::before { background: var(--accent); }
+.kpi-zone--accent.kpi-zone--active { background: rgba(77,208,225,.12); }
+.kpi-zone--neutral { color: var(--tx-md); }
+.kpi-zone--neutral::before { background: var(--tx-lo); }
+
+.kpi-zone__icon { display: flex; align-items: center; gap: 6px; opacity: .85; }
+.kpi-zone__icon svg { width: 13px; height: 13px; }
+.kpi-zone__icon-label { font-size: 9px; text-transform: uppercase; letter-spacing: .7px; color: inherit; }
+.kpi-zone__main { display: flex; align-items: baseline; gap: 7px; }
+.kpi-zone__val { font-size: 26px; font-weight: 500; line-height: 1; color: inherit; }
+.kpi-zone__pct { font-size: 11px; color: var(--tx-lo); margin-bottom: 2px; }
+.kpi-zone__foot { font-size: 9px; color: var(--tx-lo); }
+
+/* ── Controls bar ── */
+.controls-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.search-field {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 6px 12px; width: 240px;
+}
+.search-field svg { width: 14px; height: 14px; color: var(--tx-lo); flex-shrink: 0; }
+.search-field input { background: none; border: none; outline: none; color: var(--tx-hi); font-family: var(--font-ui); font-size: 12px; width: 100%; }
+.search-field input::placeholder { color: var(--tx-lo); }
+.controls-spacer { flex: 1; }
+.result-count { font-size: 11px; color: var(--tx-lo); }
+
+/* ── Table ── */
+.surface-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+
+thead tr.col-hdr th {
+  padding: 8px 14px;
+  font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
+  color: var(--tx-lo);
+  background: var(--card);
+  border-bottom: 1px solid var(--border-lo);
+  text-align: left;
+  white-space: nowrap;
+}
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--tx-md); }
+th.sortable .sort-icon { margin-left: 4px; opacity: .5; }
+th.sort-active { color: var(--accent); }
+
+/* filtro estilo mat-select embebido en el header, igual que cycle-table de /tasks */
+.th-filter {
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  min-width: 108px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--tx-md);
+}
+.th-filter select {
+  appearance: none; background: none; border: none; outline: none;
+  color: inherit; font-family: var(--font-ui); font-size: 11px; width: 100%; cursor: pointer;
+}
+.th-filter svg { width: 10px; height: 10px; color: var(--tx-lo); flex-shrink: 0; }
+
+tbody tr { border-bottom: 1px solid var(--border-lo); transition: background 150ms; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--hover); }
+tbody td { padding: 10px 14px; vertical-align: middle; }
+
+.client-name { font-size: 13px; font-weight: 500; color: var(--tx-hi); cursor: pointer; }
+.client-name:hover { color: var(--accent); }
+
+.item-cell { display: flex; flex-direction: column; gap: 2px; }
+.item-cell__name { font-size: 13px; color: var(--tx-hi); }
+.item-cell__meta { font-size: 10px; font-family: var(--font-mono); color: var(--tx-lo); }
+
+.type-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-family: var(--font-mono);
+  padding: 3px 9px; border-radius: 10px; white-space: nowrap;
+}
+.type-badge--warranty  { background: var(--srv-bg); border: 1px solid var(--srv-bd); color: var(--srv); }
+.type-badge--cert      { background: var(--bkp-bg); border: 1px solid var(--bkp-bd); color: var(--bkp); }
+.type-badge--domain    { background: var(--accent-bg); border: 1px solid var(--accent-bd); color: var(--accent); }
+.type-badge--software  { background: var(--win-bg); border: 1px solid var(--win-bd); color: var(--win); }
+
+.expire-cell { display: flex; flex-direction: column; gap: 2px; }
+.expire-cell__date { font-size: 12px; font-family: var(--font-mono); color: var(--tx-hi); }
+.expire-cell__badge {
+  display: inline-flex; align-items: center; width: fit-content;
+  font-size: 10px; font-family: var(--font-mono);
+  padding: 2px 8px; border-radius: 10px;
+}
+.expire-cell__badge--crit   { background: var(--crit-bg);  border: 1px solid var(--crit-bd);  color: var(--crit); }
+.expire-cell__badge--warn   { background: var(--warn-bg);  border: 1px solid var(--warn-bd);  color: var(--warn); }
+.expire-cell__badge--accent { background: var(--accent-bg); border: 1px solid var(--accent-bd); color: var(--accent); }
+.expire-cell__badge--neutral{ background: var(--neutral-bg); border: 1px solid var(--neutral-bd); color: var(--tx-lo); }
+
+.ticket-link {
+  font-family: var(--font-mono); font-size: 11px; color: var(--accent);
+  text-decoration: none; border-bottom: 1px dashed var(--accent-bd);
+}
+.ticket-link:hover { color: var(--tx-hi); border-bottom-color: var(--tx-hi); }
+.ticket-none { font-size: 11px; color: var(--tx-lo); font-family: var(--font-mono); }
+
+/* ── Section label ── */
+.section-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .8px; color: var(--tx-lo); margin: 28px 0 10px; }
+.callout {
+  font-size: 11px; color: var(--tx-md); background: var(--card); border: 1px solid var(--border-lo);
+  border-radius: var(--radius-sm); padding: 10px 14px; max-width: 640px; line-height: 1.5;
+}
+.callout b { color: var(--tx-hi); }
+</style>
+</head>
+<body>
+
+<!-- ── Page header ── -->
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Vencimientos</h1>
+    <span class="page-header__count">42 vencimientos</span>
+  </div>
+  <span class="topbar-note">Siempre trae todo el histórico de InfraDoc — sin checkbox "traer todo", los filtros ya acotan la vista. Tampoco hay barra de ciclo/período: no hay mes cerrado, se lee en vivo</span>
+</div>
+
+<!-- ── KPI strip — mismo lenguaje visual que /clients y /tasks, sin badge de ciclo ── -->
+<div class="kpi-strip">
+
+  <div class="kpi-zone kpi-zone--crit kpi-zone--active">
+    <div class="kpi-zone__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span class="kpi-zone__icon-label">Vencidos</span>
+    </div>
+    <div class="kpi-zone__main">
+      <span class="kpi-zone__val">3</span>
+      <span class="kpi-zone__pct">7%</span>
+    </div>
+    <div class="kpi-zone__foot">Ya pasó la fecha</div>
+  </div>
+
+  <div class="kpi-zone kpi-zone--crit">
+    <div class="kpi-zone__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+      <span class="kpi-zone__icon-label">Esta semana</span>
+    </div>
+    <div class="kpi-zone__main">
+      <span class="kpi-zone__val">5</span>
+      <span class="kpi-zone__pct">12%</span>
+    </div>
+    <div class="kpi-zone__foot">0–7 días</div>
+  </div>
+
+  <div class="kpi-zone kpi-zone--warn">
+    <div class="kpi-zone__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span class="kpi-zone__icon-label">Próximos</span>
+    </div>
+    <div class="kpi-zone__main">
+      <span class="kpi-zone__val">9</span>
+      <span class="kpi-zone__pct">21%</span>
+    </div>
+    <div class="kpi-zone__foot">8–20 días</div>
+  </div>
+
+  <div class="kpi-zone kpi-zone--accent">
+    <div class="kpi-zone__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <span class="kpi-zone__icon-label">Atención</span>
+    </div>
+    <div class="kpi-zone__main">
+      <span class="kpi-zone__val">14</span>
+      <span class="kpi-zone__pct">33%</span>
+    </div>
+    <div class="kpi-zone__foot">21–45 días</div>
+  </div>
+
+</div><!-- /kpi-strip -->
+
+<!-- ── Controls ── -->
+<div class="controls-bar">
+  <div class="search-field">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input placeholder="Buscar cliente o item..." />
+  </div>
+  <span class="controls-spacer"></span>
+  <span class="result-count">42 vencimientos</span>
+</div>
+
+<!-- ── Table — sort en Cliente (como /clients), filtros embebidos en el header (como /tasks) ── -->
+<div class="surface-card">
+  <table>
+    <thead>
+      <tr class="col-hdr">
+        <th class="sortable sort-active">
+          Cliente
+          <svg class="sort-icon" width="8" height="12" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="2,8 4,11 6,8"/></svg>
+        </th>
+        <th>Item</th>
+        <th>
+          <span class="th-filter">
+            <select><option>Tipo: todos</option><option>Garantía</option><option>Certificado</option><option>Dominio</option><option>Licencia</option></select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </th>
+        <th>
+          <span class="th-filter">
+            <select><option>Vence: todos</option><option>Vencidos</option><option>Esta semana</option><option>Próximos</option><option>Atención</option></select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </span>
+        </th>
+        <th>Ticket</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr>
+        <td class="client-name">Acme Industrial SA</td>
+        <td class="item-cell">
+          <span class="item-cell__name">Server Dell R640</span>
+          <span class="item-cell__meta">Dell · PowerEdge R640 · SN AB12CD34</span>
+        </td>
+        <td><span class="type-badge type-badge--warranty">Garantía</span></td>
+        <td class="expire-cell">
+          <span class="expire-cell__date">2026-08-02</span>
+          <span class="expire-cell__badge expire-cell__badge--crit">Vencido hace 5 días</span>
+        </td>
+        <td><a class="ticket-link" href="#">#00142</a></td>
+      </tr>
+
+      <tr>
+        <td class="client-name">Beta Servicios SRL</td>
+        <td class="item-cell">
+          <span class="item-cell__name">betaservicios.com.ar</span>
+          <span class="item-cell__meta">—</span>
+        </td>
+        <td><span class="type-badge type-badge--domain">Dominio</span></td>
+        <td class="expire-cell">
+          <span class="expire-cell__date">2026-09-18</span>
+          <span class="expire-cell__badge expire-cell__badge--crit">Vence en 4 días</span>
+        </td>
+        <td><a class="ticket-link" href="#">#00151</a></td>
+      </tr>
+
+      <tr>
+        <td class="client-name">Gamma Distribución SA</td>
+        <td class="item-cell">
+          <span class="item-cell__name">wildcard.gammadist.com</span>
+          <span class="item-cell__meta">—</span>
+        </td>
+        <td><span class="type-badge type-badge--cert">Certificado</span></td>
+        <td class="expire-cell">
+          <span class="expire-cell__date">2026-09-21</span>
+          <span class="expire-cell__badge expire-cell__badge--crit">Vence en 7 días</span>
+        </td>
+        <td><span class="ticket-none">— pendiente</span></td>
+      </tr>
+
+      <tr>
+        <td class="client-name">Delta Logística SRL</td>
+        <td class="item-cell">
+          <span class="item-cell__name">Kaspersky Endpoint Security</span>
+          <span class="item-cell__meta">—</span>
+        </td>
+        <td><span class="type-badge type-badge--software">Licencia</span></td>
+        <td class="expire-cell">
+          <span class="expire-cell__date">2026-09-30</span>
+          <span class="expire-cell__badge expire-cell__badge--warn">Vence en 16 días</span>
+        </td>
+        <td><a class="ticket-link" href="#">#00149</a></td>
+      </tr>
+
+      <tr>
+        <td class="client-name">Omega Construcción SA</td>
+        <td class="item-cell">
+          <span class="item-cell__name">QNAP TS-873A</span>
+          <span class="item-cell__meta">QNAP · TS-873A · SN QN77281</span>
+        </td>
+        <td><span class="type-badge type-badge--warranty">Garantía</span></td>
+        <td class="expire-cell">
+          <span class="expire-cell__date">2026-10-09</span>
+          <span class="expire-cell__badge expire-cell__badge--accent">Vence en 25 días</span>
+        </td>
+        <td><span class="ticket-none">— pendiente</span></td>
+      </tr>
+
+      <tr>
+        <td class="client-name">Estudio Jurídico R.</td>
+        <td class="item-cell">
+          <span class="item-cell__name">estudiorjuridico.com.ar</span>
+          <span class="item-cell__meta">—</span>
+        </td>
+        <td><span class="type-badge type-badge--domain">Dominio</span></td>
+        <td class="expire-cell">
+          <span class="expire-cell__date">2026-10-20</span>
+          <span class="expire-cell__badge expire-cell__badge--accent">Vence en 36 días</span>
+        </td>
+        <td><span class="ticket-none">—</span></td>
+      </tr>
+
+      <tr>
+        <td class="client-name">Norte Salud SA</td>
+        <td class="item-cell">
+          <span class="item-cell__name">Switch Cisco SG350</span>
+          <span class="item-cell__meta">Cisco · SG350-28 · SN CS99201</span>
+        </td>
+        <td><span class="type-badge type-badge--warranty">Garantía</span></td>
+        <td class="expire-cell">
+          <span class="expire-cell__date">2026-11-30</span>
+          <span class="expire-cell__badge expire-cell__badge--neutral">Vence en 60 días</span>
+        </td>
+        <td><span class="ticket-none">—</span></td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+<div class="section-lbl">Notas de diseño</div>
+<div class="callout">
+  Reutiliza el patrón visual de <b>/clients</b> (KPI strip con zonas clickeables, ahora
+  distribuidas al 100% del ancho porque no hay panel de métricas a la derecha) y de
+  <b>/tasks</b> (filtros <b>mat-select</b> embebidos en el header de la tabla, en vez de una
+  barra de filtros aparte). Se omite el <b>badge de ciclo/período</b> que tienen ambos
+  módulos, porque Vencimientos no tiene noción de mes cerrado — se lee en vivo. Tampoco
+  hay checkbox "traer todo": siempre se trae el histórico completo de InfraDoc, los
+  filtros ya acotan la vista. La columna <b>Estado</b> que existe hoy se elimina por
+  redundante: la fecha + "vence en N días"/"vencido hace N días" ya vive en la columna
+  <b>Vence</b> (mismos 4 estados de hoy: vencido/esta semana → crítico, 8–20 días →
+  alerta, 21–45 → atención, +45 → neutral), y su filtro pasa a vivir en el header de esa
+  misma columna. La columna <b>Ticket</b> es la única pieza nueva: enlaza al ticket ya
+  creado en Odoo, o "pendiente" cuando el vencimiento entró en la ventana de creación
+  automática pero todavía no se generó.
+</div>
+
+</body>
+</html>
