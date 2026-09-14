@@ -648,7 +648,7 @@ export class OdooService {
         [
           ['order_id.partner_id', 'in', partnerIds],
           ['order_id.is_subscription', '=', true],
-          ['product_id.name', 'not in', ['Hora Única', 'Hora Única Garantia']],
+          ['product_id.name', 'not in', ['Hora Única', 'Hora Única Garantia', 'Hora Única Garantía']],
         ],
       ],
       { fields: ['product_id', 'order_id'] },
