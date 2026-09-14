@@ -1,10 +1,9 @@
 <div class="page">
 
   <div class="page-hdr">
-    <div class="page-hdr__left">
-      <span class="page-title">Vencimientos</span>
-      <span class="page-count" *ngIf="!loading">{{ totalShown }} items</span>
-    </div>
+    <span class="page-title">Vencimientos</span>
+    <span class="page-count" *ngIf="!loading">{{ totalShown }} vencimientos</span>
+    <span class="page-hdr__spacer"></span>
     <button mat-stroked-button (click)="load()" [disabled]="loading">Actualizar</button>
   </div>
 
@@ -12,82 +11,96 @@
 
   <div *ngIf="error" class="error-banner">{{ error }}</div>
 
-  <div class="filter-bar">
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-label>Tipo</mat-label>
-      <mat-select [(ngModel)]="filterType">
-        <mat-option value="">Todos los tipos</mat-option>
-        <mat-option value="asset_warranty">Garantía de activo</mat-option>
-        <mat-option value="certificate">Certificado SSL</mat-option>
-        <mat-option value="domain">Dominio</mat-option>
-        <mat-option value="software">Licencia</mat-option>
-      </mat-select>
-    </mat-form-field>
+  <!-- ── KPI strip — mismo lenguaje visual que /clients y /tasks, sin barra de ciclo ── -->
+  <div class="kpi-strip">
 
-    <mat-form-field appearance="outline" subscriptSizing="dynamic">
-      <mat-label>Urgencia</mat-label>
-      <mat-select [(ngModel)]="filterUrgency">
-        <mat-option value="">Toda urgencia</mat-option>
-        <mat-option value="expired">Vencidos</mat-option>
-        <mat-option value="week">Esta semana (≤7d)</mat-option>
-        <mat-option value="soon">Próximo (≤20d)</mat-option>
-        <mat-option value="attention">Atención (≤45d)</mat-option>
-      </mat-select>
-    </mat-form-field>
+    <div class="kpi-zone kpi-zone--crit" [class.kpi-zone--active]="selectedUrgency === 'expired'"
+         role="button" tabindex="0" (click)="toggleUrgency('expired')" (keydown.enter)="toggleUrgency('expired')">
+      <div class="kpi-zone__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span class="kpi-zone__icon-label">Vencidos</span>
+      </div>
+      <div class="kpi-zone__main">
+        <span class="kpi-zone__val">{{ expiredCount }}</span>
+        <span class="kpi-zone__pct">{{ zonePct(expiredCount) }}%</span>
+      </div>
+      <div class="kpi-zone__foot">Ya pasó la fecha</div>
+    </div>
 
-    <mat-checkbox [(ngModel)]="showAll" (change)="onShowAllChange()">
-      Ver todos los futuros
-    </mat-checkbox>
+    <div class="kpi-zone kpi-zone--crit" [class.kpi-zone--active]="selectedUrgency === 'week'"
+         role="button" tabindex="0" (click)="toggleUrgency('week')" (keydown.enter)="toggleUrgency('week')">
+      <div class="kpi-zone__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
+        <span class="kpi-zone__icon-label">Esta semana</span>
+      </div>
+      <div class="kpi-zone__main">
+        <span class="kpi-zone__val">{{ weekCount }}</span>
+        <span class="kpi-zone__pct">{{ zonePct(weekCount) }}%</span>
+      </div>
+      <div class="kpi-zone__foot">0–7 días</div>
+    </div>
 
-    <span class="filter-sep"></span>
+    <div class="kpi-zone kpi-zone--warn" [class.kpi-zone--active]="selectedUrgency === 'soon'"
+         role="button" tabindex="0" (click)="toggleUrgency('soon')" (keydown.enter)="toggleUrgency('soon')">
+      <div class="kpi-zone__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span class="kpi-zone__icon-label">Próximos</span>
+      </div>
+      <div class="kpi-zone__main">
+        <span class="kpi-zone__val">{{ soonCount }}</span>
+        <span class="kpi-zone__pct">{{ zonePct(soonCount) }}%</span>
+      </div>
+      <div class="kpi-zone__foot">8–20 días</div>
+    </div>
 
-    <span class="kpi-chip kpi-chip--vencido">
-      <span class="kpi-chip__val">{{ expiredCount }}</span>
-      <span class="kpi-chip__lbl">Vencidos</span>
-    </span>
-    <span class="kpi-chip kpi-chip--crit">
-      <span class="kpi-chip__val">{{ weekCount }}</span>
-      <span class="kpi-chip__lbl">Esta semana</span>
-    </span>
-    <span class="kpi-chip kpi-chip--warn">
-      <span class="kpi-chip__val">{{ soonCount }}</span>
-      <span class="kpi-chip__lbl">Próximo</span>
-    </span>
-    <span class="kpi-chip">
-      <span class="kpi-chip__val">{{ totalShown }}</span>
-      <span class="kpi-chip__lbl">Mostrando</span>
-    </span>
-  </div>
+    <div class="kpi-zone kpi-zone--accent" [class.kpi-zone--active]="selectedUrgency === 'attention'"
+         role="button" tabindex="0" (click)="toggleUrgency('attention')" (keydown.enter)="toggleUrgency('attention')">
+      <div class="kpi-zone__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span class="kpi-zone__icon-label">Atención</span>
+      </div>
+      <div class="kpi-zone__main">
+        <span class="kpi-zone__val">{{ attentionCount }}</span>
+        <span class="kpi-zone__pct">{{ zonePct(attentionCount) }}%</span>
+      </div>
+      <div class="kpi-zone__foot">21–45 días</div>
+    </div>
+
+  </div><!-- /kpi-strip -->
 
   <mat-table [dataSource]="filteredItems" class="exp-table">
 
     <ng-container matColumnDef="client">
-      <mat-header-cell *matHeaderCellDef>Cliente</mat-header-cell>
+      <mat-header-cell *matHeaderCellDef class="col-hdr-cell--sortable" (click)="toggleSort()">
+        Cliente
+        <svg class="sort-icon" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <polyline *ngIf="sortDir === 'asc'"  points="2,8 4,11 6,8" stroke-width="2"/>
+          <polyline *ngIf="sortDir === 'desc'" points="2,4 4,1 6,4" stroke-width="2"/>
+        </svg>
+      </mat-header-cell>
       <mat-cell *matCellDef="let item">{{ item.clientName }}</mat-cell>
     </ng-container>
 
     <ng-container matColumnDef="item">
       <mat-header-cell *matHeaderCellDef>Item</mat-header-cell>
-      <mat-cell *matCellDef="let item" class="cell--name">{{ item.itemName }}</mat-cell>
-    </ng-container>
-
-    <ng-container matColumnDef="make">
-      <mat-header-cell *matHeaderCellDef>Marca</mat-header-cell>
-      <mat-cell *matCellDef="let item" class="cell--secondary">{{ item.make || '—' }}</mat-cell>
-    </ng-container>
-
-    <ng-container matColumnDef="model">
-      <mat-header-cell *matHeaderCellDef>Modelo</mat-header-cell>
-      <mat-cell *matCellDef="let item" class="cell--secondary">{{ item.model || '—' }}</mat-cell>
-    </ng-container>
-
-    <ng-container matColumnDef="serial">
-      <mat-header-cell *matHeaderCellDef>Serie</mat-header-cell>
-      <mat-cell *matCellDef="let item" class="cell--mono cell--secondary">{{ item.serial || '—' }}</mat-cell>
+      <mat-cell *matCellDef="let item" class="item-cell">
+        <span class="item-cell__name">{{ item.itemName }}</span>
+        <span class="item-cell__meta" *ngIf="itemMeta(item)">{{ itemMeta(item) }}</span>
+      </mat-cell>
     </ng-container>
 
     <ng-container matColumnDef="type">
-      <mat-header-cell *matHeaderCellDef>Tipo</mat-header-cell>
+      <mat-header-cell *matHeaderCellDef>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="th-filter-field">
+          <mat-select [(ngModel)]="filterType" placeholder="Tipo">
+            <mat-option value="">Todos</mat-option>
+            <mat-option value="asset_warranty">Garantía</mat-option>
+            <mat-option value="certificate">Certificado</mat-option>
+            <mat-option value="domain">Dominio</mat-option>
+            <mat-option value="software">Licencia</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </mat-header-cell>
       <mat-cell *matCellDef="let item">
         <span class="badge badge--type" [ngClass]="typeClass(item.type)">{{ typeLabel(item.type) }}</span>
       </mat-cell>
@@ -95,13 +108,19 @@
 
     <ng-container matColumnDef="expireDate">
       <mat-header-cell *matHeaderCellDef>Vence</mat-header-cell>
-      <mat-cell *matCellDef="let item" class="cell--mono">{{ item.expireDate }}</mat-cell>
+      <mat-cell *matCellDef="let item" class="expire-cell">
+        <span class="expire-cell__date">{{ item.expireDate }}</span>
+        <span class="badge expire-cell__badge" [ngClass]="urgencyClass(item)">{{ urgencyLabel(item) }}</span>
+      </mat-cell>
     </ng-container>
 
-    <ng-container matColumnDef="status">
-      <mat-header-cell *matHeaderCellDef>Estado</mat-header-cell>
+    <ng-container matColumnDef="ticket">
+      <mat-header-cell *matHeaderCellDef>Ticket</mat-header-cell>
       <mat-cell *matCellDef="let item">
-        <span class="badge" [ngClass]="urgencyClass(item)">{{ urgencyLabel(item) }}</span>
+        <a *ngIf="ticketLink(item) as link" [href]="link" target="_blank" rel="noopener noreferrer"
+           class="ticket-link" (click)="$event.stopPropagation()">{{ ticketLabel(item) }}</a>
+        <span *ngIf="!ticketLink(item) && ticketPending(item)" class="ticket-pending">pendiente</span>
+        <span *ngIf="!ticketLink(item) && !ticketPending(item)" class="ticket-none">—</span>
       </mat-cell>
     </ng-container>
 

@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { NotificationsController } from './notifications.controller';
-import { NotificationsService } from './notifications.service';
+import { ExpirationTicketsService } from './expiration-tickets.service';
 import { ExpirationItemDto } from './dto/expiration-item.dto';
 
 describe('NotificationsController', () => {
   let controller: NotificationsController;
-  let service: { getExpirations: jest.Mock };
+  let service: { getExpirationsWithTickets: jest.Mock };
 
   const makeItem = (): ExpirationItemDto => ({
     sourceId: 'd1', type: 'domain', clientId: 1, clientName: 'Acme',
@@ -14,12 +14,12 @@ describe('NotificationsController', () => {
   });
 
   beforeEach(async () => {
-    service = { getExpirations: jest.fn() };
+    service = { getExpirationsWithTickets: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [NotificationsController],
       providers: [
-        { provide: NotificationsService, useValue: service },
+        { provide: ExpirationTicketsService, useValue: service },
         { provide: JwtAuthGuard, useValue: { canActivate: () => true } },
       ],
     }).compile();
@@ -28,21 +28,21 @@ describe('NotificationsController', () => {
   });
 
   it('devuelve el array del servicio', async () => {
-    service.getExpirations.mockResolvedValue([makeItem()]);
+    service.getExpirationsWithTickets.mockResolvedValue([makeItem()]);
     const result = await controller.getExpirations(undefined);
     expect(result).toHaveLength(1);
   });
 
   it('parsea query param days a número y lo pasa al servicio', async () => {
-    service.getExpirations.mockResolvedValue([]);
+    service.getExpirationsWithTickets.mockResolvedValue([]);
     await controller.getExpirations('30');
-    expect(service.getExpirations).toHaveBeenCalledWith(30);
+    expect(service.getExpirationsWithTickets).toHaveBeenCalledWith(30);
   });
 
   it('pasa undefined al servicio cuando days no se provee', async () => {
-    service.getExpirations.mockResolvedValue([]);
+    service.getExpirationsWithTickets.mockResolvedValue([]);
     await controller.getExpirations(undefined);
-    expect(service.getExpirations).toHaveBeenCalledWith(undefined);
+    expect(service.getExpirationsWithTickets).toHaveBeenCalledWith(undefined);
   });
 
   it('tiene JwtAuthGuard aplicado', () => {
