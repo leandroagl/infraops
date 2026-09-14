@@ -26,8 +26,13 @@ const MATERIAL_IMPORTS = [
 async function buildFixture(
   getAll: jasmine.Spy,
   getSubscriptionHours: jasmine.Spy,
+  getActiveServices?: jasmine.Spy,
 ): Promise<ComponentFixture<ClientsListComponent>> {
-  const svc = { getAll, getSubscriptionHours } as unknown as ClientsService;
+  const svc = {
+    getAll,
+    getSubscriptionHours,
+    getActiveServices: getActiveServices ?? jasmine.createSpy('getActiveServices').and.returnValue(of([])),
+  } as unknown as ClientsService;
   await TestBed.configureTestingModule({
     declarations: [ClientsListComponent],
     imports: MATERIAL_IMPORTS,
@@ -54,15 +59,17 @@ describe('ClientsListComponent', () => {
   let fixture: ComponentFixture<ClientsListComponent>;
   let getAllSpy: jasmine.Spy;
   let getHoursSpy: jasmine.Spy;
+  let getActiveServicesSpy: jasmine.Spy;
 
   beforeEach(async () => {
     getAllSpy = jasmine.createSpy('getAll').and.returnValue(of([]));
     getHoursSpy = jasmine.createSpy('getSubscriptionHours').and.returnValue(of([]));
+    getActiveServicesSpy = jasmine.createSpy('getActiveServices').and.returnValue(of([]));
 
     await TestBed.configureTestingModule({
       declarations: [ClientsListComponent],
       imports: MATERIAL_IMPORTS,
-      providers: [{ provide: ClientsService, useValue: { getAll: getAllSpy, getSubscriptionHours: getHoursSpy } }],
+      providers: [{ provide: ClientsService, useValue: { getAll: getAllSpy, getSubscriptionHours: getHoursSpy, getActiveServices: getActiveServicesSpy } }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ClientsListComponent);
@@ -74,9 +81,10 @@ describe('ClientsListComponent', () => {
     TestBed.resetTestingModule();
   });
 
-  it('lanza getAll y getSubscriptionHours en paralelo al inicializar', () => {
+  it('lanza getAll, getSubscriptionHours y getActiveServices en paralelo al inicializar', () => {
     expect(getAllSpy).toHaveBeenCalledTimes(1);
     expect(getHoursSpy).toHaveBeenCalledTimes(1);
+    expect(getActiveServicesSpy).toHaveBeenCalledTimes(1);
   });
 
   it('filtra clientes inactivos y popula allClients', async () => {

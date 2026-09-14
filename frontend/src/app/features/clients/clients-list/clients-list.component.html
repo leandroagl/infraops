@@ -195,6 +195,7 @@
           </ng-container>
         </svg>
       </div>
+      <div class="col-hdr-cell">Servicios</div>
       <div class="col-hdr-cell col-hdr-cell--sortable" [class.sort-active]="sortCol === 'hours'" (click)="setSort('hours')">
         Horas del mes
         <svg class="sort-icon" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -232,6 +233,30 @@
 
       <div class="client-name">
         <span class="client-name-text">{{ row.name }}</span>
+      </div>
+
+      <div class="services-cell">
+        <ng-container *ngIf="row.activeServices; else servicesSkeleton">
+          <ng-container *ngIf="row.activeServices.services.length > 0; else noServices">
+            <span
+              *ngFor="let svc of getVisibleServices(row.activeServices)"
+              class="svc-chip"
+              [class.svc-chip--active]="svc.active"
+              [class.svc-chip--inactive]="!svc.active">
+              {{ svc.name }}
+            </span>
+            <span *ngIf="getOverflowCount(row.activeServices) > 0" class="svc-overflow">
+              +{{ getOverflowCount(row.activeServices) }}
+            </span>
+          </ng-container>
+        </ng-container>
+        <ng-template #noServices>
+          <span class="svc-none">—</span>
+        </ng-template>
+        <ng-template #servicesSkeleton>
+          <span class="skeleton svc-sk"></span>
+          <span class="skeleton svc-sk svc-sk--short"></span>
+        </ng-template>
       </div>
 
       <div class="hours-cell">

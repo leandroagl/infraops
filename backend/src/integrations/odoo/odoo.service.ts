@@ -18,6 +18,8 @@ import { OdooUser } from './dto/odoo-user.dto';
 import { OdooSyncResult } from './dto/odoo-sync-result.dto';
 import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 import { ClientSubscriptionHoursDto } from './dto/client-subscription-hours.dto';
+import { ClientActiveServicesDto, ClientServiceDto } from './dto/client-active-services.dto';
+import { SERVICE_PRODUCT_DISPLAY_NAME_OVERRIDES } from './service-product-display-names';
 import { TaskType } from '../../tasks/task-type.enum';
 import { TaskConfigService } from '../../task-config/task-config.service';
 import { TICKET_DESCRIPTION_DEFAULTS, TIMESHEET_DESCRIPTION_DEFAULT } from '../../task-config/task-description-defaults';
@@ -630,5 +632,88 @@ export class OdooService {
       'res.users', 'read', [[user.odooUserId]], { fields: ['partner_id'] },
     );
     return results?.[0]?.partner_id?.[0] ?? null;
+  }
+
+  async getActiveServices(
+    partnerIds: number[],
+  ): Promise<{ partnerId: number; productId: number; productName: string; active: boolean }[]> {
+    if (partnerIds.length === 0) return [];
+
+    const lines = await this.systemRpc.callKw<
+      Array<{ id: number; product_id: [number, string]; order_id: [number, string] }>
+    >(
+      'sale.order.line',
+      'search_read',
+      [
+        [
+          ['order_id.partner_id', 'in', partnerIds],
+          ['order_id.is_subscription', '=', true],
+        ],
+      ],
+      { fields: ['product_id', 'order_id'] },
+    );
+
+    if (lines.length === 0) return [];
+
+    const orderIds = [...new Set(lines.map((l) => l.order_id[0]))];
+    const orders = await this.systemRpc.callKw<
+      Array<{ id: number; partner_id: [number, string]; subscription_state: string }>
+    >(
+      'sale.order',
+      'read',
+      [orderIds],
+      { fields: ['partner_id', 'subscription_state'] },
+    );
+
+    const orderMap = new Map(
+      orders.map((o) => [o.id, { partnerId: o.partner_id[0], subscriptionState: o.subscription_state }]),
+    );
+
+    return lines.flatMap((line) => {
+      const order = orderMap.get(line.order_id[0]);
+      if (!order) return [];
+      return [{
+        partnerId: order.partnerId,
+        productId: line.product_id[0],
+        productName: line.product_id[1],
+        active: order.subscriptionState === '3_progress',
+      }];
+    });
+  }
+
+  async getClientActiveServices(): Promise<ClientActiveServicesDto[]> {
+    const clients = await this.clientRepo.find({
+      where: { isActive: true, odooPartnerId: Not(IsNull()) },
+      select: { id: true, odooPartnerId: true },
+    });
+
+    if (clients.length === 0) return [];
+
+    const partnerIds = clients.map((c) => c.odooPartnerId!);
+    const rawServices = await this.getActiveServices(partnerIds);
+
+    const partnerToClient = new Map(clients.map((c) => [c.odooPartnerId!, c.id]));
+
+    // Agrupar por clientId → dedupe por productId con active = OR
+    const byClient = new Map<string, Map<number, { name: string; active: boolean }>>();
+    for (const svc of rawServices) {
+      const clientId = partnerToClient.get(svc.partnerId);
+      if (!clientId) continue;
+      if (!byClient.has(clientId)) byClient.set(clientId, new Map());
+      const productMap = byClient.get(clientId)!;
+      const existing = productMap.get(svc.productId);
+      productMap.set(svc.productId, {
+        name: SERVICE_PRODUCT_DISPLAY_NAME_OVERRIDES[svc.productId] ?? svc.productName,
+        active: existing ? existing.active || svc.active : svc.active,
+      });
+    }
+
+    return clients.map((c): ClientActiveServicesDto => {
+      const productMap = byClient.get(c.id);
+      const services: ClientServiceDto[] = productMap
+        ? Array.from(productMap.values()).map((s) => ({ name: s.name, active: s.active }))
+        : [];
+      return { clientId: c.id, services };
+    });
   }
 }

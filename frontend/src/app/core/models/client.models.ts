@@ -17,6 +17,20 @@ export interface ClientWithHours extends Client {
   hours?: ClientSubscriptionHours;
 }
 
+export interface ClientService {
+  name: string;
+  active: boolean;
+}
+
+export interface ClientActiveServices {
+  clientId: string;
+  services: ClientService[];
+}
+
+export interface ClientWithHoursAndServices extends ClientWithHours {
+  activeServices?: ClientActiveServices;
+}
+
 /** Calidad de consumo: mayor consumo = mejor. Distinto de la zona de filtrado. */
 export type HoursBarState = 'ok' | 'warn' | 'crit';
 

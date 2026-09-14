@@ -1358,4 +1358,196 @@ describe('OdooService', () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('getActiveServices', () => {
+    it('retorna [] cuando partnerIds está vacío', async () => {
+      const result = await service.getActiveServices([]);
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
+    });
+
+    it('retorna [] cuando Odoo no devuelve líneas', async () => {
+      odooRpc.callKw.mockResolvedValue([]);
+      const result = await service.getActiveServices([101]);
+      expect(result).toEqual([]);
+    });
+
+    it('hace 2 llamadas a Odoo: líneas de suscripción y luego órdenes', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      await service.getActiveServices([101]);
+
+      expect(odooRpc.callKw).toHaveBeenCalledTimes(2);
+      expect(odooRpc.callKw).toHaveBeenNthCalledWith(
+        1,
+        'sale.order.line',
+        'search_read',
+        expect.arrayContaining([
+          expect.arrayContaining([
+            ['order_id.partner_id', 'in', [101]],
+            ['order_id.is_subscription', '=', true],
+          ]),
+        ]),
+        expect.objectContaining({ fields: expect.arrayContaining(['product_id', 'order_id']) }),
+      );
+      expect(odooRpc.callKw).toHaveBeenNthCalledWith(
+        2,
+        'sale.order',
+        'read',
+        [[10]],
+        expect.objectContaining({ fields: expect.arrayContaining(['partner_id', 'subscription_state']) }),
+      );
+    });
+
+    it('marca active=true cuando subscription_state es 3_progress', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      const result = await service.getActiveServices([101]);
+
+      expect(result).toEqual([
+        { partnerId: 101, productId: 55, productName: 'Hosting', active: true },
+      ]);
+    });
+
+    it('marca active=false cuando subscription_state es 4_paused o 6_churn', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+          { id: 2, product_id: [56, 'Kaspersky'], order_id: [11, 'S002'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '4_paused' },
+          { id: 11, partner_id: [101, 'ACME'], subscription_state: '6_churn' },
+        ]);
+
+      const result = await service.getActiveServices([101]);
+
+      expect(result).toEqual(
+        expect.arrayContaining([
+          { partnerId: 101, productId: 55, productName: 'Hosting', active: false },
+          { partnerId: 101, productId: 56, productName: 'Kaspersky', active: false },
+        ]),
+      );
+    });
+
+    it('agrupa líneas de múltiples partners correctamente', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+          { id: 2, product_id: [55, 'Hosting'], order_id: [11, 'S002'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+          { id: 11, partner_id: [102, 'BETA'], subscription_state: '4_paused' },
+        ]);
+
+      const result = await service.getActiveServices([101, 102]);
+
+      expect(result).toEqual(
+        expect.arrayContaining([
+          { partnerId: 101, productId: 55, productName: 'Hosting', active: true },
+          { partnerId: 102, productId: 55, productName: 'Hosting', active: false },
+        ]),
+      );
+    });
+  });
+
+  describe('getClientActiveServices', () => {
+    it('retorna [] cuando no hay clientes activos con odooPartnerId', async () => {
+      clientRepo.find.mockResolvedValue([]);
+      const result = await service.getClientActiveServices();
+      expect(result).toEqual([]);
+    });
+
+    it('retorna services:[] para clientes sin suscripciones en Odoo', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw.mockResolvedValue([]);
+
+      const result = await service.getClientActiveServices();
+
+      expect(result).toEqual([{ clientId: 'c1', services: [] }]);
+    });
+
+    it('mapea partnerId → clientId y devuelve los servicios', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      const result = await service.getClientActiveServices();
+
+      expect(result).toEqual([
+        { clientId: 'c1', services: [{ name: 'Hosting', active: true }] },
+      ]);
+    });
+
+    it('deduplica por productId: si el mismo producto aparece en 2 líneas, active=OR', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+          { id: 2, product_id: [55, 'Hosting'], order_id: [11, 'S002'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '4_paused' },
+          { id: 11, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      const result = await service.getClientActiveServices();
+
+      expect(result[0].services).toHaveLength(1);
+      expect(result[0].services[0]).toEqual({ name: 'Hosting', active: true });
+    });
+
+    it('usa el nombre del producto de Odoo cuando no hay override definido', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting Web'], order_id: [10, 'S001'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      const result = await service.getClientActiveServices();
+
+      expect(result[0].services[0].name).toBe('Hosting Web');
+    });
+
+    it('no incluye clientes sin odooPartnerId', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw.mockResolvedValue([]);
+
+      await service.getClientActiveServices();
+
+      const callArg = clientRepo.find.mock.calls[0][0];
+      expect(callArg.where).toMatchObject({ isActive: true });
+    });
+  });
 });

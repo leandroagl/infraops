@@ -5,8 +5,9 @@ import { Subject } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { ClientsService } from '../../../core/services/clients.service';
 import {
+  ClientActiveServices,
   ClientSubscriptionHours,
-  ClientWithHours,
+  ClientWithHoursAndServices,
   hoursBarState,
   HoursBarState,
 } from '../../../core/models/client.models';
@@ -24,7 +25,7 @@ const MONTH_NAMES = [
   styleUrls: ['./clients-list.component.scss'],
 })
 export class ClientsListComponent implements OnInit {
-  allClients: ClientWithHours[] = [];
+  allClients: ClientWithHoursAndServices[] = [];
   quickFilter   = '';
   selectedZone: HoursZone | null = null;
   loadError     = false;
@@ -37,6 +38,8 @@ export class ClientsListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private hoursData: ClientSubscriptionHours[] = [];
   private hoursLoaded = false;
+  private servicesData: ClientActiveServices[] = [];
+  private servicesLoaded = false;
 
   constructor(
     private readonly clientsService: ClientsService,
@@ -53,7 +56,7 @@ export class ClientsListComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
-          this.allClients = this.mergeHours(data.filter((c) => c.isActive));
+          this.allClients = this.mergeData(data.filter((c) => c.isActive));
         },
         error: () => { this.loadError = true; },
       });
@@ -70,29 +73,45 @@ export class ClientsListComponent implements OnInit {
         next: (hoursData) => {
           this.hoursData = hoursData;
           this.hoursLoaded = true;
-          this.allClients = this.mergeHours(this.allClients);
+          this.allClients = this.mergeData(this.allClients);
         },
         error: () => {
           this.hoursData = [];
           this.hoursLoaded = true;
-          this.allClients = this.mergeHours(this.allClients);
+          this.allClients = this.mergeData(this.allClients);
+        },
+      });
+
+    // Carga servicios activos una sola vez en paralelo
+    this.clientsService.getActiveServices()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (servicesData) => {
+          this.servicesData = servicesData;
+          this.servicesLoaded = true;
+          this.allClients = this.mergeData(this.allClients);
+        },
+        error: () => {
+          this.servicesData = [];
+          this.servicesLoaded = true;
+          this.allClients = this.mergeData(this.allClients);
         },
       });
 
     this.load$.next();
   }
 
-  // Combina la lista de clientes con las horas ya recibidas, sin importar
-  // el orden de llegada de getAll() y getSubscriptionHours() (evita la
-  // condición de carrera entre ambos requests paralelos).
-  private mergeHours(clients: ClientWithHours[]): ClientWithHours[] {
-    if (!this.hoursLoaded) {
-      return clients.map((c) => ({ ...c, hours: undefined }));
-    }
-    const map = new Map(this.hoursData.map((h) => [h.clientId, h]));
+  // Combina la lista de clientes con horas y servicios ya recibidos, sin importar
+  // el orden de llegada entre los tres requests paralelos.
+  private mergeData(clients: ClientWithHoursAndServices[]): ClientWithHoursAndServices[] {
+    const hoursMap = new Map(this.hoursData.map((h) => [h.clientId, h]));
+    const servicesMap = new Map(this.servicesData.map((s) => [s.clientId, s]));
     return clients.map((c) => ({
       ...c,
-      hours: map.get(c.id) ?? { clientId: c.id, contracted: 0, delivered: 0, available: 0 },
+      hours: this.hoursLoaded
+        ? (hoursMap.get(c.id) ?? { clientId: c.id, contracted: 0, delivered: 0, available: 0 })
+        : undefined,
+      activeServices: this.servicesLoaded ? (servicesMap.get(c.id) ?? { clientId: c.id, services: [] }) : undefined,
     }));
   }
 
@@ -130,7 +149,7 @@ export class ClientsListComponent implements OnInit {
   }
 
   // ── Filters ─────────────────────────────────────────────────
-  get filteredClients(): ClientWithHours[] {
+  get filteredClients(): ClientWithHoursAndServices[] {
     const q    = this.quickFilter.trim().toLowerCase();
     const zone = this.selectedZone;
     const dir  = this.sortDir === 'asc' ? 1 : -1;
@@ -184,7 +203,7 @@ export class ClientsListComponent implements OnInit {
   }
 
   // ── KPI helpers ─────────────────────────────────────────────
-  private get textFilteredClients(): ClientWithHours[] {
+  private get textFilteredClients(): ClientWithHoursAndServices[] {
     const q = this.quickFilter.trim().toLowerCase();
     return this.allClients.filter((c) => !q || c.name.toLowerCase().includes(q));
   }
@@ -255,5 +274,16 @@ export class ClientsListComponent implements OnInit {
 
   get globalHoursBarState(): HoursBarState {
     return hoursBarState(this.kpiHoursPct);
+  }
+
+  // ── Services helpers ─────────────────────────────────────────
+  readonly MAX_VISIBLE_CHIPS = 3;
+
+  getVisibleServices(activeServices: ClientActiveServices): { name: string; active: boolean }[] {
+    return activeServices.services.slice(0, this.MAX_VISIBLE_CHIPS);
+  }
+
+  getOverflowCount(activeServices: ClientActiveServices): number {
+    return Math.max(0, activeServices.services.length - this.MAX_VISIBLE_CHIPS);
   }
 }
