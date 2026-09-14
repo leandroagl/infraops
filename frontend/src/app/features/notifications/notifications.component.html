@@ -83,30 +83,25 @@
     <span class="result-count">{{ totalShown }} vencimientos</span>
   </div>
 
-  <mat-table [dataSource]="filteredItems" class="exp-table">
+  <!-- ── Tabla — mismo patrón de grid CSS que /clients (col-hdr / fila por div) ── -->
+  <div class="exp-table-wrap">
 
-    <ng-container matColumnDef="client">
-      <mat-header-cell *matHeaderCellDef class="col-hdr-cell--sortable" [class.col-hdr-cell--active]="sortCol === 'client'" (click)="setSort('client')">
+    <div class="col-hdr">
+      <div class="col-hdr-cell col-hdr-cell--sortable" [class.sort-active]="sortCol === 'client'" (click)="setSort('client')">
         Cliente
         <svg class="sort-icon" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-          <polyline *ngIf="sortCol !== 'client'" points="2,8 4,11 6,8" stroke-width="1.5" opacity=".4"/>
+          <ng-container *ngIf="sortCol !== 'client'">
+            <polyline points="2,4 4,1 6,4" stroke-width="1.5" opacity=".4"/>
+            <polyline points="2,8 4,11 6,8" stroke-width="1.5" opacity=".4"/>
+          </ng-container>
           <polyline *ngIf="sortCol === 'client' && sortDir === 'asc'"  points="2,8 4,11 6,8" stroke-width="2"/>
           <polyline *ngIf="sortCol === 'client' && sortDir === 'desc'" points="2,4 4,1 6,4" stroke-width="2"/>
         </svg>
-      </mat-header-cell>
-      <mat-cell *matCellDef="let item">{{ item.clientName }}</mat-cell>
-    </ng-container>
+      </div>
 
-    <ng-container matColumnDef="item">
-      <mat-header-cell *matHeaderCellDef>Item</mat-header-cell>
-      <mat-cell *matCellDef="let item" class="item-cell">
-        <span class="item-cell__name">{{ item.itemName }}</span>
-        <span class="item-cell__meta" *ngIf="itemMeta(item)">{{ itemMeta(item) }}</span>
-      </mat-cell>
-    </ng-container>
+      <div class="col-hdr-cell">Item</div>
 
-    <ng-container matColumnDef="type">
-      <mat-header-cell *matHeaderCellDef class="type-hdr">
+      <div class="col-hdr-cell type-hdr">
         <span class="type-hdr__label">Tipo</span>
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="th-filter-field">
           <mat-select [(ngModel)]="filterType" placeholder="Todos">
@@ -117,48 +112,53 @@
             <mat-option value="software">Licencia</mat-option>
           </mat-select>
         </mat-form-field>
-      </mat-header-cell>
-      <mat-cell *matCellDef="let item">
-        <span class="badge badge--type" [ngClass]="typeClass(item.type)">{{ typeLabel(item.type) }}</span>
-      </mat-cell>
-    </ng-container>
+      </div>
 
-    <ng-container matColumnDef="expireDate">
-      <mat-header-cell *matHeaderCellDef class="col-hdr-cell--sortable" [class.col-hdr-cell--active]="sortCol === 'expireDate'" (click)="setSort('expireDate')">
+      <div class="col-hdr-cell col-hdr-cell--sortable" [class.sort-active]="sortCol === 'expireDate'" (click)="setSort('expireDate')">
         Vence
         <svg class="sort-icon" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-          <polyline *ngIf="sortCol !== 'expireDate'" points="2,8 4,11 6,8" stroke-width="1.5" opacity=".4"/>
+          <ng-container *ngIf="sortCol !== 'expireDate'">
+            <polyline points="2,4 4,1 6,4" stroke-width="1.5" opacity=".4"/>
+            <polyline points="2,8 4,11 6,8" stroke-width="1.5" opacity=".4"/>
+          </ng-container>
           <polyline *ngIf="sortCol === 'expireDate' && sortDir === 'asc'"  points="2,8 4,11 6,8" stroke-width="2"/>
           <polyline *ngIf="sortCol === 'expireDate' && sortDir === 'desc'" points="2,4 4,1 6,4" stroke-width="2"/>
         </svg>
-      </mat-header-cell>
-      <mat-cell *matCellDef="let item" class="expire-cell">
+      </div>
+
+      <div class="col-hdr-cell">Ticket</div>
+    </div>
+
+    <div class="exp-row" *ngFor="let item of filteredItems" [class.exp-row--expired]="item.daysUntil < 0">
+
+      <div class="client-name">{{ item.clientName }}</div>
+
+      <div class="item-cell">
+        <span class="item-cell__name">{{ item.itemName }}</span>
+        <span class="item-cell__meta" *ngIf="itemMeta(item)">{{ itemMeta(item) }}</span>
+      </div>
+
+      <div class="type-cell">
+        <span class="badge" [ngClass]="typeClass(item.type)">{{ typeLabel(item.type) }}</span>
+      </div>
+
+      <div class="expire-cell">
         <span class="expire-cell__date">{{ item.expireDate }}</span>
         <span class="badge expire-cell__badge" [ngClass]="urgencyClass(item)">{{ urgencyLabel(item) }}</span>
-      </mat-cell>
-    </ng-container>
+      </div>
 
-    <ng-container matColumnDef="ticket">
-      <mat-header-cell *matHeaderCellDef>Ticket</mat-header-cell>
-      <mat-cell *matCellDef="let item">
-        <a *ngIf="ticketLink(item) as link" [href]="link" target="_blank" rel="noopener noreferrer"
-           class="ticket-link" (click)="$event.stopPropagation()">{{ ticketLabel(item) }}</a>
+      <div class="ticket-cell">
+        <a *ngIf="ticketLink(item) as link" [href]="link" target="_blank" rel="noopener noreferrer" class="ticket-link">{{ ticketLabel(item) }}</a>
         <span *ngIf="!ticketLink(item) && ticketPending(item)" class="ticket-pending">pendiente</span>
         <span *ngIf="!ticketLink(item) && !ticketPending(item)" class="ticket-none">—</span>
-      </mat-cell>
-    </ng-container>
+      </div>
 
-    <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-    <mat-row
-      *matRowDef="let row; columns: displayedColumns;"
-      class="exp-row"
-      [class.exp-row--expired]="row.daysUntil < 0">
-    </mat-row>
+    </div><!-- /ngFor -->
 
-  </mat-table>
+    <div class="empty-state" *ngIf="!loading && filteredItems.length === 0 && items.length > 0">
+      Ningún vencimiento coincide con los filtros aplicados.
+    </div>
 
-  <div class="empty-state" *ngIf="!loading && filteredItems.length === 0 && items.length > 0">
-    Ningún vencimiento coincide con los filtros aplicados.
-  </div>
+  </div><!-- /exp-table-wrap -->
 
 </div>
