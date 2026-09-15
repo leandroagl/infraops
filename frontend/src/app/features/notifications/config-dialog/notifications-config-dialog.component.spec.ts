@@ -8,7 +8,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of, throwError } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 import { NotificationsConfigDialogComponent } from './notifications-config-dialog.component';
 import { IntegrationConfigService } from '../../../core/services/integration-config.service';
 
@@ -110,7 +110,7 @@ describe('NotificationsConfigDialogComponent', () => {
   it('deshabilita el botón guardar mientras está en progreso', fakeAsync(() => {
     tick();
     comp.form.setValue({ expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 14, expirationsTagIds: [] });
-    svc.patchOdoo.and.returnValue(new Promise(() => {}) as any);
+    svc.patchOdoo.and.returnValue(NEVER);
     comp.save();
     expect(comp.saving).toBe(true);
     expect(comp.form.disabled).toBe(true);
