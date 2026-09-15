@@ -5,11 +5,12 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatMenuModule } from '@angular/material/menu';
 import { FormsModule } from '@angular/forms';
 import { NotificationsComponent } from './notifications.component';
 import { NotificationsService } from '../../core/services/notifications.service';
 import { ExpirationItem, ExpirationType } from '../../core/models/notification.models';
-import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { IntegrationConfigService } from '../../core/services/integration-config.service';
 
@@ -33,7 +34,7 @@ describe('NotificationsComponent', () => {
     makeItem({ daysUntil: 70,  expireDate: '2026-09-06', itemName: 'Neutral',     type: 'domain'         }),
   ];
 
-  let mockDialog: jasmine.SpyObj<MatDialog>;
+  let mockRouter: jasmine.SpyObj<Router>;
   let mockAuth: jasmine.SpyObj<AuthService>;
   let mockIntegrationConfig: jasmine.SpyObj<IntegrationConfigService>;
 
@@ -41,7 +42,7 @@ describe('NotificationsComponent', () => {
     serviceSpy = jasmine.createSpyObj('NotificationsService', ['getExpirations']);
     serviceSpy.getExpirations.and.returnValue(of(DATASET));
 
-    mockDialog            = jasmine.createSpyObj('MatDialog', ['open']);
+    mockRouter            = jasmine.createSpyObj('Router', ['navigate']);
     mockAuth              = jasmine.createSpyObj('AuthService', ['getCurrentUser']);
     mockIntegrationConfig = jasmine.createSpyObj('IntegrationConfigService', ['getOdoo']);
     mockAuth.getCurrentUser.and.returnValue({ id: '1', name: 'Admin', email: 'a@a.com', role: 'ADMIN', avatarUrl: null });
@@ -56,10 +57,10 @@ describe('NotificationsComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [NotificationsComponent],
-      imports: [NoopAnimationsModule, MatSelectModule, MatFormFieldModule, MatInputModule, FormsModule],
+      imports: [NoopAnimationsModule, MatSelectModule, MatFormFieldModule, MatInputModule, MatMenuModule, FormsModule],
       providers: [
         { provide: NotificationsService, useValue: serviceSpy },
-        { provide: MatDialog, useValue: mockDialog },
+        { provide: Router, useValue: mockRouter },
         { provide: AuthService, useValue: mockAuth },
         { provide: IntegrationConfigService, useValue: mockIntegrationConfig },
       ],
@@ -321,7 +322,28 @@ describe('NotificationsComponent', () => {
     expect(f.componentInstance.isAdmin).toBe(false);
   });
 
-  it('carga ticketWindowDays desde la config al inicializar', () => {
-    expect(component.ticketWindowDays).toBe(20);
+  it('carga typeConfigs desde la config al inicializar (null → mapa vacío)', () => {
+    expect(component.typeConfigs).toEqual({});
+  });
+
+  it('openConfig() navega a /notifications/config', () => {
+    component.openConfig();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notifications/config']);
+  });
+
+  it('ticketPending usa daysAhead del tipo cuando typeConfigs tiene ese tipo', () => {
+    component.typeConfigs = {
+      domain: { enabled: true, helpdeskTeamId: 9, daysAhead: 7, tagIds: [] },
+    };
+    // daysUntil 10 > daysAhead 7 → false
+    expect(component.ticketPending(makeItem({ type: 'domain', daysUntil: 10, odooTicketId: undefined }))).toBeFalse();
+    // daysUntil 5 <= daysAhead 7 → true
+    expect(component.ticketPending(makeItem({ type: 'domain', daysUntil: 5, odooTicketId: undefined }))).toBeTrue();
+  });
+
+  it('ticketPending usa 30 días como fallback cuando el tipo no está en typeConfigs', () => {
+    component.typeConfigs = {};
+    expect(component.ticketPending(makeItem({ type: 'software', daysUntil: 25, odooTicketId: undefined }))).toBeTrue();
+    expect(component.ticketPending(makeItem({ type: 'software', daysUntil: 35, odooTicketId: undefined }))).toBeFalse();
   });
 });
