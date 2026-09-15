@@ -54,20 +54,14 @@
           <span class="field-hint">Clave generada en Odoo → Config → Técnico → API Keys. Dejar vacío para no modificar.</span>
         </div>
         <div class="field">
-          <label class="field-label">ID Ticketera Mantenimientos <span class="req">*</span></label>
+          <label class="field-label">Ticketera Mantenimientos <span class="req">*</span></label>
           <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <input matInput formControlName="helpdeskTeamId" type="number" placeholder="7" />
+            <mat-select formControlName="helpdeskTeamId">
+              <mat-option *ngFor="let t of helpdeskTeams" [value]="t.id">{{ t.name }}</mat-option>
+            </mat-select>
           </mat-form-field>
-          <span class="field-hint">ID del equipo en Odoo donde se crean los tickets de mantenimiento. Se ve en la URL al abrir el equipo: Soporte → Equipos → [equipo].</span>
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label class="field-label">ID Ticketera Vencimientos <span class="req">*</span></label>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
-            <input matInput formControlName="expirationsHelpdeskTeamId" type="number" placeholder="9" />
-          </mat-form-field>
-          <span class="field-hint">ID del equipo de Odoo donde InfraOps crea automáticamente los tickets de vencimientos. Debe ser distinto al de mantenimientos.</span>
+          <span class="field-hint" *ngIf="!helpdeskTeamsError">Equipo de Odoo donde se crean los tickets de mantenimiento mensual.</span>
+          <span class="field-hint field-hint--warn" *ngIf="helpdeskTeamsError">No se pudo cargar la lista desde Odoo. Guardá la configuración de credenciales primero.</span>
         </div>
       </div>
       <div class="field-row">
