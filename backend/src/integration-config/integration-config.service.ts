@@ -103,7 +103,7 @@ export class IntegrationConfigService {
 
   async getOdooConfigDecrypted(): Promise<{
     url: string; db: string; username: string; apiKey: string; helpdeskTeamId: number;
-    expirationsHelpdeskTeamId: number;
+    expirationsHelpdeskTeamId: number; expirationsTicketDaysAhead: number; expirationsTagIds: number[];
     stageInProgressName: string; stageNotDoneName: string; stageDoneName: string;
   }> {
     const row = await this.odooRepo.findOne({ where: { id: 1 } });
@@ -115,6 +115,8 @@ export class IntegrationConfigService {
         apiKey:         this.configService.get('ODOO_API_KEY', ''),
         helpdeskTeamId: parseInt(this.configService.get('ODOO_HELPDESK_TEAM_ID', '0'), 10),
         expirationsHelpdeskTeamId: parseInt(this.configService.get('ODOO_EXPIRATIONS_HELPDESK_TEAM_ID', '0'), 10),
+        expirationsTicketDaysAhead: 30,
+        expirationsTagIds: [],
         stageInProgressName: 'En curso',
         stageNotDoneName:    'No realizadas',
         stageDoneName:       'Hecho',
@@ -127,6 +129,8 @@ export class IntegrationConfigService {
       apiKey:         row.apiKey   ? decrypt(row.apiKey, this.encryptKey) : '',
       helpdeskTeamId: row.helpdeskTeamId ?? 0,
       expirationsHelpdeskTeamId: row.expirationsHelpdeskTeamId ?? 0,
+      expirationsTicketDaysAhead: row.expirationsTicketDaysAhead ?? 30,
+      expirationsTagIds: row.expirationsTagIds ?? [],
       stageInProgressName: row.stageInProgressName || 'En curso',
       stageNotDoneName:    row.stageNotDoneName    || 'No realizadas',
       stageDoneName:       row.stageDoneName        || 'Hecho',
