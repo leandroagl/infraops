@@ -10,12 +10,14 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatMenuModule } from '@angular/material/menu';
 import { TasksRoutingModule } from './tasks-routing.module';
 import { TasksUnifiedComponent } from './tasks-unified.component';
 import { KpiStripComponent } from './kpi-strip/kpi-strip.component';
@@ -66,12 +68,14 @@ import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/tas
     MatCardModule,
     MatDialogModule,
     MatSnackBarModule,
+    MatProgressBarModule,
     MatProgressSpinnerModule,
     MatAutocompleteModule,
     MatIconModule,
     MatDatepickerModule,
     MatNativeDateModule,
     MatTooltipModule,
+    MatMenuModule,
     TasksRoutingModule,
     SharedModule,
   ],

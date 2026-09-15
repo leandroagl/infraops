@@ -20,6 +20,15 @@ export class OdooConfig {
   @Column({ name: 'helpdesk_team_id', type: 'int', nullable: true })
   helpdeskTeamId: number | null = null;
 
+  @Column({ name: 'expirations_helpdesk_team_id', type: 'int', nullable: true })
+  expirationsHelpdeskTeamId: number | null = null;
+
+  @Column({ name: 'expirations_ticket_days_ahead', type: 'int', nullable: true, default: 30 })
+  expirationsTicketDaysAhead: number | null = null;
+
+  @Column({ name: 'expirations_tag_ids', type: 'simple-json', nullable: true })
+  expirationsTagIds: number[] | null = null;
+
   @Column({ name: 'stage_in_progress_name', type: 'varchar', nullable: true })
   stageInProgressName: string | null = null;
 

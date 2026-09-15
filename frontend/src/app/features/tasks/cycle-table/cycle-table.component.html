@@ -2,13 +2,36 @@
   <thead>
     <tr>
       <th class="col-type-filter">
-        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="th-filter-field">
-          <mat-select [value]="typeFilter" placeholder="Tipo"
-                      (selectionChange)="onTypeFilterChange($event.value)">
-            <mat-option [value]="null">Todos</mat-option>
-            <mat-option *ngFor="let t of taskTypes" [value]="t.value">{{ t.label }}</mat-option>
-          </mat-select>
-        </mat-form-field>
+        <div class="type-header-row">
+          <button mat-icon-button class="client-filter-btn"
+                  [class.client-filter-btn--active]="clientFilter !== null"
+                  [matMenuTriggerFor]="clientMenu"
+                  matTooltip="Filtrar por cliente">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </button>
+          <mat-menu #clientMenu="matMenu" panelClass="client-filter-menu">
+            <button mat-menu-item (click)="onClientFilterChange(null)" [class.client-menu-item--active]="clientFilter === null">
+              Todos los clientes
+            </button>
+            <button mat-menu-item *ngFor="let c of clients"
+                    (click)="onClientFilterChange(c.id)"
+                    [class.client-menu-item--active]="c.id === clientFilter">
+              {{ c.name }}
+            </button>
+          </mat-menu>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="th-filter-field">
+            <mat-select [value]="typeFilter" placeholder="Tipo"
+                        (selectionChange)="onTypeFilterChange($event.value)">
+              <mat-option [value]="null">Todos</mat-option>
+              <mat-option *ngFor="let t of taskTypes" [value]="t.value">{{ t.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
       </th>
       <th class="col-tech-filter">
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="th-filter-field">

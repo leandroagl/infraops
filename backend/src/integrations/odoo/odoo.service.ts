@@ -18,10 +18,20 @@ import { OdooUser } from './dto/odoo-user.dto';
 import { OdooSyncResult } from './dto/odoo-sync-result.dto';
 import { OdooSyncStatusDto } from './dto/odoo-sync-status.dto';
 import { ClientSubscriptionHoursDto } from './dto/client-subscription-hours.dto';
+import { ClientActiveServicesDto, ClientServiceDto } from './dto/client-active-services.dto';
+import { SERVICE_PRODUCT_DISPLAY_NAME_OVERRIDES } from './service-product-display-names';
 import { TaskType } from '../../tasks/task-type.enum';
 import { TaskConfigService } from '../../task-config/task-config.service';
 import { TICKET_DESCRIPTION_DEFAULTS, TIMESHEET_DESCRIPTION_DEFAULT } from '../../task-config/task-description-defaults';
 import { plainTextToHtml } from '../../task-config/plain-text-to-html';
+import { ExpirationItemDto, ExpirationType } from '../../notifications/dto/expiration-item.dto';
+
+const EXPIRATION_TYPE_LABELS: Record<ExpirationType, string> = {
+  asset_warranty: 'Garantía',
+  certificate:    'Certificado',
+  domain:         'Dominio',
+  software:       'Licencia',
+};
 
 const TICKET_META: Record<TaskType, { name: string }> = {
   [TaskType.SERVER_HOST_MAINTENANCE]:    { name: 'Mantenimiento de hosts VMware/BMC' },
@@ -258,7 +268,7 @@ export class OdooService {
       { fields: ['id'], limit: 1 },
     );
 
-    if (lines.length === 0) return null;
+    if (!Array.isArray(lines) || lines.length === 0) return null;
 
     await this.clientRepo.update(clientId, {
       odooSaleLineId: lines[0].id,
@@ -527,6 +537,68 @@ export class OdooService {
     return tags.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  async getHelpdeskTeams(): Promise<{ id: number; name: string }[]> {
+    const teams = await this.systemRpc.callKw<Array<{ id: number; name: string }>>(
+      'helpdesk.team',
+      'search_read',
+      [[]],
+      { fields: ['id', 'name'] },
+    );
+    return teams.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async createExpirationTicket(
+    item: ExpirationItemDto,
+    infraopsClientId: string,
+  ): Promise<number> {
+    const config = await this.integrationConfigService.getOdooConfigDecrypted();
+
+    if (!config.expirationsHelpdeskTeamId) {
+      throw new BadRequestException('expirationsHelpdeskTeamId no está configurado');
+    }
+
+    const partnerId = await this.resolvePartnerId(infraopsClientId);
+    if (partnerId === null) {
+      this.logger.warn(`Cliente ${infraopsClientId} sin mapeo en Odoo — omitiendo ticket de vencimiento`);
+      throw new BadRequestException(`Cliente ${infraopsClientId} no tiene ID de Odoo`);
+    }
+
+    const saleLineId = await this.resolveSaleLineId(infraopsClientId);
+    const typeLabel = EXPIRATION_TYPE_LABELS[item.type];
+    const name = `Vencimiento: ${typeLabel} – ${item.clientName} – ${item.itemName}`;
+    const description = `<p>Fecha de vencimiento: <strong>${item.expireDate}</strong></p><p>Días restantes: ${item.daysUntil}</p>`;
+
+    const payload: Record<string, unknown> = {
+      team_id: config.expirationsHelpdeskTeamId,
+      partner_id: partnerId,
+      name,
+      description,
+    };
+
+    if (saleLineId !== null) {
+      payload['sale_line_id'] = saleLineId;
+    }
+
+    if (config.expirationsTagIds && config.expirationsTagIds.length > 0) {
+      payload['tag_ids'] = [[6, 0, config.expirationsTagIds]];
+    }
+
+    const ticketId = await this.systemRpc.callKw<number>(
+      'helpdesk.ticket',
+      'create',
+      [payload],
+      {},
+    );
+
+    if (!ticketId) {
+      throw new ServiceUnavailableException(
+        'Odoo devolvió false al crear ticket de vencimiento',
+      );
+    }
+
+    return ticketId;
+  }
+
   async closeTicket(
     odooTicketId: number,
     employeeId: number,
@@ -630,5 +702,89 @@ export class OdooService {
       'res.users', 'read', [[user.odooUserId]], { fields: ['partner_id'] },
     );
     return results?.[0]?.partner_id?.[0] ?? null;
+  }
+
+  async getActiveServices(
+    partnerIds: number[],
+  ): Promise<{ partnerId: number; productId: number; productName: string; active: boolean }[]> {
+    if (partnerIds.length === 0) return [];
+
+    const lines = await this.systemRpc.callKw<
+      Array<{ id: number; product_id: [number, string]; order_id: [number, string] }>
+    >(
+      'sale.order.line',
+      'search_read',
+      [
+        [
+          ['order_id.partner_id', 'in', partnerIds],
+          ['order_id.is_subscription', '=', true],
+          ['product_id.name', 'not ilike', 'Hora '],
+        ],
+      ],
+      { fields: ['product_id', 'order_id'] },
+    );
+
+    if (lines.length === 0) return [];
+
+    const orderIds = [...new Set(lines.map((l) => l.order_id[0]))];
+    const orders = await this.systemRpc.callKw<
+      Array<{ id: number; partner_id: [number, string]; subscription_state: string }>
+    >(
+      'sale.order',
+      'read',
+      [orderIds],
+      { fields: ['partner_id', 'subscription_state'] },
+    );
+
+    const orderMap = new Map(
+      orders.map((o) => [o.id, { partnerId: o.partner_id[0], subscriptionState: o.subscription_state }]),
+    );
+
+    return lines.flatMap((line) => {
+      const order = orderMap.get(line.order_id[0]);
+      if (!order) return [];
+      return [{
+        partnerId: order.partnerId,
+        productId: line.product_id[0],
+        productName: line.product_id[1],
+        active: order.subscriptionState === '3_progress',
+      }];
+    });
+  }
+
+  async getClientActiveServices(): Promise<ClientActiveServicesDto[]> {
+    const clients = await this.clientRepo.find({
+      where: { isActive: true, odooPartnerId: Not(IsNull()) },
+      select: { id: true, odooPartnerId: true },
+    });
+
+    if (clients.length === 0) return [];
+
+    const partnerIds = clients.map((c) => c.odooPartnerId!);
+    const rawServices = await this.getActiveServices(partnerIds);
+
+    const partnerToClient = new Map(clients.map((c) => [c.odooPartnerId!, c.id]));
+
+    // Agrupar por clientId → dedupe por productId con active = OR
+    const byClient = new Map<string, Map<number, { name: string; active: boolean }>>();
+    for (const svc of rawServices) {
+      const clientId = partnerToClient.get(svc.partnerId);
+      if (!clientId) continue;
+      if (!byClient.has(clientId)) byClient.set(clientId, new Map());
+      const productMap = byClient.get(clientId)!;
+      const existing = productMap.get(svc.productId);
+      productMap.set(svc.productId, {
+        name: SERVICE_PRODUCT_DISPLAY_NAME_OVERRIDES[svc.productId] ?? svc.productName,
+        active: existing ? existing.active || svc.active : svc.active,
+      });
+    }
+
+    return clients.map((c): ClientActiveServicesDto => {
+      const productMap = byClient.get(c.id);
+      const services: ClientServiceDto[] = productMap
+        ? Array.from(productMap.values()).map((s) => ({ name: s.name, active: s.active }))
+        : [];
+      return { clientId: c.id, services };
+    });
   }
 }

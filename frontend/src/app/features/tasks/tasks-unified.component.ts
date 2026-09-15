@@ -192,6 +192,11 @@ export class TasksUnifiedComponent implements OnInit {
     this.load();
   }
 
+  onClientFilterChange(value: string | null): void {
+    this.clientFilter = value;
+    this.onFilterChange();
+  }
+
   onTypeFilterChange(value: string | null): void {
     this.typeFilter = value as TaskType | null;
     this.onFilterChange();

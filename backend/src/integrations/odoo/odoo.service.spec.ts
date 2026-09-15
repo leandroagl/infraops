@@ -15,6 +15,7 @@ import { OdooPartner } from './dto/odoo-partner.dto';
 import { OdooUser } from './dto/odoo-user.dto';
 import { TaskType } from '../../tasks/task-type.enum';
 import { TaskConfigService } from '../../task-config/task-config.service';
+import { ExpirationItemDto } from '../../notifications/dto/expiration-item.dto';
 
 describe('OdooService', () => {
   let service: OdooService;
@@ -102,6 +103,7 @@ describe('OdooService', () => {
     integrationConfigServiceMock = {
       getOdooConfigDecrypted: jest.fn().mockResolvedValue({
         url: 'u', db: 'd', username: 'u', apiKey: 'k', helpdeskTeamId: 7,
+        expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 30, expirationsTagIds: [],
         stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho',
       }),
     };
@@ -824,6 +826,45 @@ describe('OdooService', () => {
     });
   });
 
+  describe('getHelpdeskTeams', () => {
+    it('devuelve lista de equipos de helpdesk desde Odoo ordenada por nombre', async () => {
+      odooRpc.callKw.mockResolvedValue([
+        { id: 7, name: 'Mantenimientos y controles mensuales' },
+        { id: 2, name: 'Soporte técnico' },
+        { id: 4, name: 'Laboratorio' },
+      ]);
+
+      const result = await service.getHelpdeskTeams();
+
+      expect(result).toEqual([
+        { id: 4, name: 'Laboratorio' },
+        { id: 7, name: 'Mantenimientos y controles mensuales' },
+        { id: 2, name: 'Soporte técnico' },
+      ]);
+    });
+
+    it('consulta helpdesk.team con search_read y campos id y name', async () => {
+      odooRpc.callKw.mockResolvedValue([]);
+
+      await service.getHelpdeskTeams();
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.team',
+        'search_read',
+        [[]],
+        { fields: ['id', 'name'] },
+      );
+    });
+
+    it('devuelve lista vacía cuando Odoo no tiene equipos configurados', async () => {
+      odooRpc.callKw.mockResolvedValue([]);
+
+      const result = await service.getHelpdeskTeams();
+
+      expect(result).toEqual([]);
+    });
+  });
+
   describe('closeTicket', () => {
     beforeEach(() => {
       taskConfigServiceMock.findOne.mockResolvedValue(null);
@@ -1356,6 +1397,340 @@ describe('OdooService', () => {
       const result = await service.resolveSaleLineId('client-uuid-1');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('getActiveServices', () => {
+    it('retorna [] cuando partnerIds está vacío', async () => {
+      const result = await service.getActiveServices([]);
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
+    });
+
+    it('retorna [] cuando Odoo no devuelve líneas', async () => {
+      odooRpc.callKw.mockResolvedValue([]);
+      const result = await service.getActiveServices([101]);
+      expect(result).toEqual([]);
+    });
+
+    it('hace 2 llamadas a Odoo: líneas de suscripción y luego órdenes', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      await service.getActiveServices([101]);
+
+      expect(odooRpc.callKw).toHaveBeenCalledTimes(2);
+      expect(odooRpc.callKw).toHaveBeenNthCalledWith(
+        1,
+        'sale.order.line',
+        'search_read',
+        expect.arrayContaining([
+          expect.arrayContaining([
+            ['order_id.partner_id', 'in', [101]],
+            ['order_id.is_subscription', '=', true],
+          ]),
+        ]),
+        expect.objectContaining({ fields: expect.arrayContaining(['product_id', 'order_id']) }),
+      );
+      expect(odooRpc.callKw).toHaveBeenNthCalledWith(
+        2,
+        'sale.order',
+        'read',
+        [[10]],
+        expect.objectContaining({ fields: expect.arrayContaining(['partner_id', 'subscription_state']) }),
+      );
+    });
+
+    it('marca active=true cuando subscription_state es 3_progress', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      const result = await service.getActiveServices([101]);
+
+      expect(result).toEqual([
+        { partnerId: 101, productId: 55, productName: 'Hosting', active: true },
+      ]);
+    });
+
+    it('marca active=false cuando subscription_state es 4_paused o 6_churn', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+          { id: 2, product_id: [56, 'Kaspersky'], order_id: [11, 'S002'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '4_paused' },
+          { id: 11, partner_id: [101, 'ACME'], subscription_state: '6_churn' },
+        ]);
+
+      const result = await service.getActiveServices([101]);
+
+      expect(result).toEqual(
+        expect.arrayContaining([
+          { partnerId: 101, productId: 55, productName: 'Hosting', active: false },
+          { partnerId: 101, productId: 56, productName: 'Kaspersky', active: false },
+        ]),
+      );
+    });
+
+    it('excluye del dominio cualquier producto de horas (Única/Advance/Standard, con o sin Garantía)', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      await service.getActiveServices([101]);
+
+      expect(odooRpc.callKw).toHaveBeenNthCalledWith(
+        1,
+        'sale.order.line',
+        'search_read',
+        expect.arrayContaining([
+          expect.arrayContaining([
+            ['order_id.partner_id', 'in', [101]],
+            ['order_id.is_subscription', '=', true],
+            ['product_id.name', 'not ilike', 'Hora '],
+          ]),
+        ]),
+        expect.objectContaining({ fields: expect.arrayContaining(['product_id', 'order_id']) }),
+      );
+    });
+
+    it('agrupa líneas de múltiples partners correctamente', async () => {
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+          { id: 2, product_id: [55, 'Hosting'], order_id: [11, 'S002'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+          { id: 11, partner_id: [102, 'BETA'], subscription_state: '4_paused' },
+        ]);
+
+      const result = await service.getActiveServices([101, 102]);
+
+      expect(result).toEqual(
+        expect.arrayContaining([
+          { partnerId: 101, productId: 55, productName: 'Hosting', active: true },
+          { partnerId: 102, productId: 55, productName: 'Hosting', active: false },
+        ]),
+      );
+    });
+  });
+
+  describe('createExpirationTicket', () => {
+    const makeExpItem = (overrides = {}): ExpirationItemDto => ({
+      sourceId: 'd1', type: 'domain', clientId: 1, clientName: 'Acme',
+      itemName: 'acme.com', expireDate: '2026-10-15', daysUntil: 20,
+      ...overrides,
+    });
+
+    beforeEach(() => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ id: 'client-uuid-1', odooPartnerId: 101, taxIdNumber: '20-12345678-0' })
+      );
+      odooRpc.callKw.mockResolvedValue(999); // Odoo ticket ID
+    });
+
+    it('construye payload con team_id, partner_id, name con typeLabel, sin user_id', async () => {
+      await service.createExpirationTicket(makeExpItem({ type: 'domain', itemName: 'acme.com', clientName: 'Acme' }), 'client-uuid-1');
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket', 'create',
+        [expect.objectContaining({
+          team_id: 9,
+          partner_id: 101,
+          name: 'Vencimiento: Dominio – Acme – acme.com',
+        })],
+        {},
+      );
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket', 'create',
+        [expect.not.objectContaining({ user_id: expect.anything() })],
+        {},
+      );
+    });
+
+    it('incluye sale_line_id si el cliente tiene mapeo', async () => {
+      clientRepo.findOne
+        .mockResolvedValueOnce(makeClient({ id: 'client-uuid-1', odooPartnerId: 101 }))
+        .mockResolvedValueOnce(makeClient({ id: 'client-uuid-1', odooPartnerId: 101, odooSaleLineId: 55 }));
+      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1');
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket', 'create',
+        [expect.objectContaining({ sale_line_id: 55 })],
+        {},
+      );
+    });
+
+    it('omite sale_line_id si el cliente no tiene mapeo', async () => {
+      clientRepo.findOne
+        .mockResolvedValueOnce(makeClient({ id: 'client-uuid-1', odooPartnerId: 101 }))
+        .mockResolvedValueOnce(makeClient({ id: 'client-uuid-1', odooPartnerId: 101, odooSaleLineId: null }));
+      odooRpc.callKw.mockResolvedValue(null);
+      odooRpc.callKw.mockResolvedValue(999);
+      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1');
+      const callArg = odooRpc.callKw.mock.calls[0][2][0] as Record<string, unknown>;
+      expect(callArg['sale_line_id']).toBeUndefined();
+    });
+
+    it('incluye tag_ids si hay tags configurados', async () => {
+      integrationConfigServiceMock.getOdooConfigDecrypted.mockResolvedValue({
+        url: 'u', db: 'd', username: 'u', apiKey: 'k',
+        helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9,
+        expirationsTicketDaysAhead: 30, expirationsTagIds: [3, 5],
+        stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho',
+      });
+      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1');
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket', 'create',
+        [expect.objectContaining({ tag_ids: [[6, 0, [3, 5]]] })],
+        {},
+      );
+    });
+
+    it('omite tag_ids si expirationsTagIds está vacío', async () => {
+      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1');
+      const callArg = odooRpc.callKw.mock.calls[0][2][0] as Record<string, unknown>;
+      expect(callArg['tag_ids']).toBeUndefined();
+    });
+
+    it('lanza BadRequestException si expirationsHelpdeskTeamId es null', async () => {
+      integrationConfigServiceMock.getOdooConfigDecrypted.mockResolvedValue({
+        url: 'u', db: 'd', username: 'u', apiKey: 'k',
+        helpdeskTeamId: 7, expirationsHelpdeskTeamId: null,
+        expirationsTicketDaysAhead: 30, expirationsTagIds: [],
+        stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho',
+      });
+      await expect(service.createExpirationTicket(makeExpItem(), 'client-uuid-1'))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('lanza BadRequestException si partnerId no resuelto', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: null, taxIdNumber: null }));
+      await expect(service.createExpirationTicket(makeExpItem(), 'client-uuid-1'))
+        .rejects.toThrow(BadRequestException);
+    });
+
+    it('lanza ServiceUnavailableException si Odoo devuelve false', async () => {
+      odooRpc.callKw.mockResolvedValue(false);
+      await expect(service.createExpirationTicket(makeExpItem(), 'client-uuid-1'))
+        .rejects.toThrow(ServiceUnavailableException);
+    });
+
+    it('usa typeLabel correcto para cada ExpirationType', async () => {
+      const cases: Array<[string, string]> = [
+        ['domain', 'Dominio'],
+        ['certificate', 'Certificado'],
+        ['software', 'Licencia'],
+        ['asset_warranty', 'Garantía'],
+      ];
+      for (const [type, label] of cases) {
+        odooRpc.callKw.mockResolvedValue(999);
+        clientRepo.findOne.mockResolvedValue(makeClient({ id: 'client-uuid-1', odooPartnerId: 101 }));
+        await service.createExpirationTicket(makeExpItem({ type }), 'client-uuid-1');
+        const callArg = odooRpc.callKw.mock.calls[odooRpc.callKw.mock.calls.length - 1][2][0] as Record<string, unknown>;
+        expect(callArg['name']).toContain(label);
+      }
+    });
+  });
+
+  describe('getClientActiveServices', () => {
+    it('retorna [] cuando no hay clientes activos con odooPartnerId', async () => {
+      clientRepo.find.mockResolvedValue([]);
+      const result = await service.getClientActiveServices();
+      expect(result).toEqual([]);
+    });
+
+    it('retorna services:[] para clientes sin suscripciones en Odoo', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw.mockResolvedValue([]);
+
+      const result = await service.getClientActiveServices();
+
+      expect(result).toEqual([{ clientId: 'c1', services: [] }]);
+    });
+
+    it('mapea partnerId → clientId y devuelve los servicios', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      const result = await service.getClientActiveServices();
+
+      expect(result).toEqual([
+        { clientId: 'c1', services: [{ name: 'Hosting', active: true }] },
+      ]);
+    });
+
+    it('deduplica por productId: si el mismo producto aparece en 2 líneas, active=OR', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting'], order_id: [10, 'S001'] },
+          { id: 2, product_id: [55, 'Hosting'], order_id: [11, 'S002'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '4_paused' },
+          { id: 11, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      const result = await service.getClientActiveServices();
+
+      expect(result[0].services).toHaveLength(1);
+      expect(result[0].services[0]).toEqual({ name: 'Hosting', active: true });
+    });
+
+    it('usa el nombre del producto de Odoo cuando no hay override definido', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw
+        .mockResolvedValueOnce([
+          { id: 1, product_id: [55, 'Hosting Web'], order_id: [10, 'S001'] },
+        ])
+        .mockResolvedValueOnce([
+          { id: 10, partner_id: [101, 'ACME'], subscription_state: '3_progress' },
+        ]);
+
+      const result = await service.getClientActiveServices();
+
+      expect(result[0].services[0].name).toBe('Hosting Web');
+    });
+
+    it('no incluye clientes sin odooPartnerId', async () => {
+      clientRepo.find.mockResolvedValue([
+        makeClient({ id: 'c1', odooPartnerId: 101 }),
+      ]);
+      odooRpc.callKw.mockResolvedValue([]);
+
+      await service.getClientActiveServices();
+
+      const callArg = clientRepo.find.mock.calls[0][0];
+      expect(callArg.where).toMatchObject({ isActive: true });
     });
   });
 });

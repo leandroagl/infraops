@@ -2,17 +2,20 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { MatTableModule } from '@angular/material/table';
 import { MatSelectModule } from '@angular/material/select';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { FormsModule } from '@angular/forms';
 import { NotificationsComponent } from './notifications.component';
 import { NotificationsService } from '../../core/services/notifications.service';
 import { ExpirationItem, ExpirationType } from '../../core/models/notification.models';
+import { MatDialog } from '@angular/material/dialog';
+import { AuthService } from '../../core/services/auth.service';
+import { IntegrationConfigService } from '../../core/services/integration-config.service';
 
 function makeItem(overrides: Partial<ExpirationItem> = {}): ExpirationItem {
   return {
-    type: 'domain', clientId: 1, clientName: 'Acme', itemName: 'acme.com',
+    sourceId: 'd1', type: 'domain', clientId: 1, clientName: 'Acme', itemName: 'acme.com',
     expireDate: '2026-07-15', daysUntil: 17, ...overrides,
   };
 }
@@ -30,14 +33,35 @@ describe('NotificationsComponent', () => {
     makeItem({ daysUntil: 70,  expireDate: '2026-09-06', itemName: 'Neutral',     type: 'domain'         }),
   ];
 
+  let mockDialog: jasmine.SpyObj<MatDialog>;
+  let mockAuth: jasmine.SpyObj<AuthService>;
+  let mockIntegrationConfig: jasmine.SpyObj<IntegrationConfigService>;
+
   beforeEach(async () => {
     serviceSpy = jasmine.createSpyObj('NotificationsService', ['getExpirations']);
     serviceSpy.getExpirations.and.returnValue(of(DATASET));
 
+    mockDialog            = jasmine.createSpyObj('MatDialog', ['open']);
+    mockAuth              = jasmine.createSpyObj('AuthService', ['getCurrentUser']);
+    mockIntegrationConfig = jasmine.createSpyObj('IntegrationConfigService', ['getOdoo']);
+    mockAuth.getCurrentUser.and.returnValue({ id: '1', name: 'Admin', email: 'a@a.com', role: 'ADMIN', avatarUrl: null });
+    mockIntegrationConfig.getOdoo.and.returnValue(of({
+      expirationsTicketDaysAhead: 20, expirationsTagIds: [],
+      helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9,
+      url: '', db: '', username: '', apiKey: '',
+      stageInProgressName: '', stageNotDoneName: '', stageDoneName: '',
+      updatedAt: null, updatedBy: null,
+    }));
+
     await TestBed.configureTestingModule({
       declarations: [NotificationsComponent],
-      imports: [NoopAnimationsModule, MatTableModule, MatSelectModule, MatCheckboxModule, FormsModule],
-      providers: [{ provide: NotificationsService, useValue: serviceSpy }],
+      imports: [NoopAnimationsModule, MatSelectModule, MatFormFieldModule, MatInputModule, FormsModule],
+      providers: [
+        { provide: NotificationsService, useValue: serviceSpy },
+        { provide: MatDialog, useValue: mockDialog },
+        { provide: AuthService, useValue: mockAuth },
+        { provide: IntegrationConfigService, useValue: mockIntegrationConfig },
+      ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
@@ -46,8 +70,8 @@ describe('NotificationsComponent', () => {
     fixture.detectChanges();
   });
 
-  it('carga items al iniciar con days=90', () => {
-    expect(serviceSpy.getExpirations).toHaveBeenCalledWith(90);
+  it('carga items al iniciar sin límite de días — siempre trae todo, los filtros acotan la vista', () => {
+    expect(serviceSpy.getExpirations).toHaveBeenCalledWith(undefined);
     expect(component.items.length).toBe(5);
   });
 
@@ -63,8 +87,21 @@ describe('NotificationsComponent', () => {
     expect(component.soonCount).toBe(1);
   });
 
+  it('attentionCount cuenta items con 21 ≤ daysUntil ≤ 45', () => {
+    expect(component.attentionCount).toBe(1);
+  });
+
   it('totalShown refleja la longitud de filteredItems', () => {
     expect(component.totalShown).toBe(5);
+  });
+
+  it('zonePct calcula el porcentaje sobre el total de items', () => {
+    expect(component.zonePct(1)).toBe(20);
+  });
+
+  it('zonePct devuelve 0 cuando no hay items', () => {
+    component.items = [];
+    expect(component.zonePct(1)).toBe(0);
   });
 
   it('filterType reduce filteredItems al tipo indicado', () => {
@@ -73,22 +110,36 @@ describe('NotificationsComponent', () => {
     expect(component.filteredItems[0].itemName).toBe('Esta semana');
   });
 
-  it('filterUrgency=expired muestra solo items con daysUntil < 0', () => {
-    component.filterUrgency = 'expired';
+  it('toggleUrgency("expired") muestra solo items con daysUntil < 0', () => {
+    component.toggleUrgency('expired');
+    expect(component.selectedUrgency).toBe('expired');
     expect(component.filteredItems.length).toBe(1);
     expect(component.filteredItems[0].daysUntil).toBeLessThan(0);
   });
 
-  it('filterUrgency=week muestra solo items con 0 ≤ daysUntil ≤ 7', () => {
-    component.filterUrgency = 'week';
+  it('toggleUrgency("week") muestra solo items con 0 ≤ daysUntil ≤ 7', () => {
+    component.toggleUrgency('week');
     const result = component.filteredItems;
     expect(result.every((i: ExpirationItem) => i.daysUntil >= 0 && i.daysUntil <= 7)).toBeTrue();
   });
 
-  it('filterUrgency=soon muestra solo items con 8 ≤ daysUntil ≤ 20', () => {
-    component.filterUrgency = 'soon';
+  it('toggleUrgency("soon") muestra solo items con 8 ≤ daysUntil ≤ 20', () => {
+    component.toggleUrgency('soon');
     const result = component.filteredItems;
     expect(result.every((i: ExpirationItem) => i.daysUntil >= 8 && i.daysUntil <= 20)).toBeTrue();
+  });
+
+  it('toggleUrgency("attention") muestra solo items con 21 ≤ daysUntil ≤ 45', () => {
+    component.toggleUrgency('attention');
+    const result = component.filteredItems;
+    expect(result.every((i: ExpirationItem) => i.daysUntil >= 21 && i.daysUntil <= 45)).toBeTrue();
+  });
+
+  it('toggleUrgency con la misma zona activa la desactiva (toggle off)', () => {
+    component.toggleUrgency('week');
+    component.toggleUrgency('week');
+    expect(component.selectedUrgency).toBeNull();
+    expect(component.filteredItems.length).toBe(5);
   });
 
   it('urgencyClass devuelve badge--crit para daysUntil < 0', () => {
@@ -119,12 +170,12 @@ describe('NotificationsComponent', () => {
     expect(component.urgencyClass(makeItem({ daysUntil: 46 }))).toBe('badge--neutral');
   });
 
-  it('urgencyLabel devuelve "Vencido" para daysUntil < 0', () => {
-    expect(component.urgencyLabel(makeItem({ daysUntil: -3 }))).toBe('Vencido');
+  it('urgencyLabel devuelve "Vencido hace N días" para daysUntil < 0', () => {
+    expect(component.urgencyLabel(makeItem({ daysUntil: -3 }))).toBe('Vencido hace 3 días');
   });
 
-  it('urgencyLabel devuelve "X días" para daysUntil ≥ 0', () => {
-    expect(component.urgencyLabel(makeItem({ daysUntil: 15 }))).toBe('15 días');
+  it('urgencyLabel devuelve "Vence en N días" para daysUntil ≥ 0', () => {
+    expect(component.urgencyLabel(makeItem({ daysUntil: 15 }))).toBe('Vence en 15 días');
   });
 
   it('typeClass devuelve badge--srv para asset_warranty', () => {
@@ -143,16 +194,112 @@ describe('NotificationsComponent', () => {
     expect(component.typeClass('software')).toBe('badge--win');
   });
 
-  it('onShowAllChange con showAll=true recarga sin days', () => {
-    component.showAll = true;
-    component.onShowAllChange();
-    expect(serviceSpy.getExpirations).toHaveBeenCalledWith(undefined);
+  it('itemMeta combina marca, modelo y serie', () => {
+    const item = makeItem({ make: 'Dell', model: 'PowerEdge R640', serial: 'AB12CD34' });
+    expect(component.itemMeta(item)).toBe('Dell · PowerEdge R640 · SN AB12CD34');
   });
 
-  it('onShowAllChange con showAll=false recarga con days=90', () => {
-    component.showAll = false;
-    component.onShowAllChange();
-    expect(serviceSpy.getExpirations).toHaveBeenCalledWith(90);
+  it('itemMeta omite los campos ausentes', () => {
+    const item = makeItem({ make: undefined, model: undefined, serial: undefined });
+    expect(component.itemMeta(item)).toBe('');
+  });
+
+  it('ticketLabel devuelve el id formateado cuando hay odooTicketId', () => {
+    expect(component.ticketLabel(makeItem({ odooTicketId: 142 }))).toBe('#00142');
+  });
+
+  it('ticketLabel devuelve null sin odooTicketId', () => {
+    expect(component.ticketLabel(makeItem({ odooTicketId: undefined }))).toBeNull();
+  });
+
+  it('ticketLink devuelve null sin odooTicketId', () => {
+    expect(component.ticketLink(makeItem({ odooTicketId: undefined }))).toBeNull();
+  });
+
+  it('ticketPending es true sin ticket y dentro de la ventana de 30 días', () => {
+    expect(component.ticketPending(makeItem({ odooTicketId: undefined, daysUntil: 10 }))).toBeTrue();
+  });
+
+  it('ticketPending es true para items ya vencidos sin ticket', () => {
+    expect(component.ticketPending(makeItem({ odooTicketId: undefined, daysUntil: -2 }))).toBeTrue();
+  });
+
+  it('ticketPending es false fuera de la ventana de 30 días', () => {
+    expect(component.ticketPending(makeItem({ odooTicketId: undefined, daysUntil: 45 }))).toBeFalse();
+  });
+
+  it('ticketPending es false cuando ya tiene ticket', () => {
+    expect(component.ticketPending(makeItem({ odooTicketId: 142, daysUntil: 10 }))).toBeFalse();
+  });
+
+  it('setSort("client") invierte la dirección si ya estaba activa esa columna', () => {
+    expect(component.sortCol).toBe('client');
+    expect(component.sortDir).toBe('asc');
+    component.setSort('client');
+    expect(component.sortDir).toBe('desc');
+  });
+
+  it('setSort a una columna distinta la activa en orden asc', () => {
+    component.setSort('client');
+    expect(component.sortDir).toBe('desc');
+    component.setSort('expireDate');
+    expect(component.sortCol).toBe('expireDate');
+    expect(component.sortDir).toBe('asc');
+  });
+
+  it('filteredItems ordena por nombre de cliente por defecto', () => {
+    component.items = [
+      makeItem({ clientName: 'Zeta' }),
+      makeItem({ clientName: 'Acme' }),
+    ];
+    expect(component.filteredItems.map(i => i.clientName)).toEqual(['Acme', 'Zeta']);
+    component.setSort('client');
+    expect(component.filteredItems.map(i => i.clientName)).toEqual(['Zeta', 'Acme']);
+  });
+
+  it('setSort("expireDate") ordena por días hasta el vencimiento', () => {
+    component.items = [
+      makeItem({ clientName: 'A', daysUntil: 30 }),
+      makeItem({ clientName: 'B', daysUntil: -5 }),
+      makeItem({ clientName: 'C', daysUntil: 10 }),
+    ];
+    component.setSort('expireDate');
+    expect(component.filteredItems.map(i => i.clientName)).toEqual(['B', 'C', 'A']);
+    component.setSort('expireDate');
+    expect(component.filteredItems.map(i => i.clientName)).toEqual(['A', 'C', 'B']);
+  });
+
+  it('setClientFilter filtra items por clientId', () => {
+    component.items = [
+      makeItem({ clientId: 1, clientName: 'Acme' }),
+      makeItem({ clientId: 2, clientName: 'Beta' }),
+      makeItem({ clientId: 2, clientName: 'Beta' }),
+    ];
+    component.setClientFilter(2);
+    expect(component.filteredItems.length).toBe(2);
+    expect(component.filteredItems.every(i => i.clientId === 2)).toBeTrue();
+  });
+
+  it('setClientFilter(null) muestra todos los clientes', () => {
+    component.items = [
+      makeItem({ clientId: 1, clientName: 'Acme' }),
+      makeItem({ clientId: 2, clientName: 'Beta' }),
+    ];
+    component.setClientFilter(1);
+    component.setClientFilter(null);
+    expect(component.filteredItems.length).toBe(2);
+  });
+
+  it('uniqueClients retorna clientes únicos ordenados alfabéticamente', () => {
+    component.items = [
+      makeItem({ clientId: 2, clientName: 'Zeta' }),
+      makeItem({ clientId: 1, clientName: 'Acme' }),
+      makeItem({ clientId: 2, clientName: 'Zeta' }),
+    ];
+    const unique = component.uniqueClients;
+    expect(unique.length).toBe(2);
+    expect(unique[0].name).toBe('Acme');
+    expect(unique[1].name).toBe('Zeta');
   });
 
   it('muestra error cuando el servicio falla', () => {
@@ -160,5 +307,20 @@ describe('NotificationsComponent', () => {
     component.load();
     expect(component.error).toBe('No se pudo cargar los vencimientos');
     expect(component.loading).toBeFalse();
+  });
+
+  it('isAdmin es true cuando el usuario tiene role ADMIN', () => {
+    expect(component.isAdmin).toBe(true);
+  });
+
+  it('isAdmin es false cuando el usuario tiene role TECHNICIAN', () => {
+    mockAuth.getCurrentUser.and.returnValue({ id: '2', name: 'Tec', email: 't@t.com', role: 'TECHNICIAN', avatarUrl: null });
+    const f = TestBed.createComponent(NotificationsComponent);
+    f.detectChanges();
+    expect(f.componentInstance.isAdmin).toBe(false);
+  });
+
+  it('carga ticketWindowDays desde la config al inicializar', () => {
+    expect(component.ticketWindowDays).toBe(20);
   });
 });

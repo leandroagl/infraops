@@ -11,6 +11,8 @@ describe('OdooController', () => {
     syncPartners: jest.Mock;
     syncUsers: jest.Mock;
     getSyncStatus: jest.Mock;
+    getHelpdeskTeams: jest.Mock;
+    getHelpdeskTags: jest.Mock;
   };
 
   const mockSyncResult: OdooSyncResult = {
@@ -28,6 +30,8 @@ describe('OdooController', () => {
       syncPartners: jest.fn().mockResolvedValue(mockSyncResult),
       syncUsers: jest.fn().mockResolvedValue(mockSyncResult),
       getSyncStatus: jest.fn().mockResolvedValue(mockStatus),
+      getHelpdeskTeams: jest.fn().mockResolvedValue([{ id: 7, name: 'Mantenimientos' }]),
+      getHelpdeskTags: jest.fn().mockResolvedValue([{ id: 3, name: 'Urgente' }]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -75,6 +79,22 @@ describe('OdooController', () => {
     it('requiere rol ADMIN a nivel de clase — cubre todos los endpoints', () => {
       const roles = Reflect.getMetadata('roles', OdooController);
       expect(roles).toContain('ADMIN');
+    });
+  });
+
+  describe('getHelpdeskTeams', () => {
+    it('delega en odooService.getHelpdeskTeams y retorna los equipos', async () => {
+      const result = await controller.getHelpdeskTeams();
+      expect(odooService.getHelpdeskTeams).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([{ id: 7, name: 'Mantenimientos' }]);
+    });
+  });
+
+  describe('getHelpdeskTags', () => {
+    it('delega en odooService.getHelpdeskTags y retorna los tags', async () => {
+      const result = await controller.getHelpdeskTags();
+      expect(odooService.getHelpdeskTags).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([{ id: 3, name: 'Urgente' }]);
     });
   });
 });

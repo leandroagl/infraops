@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clientes v2 · InfraOps</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --base:#0a0d12;--surface:#111418;--card:#181d24;--elevated:#1e242e;--hover:#252c38;
+  --border-lo:rgba(255,255,255,.06);--border:rgba(255,255,255,.10);--border-md:rgba(255,255,255,.18);
+  --tx-hi:#e8eaf0;--tx-md:#8896a4;--tx-lo:#546272;
+  --crit:#f44336;--crit-bg:rgba(244,67,54,.14);--crit-bd:rgba(244,67,54,.32);
+  --warn:#ffb300;--warn-bg:rgba(255,179,0,.14);--warn-bd:rgba(255,179,0,.32);
+  --ok:#43d98a;--ok-bg:rgba(67,217,138,.14);--ok-bd:rgba(67,217,138,.32);
+  --accent:#4dd0e1;--accent-bg:rgba(77,208,225,.14);--accent-bd:rgba(77,208,225,.32);
+  --neutral:#546e7a;--neutral-bg:rgba(84,110,122,.12);--neutral-bd:rgba(84,110,122,.25);
+  --font-ui:'DM Sans',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono','Space Mono',monospace;
+  --radius:8px;--radius-sm:6px;--radius-xs:4px;
+  --transition:180ms cubic-bezier(.4,0,.2,1);
+}
+body{font-family:var(--font-ui);background:var(--base);color:var(--tx-hi);font-size:13px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+
+/* ─── Topbar ─────────────────────────────────────────────────── */
+.topbar{height:48px;background:var(--surface);border-bottom:1px solid var(--border-lo);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.topbar__logo{font-size:13px;font-weight:700;font-family:var(--font-mono);color:var(--tx-hi);letter-spacing:-.5px}
+.topbar__sep{width:1px;height:18px;background:var(--border);margin:0 4px}
+.topbar__page{font-size:11px;color:var(--tx-lo)}
+.topbar__spacer{flex:1}
+.topbar__avatar{width:28px;height:28px;border-radius:50%;background:var(--accent-bg);border:1px solid var(--accent-bd);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--font-mono);color:var(--accent)}
+
+/* ─── Shell ──────────────────────────────────────────────────── */
+.shell{display:flex;flex:1;overflow:hidden}
+.sidebar{width:52px;background:var(--surface);border-right:1px solid var(--border-lo);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:4px;flex-shrink:0}
+.nav-item{width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx-lo);border:1px solid transparent;transition:background var(--transition),color var(--transition)}
+.nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nav-item:hover{background:var(--hover);color:var(--tx-md)}
+.nav-item.active{background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)}
+.nav-sep{width:26px;height:1px;background:var(--border-lo);margin:4px 0}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+/* ─── Page header ────────────────────────────────────────────── */
+.page-hdr{display:flex;align-items:center;gap:12px;padding:14px 24px 0;flex-shrink:0}
+.page-title{font-size:17px;font-weight:600;color:var(--tx-hi);letter-spacing:-.2px}
+.page-count{font-size:11px;font-family:var(--font-mono);color:var(--tx-lo);background:var(--card);border:1px solid var(--border-lo);border-radius:10px;padding:1px 8px}
+
+/* ════════════════════════════════════════════════════════════════
+   KPI STRIP
+   ════════════════════════════════════════════════════════════════ */
+.kpi-strip{
+  display:flex;align-items:stretch;
+  padding:0 24px;
+  background:var(--card);
+  border-top:1px solid var(--border-lo);
+  border-bottom:1px solid var(--border-lo);
+  margin-top:14px;
+  flex-shrink:0;
+  min-height:80px;
+}
+
+/* ── Clickable zone filter block ── */
+.kpi-zone{
+  display:flex;flex-direction:column;justify-content:center;
+  padding:0 20px;
+  border-right:1px solid var(--border-lo);
+  cursor:pointer;
+  position:relative;
+  transition:background var(--transition);
+  user-select:none;
+  gap:5px;
+  /* Subtle color tint always visible via the icon row */
+}
+.kpi-zone:hover{background:var(--elevated)}
+
+/* TOP accent line — hidden by default, visible when active */
+.kpi-zone::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;
+  height:3px;border-radius:0 0 2px 2px;
+  opacity:0;
+  transition:opacity var(--transition);
+}
+.kpi-zone.active::before{opacity:1}
+
+/* Active background — more saturated */
+.kpi-zone--crit.active{background:rgba(244,67,54,.16)}
+.kpi-zone--crit::before{background:var(--crit)}
+
+.kpi-zone--low.active{background:rgba(77,208,225,.16)}
+.kpi-zone--low::before{background:var(--accent)}
+
+.kpi-zone--ok.active{background:rgba(67,217,138,.16)}
+.kpi-zone--ok::before{background:var(--ok)}
+
+.kpi-zone--warn.active{background:rgba(255,179,0,.16)}
+.kpi-zone--warn::before{background:var(--warn)}
+
+/* Icon row — always visible in zone color */
+.kpi-zone__icon{
+  display:flex;align-items:center;gap:6px;
+}
+.kpi-zone__icon svg{
+  width:13px;height:13px;
+  stroke:currentColor;fill:none;
+  stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;
+  flex-shrink:0;
+  opacity:.7;
+  transition:opacity var(--transition);
+}
+.kpi-zone.active .kpi-zone__icon svg{opacity:1}
+.kpi-zone__icon-label{
+  font-size:9px;text-transform:uppercase;letter-spacing:.7px;
+  font-family:var(--font-mono);
+  opacity:.7;
+  transition:opacity var(--transition);
+}
+.kpi-zone.active .kpi-zone__icon-label{opacity:1}
+
+/* Zone colors always on (icon + label) */
+.kpi-zone--crit .kpi-zone__icon{color:var(--crit)}
+.kpi-zone--low  .kpi-zone__icon{color:var(--accent)}
+.kpi-zone--ok   .kpi-zone__icon{color:var(--ok)}
+.kpi-zone--warn .kpi-zone__icon{color:var(--warn)}
+
+/* Value row */
+.kpi-zone__main{display:flex;align-items:baseline;gap:7px}
+.kpi-zone__val{
+  font-family:var(--font-mono);font-size:26px;font-weight:500;line-height:1;
+  transition:color var(--transition);
+}
+/* Colors always visible on value */
+.kpi-zone--crit .kpi-zone__val{color:var(--crit)}
+.kpi-zone--low  .kpi-zone__val{color:var(--accent)}
+.kpi-zone--ok   .kpi-zone__val{color:var(--ok)}
+.kpi-zone--warn .kpi-zone__val{color:var(--warn)}
+
+.kpi-zone__pct{
+  font-family:var(--font-mono);font-size:11px;color:var(--tx-lo);
+  margin-bottom:2px;
+}
+
+/* Check mark — only visible when active */
+.kpi-zone__check{
+  display:flex;align-items:center;
+  width:14px;height:14px;
+  border-radius:50%;
+  opacity:0;transform:scale(.5);
+  transition:opacity var(--transition),transform var(--transition);
+  margin-bottom:2px;
+}
+.kpi-zone.active .kpi-zone__check{opacity:1;transform:scale(1)}
+.kpi-zone__check svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.kpi-zone--crit .kpi-zone__check{color:var(--crit)}
+.kpi-zone--low  .kpi-zone__check{color:var(--accent)}
+.kpi-zone--ok   .kpi-zone__check{color:var(--ok)}
+.kpi-zone--warn .kpi-zone__check{color:var(--warn)}
+
+/* Range label row */
+.kpi-zone__foot{font-size:9px;color:var(--tx-lo);font-family:var(--font-mono)}
+
+/* ── Hours progress block ── */
+.kpi-hours{
+  flex:1;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:0 28px;
+  gap:7px;
+  min-width:0;
+}
+
+.kpi-hours__head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;
+}
+.kpi-hours__label{
+  font-size:9px;color:var(--tx-lo);text-transform:uppercase;
+  letter-spacing:.7px;font-family:var(--font-mono);white-space:nowrap;
+}
+.kpi-hours__pct-badge{
+  display:flex;align-items:baseline;gap:6px;flex-shrink:0;
+}
+.kpi-hours__pct{
+  font-size:18px;font-weight:600;font-family:var(--font-mono);line-height:1;
+}
+.kpi-hours__pct--ok{color:var(--ok)}
+.kpi-hours__pct--warn{color:var(--warn)}
+.kpi-hours__pct--crit{color:var(--crit)}
+.kpi-hours__pct-lbl{font-size:10px;color:var(--tx-lo);font-family:var(--font-mono)}
+
+/* Progress bar — more prominent */
+.kpi-hours__bar{
+  height:8px;border-radius:4px;
+  background:var(--elevated);
+  overflow:hidden;
+  border:1px solid var(--border-lo);
+}
+.kpi-hours__fill{
+  height:100%;border-radius:4px;
+  transition:width .6s cubic-bezier(.4,0,.2,1);
+}
+.kpi-hours__fill--ok{background:linear-gradient(90deg,var(--ok),rgba(67,217,138,.7))}
+.kpi-hours__fill--warn{background:linear-gradient(90deg,var(--warn),rgba(255,179,0,.7))}
+.kpi-hours__fill--crit{background:linear-gradient(90deg,var(--crit),rgba(244,67,54,.7))}
+
+/* Metrics row — bigger, more visible */
+.kpi-hours__metrics{
+  display:flex;align-items:center;gap:0;
+}
+.kpi-hours__metric{
+  display:flex;flex-direction:column;gap:1px;
+  padding-right:24px;
+  border-right:1px solid var(--border-lo);
+  margin-right:24px;
+}
+.kpi-hours__metric:last-child{border-right:none;margin-right:0;padding-right:0}
+.kpi-hours__metric-val{
+  font-family:var(--font-mono);font-size:16px;font-weight:600;line-height:1;
+}
+.kpi-hours__metric-val--neutral{color:var(--tx-md)}
+.kpi-hours__metric-val--ok{color:var(--ok)}
+.kpi-hours__metric-val--warn{color:var(--warn)}
+.kpi-hours__metric-val--crit{color:var(--crit)}
+.kpi-hours__metric-val--hi{color:var(--tx-hi)}
+.kpi-hours__metric-lbl{
+  font-size:9px;text-transform:uppercase;letter-spacing:.7px;
+  color:var(--tx-lo);font-family:var(--font-mono);
+}
+
+/* ─── Month nav bar ──────────────────────────────────────────── */
+.month-nav-bar{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 24px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border-lo);
+  flex-shrink:0;
+}
+.month-nav-btn{
+  width:28px;height:28px;border-radius:var(--radius-sm);
+  background:transparent;border:1px solid var(--border-lo);
+  color:var(--tx-md);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background var(--transition),border-color var(--transition),color var(--transition);
+  flex-shrink:0;
+}
+.month-nav-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.month-nav-btn:hover{background:var(--elevated);border-color:var(--border-md);color:var(--tx-hi)}
+.month-nav-btn:disabled{opacity:.3;cursor:default;pointer-events:none}
+.month-label{
+  font-size:14px;font-weight:600;font-family:var(--font-ui);
+  color:var(--tx-hi);min-width:140px;text-align:center;
+  transition:opacity 120ms ease;
+}
+.month-label.transitioning{opacity:0}
+.month-nav-sep{width:1px;height:18px;background:var(--border-lo);margin:0 6px}
+.month-past-badge{
+  font-size:9px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.6px;
+  padding:2px 8px;border-radius:10px;
+  background:var(--neutral-bg);border:1px solid var(--neutral-bd);color:var(--tx-lo);
+  opacity:0;transition:opacity var(--transition);pointer-events:none;
+}
+.month-past-badge.visible{opacity:1}
+
+/* ════════════════════════════════════════════════════════════════
+   CONTROLS / SEARCH
+   ════════════════════════════════════════════════════════════════ */
+.controls-bar{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 24px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border-lo);
+  flex-shrink:0;
+}
+.search-wrap{position:relative;flex:0 0 280px}
+.search-icon{
+  position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  width:14px;height:14px;
+  stroke:var(--tx-lo);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;
+  transition:stroke var(--transition);pointer-events:none;
+}
+.search-input{
+  width:100%;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  color:var(--tx-hi);font-size:12px;font-family:var(--font-ui);
+  padding:7px 32px 7px 32px;
+  outline:none;
+  transition:border-color var(--transition),box-shadow var(--transition),background var(--transition);
+}
+.search-input::placeholder{color:var(--tx-lo)}
+.search-input:focus{
+  border-color:var(--accent-bd);
+  background:var(--elevated);
+  box-shadow:0 0 0 3px rgba(77,208,225,.08);
+}
+.search-wrap:focus-within .search-icon{stroke:var(--accent)}
+.search-clear{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  width:16px;height:16px;border-radius:50%;
+  background:var(--elevated);border:none;cursor:pointer;
+  display:none;align-items:center;justify-content:center;
+  color:var(--tx-lo);transition:background var(--transition),color var(--transition);
+}
+.search-clear:hover{background:var(--hover);color:var(--tx-md)}
+.search-clear svg{width:8px;height:8px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round}
+.search-clear.visible{display:flex}
+
+.controls-spacer{flex:1}
+.result-count{font-size:11px;font-family:var(--font-mono);color:var(--tx-lo);white-space:nowrap;transition:color var(--transition)}
+.result-count.filtered{color:var(--accent)}
+
+/* Active zone chip in controls */
+.filter-chip{
+  display:none;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;
+  font-size:10px;font-family:var(--font-mono);
+  cursor:pointer;transition:opacity var(--transition);
+}
+.filter-chip.visible{display:flex}
+.filter-chip:hover{opacity:.8}
+.filter-chip--crit{background:var(--crit-bg);border:1px solid var(--crit-bd);color:var(--crit)}
+.filter-chip--low{background:var(--accent-bg);border:1px solid var(--accent-bd);color:var(--accent)}
+.filter-chip--ok{background:var(--ok-bg);border:1px solid var(--ok-bd);color:var(--ok)}
+.filter-chip--warn{background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn)}
+.filter-chip svg{width:9px;height:9px;stroke:currentColor;fill:none;stroke-width:3;stroke-linecap:round}
+
+/* ════════════════════════════════════════════════════════════════
+   TABLE
+   ════════════════════════════════════════════════════════════════ */
+.page-content{flex:1;overflow-y:auto}
+.clients-table-wrap{background:var(--surface)}
+
+.col-hdr{
+  display:grid;grid-template-columns:1fr 300px 100px;
+  padding:8px 24px;
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:10;
+}
+.col-hdr-cell{
+  font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--tx-lo);font-family:var(--font-mono);
+  display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none;
+  transition:color var(--transition);
+}
+.col-hdr-cell:hover{color:var(--tx-md)}
+.col-hdr-cell svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:2.5;stroke-linecap:round}
+.col-hdr-cell.sorted{color:var(--accent)}
+
+/* ── Client row ── */
+.client-row{
+  display:grid;grid-template-columns:1fr 300px 100px;
+  padding:11px 24px;
+  border-bottom:1px solid var(--border-lo);
+  align-items:center;
+  cursor:pointer;
+  transition:background var(--transition),opacity 220ms ease,transform 220ms ease;
+}
+.client-row:last-child{border-bottom:none}
+.client-row:hover{background:var(--hover)}
+.client-row:hover .client-name-text{color:var(--accent)}
+
+/* Filter animation states */
+.client-row.row-out{
+  opacity:0;transform:translateX(-8px);
+  pointer-events:none;
+  max-height:0;padding-top:0;padding-bottom:0;border-bottom-width:0;overflow:hidden;
+}
+.client-row.row-in{opacity:1;transform:translateX(0)}
+
+/* Load entrance */
+@keyframes rowIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.client-row.row-load{animation:rowIn 240ms ease both}
+
+/* Client name column */
+.client-name{display:flex;align-items:center;gap:10px}
+.client-initial{
+  width:28px;height:28px;border-radius:var(--radius-xs);
+  background:var(--elevated);border:1px solid var(--border-lo);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;font-family:var(--font-mono);
+  color:var(--tx-md);flex-shrink:0;
+  transition:background var(--transition),color var(--transition),border-color var(--transition);
+}
+.client-row:hover .client-initial{background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)}
+.client-name-text{font-size:13px;font-weight:500;color:var(--tx-hi);transition:color var(--transition)}
+
+/* Hours column */
+.hours-cell{display:flex;flex-direction:column;gap:5px}
+.hours-metrics{display:flex;gap:20px}
+.metric{display:flex;flex-direction:column;gap:1px}
+.metric__value{font-family:var(--font-mono);font-size:13px;font-weight:600;line-height:1}
+.metric__label{font-size:9px;text-transform:uppercase;letter-spacing:.7px;color:var(--tx-lo);font-family:var(--font-mono)}
+.metric__value--neutral{color:var(--tx-md)}
+.metric__value--hi{color:var(--tx-hi)}
+.metric__value--ok{color:var(--ok)}
+.metric__value--warn{color:var(--warn)}
+.metric__value--crit{color:var(--crit)}
+.metric__value--accent{color:var(--accent)}
+
+.hours-bar{display:flex;align-items:center;gap:8px}
+.bar-track{flex:1;height:4px;background:var(--elevated);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width 400ms cubic-bezier(.4,0,.2,1)}
+.bar-fill--ok{background:var(--ok)}
+.bar-fill--warn{background:var(--warn)}
+.bar-fill--crit{background:var(--crit)}
+.bar-fill--accent{background:var(--accent)}
+.bar-pct{font-family:var(--font-mono);font-size:10px;color:var(--tx-lo);min-width:28px;text-align:right}
+
+/* Status badge column */
+.status-col{display:flex;justify-content:flex-end}
+.zone-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:9px;font-weight:600;font-family:var(--font-mono);
+  text-transform:uppercase;letter-spacing:.4px;
+  padding:2px 8px;border-radius:10px;
+}
+.zone-badge--crit{background:var(--crit-bg);border:1px solid var(--crit-bd);color:var(--crit)}
+.zone-badge--low{background:var(--accent-bg);border:1px solid var(--accent-bd);color:var(--accent)}
+.zone-badge--ok{background:var(--ok-bg);border:1px solid var(--ok-bd);color:var(--ok)}
+.zone-badge--warn{background:var(--warn-bg);border:1px solid var(--warn-bd);color:var(--warn)}
+.zone-badge--nodata{background:var(--neutral-bg);border:1px solid var(--neutral-bd);color:var(--neutral)}
+
+/* ── Skeleton ── */
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.skeleton{
+  display:inline-block;border-radius:3px;
+  background:linear-gradient(90deg,var(--elevated) 25%,var(--hover) 50%,var(--elevated) 75%);
+  background-size:800px 100%;animation:shimmer 1.4s infinite linear;
+}
+.sk-name{width:140px;height:13px}
+.sk-init{width:28px;height:28px;border-radius:var(--radius-xs)}
+.sk-val{width:32px;height:13px}
+.sk-bar{width:100%;height:4px;border-radius:2px}
+.sk-badge{width:60px;height:17px;border-radius:10px}
+
+/* ── Empty state ── */
+.empty-state{display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:64px 24px;color:var(--tx-lo)}
+.empty-state.visible{display:flex}
+.empty-state svg{width:36px;height:36px;stroke:currentColor;fill:none;stroke-width:1.2;stroke-linecap:round;opacity:.35}
+.empty-state__title{font-size:13px;color:var(--tx-md)}
+.empty-state__sub{font-size:11px;color:var(--tx-lo)}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--elevated);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--hover)}
+
+/* ── Hint ── */
+.hint{position:fixed;bottom:20px;right:24px;background:var(--elevated);border:1px solid var(--border-md);border-radius:var(--radius-sm);padding:8px 14px;font-size:11px;color:var(--tx-md);box-shadow:0 4px 20px rgba(0,0,0,.5);display:flex;gap:8px;align-items:center;animation:rowIn .3s ease both}
+.hint kbd{background:var(--card);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:10px;font-family:var(--font-mono);color:var(--tx-hi)}
+</style>
+</head>
+<body>
+
+<!-- ─── Topbar ──────────────────────────────────────────────────────── -->
+<div class="topbar">
+  <span class="topbar__logo">InfraOps</span>
+  <span class="topbar__sep"></span>
+  <span class="topbar__page">Clientes</span>
+  <div class="topbar__spacer"></div>
+  <div class="topbar__avatar">LA</div>
+</div>
+
+<div class="shell">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+    <div class="nav-item active"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+    <div class="nav-sep"></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 116.93 19.07 10 10 0 0119.07 4.93"/></svg></div>
+  </div>
+
+  <div class="main">
+
+    <!-- Page header -->
+    <div class="page-hdr">
+      <span class="page-title">Clientes</span>
+      <span class="page-count" id="totalCount">9 activos</span>
+    </div>
+
+    <!-- Month nav bar -->
+    <div class="month-nav-bar">
+      <button class="month-nav-btn" id="btnPrev" onclick="navigateMonth(-1)" title="Mes anterior">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="month-label" id="monthLabel">Sep 2026</span>
+      <button class="month-nav-btn" id="btnNext" onclick="navigateMonth(1)" title="Mes siguiente">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="month-nav-sep"></div>
+      <span class="month-past-badge" id="pastBadge">Período cerrado</span>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         KPI STRIP
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="kpi-strip">
+
+      <!-- Sin actividad (crit) -->
+      <div class="kpi-zone kpi-zone--crit" id="zone-crit" onclick="toggleZone('crit')" role="button" tabindex="0">
+        <div class="kpi-zone__icon">
+          <!-- moon / sleep icon -->
+          <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/></svg>
+          <span class="kpi-zone__icon-label">Sin actividad</span>
+        </div>
+        <div class="kpi-zone__main">
+          <span class="kpi-zone__val" id="val-crit">2</span>
+          <span class="kpi-zone__pct">22%</span>
+          <span class="kpi-zone__check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>
+        </div>
+        <div class="kpi-zone__foot">0% uso</div>
+      </div>
+
+      <!-- Uso bajo (accent) -->
+      <div class="kpi-zone kpi-zone--low" id="zone-low" onclick="toggleZone('low')" role="button" tabindex="0">
+        <div class="kpi-zone__icon">
+          <!-- arrow trending down icon -->
+          <svg viewBox="0 0 24 24"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+          <span class="kpi-zone__icon-label">Uso bajo</span>
+        </div>
+        <div class="kpi-zone__main">
+          <span class="kpi-zone__val" id="val-low">3</span>
+          <span class="kpi-zone__pct">33%</span>
+          <span class="kpi-zone__check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>
+        </div>
+        <div class="kpi-zone__foot">1–59%</div>
+      </div>
+
+      <!-- Uso normal (ok) -->
+      <div class="kpi-zone kpi-zone--ok" id="zone-ok" onclick="toggleZone('ok')" role="button" tabindex="0">
+        <div class="kpi-zone__icon">
+          <!-- check circle icon -->
+          <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span class="kpi-zone__icon-label">Uso normal</span>
+        </div>
+        <div class="kpi-zone__main">
+          <span class="kpi-zone__val" id="val-ok">3</span>
+          <span class="kpi-zone__pct">33%</span>
+          <span class="kpi-zone__check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>
+        </div>
+        <div class="kpi-zone__foot">60–100%</div>
+      </div>
+
+      <!-- Excedente (warn) -->
+      <div class="kpi-zone kpi-zone--warn" id="zone-warn" onclick="toggleZone('warn')" role="button" tabindex="0">
+        <div class="kpi-zone__icon">
+          <!-- trending up / overflow icon -->
+          <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          <span class="kpi-zone__icon-label">Excedente</span>
+        </div>
+        <div class="kpi-zone__main">
+          <span class="kpi-zone__val" id="val-warn">1</span>
+          <span class="kpi-zone__pct">11%</span>
+          <span class="kpi-zone__check"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></span>
+        </div>
+        <div class="kpi-zone__foot">&gt;100%</div>
+      </div>
+
+      <!-- Horas del mes -->
+      <div class="kpi-hours">
+        <div class="kpi-hours__head">
+          <span class="kpi-hours__label">Horas del mes · Sep 2026</span>
+          <div class="kpi-hours__pct-badge">
+            <span class="kpi-hours__pct kpi-hours__pct--ok">72%</span>
+            <span class="kpi-hours__pct-lbl">consumido</span>
+          </div>
+        </div>
+        <div class="kpi-hours__bar">
+          <div class="kpi-hours__fill kpi-hours__fill--ok" style="width:72%"></div>
+        </div>
+        <div class="kpi-hours__metrics">
+          <div class="kpi-hours__metric">
+            <span class="kpi-hours__metric-val kpi-hours__metric-val--neutral">165h</span>
+            <span class="kpi-hours__metric-lbl">Contratadas</span>
+          </div>
+          <div class="kpi-hours__metric">
+            <span class="kpi-hours__metric-val kpi-hours__metric-val--ok">119h</span>
+            <span class="kpi-hours__metric-lbl">Usadas</span>
+          </div>
+          <div class="kpi-hours__metric">
+            <span class="kpi-hours__metric-val kpi-hours__metric-val--hi">46h</span>
+            <span class="kpi-hours__metric-lbl">Disponibles</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /kpi-strip -->
+
+    <!-- ═══════════════════════════════════════════════════════════
+         CONTROLS BAR
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="controls-bar">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input class="search-input" id="searchInput" type="text" placeholder="Buscar cliente..." autocomplete="off" oninput="handleSearch(this.value)">
+        <button class="search-clear" id="searchClear" onclick="clearSearch()">
+          <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Active filter chips -->
+      <div class="filter-chip filter-chip--crit" id="chip-crit" onclick="toggleZone('crit')">
+        Sin actividad <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </div>
+      <div class="filter-chip filter-chip--low" id="chip-low" onclick="toggleZone('low')">
+        Uso bajo <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </div>
+      <div class="filter-chip filter-chip--ok" id="chip-ok" onclick="toggleZone('ok')">
+        Uso normal <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </div>
+      <div class="filter-chip filter-chip--warn" id="chip-warn" onclick="toggleZone('warn')">
+        Excedente <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </div>
+
+      <div class="controls-spacer"></div>
+      <span class="result-count" id="resultCount">9 clientes</span>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TABLE
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="page-content">
+      <div class="clients-table-wrap">
+
+        <div class="col-hdr">
+          <div class="col-hdr-cell sorted">Cliente <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>
+          <div class="col-hdr-cell">Horas del mes</div>
+          <div class="col-hdr-cell">Estado</div>
+        </div>
+
+        <div id="rowsContainer">
+
+          <!-- crit -->
+          <div class="client-row row-load" style="animation-delay:0ms" data-zone="crit" data-name="acme industrial">
+            <div class="client-name"><div class="client-initial">AI</div><span class="client-name-text">Acme Industrial SA</span></div>
+            <div class="hours-cell">
+              <div class="hours-metrics">
+                <div class="metric"><span class="metric__value metric__value--neutral">20</span><span class="metric__label">Contratadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--crit">0</span><span class="metric__label">Usadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--hi">20</span><span class="metric__label">Disponibles</span></div>
+              </div>
+              <div class="hours-bar"><div class="bar-track"><div class="bar-fill bar-fill--crit" style="width:0%"></div></div><span class="bar-pct">0%</span></div>
+            </div>
+            <div class="status-col"><span class="zone-badge zone-badge--crit">Sin actividad</span></div>
+          </div>
+
+          <!-- low -->
+          <div class="client-row row-load" style="animation-delay:40ms" data-zone="low" data-name="beta servicios">
+            <div class="client-name"><div class="client-initial">BS</div><span class="client-name-text">Beta Servicios SRL</span></div>
+            <div class="hours-cell">
+              <div class="hours-metrics">
+                <div class="metric"><span class="metric__value metric__value--neutral">10</span><span class="metric__label">Contratadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--warn">4</span><span class="metric__label">Usadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--hi">6</span><span class="metric__label">Disponibles</span></div>
+              </div>
+              <div class="hours-bar"><div class="bar-track"><div class="bar-fill bar-fill--warn" style="width:40%"></div></div><span class="bar-pct">40%</span></div>
+            </div>
+            <div class="status-col"><span class="zone-badge zone-badge--low">Uso bajo</span></div>
+          </div>
+
+          <!-- ok -->
+          <div class="client-row row-load" style="animation-delay:80ms" data-zone="ok" data-name="gamma distribución">
+            <div class="client-name"><div class="client-initial">GD</div><span class="client-name-text">Gamma Distribución SA</span></div>
+            <div class="hours-cell">
+              <div class="hours-metrics">
+                <div class="metric"><span class="metric__value metric__value--neutral">15</span><span class="metric__label">Contratadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--ok">11</span><span class="metric__label">Usadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--hi">4</span><span class="metric__label">Disponibles</span></div>
+              </div>
+              <div class="hours-bar"><div class="bar-track"><div class="bar-fill bar-fill--ok" style="width:73%"></div></div><span class="bar-pct">73%</span></div>
+            </div>
+            <div class="status-col"><span class="zone-badge zone-badge--ok">Normal</span></div>
+          </div>
+
+          <!-- warn -->
+          <div class="client-row row-load" style="animation-delay:120ms" data-zone="warn" data-name="delta logística">
+            <div class="client-name"><div class="client-initial">DL</div><span class="client-name-text">Delta Logística SRL</span></div>
+            <div class="hours-cell">
+              <div class="hours-metrics">
+                <div class="metric"><span class="metric__value metric__value--neutral">25</span><span class="metric__label">Contratadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--warn">28</span><span class="metric__label">Usadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--hi">-3</span><span class="metric__label">Disponibles</span></div>
+              </div>
+              <div class="hours-bar"><div class="bar-track"><div class="bar-fill bar-fill--warn" style="width:100%"></div></div><span class="bar-pct">112%</span></div>
+            </div>
+            <div class="status-col"><span class="zone-badge zone-badge--warn">Excedente</span></div>
+          </div>
+
+          <!-- ok -->
+          <div class="client-row row-load" style="animation-delay:160ms" data-zone="ok" data-name="epsilon tecnología">
+            <div class="client-name"><div class="client-initial">ET</div><span class="client-name-text">Epsilon Tecnología SA</span></div>
+            <div class="hours-cell">
+              <div class="hours-metrics">
+                <div class="metric"><span class="metric__value metric__value--neutral">30</span><span class="metric__label">Contratadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--ok">22</span><span class="metric__label">Usadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--hi">8</span><span class="metric__label">Disponibles</span></div>
+              </div>
+              <div class="hours-bar"><div class="bar-track"><div class="bar-fill bar-fill--ok" style="width:73%"></div></div><span class="bar-pct">73%</span></div>
+            </div>
+            <div class="status-col"><span class="zone-badge zone-badge--ok">Normal</span></div>
+          </div>
+
+          <!-- low -->
+          <div class="client-row row-load" style="animation-delay:200ms" data-zone="low" data-name="omega construcción">
+            <div class="client-name"><div class="client-initial">OC</div><span class="client-name-text">Omega Construcción SA</span></div>
+            <div class="hours-cell">
+              <div class="hours-metrics">
+                <div class="metric"><span class="metric__value metric__value--neutral">20</span><span class="metric__label">Contratadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--warn">5</span><span class="metric__label">Usadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--hi">15</span><span class="metric__label">Disponibles</span></div>
+              </div>
+              <div class="hours-bar"><div class="bar-track"><div class="bar-fill bar-fill--warn" style="width:25%"></div></div><span class="bar-pct">25%</span></div>
+            </div>
+            <div class="status-col"><span class="zone-badge zone-badge--low">Uso bajo</span></div>
+          </div>
+
+          <!-- crit -->
+          <div class="client-row row-load" style="animation-delay:240ms" data-zone="crit" data-name="zeta manufactura">
+            <div class="client-name"><div class="client-initial">ZM</div><span class="client-name-text">Zeta Manufactura SRL</span></div>
+            <div class="hours-cell">
+              <div class="hours-metrics">
+                <div class="metric"><span class="metric__value metric__value--neutral">8</span><span class="metric__label">Contratadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--crit">0</span><span class="metric__label">Usadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--hi">8</span><span class="metric__label">Disponibles</span></div>
+              </div>
+              <div class="hours-bar"><div class="bar-track"><div class="bar-fill bar-fill--crit" style="width:0%"></div></div><span class="bar-pct">0%</span></div>
+            </div>
+            <div class="status-col"><span class="zone-badge zone-badge--crit">Sin actividad</span></div>
+          </div>
+
+          <!-- ok -->
+          <div class="client-row row-load" style="animation-delay:280ms" data-zone="ok" data-name="infradev partners">
+            <div class="client-name"><div class="client-initial">IP</div><span class="client-name-text">InfraDev Partners SA</span></div>
+            <div class="hours-cell">
+              <div class="hours-metrics">
+                <div class="metric"><span class="metric__value metric__value--neutral">12</span><span class="metric__label">Contratadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--ok">9</span><span class="metric__label">Usadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--hi">3</span><span class="metric__label">Disponibles</span></div>
+              </div>
+              <div class="hours-bar"><div class="bar-track"><div class="bar-fill bar-fill--ok" style="width:75%"></div></div><span class="bar-pct">75%</span></div>
+            </div>
+            <div class="status-col"><span class="zone-badge zone-badge--ok">Normal</span></div>
+          </div>
+
+          <!-- low -->
+          <div class="client-row row-load" style="animation-delay:320ms" data-zone="low" data-name="norte agropecuaria">
+            <div class="client-name"><div class="client-initial">NA</div><span class="client-name-text">Norte Agropecuaria SA</span></div>
+            <div class="hours-cell">
+              <div class="hours-metrics">
+                <div class="metric"><span class="metric__value metric__value--neutral">18</span><span class="metric__label">Contratadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--warn">7</span><span class="metric__label">Usadas</span></div>
+                <div class="metric"><span class="metric__value metric__value--hi">11</span><span class="metric__label">Disponibles</span></div>
+              </div>
+              <div class="hours-bar"><div class="bar-track"><div class="bar-fill bar-fill--warn" style="width:39%"></div></div><span class="bar-pct">39%</span></div>
+            </div>
+            <div class="status-col"><span class="zone-badge zone-badge--low">Uso bajo</span></div>
+          </div>
+
+        </div><!-- /rowsContainer -->
+
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+          <span class="empty-state__title">Sin resultados</span>
+          <span class="empty-state__sub">Ningún cliente coincide con los filtros aplicados</span>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<div class="hint">Probá los filtros del KPI strip o el buscador <kbd>Demo interactivo</kbd></div>
+
+<script>
+  // ── Hours state — higher consumption = better ─────────────────
+  // >100%: warn (excedente) | ≥50%: ok | ≥15%: warn | <15%: crit
+  function hoursState(pct){
+    if(pct > 100) return 'warn';
+    if(pct >= 50)  return 'ok';
+    if(pct >= 15)  return 'warn';
+    return 'crit';
+  }
+
+  // ── Month navigation ──────────────────────────────────────────
+  const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const CURRENT_YEAR = 2026;
+  const CURRENT_MONTH = 8; // 0-indexed → Sep
+
+  // Simulated data per month offset (0 = current, -1 = Aug, -2 = Jul…)
+  const MONTH_DATA = {
+    0: { // Sep 2026 — actual
+      kpi: { crit:2, low:3, ok:3, warn:1 },
+      hours: { contracted:165, used:119, available:46, pct:72, state:'ok' },
+      rows: [
+        { zone:'crit', name:'acme industrial', label:'Acme Industrial SA', init:'AI', c:20,  u:0,  a:20,  pct:0,   state:'crit' },
+        { zone:'low',  name:'beta servicios',  label:'Beta Servicios SRL',  init:'BS', c:10,  u:4,  a:6,   pct:40,  state:'accent' },
+        { zone:'ok',   name:'gamma distribución', label:'Gamma Distribución SA', init:'GD', c:15, u:11, a:4, pct:73, state:'ok' },
+        { zone:'warn', name:'delta logística', label:'Delta Logística SRL', init:'DL', c:25, u:28, a:-3, pct:112, state:'warn' },
+        { zone:'ok',   name:'epsilon tecnología', label:'Epsilon Tecnología SA', init:'ET', c:30, u:22, a:8, pct:73, state:'ok' },
+        { zone:'low',  name:'omega construcción', label:'Omega Construcción SA', init:'OC', c:20, u:5, a:15, pct:25, state:'accent' },
+        { zone:'crit', name:'zeta manufactura', label:'Zeta Manufactura SRL', init:'ZM', c:8,  u:0,  a:8,  pct:0,  state:'crit' },
+        { zone:'ok',   name:'infradev partners',  label:'InfraDev Partners SA',  init:'IP', c:12, u:9, a:3, pct:75, state:'ok' },
+        { zone:'low',  name:'norte agropecuaria', label:'Norte Agropecuaria SA', init:'NA', c:18, u:7, a:11, pct:39, state:'accent' },
+      ]
+    },
+    '-1': { // Ago 2026
+      kpi: { crit:1, low:4, ok:3, warn:1 },
+      hours: { contracted:165, used:143, available:22, pct:87, state:'ok' },
+      rows: [
+        { zone:'low',  name:'acme industrial', label:'Acme Industrial SA', init:'AI', c:20,  u:9,  a:11,  pct:45, state:'accent' },
+        { zone:'low',  name:'beta servicios',  label:'Beta Servicios SRL',  init:'BS', c:10,  u:3,  a:7,   pct:30, state:'accent' },
+        { zone:'ok',   name:'gamma distribución', label:'Gamma Distribución SA', init:'GD', c:15, u:12, a:3, pct:80, state:'ok' },
+        { zone:'warn', name:'delta logística', label:'Delta Logística SRL', init:'DL', c:25, u:31, a:-6, pct:124, state:'warn' },
+        { zone:'ok',   name:'epsilon tecnología', label:'Epsilon Tecnología SA', init:'ET', c:30, u:27, a:3, pct:90, state:'ok' },
+        { zone:'low',  name:'omega construcción', label:'Omega Construcción SA', init:'OC', c:20, u:8, a:12, pct:40, state:'accent' },
+        { zone:'crit', name:'zeta manufactura', label:'Zeta Manufactura SRL', init:'ZM', c:8,  u:0,  a:8,  pct:0,  state:'crit' },
+        { zone:'ok',   name:'infradev partners',  label:'InfraDev Partners SA',  init:'IP', c:12, u:10, a:2, pct:83, state:'ok' },
+        { zone:'low',  name:'norte agropecuaria', label:'Norte Agropecuaria SA', init:'NA', c:18, u:9, a:9, pct:50, state:'accent' },
+      ]
+    },
+    '-2': { // Jul 2026
+      kpi: { crit:0, low:2, ok:5, warn:2 },
+      hours: { contracted:165, used:156, available:9, pct:95, state:'ok' },
+      rows: [
+        { zone:'ok',   name:'acme industrial', label:'Acme Industrial SA', init:'AI', c:20,  u:16,  a:4,  pct:80, state:'ok' },
+        { zone:'low',  name:'beta servicios',  label:'Beta Servicios SRL',  init:'BS', c:10,  u:4,  a:6,  pct:40, state:'accent' },
+        { zone:'warn', name:'gamma distribución', label:'Gamma Distribución SA', init:'GD', c:15, u:16, a:-1, pct:107, state:'warn' },
+        { zone:'warn', name:'delta logística', label:'Delta Logística SRL', init:'DL', c:25, u:29, a:-4, pct:116, state:'warn' },
+        { zone:'ok',   name:'epsilon tecnología', label:'Epsilon Tecnología SA', init:'ET', c:30, u:26, a:4, pct:87, state:'ok' },
+        { zone:'ok',   name:'omega construcción', label:'Omega Construcción SA', init:'OC', c:20, u:14, a:6, pct:70, state:'ok' },
+        { zone:'low',  name:'zeta manufactura', label:'Zeta Manufactura SRL', init:'ZM', c:8,  u:3,  a:5,  pct:37, state:'accent' },
+        { zone:'ok',   name:'infradev partners',  label:'InfraDev Partners SA',  init:'IP', c:12, u:11, a:1, pct:92, state:'ok' },
+        { zone:'ok',   name:'norte agropecuaria', label:'Norte Agropecuaria SA', init:'NA', c:18, u:13, a:5, pct:72, state:'ok' },
+      ]
+    },
+    '-3': { // Jun 2026
+      kpi: { crit:1, low:3, ok:4, warn:1 },
+      hours: { contracted:165, used:128, available:37, pct:78, state:'ok' },
+      rows: [
+        { zone:'low',  name:'acme industrial', label:'Acme Industrial SA', init:'AI', c:20,  u:7,  a:13, pct:35, state:'accent' },
+        { zone:'ok',   name:'beta servicios',  label:'Beta Servicios SRL',  init:'BS', c:10,  u:8,  a:2,  pct:80, state:'ok' },
+        { zone:'ok',   name:'gamma distribución', label:'Gamma Distribución SA', init:'GD', c:15, u:13, a:2, pct:87, state:'ok' },
+        { zone:'warn', name:'delta logística', label:'Delta Logística SRL', init:'DL', c:25, u:27, a:-2, pct:108, state:'warn' },
+        { zone:'ok',   name:'epsilon tecnología', label:'Epsilon Tecnología SA', init:'ET', c:30, u:24, a:6, pct:80, state:'ok' },
+        { zone:'low',  name:'omega construcción', label:'Omega Construcción SA', init:'OC', c:20, u:6, a:14, pct:30, state:'accent' },
+        { zone:'crit', name:'zeta manufactura', label:'Zeta Manufactura SRL', init:'ZM', c:8,  u:0,  a:8,  pct:0,  state:'crit' },
+        { zone:'ok',   name:'infradev partners',  label:'InfraDev Partners SA',  init:'IP', c:12, u:11, a:1, pct:92, state:'ok' },
+        { zone:'low',  name:'norte agropecuaria', label:'Norte Agropecuaria SA', init:'NA', c:18, u:8, a:10, pct:44, state:'accent' },
+      ]
+    },
+  };
+  const MIN_OFFSET = -3; // Jun 2026 — límite histórico demo
+  const MAX_OFFSET = 0;  // Sep 2026 — mes actual
+
+  let monthOffset = 0;   // 0 = mes actual
+  let activeZone = null;
+  let searchTerm = '';
+
+  function getMonthLabel(offset){
+    let m = CURRENT_MONTH + offset;
+    let y = CURRENT_YEAR;
+    while(m < 0){ m += 12; y--; }
+    while(m > 11){ m -= 12; y++; }
+    return MONTHS[m] + ' ' + y;
+  }
+
+  function getCurrentData(){
+    const key = String(monthOffset);
+    return MONTH_DATA[key] || MONTH_DATA['0'];
+  }
+
+  function renderMonth(){
+    const data = getCurrentData();
+    const label = getMonthLabel(monthOffset);
+    const isPast = monthOffset < 0;
+
+    // Month label with brief fade
+    const lbl = document.getElementById('monthLabel');
+    lbl.classList.add('transitioning');
+    setTimeout(() => {
+      lbl.textContent = label;
+      lbl.classList.remove('transitioning');
+    }, 100);
+
+    // Nav buttons
+    document.getElementById('btnPrev').disabled = monthOffset <= MIN_OFFSET;
+    document.getElementById('btnNext').disabled = monthOffset >= MAX_OFFSET;
+
+    // Past badge
+    document.getElementById('pastBadge').classList.toggle('visible', isPast);
+
+    // KPI zones
+    document.getElementById('val-crit').textContent = data.kpi.crit;
+    document.getElementById('val-low').textContent  = data.kpi.low;
+    document.getElementById('val-ok').textContent   = data.kpi.ok;
+    document.getElementById('val-warn').textContent = data.kpi.warn;
+
+    // Hours KPI
+    const h = data.hours;
+    const fillEl  = document.querySelector('.kpi-hours__fill');
+    const pctEl   = document.querySelector('.kpi-hours__pct');
+    const pctLblEl = document.querySelector('.kpi-hours__pct-lbl');
+    const hdrLbl  = document.querySelector('.kpi-hours__label');
+    const mvals   = document.querySelectorAll('.kpi-hours__metric-val');
+
+    hdrLbl.textContent = 'Horas del mes · ' + label;
+    fillEl.style.width = Math.min(h.pct, 100) + '%';
+    const hState = hoursState(h.pct);
+    ['--ok','--warn','--crit'].forEach(c => { fillEl.classList.remove('kpi-hours__fill'+c); pctEl.classList.remove('kpi-hours__pct'+c); });
+    fillEl.classList.add('kpi-hours__fill--' + hState);
+    pctEl.classList.add('kpi-hours__pct--' + hState);
+    pctEl.textContent = h.pct + '%';
+    mvals[0].textContent = h.contracted + 'h';
+    mvals[0].className = 'kpi-hours__metric-val kpi-hours__metric-val--neutral';
+    mvals[1].textContent = h.used + 'h';
+    mvals[1].className = 'kpi-hours__metric-val kpi-hours__metric-val--' + h.state;
+    mvals[2].textContent = h.available + 'h';
+    mvals[2].className = 'kpi-hours__metric-val kpi-hours__metric-val--hi';
+
+    // Table rows
+    renderRows(data.rows);
+
+    // Reset filters
+    activeZone = null;
+    searchTerm = '';
+    document.getElementById('searchInput').value = '';
+    document.getElementById('searchClear').classList.remove('visible');
+    ['crit','low','ok','warn'].forEach(z => {
+      document.getElementById('zone-'+z).classList.remove('active');
+      document.getElementById('chip-'+z).classList.remove('visible');
+    });
+    document.getElementById('resultCount').textContent = data.rows.length + ' clientes';
+    document.getElementById('resultCount').classList.remove('filtered');
+  }
+
+  function renderRows(rows){
+    const container = document.getElementById('rowsContainer');
+    container.innerHTML = '';
+    rows.forEach((r, i) => {
+      const hs = hoursState(r.pct);
+      const bar = hs;
+      const usedClass = hs;
+      const badgeClass = r.zone === 'low' ? 'low' : r.zone;
+      const badgeLabel = {crit:'Sin actividad', low:'Uso bajo', ok:'Normal', warn:'Excedente'}[r.zone];
+
+      container.insertAdjacentHTML('beforeend', `
+        <div class="client-row row-load" style="animation-delay:${i*36}ms" data-zone="${r.zone}" data-name="${r.name}">
+          <div class="client-name">
+            <div class="client-initial">${r.init}</div>
+            <span class="client-name-text">${r.label}</span>
+          </div>
+          <div class="hours-cell">
+            <div class="hours-metrics">
+              <div class="metric"><span class="metric__value metric__value--neutral">${r.c}</span><span class="metric__label">Contratadas</span></div>
+              <div class="metric"><span class="metric__value metric__value--${usedClass}">${r.u}</span><span class="metric__label">Usadas</span></div>
+              <div class="metric"><span class="metric__value metric__value--hi">${r.a}</span><span class="metric__label">Disponibles</span></div>
+            </div>
+            <div class="hours-bar">
+              <div class="bar-track"><div class="bar-fill bar-fill--${bar}" style="width:${Math.min(r.pct,100)}%"></div></div>
+              <span class="bar-pct">${r.pct}%</span>
+            </div>
+          </div>
+          <div class="status-col"><span class="zone-badge zone-badge--${badgeClass}">${badgeLabel}</span></div>
+        </div>`);
+    });
+    setTimeout(() => container.querySelectorAll('.row-load').forEach(r => r.classList.remove('row-load')), 700);
+  }
+
+  // ── Navigation ────────────────────────────────────────────────
+  function navigateMonth(dir){
+    const next = monthOffset + dir;
+    if(next < MIN_OFFSET || next > MAX_OFFSET) return;
+    monthOffset = next;
+    renderMonth();
+  }
+
+  // ── Filters ───────────────────────────────────────────────────
+  function getRows(){ return Array.from(document.querySelectorAll('.client-row')); }
+
+  function applyFilters(){
+    const rows = getRows();
+    let visible = 0;
+    rows.forEach(row => {
+      const zoneMatch = !activeZone || row.dataset.zone === activeZone;
+      const nameMatch = !searchTerm || row.dataset.name.includes(searchTerm.toLowerCase());
+      const show = zoneMatch && nameMatch;
+      if(show){
+        const delay = visible * 28;
+        setTimeout(() => { row.classList.remove('row-out'); row.classList.add('row-in'); }, delay);
+        visible++;
+      } else {
+        row.classList.add('row-out'); row.classList.remove('row-in');
+      }
+    });
+    document.getElementById('emptyState').classList.toggle('visible', visible === 0);
+    const rc = document.getElementById('resultCount');
+    const isFiltered = activeZone || searchTerm;
+    const total = getCurrentData().rows.length;
+    rc.textContent = isFiltered ? `${visible} de ${total} clientes` : `${total} clientes`;
+    rc.classList.toggle('filtered', !!isFiltered);
+  }
+
+  function toggleZone(zone){
+    activeZone = activeZone === zone ? null : zone;
+    ['crit','low','ok','warn'].forEach(z => {
+      document.getElementById('zone-'+z).classList.toggle('active', activeZone === z);
+      document.getElementById('chip-'+z).classList.toggle('visible', activeZone === z);
+    });
+    applyFilters();
+  }
+
+  function handleSearch(val){
+    searchTerm = val.trim();
+    document.getElementById('searchClear').classList.toggle('visible', searchTerm.length > 0);
+    applyFilters();
+  }
+
+  function clearSearch(){
+    const inp = document.getElementById('searchInput');
+    inp.value = ''; handleSearch(''); inp.focus();
+  }
+
+  document.querySelectorAll('.kpi-zone').forEach(el => {
+    el.addEventListener('keydown', e => {
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); el.click(); }
+    });
+  });
+
+  // Init
+  setTimeout(() => document.querySelectorAll('.row-load').forEach(r => r.classList.remove('row-load')), 900);
+</script>
+</body>
+</html>

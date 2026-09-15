@@ -6,6 +6,9 @@ import { environment } from '../../../environments/environment';
 export interface OdooConfigDto {
   url: string; db: string; username: string; apiKey: string;
   helpdeskTeamId: number;
+  expirationsHelpdeskTeamId: number;
+  expirationsTicketDaysAhead: number;
+  expirationsTagIds: number[];
   stageInProgressName: string; stageNotDoneName: string; stageDoneName: string;
   updatedAt: Date | null; updatedBy: string | null;
 }
@@ -16,15 +19,20 @@ export interface VmwareConfigDto {
   username: string; password: string; updatedAt: Date | null; updatedBy: string | null;
 }
 export interface TestConnectionResult { ok: boolean; message: string; }
+export interface HelpdeskTeamDto { id: number; name: string; }
+export interface HelpdeskTagDto { id: number; name: string; }
 
 @Injectable({ providedIn: 'root' })
 export class IntegrationConfigService {
   private readonly base = `${environment.apiUrl}/integration-config`;
+  private readonly odooBase = `${environment.apiUrl}/admin/odoo`;
   constructor(private readonly http: HttpClient) {}
 
   getOdoo(): Observable<OdooConfigDto>                              { return this.http.get<OdooConfigDto>(`${this.base}/odoo`); }
   patchOdoo(dto: Partial<OdooConfigDto>): Observable<OdooConfigDto> { return this.http.patch<OdooConfigDto>(`${this.base}/odoo`, dto); }
   testOdoo(): Observable<TestConnectionResult>                       { return this.http.post<TestConnectionResult>(`${this.base}/odoo/test`, {}); }
+  getHelpdeskTeams(): Observable<HelpdeskTeamDto[]>                  { return this.http.get<HelpdeskTeamDto[]>(`${this.odooBase}/helpdesk-teams`); }
+  getHelpdeskTags(): Observable<HelpdeskTagDto[]>                    { return this.http.get<HelpdeskTagDto[]>(`${this.odooBase}/helpdesk-tags`); }
 
   getInfraDoc(): Observable<InfraDocConfigDto>                              { return this.http.get<InfraDocConfigDto>(`${this.base}/infradoc`); }
   patchInfraDoc(dto: Partial<InfraDocConfigDto>): Observable<InfraDocConfigDto> { return this.http.patch<InfraDocConfigDto>(`${this.base}/infradoc`, dto); }

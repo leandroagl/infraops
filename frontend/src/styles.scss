@@ -41,6 +41,32 @@ $infraops-theme: mat.define-dark-theme((
   }
 }
 
+// Select en col-hdr-cell de clients-list: hereda estilo de header (uppercase, spacing)
+.col-hdr-cell--filter .mat-mdc-select-placeholder,
+.col-hdr-cell--filter .mat-mdc-select-min-line {
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  font-family: var(--font-ui) !important;
+}
+
+// Selects en headers de tabla: sin borde en reposo, borde sutil al interactuar
+.th-filter-field {
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: transparent !important;
+  }
+
+  &:hover,
+  &.mat-focused {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--border-lo) !important;
+    }
+  }
+}
+
 .mat-mdc-dialog-container {
   --mdc-dialog-container-color: var(--elevated);
   border: 1px solid var(--border) !important;

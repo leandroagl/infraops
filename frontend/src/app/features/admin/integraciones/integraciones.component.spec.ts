@@ -5,6 +5,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { of, throwError } from 'rxjs';
 import { IntegracionesComponent } from './integraciones.component';
@@ -23,8 +24,8 @@ describe('IntegracionesComponent', () => {
       'getInfraDoc', 'patchInfraDoc', 'testInfraDoc',
       'getVmware', 'patchVmware', 'testVmware',
     ]);
-    mockService.getOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null }));
-    mockService.patchOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null } as OdooConfigDto));
+    mockService.getOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 30, expirationsTagIds: [], updatedAt: null, updatedBy: null }));
+    mockService.patchOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 30, expirationsTagIds: [], updatedAt: null, updatedBy: null } as OdooConfigDto));
     mockService.testOdoo.and.returnValue(of({ ok: true, message: 'OK' }));
     mockService.getInfraDoc.and.returnValue(of({ url: 'https://id.test', apiKey: MASK, updatedAt: null, updatedBy: null }));
     mockService.patchInfraDoc.and.returnValue(of({ url: 'https://id.test', apiKey: MASK, updatedAt: null, updatedBy: null } as InfraDocConfigDto));
@@ -35,7 +36,7 @@ describe('IntegracionesComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [IntegracionesComponent],
-      imports: [NoopAnimationsModule, ReactiveFormsModule, MatSnackBarModule, MatProgressSpinnerModule, MatFormFieldModule, MatInputModule, MatButtonModule],
+      imports: [NoopAnimationsModule, ReactiveFormsModule, MatSnackBarModule, MatProgressSpinnerModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatButtonModule],
       providers: [{ provide: IntegrationConfigService, useValue: mockService }],
     }).compileComponents();
     fixture = TestBed.createComponent(IntegracionesComponent);
@@ -68,8 +69,8 @@ describe('IntegracionesComponent', () => {
     // Reconfigura el mock para simular una config ya guardada previamente (updatedAt seteado)
     // pero cuya conexión nunca fue probada exitosamente en esta sesión.
     mockService.getOdoo.and.returnValue(of({
-      url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7,
-      stageInProgressName: '', stageNotDoneName: '', stageDoneName: '',
+      url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK,
+      expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 30, expirationsTagIds: [],
       updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar',
     }));
     mockService.getInfraDoc.and.returnValue(of({ url: 'https://id.test', apiKey: MASK, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));

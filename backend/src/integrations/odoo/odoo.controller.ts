@@ -34,4 +34,9 @@ export class OdooController {
   getHelpdeskTags(): Promise<{ id: number; name: string }[]> {
     return this.odooService.getHelpdeskTags();
   }
+
+  @Get('helpdesk-teams')
+  getHelpdeskTeams(): Promise<{ id: number; name: string }[]> {
+    return this.odooService.getHelpdeskTeams();
+  }
 }

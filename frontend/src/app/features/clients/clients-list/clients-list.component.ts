@@ -4,9 +4,11 @@ import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { ClientsService } from '../../../core/services/clients.service';
+import { AuthService } from '../../../core/services/auth.service';
 import {
+  ClientActiveServices,
   ClientSubscriptionHours,
-  ClientWithHours,
+  ClientWithHoursAndServices,
   hoursBarState,
   HoursBarState,
 } from '../../../core/models/client.models';
@@ -24,10 +26,13 @@ const MONTH_NAMES = [
   styleUrls: ['./clients-list.component.scss'],
 })
 export class ClientsListComponent implements OnInit {
-  allClients: ClientWithHours[] = [];
-  quickFilter   = '';
+  allClients: ClientWithHoursAndServices[] = [];
   selectedZone: HoursZone | null = null;
-  loadError     = false;
+  serviceFilter: string | null = null;
+  nameFilter: string | null = null;
+  loadError = false;
+
+  get loading(): boolean { return !this.hoursLoaded || !this.servicesLoaded; }
   selectedMonth: number;
   selectedYear:  number;
   sortCol: 'name' | 'hours' | 'status' = 'name';
@@ -37,9 +42,12 @@ export class ClientsListComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private hoursData: ClientSubscriptionHours[] = [];
   private hoursLoaded = false;
+  private servicesData: ClientActiveServices[] = [];
+  private servicesLoaded = false;
 
   constructor(
     private readonly clientsService: ClientsService,
+    private readonly authService: AuthService,
     private readonly router: Router,
   ) {
     const now     = new Date();
@@ -53,7 +61,7 @@ export class ClientsListComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
-          this.allClients = this.mergeHours(data.filter((c) => c.isActive));
+          this.allClients = this.mergeData(data.filter((c) => c.isActive));
         },
         error: () => { this.loadError = true; },
       });
@@ -70,29 +78,45 @@ export class ClientsListComponent implements OnInit {
         next: (hoursData) => {
           this.hoursData = hoursData;
           this.hoursLoaded = true;
-          this.allClients = this.mergeHours(this.allClients);
+          this.allClients = this.mergeData(this.allClients);
         },
         error: () => {
           this.hoursData = [];
           this.hoursLoaded = true;
-          this.allClients = this.mergeHours(this.allClients);
+          this.allClients = this.mergeData(this.allClients);
+        },
+      });
+
+    // Carga servicios activos una sola vez en paralelo
+    this.clientsService.getActiveServices()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (servicesData) => {
+          this.servicesData = servicesData;
+          this.servicesLoaded = true;
+          this.allClients = this.mergeData(this.allClients);
+        },
+        error: () => {
+          this.servicesData = [];
+          this.servicesLoaded = true;
+          this.allClients = this.mergeData(this.allClients);
         },
       });
 
     this.load$.next();
   }
 
-  // Combina la lista de clientes con las horas ya recibidas, sin importar
-  // el orden de llegada de getAll() y getSubscriptionHours() (evita la
-  // condición de carrera entre ambos requests paralelos).
-  private mergeHours(clients: ClientWithHours[]): ClientWithHours[] {
-    if (!this.hoursLoaded) {
-      return clients.map((c) => ({ ...c, hours: undefined }));
-    }
-    const map = new Map(this.hoursData.map((h) => [h.clientId, h]));
+  // Combina la lista de clientes con horas y servicios ya recibidos, sin importar
+  // el orden de llegada entre los tres requests paralelos.
+  private mergeData(clients: ClientWithHoursAndServices[]): ClientWithHoursAndServices[] {
+    const hoursMap = new Map(this.hoursData.map((h) => [h.clientId, h]));
+    const servicesMap = new Map(this.servicesData.map((s) => [s.clientId, s]));
     return clients.map((c) => ({
       ...c,
-      hours: map.get(c.id) ?? { clientId: c.id, contracted: 0, delivered: 0, available: 0 },
+      hours: this.hoursLoaded
+        ? (hoursMap.get(c.id) ?? { clientId: c.id, contracted: 0, delivered: 0, available: 0 })
+        : undefined,
+      activeServices: this.servicesLoaded ? (servicesMap.get(c.id) ?? { clientId: c.id, services: [] }) : undefined,
     }));
   }
 
@@ -124,23 +148,42 @@ export class ClientsListComponent implements OnInit {
     this.allClients = this.allClients.map((c) => ({ ...c, hours: undefined }));
     this.selectedMonth = m;
     this.selectedYear  = y;
-    this.quickFilter   = '';
     this.selectedZone  = null;
+    this.serviceFilter = null;
+    this.nameFilter    = null;
     this.load$.next();
   }
 
   // ── Filters ─────────────────────────────────────────────────
-  get filteredClients(): ClientWithHours[] {
-    const q    = this.quickFilter.trim().toLowerCase();
+  get availableServices(): string[] {
+    const names = new Set<string>();
+    this.allClients.forEach(c =>
+      c.activeServices?.services.forEach(s => names.add(s.name))
+    );
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'es'));
+  }
+
+  onServiceFilterChange(value: string | null): void {
+    this.serviceFilter = value;
+  }
+
+  setNameFilter(id: string | null): void {
+    this.nameFilter = id;
+  }
+
+  get filteredClients(): ClientWithHoursAndServices[] {
     const zone = this.selectedZone;
+    const svc  = this.serviceFilter;
+    const name = this.nameFilter;
     const dir  = this.sortDir === 'asc' ? 1 : -1;
 
     return this.allClients
       .filter((c) => {
-        const textMatch = !q || c.name.toLowerCase().includes(q);
+        const nameMatch = !name || c.id === name;
         const zoneMatch = !zone || (c.hours != null && c.hours.contracted > 0
           && this.getHoursState(c.hours) === zone);
-        return textMatch && zoneMatch;
+        const svcMatch  = !svc || (c.activeServices?.services.some(s => s.name === svc) ?? false);
+        return nameMatch && zoneMatch && svcMatch;
       })
       .sort((a, b) => {
         switch (this.sortCol) {
@@ -184,13 +227,8 @@ export class ClientsListComponent implements OnInit {
   }
 
   // ── KPI helpers ─────────────────────────────────────────────
-  private get textFilteredClients(): ClientWithHours[] {
-    const q = this.quickFilter.trim().toLowerCase();
-    return this.allClients.filter((c) => !q || c.name.toLowerCase().includes(q));
-  }
-
   get kpiHours(): { contracted: number; delivered: number; available: number } {
-    return this.textFilteredClients
+    return this.allClients
       .filter((c) => c.hours != null && c.hours.contracted > 0)
       .reduce(
         (acc, c) => ({
@@ -209,7 +247,7 @@ export class ClientsListComponent implements OnInit {
   }
 
   get kpiStates(): { ok: number; warn: number; crit: number; low: number } {
-    return this.textFilteredClients
+    return this.allClients
       .filter((c) => c.hours != null && c.hours.contracted > 0)
       .reduce(
         (acc, c) => {

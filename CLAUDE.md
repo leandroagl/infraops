@@ -260,6 +260,16 @@ Nunca usar `<input>`, `<select>`, `<textarea>`, `<button>` nativos en templates 
 **`appearance="outline"` es el único estilo permitido para `mat-form-field`.**
 No usar `appearance="fill"` ni `appearance="legacy"`.
 
+### Altura de form fields — regla global del sistema
+
+**Todos los `mat-form-field` del sistema tienen 32px de altura por defecto**, vía regla global en `styles/components.scss` (tokens `--field-h`, `--field-pad`, `--field-radius` en `tokens.scss`).
+
+- **Al crear un nuevo `mat-form-field`, no especificar altura** — viene del global automáticamente.
+- **No sobreescribir** `--mat-form-field-container-height` ni `--mat-form-field-container-vertical-padding` en componentes individuales salvo:
+  - Filtros ultra-compactos **dentro de headers de tabla** (ej: `.th-filter-field` usa 30px con comentario explicativo).
+  - Clases específicas del **task drawer** (`.mf-form-field`, `.mf-srv-ff`, etc.) que tienen su propio sistema de tamaño y color.
+- El ancho (`width`) puede variar libremente por componente.
+
 ### Botones
 
 ```html

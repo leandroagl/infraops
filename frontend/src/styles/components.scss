@@ -168,6 +168,17 @@
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
+// ── Angular Material form field — altura estándar del sistema ─
+// .mat-mdc-form-field tiene misma especificidad que las reglas de densidad
+// que genera Material, pero al estar después en el cascade las sobreescribe.
+// No usar mat-form-field (elemento) que tiene menor especificidad y pierde.
+.mat-mdc-form-field {
+  --mat-form-field-container-height: var(--field-h);
+  --mat-form-field-container-vertical-padding: var(--field-pad);
+  --mdc-outlined-text-field-container-shape: var(--field-radius);
+}
+
+
 // ── Inputs ───────────────────────────────────────────────────
 .input {
   background: var(--card);
@@ -400,4 +411,22 @@
   --mdc-snackbar-container-color: var(--ok-bg);
   --mdc-snackbar-supporting-text-color: var(--ok);
   border: 1px solid var(--ok-bd);
+}
+
+// ── Panel del filtro de cliente (cycle-table) ─────────────────
+// El overlay se renderiza fuera del shadow del componente, necesita clase global.
+.client-filter-menu {
+  min-width: 240px !important;
+  max-height: 200px !important;
+  overflow-y: auto;
+
+  .mat-mdc-menu-content {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .client-menu-item--active {
+    color: var(--accent) !important;
+    background: var(--accent-bg) !important;
+  }
 }

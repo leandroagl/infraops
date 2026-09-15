@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Client, ClientSubscriptionHours } from '../models/client.models';
+import { Client, ClientActiveServices, ClientSubscriptionHours } from '../models/client.models';
 
 @Injectable({ providedIn: 'root' })
 export class ClientsService {
@@ -23,5 +23,9 @@ export class ClientsService {
     if (month !== undefined) params = params.set('month', month);
     if (year  !== undefined) params = params.set('year',  year);
     return this.http.get<ClientSubscriptionHours[]>(`${this.base}/subscription-hours`, { params });
+  }
+
+  getActiveServices(): Observable<ClientActiveServices[]> {
+    return this.http.get<ClientActiveServices[]>(`${this.base}/services`);
   }
 }

@@ -12,10 +12,26 @@
     </button>
     <span class="month-nav-sep"></span>
     <span class="month-past-badge" [class.visible]="isPastMonth">Período cerrado</span>
+    <span class="month-nav-spacer"></span>
   </div>
+
+  <mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
 
   <!-- ── KPI strip ── -->
   <div class="kpi-strip">
+
+    <!-- Total clientes -->
+    <div class="kpi-total">
+      <div class="kpi-total__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        <span class="kpi-total__label">Clientes</span>
+      </div>
+      <div class="kpi-total__main">
+        <span class="kpi-total__val">{{ (selectedZone || serviceFilter || nameFilter) ? filteredClients.length : allClients.length }}</span>
+        <span class="kpi-total__sub" *ngIf="selectedZone || serviceFilter || nameFilter">de {{ allClients.length }}</span>
+      </div>
+      <div class="kpi-total__foot">activos</div>
+    </div>
 
     <!-- Sin actividad -->
     <div class="kpi-zone kpi-zone--crit" [class.active]="selectedZone === 'crit'"
@@ -132,45 +148,6 @@
 
   </div><!-- /kpi-strip -->
 
-  <!-- ── Controls / search bar ── -->
-  <div class="controls-bar">
-    <div class="search-wrap">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
-        <span matPrefix class="search-prefix-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
-        </span>
-        <input matInput [(ngModel)]="quickFilter" placeholder="Buscar cliente...">
-        <button matSuffix mat-icon-button class="search-clear" *ngIf="quickFilter" (click)="quickFilter = ''" aria-label="Limpiar búsqueda">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-        </button>
-      </mat-form-field>
-    </div>
-
-    <span class="filter-chip filter-chip--crit" *ngIf="selectedZone === 'crit'" (click)="toggleZone('crit')">
-      Sin actividad
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </span>
-    <span class="filter-chip filter-chip--low" *ngIf="selectedZone === 'low'" (click)="toggleZone('low')">
-      Uso bajo
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </span>
-    <span class="filter-chip filter-chip--ok" *ngIf="selectedZone === 'ok'" (click)="toggleZone('ok')">
-      Uso normal
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </span>
-    <span class="filter-chip filter-chip--warn" *ngIf="selectedZone === 'warn'" (click)="toggleZone('warn')">
-      Excedente
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </span>
-
-    <span class="controls-spacer"></span>
-    <span class="result-count" [class.filtered]="selectedZone || quickFilter">
-      <ng-container *ngIf="selectedZone || quickFilter">{{ filteredClients.length }} de {{ allClients.length }}</ng-container>
-      <ng-container *ngIf="!selectedZone && !quickFilter">{{ allClients.length }}</ng-container>
-      clientes
-    </span>
-  </div>
-
   <!-- ── Error banner ── -->
   <div *ngIf="loadError" class="error-banner">
     Error al cargar los clientes. Intentá recargar la página.
@@ -180,7 +157,24 @@
   <div class="clients-table-wrap">
 
     <div class="col-hdr">
-      <div class="col-hdr-cell col-hdr-cell--sortable" [class.sort-active]="sortCol === 'name'" (click)="setSort('name')">
+      <div class="col-hdr-cell col-hdr-cell--sortable col-hdr-cell--with-filter" [class.sort-active]="sortCol === 'name'" (click)="setSort('name')">
+        <button mat-icon-button class="client-filter-btn"
+                [class.client-filter-btn--active]="nameFilter !== null"
+                [matMenuTriggerFor]="clientNameMenu"
+                (click)="$event.stopPropagation()"
+                matTooltip="Filtrar por cliente">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </button>
+        <mat-menu #clientNameMenu="matMenu" panelClass="client-filter-menu">
+          <button mat-menu-item (click)="setNameFilter(null)" [class.client-menu-item--active]="nameFilter === null">
+            Todos los clientes
+          </button>
+          <button mat-menu-item *ngFor="let c of allClients"
+                  (click)="setNameFilter(c.id)"
+                  [class.client-menu-item--active]="c.id === nameFilter">
+            {{ c.name }}
+          </button>
+        </mat-menu>
         Cliente
         <svg class="sort-icon" viewBox="0 0 8 12" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
           <ng-container *ngIf="sortCol !== 'name'">
@@ -194,6 +188,15 @@
             <polyline points="2,4 4,1 6,4" stroke-width="2"/>
           </ng-container>
         </svg>
+      </div>
+      <div class="col-hdr-cell col-hdr-cell--filter">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="th-filter-field">
+          <mat-select [value]="serviceFilter" placeholder="Servicios"
+                      (selectionChange)="onServiceFilterChange($event.value)">
+            <mat-option [value]="null">Todos</mat-option>
+            <mat-option *ngFor="let svc of availableServices" [value]="svc">{{ svc }}</mat-option>
+          </mat-select>
+        </mat-form-field>
       </div>
       <div class="col-hdr-cell col-hdr-cell--sortable" [class.sort-active]="sortCol === 'hours'" (click)="setSort('hours')">
         Horas del mes
@@ -232,6 +235,27 @@
 
       <div class="client-name">
         <span class="client-name-text">{{ row.name }}</span>
+      </div>
+
+      <div class="services-cell">
+        <ng-container *ngIf="row.activeServices; else servicesSkeleton">
+          <ng-container *ngIf="row.activeServices.services.length > 0; else noServices">
+            <span
+              *ngFor="let svc of row.activeServices.services"
+              class="svc-chip"
+              [class.svc-chip--active]="svc.active"
+              [class.svc-chip--inactive]="!svc.active">
+              {{ svc.name }}
+            </span>
+          </ng-container>
+        </ng-container>
+        <ng-template #noServices>
+          <span class="svc-none">—</span>
+        </ng-template>
+        <ng-template #servicesSkeleton>
+          <span class="skeleton svc-sk"></span>
+          <span class="skeleton svc-sk svc-sk--short"></span>
+        </ng-template>
       </div>
 
       <div class="hours-cell">

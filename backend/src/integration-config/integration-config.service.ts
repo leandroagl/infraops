@@ -52,6 +52,9 @@ export class IntegrationConfigService {
         username: this.configService.get('ODOO_USERNAME', ''),
         apiKey: MASK,
         helpdeskTeamId: parseInt(this.configService.get('ODOO_HELPDESK_TEAM_ID', '0'), 10),
+        expirationsHelpdeskTeamId: parseInt(this.configService.get('ODOO_EXPIRATIONS_HELPDESK_TEAM_ID', '0'), 10),
+        expirationsTicketDaysAhead: 30,
+        expirationsTagIds: [],
         stageInProgressName: '',
         stageNotDoneName: '',
         stageDoneName: '',
@@ -62,6 +65,9 @@ export class IntegrationConfigService {
     return {
       url: row.url ?? '', db: row.db ?? '', username: row.username ?? '',
       apiKey: MASK, helpdeskTeamId: row.helpdeskTeamId ?? 0,
+      expirationsHelpdeskTeamId: row.expirationsHelpdeskTeamId ?? 0,
+      expirationsTicketDaysAhead: row.expirationsTicketDaysAhead ?? 30,
+      expirationsTagIds: row.expirationsTagIds ?? [],
       stageInProgressName: row.stageInProgressName ?? '',
       stageNotDoneName: row.stageNotDoneName ?? '',
       stageDoneName: row.stageDoneName ?? '',
@@ -76,6 +82,9 @@ export class IntegrationConfigService {
     if (dto.db !== undefined)             existing.db             = dto.db.trim();
     if (dto.username !== undefined)       existing.username       = dto.username.trim();
     if (dto.helpdeskTeamId !== undefined)     existing.helpdeskTeamId     = dto.helpdeskTeamId;
+    if (dto.expirationsHelpdeskTeamId !== undefined) existing.expirationsHelpdeskTeamId = dto.expirationsHelpdeskTeamId;
+    if (dto.expirationsTicketDaysAhead !== undefined) existing.expirationsTicketDaysAhead = dto.expirationsTicketDaysAhead;
+    if (dto.expirationsTagIds !== undefined) existing.expirationsTagIds = dto.expirationsTagIds;
     if (dto.stageInProgressName !== undefined) existing.stageInProgressName = dto.stageInProgressName;
     if (dto.stageNotDoneName !== undefined)    existing.stageNotDoneName    = dto.stageNotDoneName;
     if (dto.stageDoneName !== undefined)       existing.stageDoneName       = dto.stageDoneName;
@@ -94,6 +103,7 @@ export class IntegrationConfigService {
 
   async getOdooConfigDecrypted(): Promise<{
     url: string; db: string; username: string; apiKey: string; helpdeskTeamId: number;
+    expirationsHelpdeskTeamId: number; expirationsTicketDaysAhead: number; expirationsTagIds: number[];
     stageInProgressName: string; stageNotDoneName: string; stageDoneName: string;
   }> {
     const row = await this.odooRepo.findOne({ where: { id: 1 } });
@@ -104,6 +114,9 @@ export class IntegrationConfigService {
         username:       this.configService.get('ODOO_USERNAME', ''),
         apiKey:         this.configService.get('ODOO_API_KEY', ''),
         helpdeskTeamId: parseInt(this.configService.get('ODOO_HELPDESK_TEAM_ID', '0'), 10),
+        expirationsHelpdeskTeamId: parseInt(this.configService.get('ODOO_EXPIRATIONS_HELPDESK_TEAM_ID', '0'), 10),
+        expirationsTicketDaysAhead: 30,
+        expirationsTagIds: [],
         stageInProgressName: 'En curso',
         stageNotDoneName:    'No realizadas',
         stageDoneName:       'Hecho',
@@ -115,6 +128,9 @@ export class IntegrationConfigService {
       username:       row.username ?? '',
       apiKey:         row.apiKey   ? decrypt(row.apiKey, this.encryptKey) : '',
       helpdeskTeamId: row.helpdeskTeamId ?? 0,
+      expirationsHelpdeskTeamId: row.expirationsHelpdeskTeamId ?? 0,
+      expirationsTicketDaysAhead: row.expirationsTicketDaysAhead ?? 30,
+      expirationsTagIds: row.expirationsTagIds ?? [],
       stageInProgressName: row.stageInProgressName || 'En curso',
       stageNotDoneName:    row.stageNotDoneName    || 'No realizadas',
       stageDoneName:       row.stageDoneName        || 'Hecho',

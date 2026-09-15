@@ -1,12 +1,15 @@
 .integraciones-page {
   padding: 28px 32px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  max-width: 860px;
+  max-width: 1800px;
 }
 
-.page-header { margin-bottom: 4px; }
+.page-header {
+  grid-column: 1 / -1;
+  margin-bottom: 4px;
+}
 .page-title { font-size: 16px; font-weight: 600; color: var(--tx-hi); margin: 0 0 4px; }
 .page-subtitle { font-size: 12px; color: var(--tx-lo); margin: 0; }
 
@@ -16,6 +19,8 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-header {
@@ -48,7 +53,7 @@
 }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
-.card-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.card-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
 
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
@@ -65,12 +70,14 @@
 }
 
 .field-hint { font-size: 11px; color: var(--tx-lo); line-height: 1.4; }
+.field-hint--warn { color: var(--warn); }
 
 .card-actions {
   display: flex; align-items: center; gap: 10px;
   padding: 14px 20px;
   border-top: 1px solid var(--border-lo);
   background: rgba(0,0,0,0.12);
+  button { white-space: nowrap; }
 }
 
 .last-updated { margin-left: auto; font-size: 11px; color: var(--tx-lo); }
