@@ -9,6 +9,9 @@ import { FormsModule } from '@angular/forms';
 import { NotificationsComponent } from './notifications.component';
 import { NotificationsService } from '../../core/services/notifications.service';
 import { ExpirationItem, ExpirationType } from '../../core/models/notification.models';
+import { MatDialog } from '@angular/material/dialog';
+import { AuthService } from '../../core/services/auth.service';
+import { IntegrationConfigService } from '../../core/services/integration-config.service';
 
 function makeItem(overrides: Partial<ExpirationItem> = {}): ExpirationItem {
   return {
@@ -30,14 +33,35 @@ describe('NotificationsComponent', () => {
     makeItem({ daysUntil: 70,  expireDate: '2026-09-06', itemName: 'Neutral',     type: 'domain'         }),
   ];
 
+  let mockDialog: jasmine.SpyObj<MatDialog>;
+  let mockAuth: jasmine.SpyObj<AuthService>;
+  let mockIntegrationConfig: jasmine.SpyObj<IntegrationConfigService>;
+
   beforeEach(async () => {
     serviceSpy = jasmine.createSpyObj('NotificationsService', ['getExpirations']);
     serviceSpy.getExpirations.and.returnValue(of(DATASET));
 
+    mockDialog            = jasmine.createSpyObj('MatDialog', ['open']);
+    mockAuth              = jasmine.createSpyObj('AuthService', ['getCurrentUser']);
+    mockIntegrationConfig = jasmine.createSpyObj('IntegrationConfigService', ['getOdoo']);
+    mockAuth.getCurrentUser.and.returnValue({ id: '1', name: 'Admin', email: 'a@a.com', role: 'ADMIN', avatarUrl: null });
+    mockIntegrationConfig.getOdoo.and.returnValue(of({
+      expirationsTicketDaysAhead: 20, expirationsTagIds: [],
+      helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9,
+      url: '', db: '', username: '', apiKey: '',
+      stageInProgressName: '', stageNotDoneName: '', stageDoneName: '',
+      updatedAt: null, updatedBy: null,
+    }));
+
     await TestBed.configureTestingModule({
       declarations: [NotificationsComponent],
       imports: [NoopAnimationsModule, MatSelectModule, MatFormFieldModule, MatInputModule, FormsModule],
-      providers: [{ provide: NotificationsService, useValue: serviceSpy }],
+      providers: [
+        { provide: NotificationsService, useValue: serviceSpy },
+        { provide: MatDialog, useValue: mockDialog },
+        { provide: AuthService, useValue: mockAuth },
+        { provide: IntegrationConfigService, useValue: mockIntegrationConfig },
+      ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
@@ -245,14 +269,37 @@ describe('NotificationsComponent', () => {
     expect(component.filteredItems.map(i => i.clientName)).toEqual(['A', 'C', 'B']);
   });
 
-  it('quickFilter reduce filteredItems por nombre de cliente', () => {
+  it('setClientFilter filtra items por clientId', () => {
     component.items = [
-      makeItem({ clientName: 'Acme Industrial' }),
-      makeItem({ clientName: 'Beta Servicios' }),
+      makeItem({ clientId: 1, clientName: 'Acme' }),
+      makeItem({ clientId: 2, clientName: 'Beta' }),
+      makeItem({ clientId: 2, clientName: 'Beta' }),
     ];
-    component.quickFilter = 'acme';
-    expect(component.filteredItems.length).toBe(1);
-    expect(component.filteredItems[0].clientName).toBe('Acme Industrial');
+    component.setClientFilter(2);
+    expect(component.filteredItems.length).toBe(2);
+    expect(component.filteredItems.every(i => i.clientId === 2)).toBeTrue();
+  });
+
+  it('setClientFilter(null) muestra todos los clientes', () => {
+    component.items = [
+      makeItem({ clientId: 1, clientName: 'Acme' }),
+      makeItem({ clientId: 2, clientName: 'Beta' }),
+    ];
+    component.setClientFilter(1);
+    component.setClientFilter(null);
+    expect(component.filteredItems.length).toBe(2);
+  });
+
+  it('uniqueClients retorna clientes únicos ordenados alfabéticamente', () => {
+    component.items = [
+      makeItem({ clientId: 2, clientName: 'Zeta' }),
+      makeItem({ clientId: 1, clientName: 'Acme' }),
+      makeItem({ clientId: 2, clientName: 'Zeta' }),
+    ];
+    const unique = component.uniqueClients;
+    expect(unique.length).toBe(2);
+    expect(unique[0].name).toBe('Acme');
+    expect(unique[1].name).toBe('Zeta');
   });
 
   it('muestra error cuando el servicio falla', () => {
@@ -260,5 +307,20 @@ describe('NotificationsComponent', () => {
     component.load();
     expect(component.error).toBe('No se pudo cargar los vencimientos');
     expect(component.loading).toBeFalse();
+  });
+
+  it('isAdmin es true cuando el usuario tiene role ADMIN', () => {
+    expect(component.isAdmin).toBe(true);
+  });
+
+  it('isAdmin es false cuando el usuario tiene role TECHNICIAN', () => {
+    mockAuth.getCurrentUser.and.returnValue({ id: '2', name: 'Tec', email: 't@t.com', role: 'TECHNICIAN', avatarUrl: null });
+    const f = TestBed.createComponent(NotificationsComponent);
+    f.detectChanges();
+    expect(f.componentInstance.isAdmin).toBe(false);
+  });
+
+  it('carga ticketWindowDays desde la config al inicializar', () => {
+    expect(component.ticketWindowDays).toBe(20);
   });
 });

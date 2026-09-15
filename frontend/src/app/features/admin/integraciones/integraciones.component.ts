@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
-  IntegrationConfigService, OdooConfigDto, InfraDocConfigDto, VmwareConfigDto,
+  IntegrationConfigService, OdooConfigDto, InfraDocConfigDto, VmwareConfigDto, HelpdeskTeamDto,
 } from '../../../core/services/integration-config.service';
 
 const MASK = '••••••••';
@@ -36,6 +36,10 @@ export class IntegracionesComponent implements OnInit {
   infradoc = initCard();
   vmware   = initCard();
 
+  helpdeskTeams: HelpdeskTeamDto[] = [];
+  helpdeskTeamsLoading = true;
+  helpdeskTeamsError   = false;
+
   showOdooApiKey     = false;
   showInfradocApiKey = false;
   showVmwarePassword = false;
@@ -51,7 +55,6 @@ export class IntegracionesComponent implements OnInit {
   ) {
     this.odooForm     = this.fb.group({
       url: [''], db: [''], username: [''], apiKey: [MASK], helpdeskTeamId: [null],
-      expirationsHelpdeskTeamId: [null],
       stageInProgressName: [''], stageNotDoneName: [''], stageDoneName: [''],
     });
     this.infradocForm = this.fb.group({ url: [''], apiKey: [MASK] });
@@ -59,6 +62,17 @@ export class IntegracionesComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.svc.getHelpdeskTeams().subscribe({
+      next: (teams) => {
+        this.helpdeskTeams        = teams;
+        this.helpdeskTeamsLoading = false;
+      },
+      error: () => {
+        this.helpdeskTeamsLoading = false;
+        this.helpdeskTeamsError   = true;
+      },
+    });
+
     this.svc.getOdoo().subscribe({
       next: (d) => {
         this.odooForm.patchValue(d);
@@ -88,12 +102,10 @@ export class IntegracionesComponent implements OnInit {
   buildOdooPatchDto(): Partial<OdooConfigDto> {
     const v = this.odooForm.value as {
       url: string; db: string; username: string; apiKey: string; helpdeskTeamId: number;
-      expirationsHelpdeskTeamId: number;
       stageInProgressName: string; stageNotDoneName: string; stageDoneName: string;
     };
     const dto: Partial<OdooConfigDto> = {
       url: v.url, db: v.db, username: v.username, helpdeskTeamId: v.helpdeskTeamId,
-      expirationsHelpdeskTeamId: v.expirationsHelpdeskTeamId,
       stageInProgressName: v.stageInProgressName,
       stageNotDoneName: v.stageNotDoneName,
       stageDoneName: v.stageDoneName,

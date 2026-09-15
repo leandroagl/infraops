@@ -24,6 +24,14 @@ import { TaskType } from '../../tasks/task-type.enum';
 import { TaskConfigService } from '../../task-config/task-config.service';
 import { TICKET_DESCRIPTION_DEFAULTS, TIMESHEET_DESCRIPTION_DEFAULT } from '../../task-config/task-description-defaults';
 import { plainTextToHtml } from '../../task-config/plain-text-to-html';
+import { ExpirationItemDto, ExpirationType } from '../../notifications/dto/expiration-item.dto';
+
+const EXPIRATION_TYPE_LABELS: Record<ExpirationType, string> = {
+  asset_warranty: 'Garantía',
+  certificate:    'Certificado',
+  domain:         'Dominio',
+  software:       'Licencia',
+};
 
 const TICKET_META: Record<TaskType, { name: string }> = {
   [TaskType.SERVER_HOST_MAINTENANCE]:    { name: 'Mantenimiento de hosts VMware/BMC' },
@@ -260,7 +268,7 @@ export class OdooService {
       { fields: ['id'], limit: 1 },
     );
 
-    if (lines.length === 0) return null;
+    if (!Array.isArray(lines) || lines.length === 0) return null;
 
     await this.clientRepo.update(clientId, {
       odooSaleLineId: lines[0].id,
@@ -527,6 +535,68 @@ export class OdooService {
       { fields: ['id', 'name'] },
     );
     return tags.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async getHelpdeskTeams(): Promise<{ id: number; name: string }[]> {
+    const teams = await this.systemRpc.callKw<Array<{ id: number; name: string }>>(
+      'helpdesk.team',
+      'search_read',
+      [[]],
+      { fields: ['id', 'name'] },
+    );
+    return teams.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async createExpirationTicket(
+    item: ExpirationItemDto,
+    infraopsClientId: string,
+  ): Promise<number> {
+    const config = await this.integrationConfigService.getOdooConfigDecrypted();
+
+    if (!config.expirationsHelpdeskTeamId) {
+      throw new BadRequestException('expirationsHelpdeskTeamId no está configurado');
+    }
+
+    const partnerId = await this.resolvePartnerId(infraopsClientId);
+    if (partnerId === null) {
+      this.logger.warn(`Cliente ${infraopsClientId} sin mapeo en Odoo — omitiendo ticket de vencimiento`);
+      throw new BadRequestException(`Cliente ${infraopsClientId} no tiene ID de Odoo`);
+    }
+
+    const saleLineId = await this.resolveSaleLineId(infraopsClientId);
+    const typeLabel = EXPIRATION_TYPE_LABELS[item.type];
+    const name = `Vencimiento: ${typeLabel} – ${item.clientName} – ${item.itemName}`;
+    const description = `<p>Fecha de vencimiento: <strong>${item.expireDate}</strong></p><p>Días restantes: ${item.daysUntil}</p>`;
+
+    const payload: Record<string, unknown> = {
+      team_id: config.expirationsHelpdeskTeamId,
+      partner_id: partnerId,
+      name,
+      description,
+    };
+
+    if (saleLineId !== null) {
+      payload['sale_line_id'] = saleLineId;
+    }
+
+    if (config.expirationsTagIds && config.expirationsTagIds.length > 0) {
+      payload['tag_ids'] = [[6, 0, config.expirationsTagIds]];
+    }
+
+    const ticketId = await this.systemRpc.callKw<number>(
+      'helpdesk.ticket',
+      'create',
+      [payload],
+      {},
+    );
+
+    if (!ticketId) {
+      throw new ServiceUnavailableException(
+        'Odoo devolvió false al crear ticket de vencimiento',
+      );
+    }
+
+    return ticketId;
   }
 
   async closeTicket(

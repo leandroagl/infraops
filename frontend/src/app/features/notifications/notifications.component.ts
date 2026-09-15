@@ -4,11 +4,12 @@ import { Subscription } from 'rxjs';
 import { ExpirationItem, ExpirationType } from '../../core/models/notification.models';
 import { NotificationsService } from '../../core/services/notifications.service';
 import { formatOdooTicketId, odooTicketUrl } from '../../shared/utils/odoo';
+import { MatDialog } from '@angular/material/dialog';
+import { AuthService } from '../../core/services/auth.service';
+import { IntegrationConfigService } from '../../core/services/integration-config.service';
+import { NotificationsConfigDialogComponent } from './config-dialog/notifications-config-dialog.component';
 
 export type UrgencyZone = 'expired' | 'week' | 'soon' | 'attention';
-
-// Debe coincidir con el umbral del cron de creación automática de tickets (backend).
-const TICKET_WINDOW_DAYS = 30;
 
 @Component({
   selector: 'app-notifications',
@@ -19,7 +20,8 @@ export class NotificationsComponent implements OnInit {
   items: ExpirationItem[] = [];
   loading = false;
   error = '';
-  quickFilter = '';
+  ticketWindowDays = 30;
+  clientFilter: number | null = null;
   filterType: ExpirationType | '' = '';
   selectedUrgency: UrgencyZone | null = null;
   sortCol: 'client' | 'expireDate' = 'client';
@@ -28,10 +30,38 @@ export class NotificationsComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private loadSub?: Subscription;
 
-  constructor(private notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly authService: AuthService,
+    private readonly integrationConfigService: IntegrationConfigService,
+    private readonly dialog: MatDialog,
+  ) {}
 
   ngOnInit(): void {
+    this.integrationConfigService.getOdoo().subscribe({
+      next: (config) => {
+        this.ticketWindowDays = config.expirationsTicketDaysAhead || 30;
+      },
+    });
     this.load();
+  }
+
+  get isAdmin(): boolean {
+    return this.authService.getCurrentUser()?.role === 'ADMIN';
+  }
+
+  openConfig(): void {
+    this.dialog.open(NotificationsConfigDialogComponent, { width: '480px' })
+      .afterClosed()
+      .subscribe((saved: boolean | undefined) => {
+        if (saved) {
+          this.integrationConfigService.getOdoo().subscribe({
+            next: (config) => {
+              this.ticketWindowDays = config.expirationsTicketDaysAhead || 30;
+            },
+          });
+        }
+      });
   }
 
   load(): void {
@@ -47,12 +77,21 @@ export class NotificationsComponent implements OnInit {
       });
   }
 
+  get uniqueClients(): { id: number; name: string }[] {
+    const map = new Map<number, string>();
+    for (const item of this.items) {
+      if (!map.has(item.clientId)) map.set(item.clientId, item.clientName);
+    }
+    return [...map.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+  }
+
   get filteredItems(): ExpirationItem[] {
-    const q = this.quickFilter.trim().toLowerCase();
     const dir = this.sortDir === 'asc' ? 1 : -1;
     return this.items
       .filter(item => {
-        if (q && !item.clientName.toLowerCase().includes(q)) return false;
+        if (this.clientFilter !== null && item.clientId !== this.clientFilter) return false;
         if (this.filterType && item.type !== this.filterType) return false;
         if (this.selectedUrgency) {
           const u = this.selectedUrgency;
@@ -80,6 +119,10 @@ export class NotificationsComponent implements OnInit {
 
   toggleUrgency(zone: UrgencyZone): void {
     this.selectedUrgency = this.selectedUrgency === zone ? null : zone;
+  }
+
+  setClientFilter(id: number | null): void {
+    this.clientFilter = id;
   }
 
   setSort(col: 'client' | 'expireDate'): void {
@@ -140,6 +183,6 @@ export class NotificationsComponent implements OnInit {
   }
 
   ticketPending(item: ExpirationItem): boolean {
-    return item.odooTicketId == null && item.daysUntil <= TICKET_WINDOW_DAYS;
+    return item.odooTicketId == null && item.daysUntil <= this.ticketWindowDays;
   }
 }

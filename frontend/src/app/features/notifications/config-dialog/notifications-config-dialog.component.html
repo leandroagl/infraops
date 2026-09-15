@@ -1,0 +1,55 @@
+<h2 mat-dialog-title>Configuración de vencimientos</h2>
+
+<mat-dialog-content>
+  <div *ngIf="loading" class="dialog-spinner">
+    <mat-spinner diameter="32"></mat-spinner>
+  </div>
+
+  <form [formGroup]="form" *ngIf="!loading">
+
+    <div class="field">
+      <label class="field-label">Ticketera <span class="req">*</span></label>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Equipo de Odoo</mat-label>
+        <mat-select formControlName="expirationsHelpdeskTeamId">
+          <mat-option *ngFor="let t of teams" [value]="t.id">{{ t.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <span class="field-hint field-hint--warn" *ngIf="teamsError">
+        No se pudo cargar la lista desde Odoo. Guardá las credenciales primero.
+      </span>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Días de anticipación <span class="req">*</span></label>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <input matInput type="number" formControlName="expirationsTicketDaysAhead" min="1" />
+      </mat-form-field>
+      <span class="field-hint">Días antes del vencimiento en que se crea el ticket automáticamente.</span>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Tags de Odoo</label>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Tags</mat-label>
+        <mat-select multiple formControlName="expirationsTagIds">
+          <mat-option *ngFor="let tag of tags" [value]="tag.id">{{ tag.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <span class="field-hint field-hint--warn" *ngIf="tagsError">
+        No se pudo cargar los tags desde Odoo.
+      </span>
+    </div>
+
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()" [disabled]="saving">Cancelar</button>
+  <button mat-flat-button color="primary"
+          [disabled]="form.invalid || saving || loading"
+          (click)="save()">
+    <mat-spinner *ngIf="saving" diameter="14"></mat-spinner>
+    <span *ngIf="!saving">Guardar</span>
+  </button>
+</mat-dialog-actions>
