@@ -9,13 +9,15 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { NotificationsRoutingModule } from './notifications-routing.module';
 import { NotificationsComponent } from './notifications.component';
 import { NotificationsConfigDialogComponent } from './config-dialog/notifications-config-dialog.component';
+import { NotificationsConfigComponent } from './config/notifications-config.component';
 
 @NgModule({
-  declarations: [NotificationsComponent, NotificationsConfigDialogComponent],
+  declarations: [NotificationsComponent, NotificationsConfigDialogComponent, NotificationsConfigComponent],
   imports: [
     CommonModule,
     FormsModule,
@@ -28,6 +30,7 @@ import { NotificationsConfigDialogComponent } from './config-dialog/notification
     MatProgressBarModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    MatSlideToggleModule,
     MatTooltipModule,
     NotificationsRoutingModule,
   ],

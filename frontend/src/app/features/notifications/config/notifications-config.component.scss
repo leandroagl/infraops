@@ -1,0 +1,80 @@
+.nc-page {
+  padding: 24px;
+  max-width: 920px;
+}
+
+.nc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+
+  &__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--tx-hi);
+    margin: 0;
+    letter-spacing: 0.2px;
+  }
+
+  &__actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+}
+
+.nc-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+.nc-spinner-inline {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.nc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.nc-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 16px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  &__type-name {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tx-hi);
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: opacity 0.15s;
+
+    mat-form-field {
+      width: 100%;
+    }
+
+    &.is-disabled {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+  }
+}
