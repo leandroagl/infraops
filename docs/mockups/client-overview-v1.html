@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Overview v1 · InfraOps</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --base:#0a0d12;--surface:#111418;--card:#181d24;--elevated:#1e242e;--hover:#252c38;
+  --border-lo:rgba(255,255,255,.06);--border:rgba(255,255,255,.10);--border-md:rgba(255,255,255,.18);
+  --tx-hi:#e8eaf0;--tx-md:#8896a4;--tx-lo:#546272;
+  --crit:#f44336;--crit-bg:rgba(244,67,54,.14);--crit-bd:rgba(244,67,54,.32);
+  --warn:#ffb300;--warn-bg:rgba(255,179,0,.14);--warn-bd:rgba(255,179,0,.32);
+  --ok:#43d98a;--ok-bg:rgba(67,217,138,.14);--ok-bd:rgba(67,217,138,.32);
+  --accent:#4dd0e1;--accent-bg:rgba(77,208,225,.14);--accent-bd:rgba(77,208,225,.32);
+  --neutral:#546e7a;--neutral-bg:rgba(84,110,122,.12);--neutral-bd:rgba(84,110,122,.25);
+  --font-ui:'DM Sans',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono','Space Mono',monospace;
+  --radius:8px;--radius-sm:6px;--radius-xs:4px;
+  --transition:180ms cubic-bezier(.4,0,.2,1);
+}
+body{font-family:var(--font-ui);background:var(--base);color:var(--tx-hi);font-size:13px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+
+/* ─── Topbar ─────────────────────────────────────────────────── */
+.topbar{height:48px;background:var(--surface);border-bottom:1px solid var(--border-lo);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.topbar__logo{font-size:13px;font-weight:700;font-family:var(--font-mono);color:var(--tx-hi);letter-spacing:-.5px}
+.topbar__sep{width:1px;height:18px;background:var(--border);margin:0 4px}
+.topbar__crumb{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx-lo)}
+.topbar__crumb a{color:var(--tx-md);text-decoration:none}
+.topbar__crumb a:hover{color:var(--accent)}
+.topbar__crumb__sep{opacity:.4}
+.topbar__spacer{flex:1}
+.topbar__avatar{width:28px;height:28px;border-radius:50%;background:var(--accent-bg);border:1px solid var(--accent-bd);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--font-mono);color:var(--accent)}
+
+/* ─── Shell ──────────────────────────────────────────────────── */
+.shell{display:flex;flex:1;overflow:hidden}
+.sidebar{width:52px;background:var(--surface);border-right:1px solid var(--border-lo);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:4px;flex-shrink:0}
+.nav-item{width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx-lo);border:1px solid transparent;transition:background var(--transition),color var(--transition)}
+.nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nav-item:hover{background:var(--hover);color:var(--tx-md)}
+.nav-item.active{background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)}
+.nav-sep{width:26px;height:1px;background:var(--border-lo);margin:4px 0}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ─── Client header ──────────────────────────────────────────── */
+.client-hdr{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 24px 12px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border-lo);
+  flex-shrink:0;
+}
+.client-hdr__initial{
+  width:38px;height:38px;border-radius:var(--radius-sm);
+  background:var(--elevated);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;font-family:var(--font-mono);color:var(--tx-md);
+  flex-shrink:0;
+}
+.client-hdr__info{display:flex;flex-direction:column;gap:3px;min-width:0}
+.client-hdr__name{font-size:16px;font-weight:600;color:var(--tx-hi);letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.client-hdr__meta{display:flex;align-items:center;gap:8px}
+.status-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:9px;font-weight:600;font-family:var(--font-mono);
+  text-transform:uppercase;letter-spacing:.4px;
+  padding:2px 8px;border-radius:10px;
+}
+.status-badge--active{background:var(--ok-bg);border:1px solid var(--ok-bd);color:var(--ok)}
+.status-badge--inactive{background:var(--neutral-bg);border:1px solid var(--neutral-bd);color:var(--tx-lo)}
+.client-hdr__id{font-size:10px;font-family:var(--font-mono);color:var(--tx-lo)}
+
+/* ─── Tab nav ────────────────────────────────────────────────── */
+.tab-nav{
+  display:flex;align-items:center;
+  padding:0 24px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border-lo);
+  flex-shrink:0;
+}
+.tab-item{
+  display:flex;align-items:center;gap:6px;
+  padding:10px 14px;
+  font-size:12px;font-weight:500;color:var(--tx-lo);
+  cursor:pointer;border-bottom:2px solid transparent;
+  transition:color var(--transition),border-color var(--transition);
+  position:relative;top:1px;
+  text-decoration:none;
+}
+.tab-item svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
+.tab-item:hover{color:var(--tx-md)}
+.tab-item.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-item.active svg{opacity:1}
+
+/* ─── Overview content ───────────────────────────────────────── */
+.overview-content{
+  flex:1;overflow-y:auto;
+  padding:20px 24px;
+  display:flex;flex-direction:column;gap:16px;
+}
+
+/* Fila superior: horas (compacta) + servicios lado a lado */
+.top-row{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+}
+
+/* ─── Section card ───────────────────────────────────────────── */
+.section-card{
+  background:var(--card);
+  border:1px solid var(--border-lo);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+.section-card__hdr{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;
+  border-bottom:1px solid var(--border-lo);
+}
+.section-card__icon{
+  width:12px;height:12px;
+  stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+  color:var(--tx-lo);flex-shrink:0;
+}
+.section-card__title{
+  font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;
+  color:var(--tx-lo);font-family:var(--font-mono);
+}
+.section-card__body{padding:12px}
+
+/* ─── Hours card — compacta ──────────────────────────────────── */
+.card-hours{
+  flex:0 0 auto;
+  width:220px;
+}
+
+.hours-metrics-row{
+  display:flex;
+  gap:12px;
+  margin-bottom:10px;
+}
+.hours-metric{
+  display:flex;flex-direction:column;gap:2px;
+}
+.hours-metric__val{
+  font-family:var(--font-mono);font-size:15px;font-weight:600;line-height:1;
+}
+.hours-metric__val--neutral{color:var(--tx-md)}
+.hours-metric__val--ok{color:var(--ok)}
+.hours-metric__val--warn{color:var(--warn)}
+.hours-metric__val--crit{color:var(--crit)}
+.hours-metric__val--hi{color:var(--tx-hi)}
+.hours-metric__lbl{
+  font-size:9px;text-transform:uppercase;letter-spacing:.7px;
+  color:var(--tx-lo);font-family:var(--font-mono);
+}
+
+.hours-bar-row{display:flex;align-items:center;gap:8px}
+.hours-bar-track{flex:1;height:4px;background:var(--elevated);border-radius:2px;overflow:hidden;border:1px solid var(--border-lo)}
+.hours-bar-fill{height:100%;border-radius:2px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.hours-bar-fill--ok  {background:linear-gradient(90deg,var(--ok),rgba(67,217,138,.7))}
+.hours-bar-fill--warn{background:linear-gradient(90deg,var(--warn),rgba(255,179,0,.7))}
+.hours-bar-fill--crit{background:linear-gradient(90deg,var(--crit),rgba(244,67,54,.7))}
+.hours-bar-pct{font-family:var(--font-mono);font-size:10px;min-width:28px;text-align:right;flex-shrink:0}
+.hours-bar-pct--ok{color:var(--ok)}
+.hours-bar-pct--warn{color:var(--warn)}
+.hours-bar-pct--crit{color:var(--crit)}
+
+/* ─── Services card ──────────────────────────────────────────── */
+.card-services{
+  flex:0 0 auto;
+  width:340px;
+}
+
+/* ─── Services section ───────────────────────────────────────── */
+.services-chips{
+  display:flex;flex-wrap:wrap;gap:7px;
+}
+.svc-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;
+  border-radius:20px;
+  font-size:11px;font-family:var(--font-mono);
+  border:1px solid;
+  white-space:nowrap;
+}
+.svc-chip__dot{
+  width:5px;height:5px;border-radius:50%;flex-shrink:0;
+}
+.svc-chip--active{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)}
+.svc-chip--active .svc-chip__dot{background:var(--ok)}
+.svc-chip--inactive{background:var(--neutral-bg);border-color:var(--neutral-bd);color:var(--tx-lo)}
+.svc-chip--inactive .svc-chip__dot{background:var(--tx-lo);opacity:.5}
+
+.services-empty{font-size:12px;color:var(--tx-lo);padding:4px 0}
+
+.svc-legend{
+  display:flex;align-items:center;gap:14px;
+  margin-top:12px;padding-top:12px;
+  border-top:1px solid var(--border-lo);
+}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--tx-lo);font-family:var(--font-mono)}
+.legend-dot{width:6px;height:6px;border-radius:50%}
+.legend-dot--active{background:var(--ok)}
+.legend-dot--inactive{background:var(--tx-lo);opacity:.4}
+
+/* ─── State toggle buttons ───────────────────────────────────── */
+.demo-bar{
+  position:fixed;bottom:16px;right:16px;
+  display:flex;gap:6px;z-index:100;
+  background:var(--elevated);border:1px solid var(--border-md);
+  border-radius:var(--radius-sm);padding:6px 8px;
+}
+.demo-btn{
+  background:transparent;border:1px solid var(--border-lo);
+  border-radius:var(--radius-xs);color:var(--tx-lo);
+  font-size:10px;font-family:var(--font-mono);
+  padding:4px 10px;cursor:pointer;
+  transition:color var(--transition),border-color var(--transition);
+}
+.demo-btn.active{border-color:var(--accent-bd);color:var(--accent)}
+.demo-btn:hover:not(.active){color:var(--tx-md);border-color:var(--border)}
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--elevated);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--hover)}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <span class="topbar__logo">InfraOps</span>
+  <span class="topbar__sep"></span>
+  <div class="topbar__crumb" id="crumb">
+    <a href="#">Clientes</a>
+    <span class="topbar__crumb__sep">/</span>
+    <span style="color:var(--tx-hi)">Gamma Distribución SA</span>
+  </div>
+  <div class="topbar__spacer"></div>
+  <div class="topbar__avatar">LA</div>
+</div>
+
+<div class="shell">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="nav-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+    <div class="nav-item active"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+    <div class="nav-sep"></div>
+    <div class="nav-item"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 116.93 19.07 10 10 0 0119.07 4.93"/></svg></div>
+  </div>
+
+  <div class="main">
+
+    <!-- Client header -->
+    <div class="client-hdr">
+      <div class="client-hdr__initial" id="hdr-initial">GD</div>
+      <div class="client-hdr__info">
+        <span class="client-hdr__name" id="hdr-name">Gamma Distribución SA</span>
+        <div class="client-hdr__meta">
+          <span class="status-badge status-badge--active" id="hdr-badge">
+            <svg style="width:7px;height:7px;fill:var(--ok);stroke:none"><circle cx="3.5" cy="3.5" r="3.5"/></svg>
+            Activo
+          </span>
+          <span class="client-hdr__id" id="hdr-id">ID #14</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab nav -->
+    <div class="tab-nav">
+      <a class="tab-item active" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        Overview
+      </a>
+      <a class="tab-item" href="#">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        Mantenimientos
+      </a>
+    </div>
+
+    <!-- Overview content -->
+    <div class="overview-content">
+
+      <!-- Horas de abono -->
+      <div class="section-card">
+        <div class="section-card__hdr">
+          <svg class="section-card__icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <span class="section-card__title" id="hours-period">Horas de abono · Sep 2026</span>
+        </div>
+        <div class="section-card__body">
+          <div class="hours-grid">
+            <div class="hours-metric">
+              <span class="hours-metric__val hours-metric__val--neutral" id="h-c">15</span>
+              <span class="hours-metric__lbl">Contratadas</span>
+            </div>
+            <div class="hours-metric">
+              <span class="hours-metric__val hours-metric__val--ok" id="h-u">11</span>
+              <span class="hours-metric__lbl">Usadas</span>
+            </div>
+            <div class="hours-metric">
+              <span class="hours-metric__val hours-metric__val--hi" id="h-a">4</span>
+              <span class="hours-metric__lbl">Disponibles</span>
+            </div>
+          </div>
+          <div class="hours-bar-row">
+            <div class="hours-bar-track">
+              <div class="hours-bar-fill hours-bar-fill--ok" id="h-bar" style="width:73%"></div>
+            </div>
+            <span class="hours-bar-pct hours-bar-pct--ok" id="h-pct">73%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Servicios contratados -->
+      <div class="section-card">
+        <div class="section-card__hdr">
+          <svg class="section-card__icon" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          <span class="section-card__title">Servicios contratados</span>
+        </div>
+        <div class="section-card__body" id="svc-body">
+          <div class="services-chips">
+            <span class="svc-chip svc-chip--active"><span class="svc-chip__dot"></span>Soporte Mensual 30h ARS</span>
+            <span class="svc-chip svc-chip--active"><span class="svc-chip__dot"></span>Hosting Web · Hosting Mail</span>
+            <span class="svc-chip svc-chip--active"><span class="svc-chip__dot"></span>Backup Cloud 500 GB</span>
+            <span class="svc-chip svc-chip--active"><span class="svc-chip__dot"></span>Kaspersky Endpoint Security × 12</span>
+            <span class="svc-chip svc-chip--inactive"><span class="svc-chip__dot"></span>Dominio .com.ar</span>
+          </div>
+          <div class="svc-legend">
+            <div class="legend-item"><div class="legend-dot legend-dot--active"></div>Activo</div>
+            <div class="legend-item"><div class="legend-dot legend-dot--inactive"></div>Inactivo / pausado</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Demo toggle -->
+<div class="demo-bar">
+  <button class="demo-btn active" id="btn-default" onclick="show('default')">Con servicios</button>
+  <button class="demo-btn" id="btn-empty" onclick="show('empty')">Sin servicios</button>
+  <button class="demo-btn" id="btn-inactive" onclick="show('inactive')">Cliente inactivo</button>
+  <button class="demo-btn" id="btn-excedente" onclick="show('excedente')">Horas excedidas</button>
+</div>
+
+<script>
+const STATES = {
+  default: {
+    name:'Gamma Distribución SA', init:'GD', id:'#14', active:true,
+    hours:{c:15,u:11,a:4,pct:73,s:'ok'},
+    services:[
+      {n:'Soporte Mensual 30h ARS',a:true},
+      {n:'Hosting Web · Hosting Mail',a:true},
+      {n:'Backup Cloud 500 GB',a:true},
+      {n:'Kaspersky Endpoint Security × 12',a:true},
+      {n:'Dominio .com.ar',a:false},
+    ],
+  },
+  empty: {
+    name:'Zeta Manufactura SRL', init:'ZM', id:'#22', active:true,
+    hours:{c:8,u:0,a:8,pct:0,s:'crit'},
+    services:[],
+  },
+  inactive: {
+    name:'Omega Construcción SA', init:'OC', id:'#07', active:false,
+    hours:{c:0,u:0,a:0,pct:0,s:'crit'},
+    services:[
+      {n:'Soporte Mensual 10h ARS',a:false},
+      {n:'Backup Cloud 100 GB',a:false},
+    ],
+  },
+  excedente: {
+    name:'Delta Logística SRL', init:'DL', id:'#03', active:true,
+    hours:{c:25,u:28,a:-3,pct:112,s:'warn'},
+    services:[
+      {n:'Soporte Mensual 25h ARS',a:true},
+      {n:'Hosting Web',a:true},
+      {n:'Kaspersky Endpoint Security × 8',a:true},
+    ],
+  },
+};
+
+function show(key) {
+  const s = STATES[key];
+  const cls = s.hours.s;
+
+  document.getElementById('hdr-initial').textContent = s.init;
+  document.getElementById('hdr-name').textContent = s.name;
+  document.getElementById('hdr-id').textContent = 'ID ' + s.id;
+  document.getElementById('crumb').innerHTML =
+    `<a href="#">Clientes</a><span class="topbar__crumb__sep">/</span><span style="color:var(--tx-hi)">${s.name}</span>`;
+
+  const badge = document.getElementById('hdr-badge');
+  if (s.active) {
+    badge.className = 'status-badge status-badge--active';
+    badge.innerHTML = '<svg style="width:7px;height:7px;fill:var(--ok);stroke:none"><circle cx="3.5" cy="3.5" r="3.5"/></svg> Activo';
+  } else {
+    badge.className = 'status-badge status-badge--inactive';
+    badge.innerHTML = '<svg style="width:7px;height:7px;fill:var(--tx-lo);stroke:none"><circle cx="3.5" cy="3.5" r="3.5"/></svg> Inactivo';
+  }
+
+  document.getElementById('h-c').textContent = s.hours.c;
+  const hu = document.getElementById('h-u');
+  hu.textContent = s.hours.u;
+  hu.className = `hours-metric__val hours-metric__val--${cls}`;
+  document.getElementById('h-a').textContent = s.hours.a;
+
+  const bar = document.getElementById('h-bar');
+  bar.className = `hours-bar-fill hours-bar-fill--${cls}`;
+  bar.style.width = Math.min(s.hours.pct, 100) + '%';
+  const pct = document.getElementById('h-pct');
+  pct.textContent = s.hours.pct + '%';
+  pct.className = `hours-bar-pct hours-bar-pct--${cls}`;
+
+  const body = document.getElementById('svc-body');
+  if (s.services.length === 0) {
+    body.innerHTML = '<p class="services-empty">Sin servicios registrados en Odoo.</p>';
+  } else {
+    const chips = s.services.map(sv =>
+      `<span class="svc-chip svc-chip--${sv.a?'active':'inactive'}"><span class="svc-chip__dot"></span>${sv.n}</span>`
+    ).join('');
+    body.innerHTML = `<div class="services-chips">${chips}</div>
+      <div class="svc-legend">
+        <div class="legend-item"><div class="legend-dot legend-dot--active"></div>Activo</div>
+        <div class="legend-item"><div class="legend-dot legend-dot--inactive"></div>Inactivo / pausado</div>
+      </div>`;
+  }
+
+  document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + key).classList.add('active');
+}
+
+show('default');
+</script>
+</body>
+</html>

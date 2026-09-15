@@ -178,6 +178,7 @@
   --mdc-outlined-text-field-container-shape: var(--field-radius);
 }
 
+
 // ── Inputs ───────────────────────────────────────────────────
 .input {
   background: var(--card);
@@ -410,4 +411,22 @@
   --mdc-snackbar-container-color: var(--ok-bg);
   --mdc-snackbar-supporting-text-color: var(--ok);
   border: 1px solid var(--ok-bd);
+}
+
+// ── Panel del filtro de cliente (cycle-table) ─────────────────
+// El overlay se renderiza fuera del shadow del componente, necesita clase global.
+.client-filter-menu {
+  min-width: 240px !important;
+  max-height: 200px !important;
+  overflow-y: auto;
+
+  .mat-mdc-menu-content {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .client-menu-item--active {
+    color: var(--accent) !important;
+    background: var(--accent-bg) !important;
+  }
 }

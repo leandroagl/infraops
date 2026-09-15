@@ -1,14 +1,22 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSelectModule } from '@angular/material/select';
 import { FormsModule } from '@angular/forms';
 import { of, NEVER, Subject } from 'rxjs';
 import { ClientsListComponent } from './clients-list.component';
 import { ClientsService } from '../../../core/services/clients.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Client, ClientSubscriptionHours, hoursBarState } from '../../../core/models/client.models';
+
+const mockAuthService = { getCurrentUser: () => ({ role: 'ADMIN' }) } as unknown as AuthService;
 
 const makeClient = (override: Partial<Client> = {}): Client => ({
   id: 'c1', name: 'ACME Corp', primaryAddress: null, isActive: true, createdAt: '2026-01-01', ...override,
@@ -18,9 +26,14 @@ const MATERIAL_IMPORTS = [
   NoopAnimationsModule,
   RouterTestingModule,
   FormsModule,
+  MatProgressBarModule,
   MatFormFieldModule,
   MatInputModule,
   MatButtonModule,
+  MatIconModule,
+  MatMenuModule,
+  MatTooltipModule,
+  MatSelectModule,
 ];
 
 async function buildFixture(
@@ -36,7 +49,10 @@ async function buildFixture(
   await TestBed.configureTestingModule({
     declarations: [ClientsListComponent],
     imports: MATERIAL_IMPORTS,
-    providers: [{ provide: ClientsService, useValue: svc }],
+    providers: [
+      { provide: ClientsService, useValue: svc },
+      { provide: AuthService, useValue: mockAuthService },
+    ],
   }).compileComponents();
   const f = TestBed.createComponent(ClientsListComponent);
   f.detectChanges();
@@ -69,7 +85,10 @@ describe('ClientsListComponent', () => {
     await TestBed.configureTestingModule({
       declarations: [ClientsListComponent],
       imports: MATERIAL_IMPORTS,
-      providers: [{ provide: ClientsService, useValue: { getAll: getAllSpy, getSubscriptionHours: getHoursSpy, getActiveServices: getActiveServicesSpy } }],
+      providers: [
+        { provide: ClientsService, useValue: { getAll: getAllSpy, getSubscriptionHours: getHoursSpy, getActiveServices: getActiveServicesSpy } },
+        { provide: AuthService, useValue: mockAuthService },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ClientsListComponent);
@@ -221,20 +240,23 @@ describe('ClientsListComponent', () => {
       expect(component.filteredClients.map(c => c.id)).toEqual(['c2']);
     });
 
-    it('filtra por texto cuando quickFilter tiene valor', () => {
-      component.quickFilter = 'bet';
+    it('filtra por cliente cuando nameFilter tiene valor', () => {
+      component.setNameFilter('c2');
       expect(component.filteredClients.map(c => c.id)).toEqual(['c2']);
     });
 
-    it('combina filtro de zona y texto', () => {
-      component.allClients = [
-        ...component.allClients,
-        { id: 'c4', name: 'Beta Dos', isActive: true, primaryAddress: null, createdAt: '',
-          hours: { clientId: 'c4', contracted: 10, delivered: 0, available: 10 } },  // crit
-      ];
-      component.quickFilter = 'beta';
-      component.selectedZone = 'ok';
-      expect(component.filteredClients.map(c => c.id)).toEqual(['c2']);
+    it('setNameFilter(null) limpia el filtro y muestra todos', () => {
+      component.setNameFilter('c1');
+      component.setNameFilter(null);
+      expect(component.filteredClients).toHaveSize(3);
+    });
+
+    it('nameFilter se resetea al navegar de mes', () => {
+      component.setNameFilter('c1');
+      component.selectedMonth = 9;
+      component.selectedYear  = 2026;
+      component.navigateMonth(-1);
+      expect(component.nameFilter).toBeNull();
     });
   });
 
@@ -369,7 +391,7 @@ describe('ClientsListComponent', () => {
       expect(component.kpiStates).toEqual({ ok: 1, warn: 0, crit: 0, low: 0 });
     });
 
-    it('no se ve afectado por el filtro de zona seleccionado (solo por el buscador de texto)', () => {
+    it('no se ve afectado por el filtro de zona seleccionado', () => {
       component.allClients = [
         { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c1', contracted: 10, delivered: 4, available: 6 } }, // low
         { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '', hours: { clientId: 'c2', contracted: 10, delivered: 8, available: 2 } }, // ok
@@ -393,6 +415,74 @@ describe('ClientsListComponent', () => {
       ];
       expect(component.zonePct(component.kpiStates.ok)).toBe(75);
       expect(component.zonePct(component.kpiStates.crit)).toBe(25);
+    });
+  });
+
+  describe('availableServices', () => {
+    it('retorna array vacío cuando no hay clientes con servicios cargados', () => {
+      component.allClients = [
+        { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '' },
+      ];
+      expect(component.availableServices).toEqual([]);
+    });
+
+    it('retorna nombres únicos de servicios ordenados alfabéticamente', () => {
+      component.allClients = [
+        { id: 'c1', name: 'A', isActive: true, primaryAddress: null, createdAt: '',
+          activeServices: { clientId: 'c1', services: [{ name: 'Soporte', active: true }, { name: 'Antivirus', active: true }] } },
+        { id: 'c2', name: 'B', isActive: true, primaryAddress: null, createdAt: '',
+          activeServices: { clientId: 'c2', services: [{ name: 'Soporte', active: true }, { name: 'Backup', active: false }] } },
+      ];
+      expect(component.availableServices).toEqual(['Antivirus', 'Backup', 'Soporte']);
+    });
+  });
+
+  describe('serviceFilter', () => {
+    beforeEach(() => {
+      component.allClients = [
+        { id: 'c1', name: 'Acme', isActive: true, primaryAddress: null, createdAt: '',
+          activeServices: { clientId: 'c1', services: [{ name: 'Soporte', active: true }, { name: 'Antivirus', active: true }] } },
+        { id: 'c2', name: 'Beta', isActive: true, primaryAddress: null, createdAt: '',
+          activeServices: { clientId: 'c2', services: [{ name: 'Soporte', active: true }] } },
+        { id: 'c3', name: 'Gamma', isActive: true, primaryAddress: null, createdAt: '',
+          activeServices: { clientId: 'c3', services: [] } },
+      ];
+    });
+
+    it('serviceFilter inicial es null (sin filtro)', () => {
+      expect(component.serviceFilter).toBeNull();
+    });
+
+    it('onServiceFilterChange actualiza el filtro', () => {
+      component.onServiceFilterChange('Antivirus');
+      expect(component.serviceFilter).toBe('Antivirus');
+    });
+
+    it('filtra clientes que tienen el servicio seleccionado', () => {
+      component.onServiceFilterChange('Antivirus');
+      expect(component.filteredClients.map(c => c.id)).toEqual(['c1']);
+    });
+
+    it('incluye clientes con el servicio aunque esté inactivo', () => {
+      component.allClients[1] = {
+        ...component.allClients[1],
+        activeServices: { clientId: 'c2', services: [{ name: 'Antivirus', active: false }] },
+      };
+      component.onServiceFilterChange('Antivirus');
+      expect(component.filteredClients.map(c => c.id)).toContain('c2');
+    });
+
+    it('sin filtro de servicio retorna todos los clientes', () => {
+      component.onServiceFilterChange(null);
+      expect(component.filteredClients).toHaveSize(3);
+    });
+
+    it('navigateMonth resetea el serviceFilter', () => {
+      component.onServiceFilterChange('Antivirus');
+      component.selectedMonth = 9;
+      component.selectedYear  = 2026;
+      component.navigateMonth(-1);
+      expect(component.serviceFilter).toBeNull();
     });
   });
 
@@ -432,10 +522,5 @@ describe('ClientsListComponent', () => {
       expect(component.filteredClients.map((c) => c.id)).toEqual(['c3']);
     });
 
-    it('combina el filtro de zona con el buscador de texto', () => {
-      component.quickFilter = 'be';
-      component.toggleZone('ok');
-      expect(component.filteredClients.map((c) => c.id)).toEqual(['c2']);
-    });
   });
 });

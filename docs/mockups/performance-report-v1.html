@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reportes de Desempeño — InfraOps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-base: #0e1117;
+    --bg-card: #161b22;
+    --bg-elevated: #1c2128;
+    --bg-hover: #21262d;
+    --border: #30363d;
+    --border-muted: #21262d;
+
+    --accent: #58a6ff;
+    --accent-dim: rgba(88, 166, 255, 0.12);
+    --ok: #3fb950;
+    --ok-bg: rgba(63, 185, 80, 0.1);
+    --warn: #d29922;
+    --warn-bg: rgba(210, 153, 34, 0.1);
+    --crit: #f85149;
+    --crit-bg: rgba(248, 81, 73, 0.1);
+    --purple: #a371f7;
+    --purple-bg: rgba(163, 113, 247, 0.1);
+    --gold: #d29922;
+
+    --tx-hi: #e6edf3;
+    --tx-med: #c9d1d9;
+    --tx-lo: #8b949e;
+    --tx-muted: #484f58;
+
+    --font-ui: 'Space Grotesk', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+
+    --radius-sm: 4px;
+    --radius: 6px;
+    --radius-lg: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-base);
+    color: var(--tx-hi);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 52px;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .sidebar-logo {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: #fff;
+    margin-bottom: 16px;
+  }
+  .sidebar-icon {
+    width: 36px; height: 36px;
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--tx-lo);
+    transition: all 0.15s;
+  }
+  .sidebar-icon:hover { background: var(--bg-elevated); color: var(--tx-hi); }
+  .sidebar-icon.active { background: var(--accent-dim); color: var(--accent); }
+
+  /* ── Main layout ── */
+  .main-layout { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Page header ── */
+  .page-header {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex; align-items: stretch; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .page-title-area { display: flex; align-items: center; gap: 12px; padding: 14px 0; }
+  .page-title { font-size: 15px; font-weight: 600; color: var(--tx-hi); }
+  .page-subtitle { font-size: 11px; color: var(--tx-lo); text-transform: uppercase; letter-spacing: 0.8px; }
+  .tab-bar { display: flex; }
+  .tab-btn {
+    padding: 0 20px; height: 100%;
+    background: none; border: none; border-bottom: 2px solid transparent;
+    color: var(--tx-lo); font-family: var(--font-ui); font-size: 13px;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tab-btn:hover { color: var(--tx-hi); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Views ── */
+  .content-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  .view { display: none; flex-direction: column; height: 100%; }
+  .view.active { display: flex; }
+
+  /* ── Filter bar ── */
+  .filter-bar {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  .filter-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--tx-lo); }
+  .filter-select {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--tx-hi);
+    font-family: var(--font-ui); font-size: 13px;
+    padding: 6px 12px; outline: none; cursor: pointer;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+  .period-tabs {
+    display: flex; background: var(--bg-elevated);
+    border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+  }
+  .period-tab { padding: 6px 14px; font-size: 12px; cursor: pointer; color: var(--tx-lo); transition: all 0.15s; }
+  .period-tab.active { background: var(--accent-dim); color: var(--accent); }
+  .btn-generate {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius); padding: 7px 20px;
+    font-family: var(--font-ui); font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: opacity 0.15s;
+    margin-left: auto; display: flex; align-items: center; gap: 6px;
+  }
+  .btn-generate:hover { opacity: 0.85; }
+  .odoo-pill { font-size: 11px; color: var(--tx-lo); display: flex; align-items: center; gap: 5px; margin-left: 8px; }
+  .odoo-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex-shrink: 0; }
+
+  /* ── KPI row ── */
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 1px; background: var(--border);
+    border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .kpi-card { background: var(--bg-card); padding: 16px 20px; display: flex; flex-direction: column; gap: 4px; }
+  .kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--tx-lo); }
+  .kpi-value { font-family: var(--font-mono); font-size: 22px; font-weight: 500; color: var(--tx-hi); line-height: 1; }
+  .kpi-value.ok { color: var(--ok); }
+  .kpi-value.warn { color: var(--warn); }
+  .kpi-value.accent { color: var(--accent); }
+  .kpi-sub { font-size: 11px; color: var(--tx-lo); margin-top: 2px; }
+  .kpi-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .kpi-bar-fill { height: 100%; border-radius: 2px; }
+
+  /* ── Report body ── */
+  .report-body { flex: 1; display: flex; overflow: hidden; }
+
+  /* ── Criteria panel (left) ── */
+  .criteria-panel { width: 280px; border-right: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; }
+  .criteria-section { border-bottom: 1px solid var(--border-muted); }
+  .criteria-section-header {
+    padding: 10px 16px 6px;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+    position: sticky; top: 0; background: var(--bg-base); z-index: 1;
+  }
+  .section-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .criterion-item {
+    padding: 8px 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    transition: background 0.1s; border-left: 2px solid transparent;
+  }
+  .criterion-item:hover { background: var(--bg-hover); }
+  .criterion-item.selected { background: var(--bg-elevated); border-left-color: var(--accent); }
+  .criterion-name { font-size: 12.5px; color: var(--tx-med); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .criterion-item.selected .criterion-name { color: var(--tx-hi); }
+  .criterion-badge { font-family: var(--font-mono); font-size: 10px; padding: 2px 6px; border-radius: var(--radius-sm); flex-shrink: 0; }
+  .auto-badge { background: var(--accent-dim); color: var(--accent); }
+  .manual-badge { background: var(--bg-elevated); color: var(--tx-lo); }
+  .score-badge { font-family: var(--font-mono); font-size: 11px; font-weight: 500; width: 20px; text-align: center; flex-shrink: 0; }
+
+  /* ── Detail panel (right) ── */
+  .detail-panel { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+  .detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .detail-title { font-size: 16px; font-weight: 600; color: var(--tx-hi); }
+  .detail-description { font-size: 12px; color: var(--tx-lo); margin-top: 4px; line-height: 1.6; }
+  .score-selector { display: flex; gap: 4px; flex-shrink: 0; }
+  .score-dot {
+    width: 28px; height: 28px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: var(--bg-elevated);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 12px;
+    cursor: pointer; transition: all 0.15s; color: var(--tx-lo);
+  }
+  .score-dot:hover { border-color: var(--accent); color: var(--accent); }
+  .score-dot.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+  /* ── Cards ── */
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border-muted); display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--tx-lo); font-weight: 600; }
+  .card-body { padding: 14px 16px; }
+
+  /* ── Tags ── */
+  .tags-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-chip { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; border: 1px solid transparent; display: flex; align-items: center; gap: 4px; }
+  .tag-chip.helpdesk { background: var(--accent-dim); color: var(--accent); border-color: rgba(88,166,255,0.3); }
+  .tag-chip.project { background: var(--purple-bg); color: var(--purple); border-color: rgba(163,113,247,0.3); }
+
+  /* ── Ticket list ── */
+  .ticket-list { display: flex; flex-direction: column; }
+  .ticket-row {
+    display: grid; grid-template-columns: 60px 1fr auto auto;
+    gap: 12px; align-items: center;
+    padding: 8px 16px; border-bottom: 1px solid var(--border-muted);
+    transition: background 0.1s; cursor: pointer;
+  }
+  .ticket-row:last-child { border-bottom: none; }
+  .ticket-row:hover { background: var(--bg-hover); }
+  .ticket-id { font-family: var(--font-mono); font-size: 11px; color: var(--accent); }
+  .ticket-name { font-size: 12px; color: var(--tx-med); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ticket-source { font-size: 10px; color: var(--tx-lo); text-align: right; white-space: nowrap; }
+  .ticket-hours { font-family: var(--font-mono); font-size: 11px; color: var(--tx-lo); text-align: right; white-space: nowrap; }
+
+  /* ── Warning card ── */
+  .warning-card { background: var(--warn-bg); border: 1px solid rgba(210,153,34,0.3); border-radius: var(--radius-lg); overflow: hidden; }
+  .warning-header { padding: 10px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(210,153,34,0.2); }
+  .warning-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--warn); font-weight: 600; }
+  .warning-count { font-family: var(--font-mono); font-size: 11px; background: rgba(210,153,34,0.2); color: var(--warn); padding: 1px 7px; border-radius: 20px; margin-left: auto; }
+  .warning-ticket-grid { padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .warning-ticket-chip {
+    font-family: var(--font-mono); font-size: 11px; color: var(--warn);
+    background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.25);
+    padding: 2px 8px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.1s;
+  }
+  .warning-ticket-chip:hover { background: rgba(210,153,34,0.2); }
+
+  /* ── Priority cards ── */
+  .priority-row { display: flex; gap: 8px; }
+  .priority-card { flex: 1; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+  .priority-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--tx-lo); margin-bottom: 4px; }
+  .priority-hours { font-family: var(--font-mono); font-size: 15px; font-weight: 500; }
+  .priority-high { color: var(--crit); }
+  .priority-med { color: var(--warn); }
+  .priority-low { color: var(--ok); }
+  .priority-none { color: var(--tx-lo); }
+
+  /* ── Notes ── */
+  .notes-textarea {
+    width: 100%; background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--tx-hi); font-family: var(--font-ui);
+    font-size: 12px; padding: 10px 12px; resize: vertical; min-height: 72px; outline: none; line-height: 1.5;
+  }
+  .notes-textarea:focus { border-color: var(--accent); }
+
+  /* ── Source badge ── */
+  .source-badge { font-size: 10px; padding: 2px 8px; border-radius: var(--radius-sm); font-weight: 500; }
+  .source-auto { background: var(--ok-bg); color: var(--ok); }
+  .source-manual { background: var(--bg-elevated); color: var(--tx-lo); border: 1px solid var(--border); }
+
+  /* ── Field label ── */
+  .field-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--tx-lo); margin-bottom: 8px; font-weight: 600; }
+
+  /* ── CONFIG VIEW ── */
+  .config-body { flex: 1; display: flex; overflow: hidden; }
+  .config-left { width: 300px; border-right: 1px solid var(--border); overflow-y: auto; flex-shrink: 0; }
+  .config-right { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+  .config-section-header {
+    padding: 10px 16px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600;
+    border-bottom: 1px solid var(--border-muted);
+  }
+  .config-criterion-item {
+    padding: 10px 16px; cursor: pointer;
+    display: flex; flex-direction: column; gap: 2px;
+    border-left: 2px solid transparent; transition: background 0.1s;
+    border-bottom: 1px solid var(--border-muted);
+  }
+  .config-criterion-item:hover { background: var(--bg-hover); }
+  .config-criterion-item.selected { background: var(--bg-elevated); border-left-color: var(--accent); }
+  .config-criterion-name { font-size: 13px; color: var(--tx-hi); }
+  .config-criterion-meta { font-size: 11px; color: var(--tx-lo); }
+
+  .radio-group { display: flex; gap: 8px; }
+  .radio-option {
+    flex: 1; padding: 10px 12px;
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    transition: all 0.15s; font-size: 12px; color: var(--tx-lo);
+  }
+  .radio-option.selected { background: var(--accent-dim); border-color: rgba(88,166,255,0.4); color: var(--accent); }
+  .radio-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid currentColor; flex-shrink: 0; position: relative; }
+  .radio-option.selected .radio-dot::after { content: ''; position: absolute; inset: 2px; border-radius: 50%; background: var(--accent); }
+
+  .tag-removable {
+    padding: 4px 8px 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;
+    background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(88,166,255,0.3);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tag-remove-btn { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 14px; line-height: 1; opacity: 0.6; padding: 0; }
+  .tag-remove-btn:hover { opacity: 1; }
+
+  .config-tag-add { display: flex; gap: 8px; align-items: center; }
+  .config-tag-select {
+    flex: 1; background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--tx-hi); font-family: var(--font-ui);
+    font-size: 13px; padding: 7px 12px; outline: none;
+  }
+  .config-tag-select:focus { border-color: var(--accent); }
+  .btn-add-tag {
+    background: var(--accent-dim); color: var(--accent);
+    border: 1px solid rgba(88,166,255,0.3); border-radius: var(--radius);
+    padding: 7px 14px; font-family: var(--font-ui); font-size: 13px; cursor: pointer; white-space: nowrap;
+  }
+  .btn-add-tag:hover { background: rgba(88,166,255,0.2); }
+
+  .threshold-row { display: flex; gap: 12px; align-items: flex-end; }
+  .threshold-cell { display: flex; flex-direction: column; gap: 4px; }
+  .threshold-label { font-size: 11px; color: var(--tx-lo); }
+  .threshold-select { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius); color: var(--tx-hi); font-family: var(--font-mono); font-size: 12px; padding: 5px 8px; outline: none; width: 80px; }
+  .threshold-arrow { color: var(--tx-muted); padding-bottom: 6px; }
+
+  .btn-save { background: var(--ok); color: #fff; border: none; border-radius: var(--radius); padding: 8px 20px; font-family: var(--font-ui); font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn-save:hover { opacity: 0.85; }
+  .btn-cancel { background: none; border: 1px solid var(--border); color: var(--tx-lo); border-radius: var(--radius); padding: 8px 16px; font-family: var(--font-ui); font-size: 13px; cursor: pointer; }
+
+  .divider { border: none; border-top: 1px solid var(--border-muted); }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--tx-muted); }
+</style>
+</head>
+<body>
+
+<!-- Sidebar simulado -->
+<nav class="sidebar">
+  <div class="sidebar-logo">IO</div>
+  <div class="sidebar-icon">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+  </div>
+  <div class="sidebar-icon">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+  </div>
+  <div class="sidebar-icon active">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+  </div>
+  <div class="sidebar-icon">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+  </div>
+</nav>
+
+<div class="main-layout">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-title-area">
+      <div>
+        <div class="page-title">Reportes de desempeño</div>
+        <div class="page-subtitle">Odoo · Evaluación semestral</div>
+      </div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('reporte', this)">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Reporte
+      </button>
+      <button class="tab-btn" onclick="switchTab('config', this)">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+        Configuración de criterios
+      </button>
+    </div>
+  </div>
+
+  <div class="content-area">
+
+    <!-- ══════════════════ REPORTE VIEW ══════════════════ -->
+    <div id="view-reporte" class="view active">
+
+      <div class="filter-bar">
+        <span class="filter-label">Técnico</span>
+        <select class="filter-select">
+          <option>Leandro Aguilera</option>
+          <option>El Pana</option>
+          <option>Valen</option>
+          <option>Enzo</option>
+          <option>Tow</option>
+          <option>Santi</option>
+          <option>Gian</option>
+        </select>
+
+        <span class="filter-label" style="margin-left: 8px;">Período</span>
+        <div class="period-tabs">
+          <div class="period-tab" onclick="setPeriod(this)">Mensual</div>
+          <div class="period-tab active" onclick="setPeriod(this)">Semestral</div>
+        </div>
+        <select class="filter-select">
+          <option>S2 2026</option>
+          <option>S1 2026</option>
+          <option>S2 2025</option>
+        </select>
+
+        <div class="odoo-pill">
+          <div class="odoo-dot"></div>
+          Odoo conectado
+        </div>
+
+        <button class="btn-generate">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Generar reporte
+        </button>
+      </div>
+
+      <!-- KPI row -->
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-label">Horas imputadas</div>
+          <div class="kpi-value accent">295h</div>
+          <div class="kpi-sub">S2 2026 · 6 meses</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:82%; background:var(--accent);"></div></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">SLA cumplido</div>
+          <div class="kpi-value ok">97%</div>
+          <div class="kpi-sub">174 / 179 tickets</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:97%; background:var(--ok);"></div></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Tickets totales</div>
+          <div class="kpi-value">179</div>
+          <div class="kpi-sub">Helpdesk + Proyectos</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:60%; background:var(--tx-lo);"></div></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Sin etiqueta ⚠</div>
+          <div class="kpi-value warn">31</div>
+          <div class="kpi-sub">17.3% del total</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:17.3%; background:var(--warn);"></div></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Calificación cliente</div>
+          <div class="kpi-value ok">100%</div>
+          <div class="kpi-sub">Satisfacción Odoo</div>
+          <div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%; background:var(--ok);"></div></div>
+        </div>
+      </div>
+
+      <!-- Report body: master-detail -->
+      <div class="report-body">
+
+        <!-- Left: criteria list -->
+        <div class="criteria-panel">
+
+          <div class="criteria-section">
+            <div class="criteria-section-header" style="color:var(--accent);">
+              <div class="section-dot" style="background:var(--accent);"></div>
+              Datos semestre
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Horas remitidas</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--ok);">5</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">SLAs</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--ok);">5</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Calificación de tickets</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--ok);">5</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Ausentismo</div>
+              <span class="criterion-badge manual-badge">manual</span>
+              <span class="score-badge" style="color:var(--tx-muted);">—</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Puntualidad</div>
+              <span class="criterion-badge manual-badge">manual</span>
+              <span class="score-badge" style="color:var(--tx-muted);">—</span>
+            </div>
+          </div>
+
+          <div class="criteria-section">
+            <div class="criteria-section-header" style="color:var(--purple);">
+              <div class="section-dot" style="background:var(--purple);"></div>
+              Competencias
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Responsabilidad y compromiso</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--ok);">5</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Pensamiento crítico</div>
+              <span class="criterion-badge manual-badge">mixto</span>
+              <span class="score-badge" style="color:var(--ok);">5</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Creatividad e innovación</div>
+              <span class="criterion-badge manual-badge">mixto</span>
+              <span class="score-badge" style="color:var(--ok);">5</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Resolución de problemas</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--warn);">4</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Trabajo en equipo</div>
+              <span class="criterion-badge manual-badge">mixto</span>
+              <span class="score-badge" style="color:var(--ok);">5</span>
+            </div>
+          </div>
+
+          <div class="criteria-section">
+            <div class="criteria-section-header" style="color:var(--ok);">
+              <div class="section-dot" style="background:var(--ok);"></div>
+              Tareas
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Gestión técnica</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--ok);">5</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Gestión proactiva</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--warn);">3</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Gestión de proyectos</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--warn);">4</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Aprendizaje y documentación</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--warn);">4</span>
+            </div>
+            <div class="criterion-item selected" onclick="selectCriterion(this)">
+              <div class="criterion-name">Gestión administrativa</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--warn);">3</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Gestión comercial</div>
+              <span class="criterion-badge manual-badge">mixto</span>
+              <span class="score-badge" style="color:var(--tx-muted);">—</span>
+            </div>
+          </div>
+
+          <div class="criteria-section">
+            <div class="criteria-section-header" style="color:var(--gold);">
+              <div class="section-dot" style="background:var(--gold);"></div>
+              Tareas TO
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Liderazgo técnico</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--warn);">3</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Ownership técnico</div>
+              <span class="criterion-badge manual-badge">mixto</span>
+              <span class="score-badge" style="color:var(--ok);">5</span>
+            </div>
+            <div class="criterion-item" onclick="selectCriterion(this)">
+              <div class="criterion-name">Liderazgo de proyectos</div>
+              <span class="criterion-badge auto-badge">auto</span>
+              <span class="score-badge" style="color:var(--warn);">4</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: detail panel -->
+        <div class="detail-panel">
+
+          <div class="detail-header">
+            <div>
+              <div class="detail-title">Gestión administrativa</div>
+              <div class="detail-description" style="max-width:540px;">
+                Llevar correcto registro y trazabilidad. Realizar seguimiento de todas las tareas y gestiones. Gestionar en miras a lograr la resolución final y satisfactoria para el cliente.
+              </div>
+            </div>
+            <div>
+              <div class="field-label" style="text-align:right; margin-bottom:6px;">Nota</div>
+              <div class="score-selector">
+                <div class="score-dot" onclick="setScore(this)">1</div>
+                <div class="score-dot" onclick="setScore(this)">2</div>
+                <div class="score-dot active" onclick="setScore(this)">3</div>
+                <div class="score-dot" onclick="setScore(this)">4</div>
+                <div class="score-dot" onclick="setScore(this)">5</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tags configured for this criterion -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Etiquetas configuradas para este criterio</span>
+              <span class="source-badge source-auto">Odoo automático</span>
+            </div>
+            <div class="card-body">
+              <div class="tags-row">
+                <span class="tag-chip helpdesk">Gestión administrativa</span>
+                <span class="tag-chip helpdesk">Admin</span>
+                <span class="tag-chip helpdesk">Seguimiento</span>
+                <span class="tag-chip project">PE · Admin</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Evidence tickets -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Evidencia — tickets con estas etiquetas</span>
+              <span style="font-family:var(--font-mono); font-size:11px; color:var(--tx-lo);">18 tickets · 44h 18min</span>
+            </div>
+            <div class="ticket-list">
+              <div class="ticket-row">
+                <span class="ticket-id">#5796</span>
+                <span class="ticket-name">Asistencia remota — sin descripción de parte de hora</span>
+                <span class="ticket-source">Helpdesk</span>
+                <span class="ticket-hours">2h 15m</span>
+              </div>
+              <div class="ticket-row">
+                <span class="ticket-id">#5950</span>
+                <span class="ticket-name">Asistencia — horas null sin registro correcto</span>
+                <span class="ticket-source">Helpdesk</span>
+                <span class="ticket-hours">0h 45m</span>
+              </div>
+              <div class="ticket-row">
+                <span class="ticket-id">#5977</span>
+                <span class="ticket-name">Reunión de seguimiento con técnicos — liderazgo técnico</span>
+                <span class="ticket-source">Proyecto</span>
+                <span class="ticket-hours">1h 00m</span>
+              </div>
+              <div class="ticket-row">
+                <span class="ticket-id">#6110</span>
+                <span class="ticket-name">Gestión proactiva — alertas UniFi Controller</span>
+                <span class="ticket-source">Helpdesk</span>
+                <span class="ticket-hours">3h 30m</span>
+              </div>
+              <div class="ticket-row">
+                <span class="ticket-id">#6285</span>
+                <span class="ticket-name">Respuesta escalada — PRTG Kaspersky</span>
+                <span class="ticket-source">Helpdesk</span>
+                <span class="ticket-hours">2h 00m</span>
+              </div>
+              <div class="ticket-row" style="opacity:0.5;">
+                <span class="ticket-id" style="color:var(--tx-lo);">+13</span>
+                <span class="ticket-name" style="color:var(--tx-lo); font-style:italic;">tickets más...</span>
+                <span class="ticket-source"></span>
+                <span class="ticket-hours">34h 48m</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hours by priority -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Horas por prioridad (período completo)</span>
+              <span class="source-badge source-auto">Odoo automático</span>
+            </div>
+            <div class="card-body">
+              <div class="priority-row">
+                <div class="priority-card">
+                  <div class="priority-label">Alta prioridad</div>
+                  <div class="priority-hours priority-high">2h 08m</div>
+                </div>
+                <div class="priority-card">
+                  <div class="priority-label">Prioridad media</div>
+                  <div class="priority-hours priority-med">1h 39m</div>
+                </div>
+                <div class="priority-card">
+                  <div class="priority-label">Prioridad baja</div>
+                  <div class="priority-hours priority-low">78h 38m</div>
+                </div>
+                <div class="priority-card">
+                  <div class="priority-label">Sin prioridad</div>
+                  <div class="priority-hours priority-none">59h 31m</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tickets sin etiqueta -->
+          <div class="warning-card">
+            <div class="warning-header">
+              <svg width="13" height="13" fill="none" stroke="var(--warn)" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span class="warning-title">Tickets sin etiqueta en el período</span>
+              <span class="warning-count">31 tickets</span>
+            </div>
+            <div class="warning-ticket-grid">
+              <span class="warning-ticket-chip">#789</span><span class="warning-ticket-chip">#884</span>
+              <span class="warning-ticket-chip">#928</span><span class="warning-ticket-chip">#938</span>
+              <span class="warning-ticket-chip">#939</span><span class="warning-ticket-chip">#942</span>
+              <span class="warning-ticket-chip">#945</span><span class="warning-ticket-chip">#950</span>
+              <span class="warning-ticket-chip">#962</span><span class="warning-ticket-chip">#991</span>
+              <span class="warning-ticket-chip">#997</span><span class="warning-ticket-chip">#999</span>
+              <span class="warning-ticket-chip">#1011</span><span class="warning-ticket-chip">#1016</span>
+              <span class="warning-ticket-chip">#1017</span><span class="warning-ticket-chip">#1018</span>
+              <span class="warning-ticket-chip">#1020</span><span class="warning-ticket-chip">#1023</span>
+              <span class="warning-ticket-chip">#1025</span><span class="warning-ticket-chip">#1030</span>
+              <span class="warning-ticket-chip">#1040</span><span class="warning-ticket-chip">#1041</span>
+              <span class="warning-ticket-chip">#1042</span><span class="warning-ticket-chip">#1052</span>
+              <span class="warning-ticket-chip">#1063</span><span class="warning-ticket-chip">#1064</span>
+              <span class="warning-ticket-chip">#1076</span><span class="warning-ticket-chip">#1080</span>
+              <span class="warning-ticket-chip">#1081</span><span class="warning-ticket-chip">#1018</span>
+              <span class="warning-ticket-chip">#1020</span>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Notas del evaluador</span>
+              <span class="source-badge source-manual">Ingreso manual</span>
+            </div>
+            <div class="card-body">
+              <textarea class="notes-textarea" placeholder="Agregar observaciones, contexto o evidencias adicionales...">sin etiquetas: 950 928 962 942 939 938 884 789 991 884 997 999 928 1011 945 1018 1081 1020 1017 1030 1041 1025 1040 1023 1016 1042 1052 1063 1064 1080 1076</textarea>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════ CONFIG VIEW ══════════════════ -->
+    <div id="view-config" class="view">
+      <div class="config-body">
+
+        <!-- Left: criteria list -->
+        <div class="config-left">
+
+          <div class="config-section-header" style="color:var(--accent);">Datos semestre</div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Horas remitidas</div>
+            <div class="config-criterion-meta">account.analytic.line · automático</div>
+          </div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">SLAs</div>
+            <div class="config-criterion-meta">helpdesk.sla.status · automático</div>
+          </div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Calificación de tickets</div>
+            <div class="config-criterion-meta">rating_ids · automático</div>
+          </div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Ausentismo</div>
+            <div class="config-criterion-meta">Sin origen Odoo · manual</div>
+          </div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Puntualidad</div>
+            <div class="config-criterion-meta">Sin origen Odoo · manual</div>
+          </div>
+
+          <div class="config-section-header" style="color:var(--ok); border-top:1px solid var(--border-muted); margin-top:4px;">Tareas</div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Gestión técnica</div>
+            <div class="config-criterion-meta">3 etiquetas · Helpdesk + Proyectos</div>
+          </div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Gestión proactiva</div>
+            <div class="config-criterion-meta">2 etiquetas · Helpdesk</div>
+          </div>
+          <div class="config-criterion-item selected" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Gestión administrativa</div>
+            <div class="config-criterion-meta">4 etiquetas · Helpdesk + Proyectos</div>
+          </div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Gestión de proyectos</div>
+            <div class="config-criterion-meta">5 etiquetas · Proyectos</div>
+          </div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Aprendizaje y documentación</div>
+            <div class="config-criterion-meta">2 etiquetas · Helpdesk + Proyectos</div>
+          </div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Gestión comercial</div>
+            <div class="config-criterion-meta">1 etiqueta · mixto</div>
+          </div>
+
+          <div class="config-section-header" style="color:var(--gold); border-top:1px solid var(--border-muted); margin-top:4px;">Tareas TO</div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Liderazgo técnico</div>
+            <div class="config-criterion-meta">2 etiquetas · Helpdesk + Proyectos</div>
+          </div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Ownership técnico</div>
+            <div class="config-criterion-meta">3 etiquetas · Proyectos</div>
+          </div>
+          <div class="config-criterion-item" onclick="selectConfigItem(this)">
+            <div class="config-criterion-name">Liderazgo de proyectos</div>
+            <div class="config-criterion-meta">2 etiquetas · Proyectos</div>
+          </div>
+
+        </div>
+
+        <!-- Right: config form -->
+        <div class="config-right">
+
+          <div>
+            <div style="font-size:16px; font-weight:600; color:var(--tx-hi); margin-bottom:4px;">Gestión administrativa</div>
+            <div style="font-size:12px; color:var(--tx-lo); line-height:1.6; max-width:600px;">
+              Llevar correcto registro y trazabilidad. Realizar seguimiento de todas las tareas y gestiones. Gestionar en miras a lograr la resolución final y satisfactoria para el cliente.
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Origen de datos -->
+          <div>
+            <div class="field-label">Origen de datos</div>
+            <div class="radio-group">
+              <div class="radio-option" onclick="selectRadio(this)">
+                <div class="radio-dot"></div>Solo Helpdesk
+              </div>
+              <div class="radio-option selected" onclick="selectRadio(this)">
+                <div class="radio-dot"></div>Helpdesk + Proyectos
+              </div>
+              <div class="radio-option" onclick="selectRadio(this)">
+                <div class="radio-dot"></div>Solo Proyectos
+              </div>
+              <div class="radio-option" onclick="selectRadio(this)">
+                <div class="radio-dot"></div>Manual (sin Odoo)
+              </div>
+            </div>
+          </div>
+
+          <!-- Tags -->
+          <div>
+            <div class="field-label">Etiquetas de Odoo asignadas a este criterio</div>
+            <div class="tags-row" style="margin-bottom:12px;" id="tag-list">
+              <span class="tag-removable">
+                Gestión administrativa
+                <button class="tag-remove-btn" onclick="removeTag(this)">×</button>
+              </span>
+              <span class="tag-removable">
+                Admin
+                <button class="tag-remove-btn" onclick="removeTag(this)">×</button>
+              </span>
+              <span class="tag-removable">
+                Seguimiento
+                <button class="tag-remove-btn" onclick="removeTag(this)">×</button>
+              </span>
+              <span class="tag-removable" style="background:var(--purple-bg); color:var(--purple); border-color:rgba(163,113,247,0.3);">
+                PE · Admin
+                <button class="tag-remove-btn" style="color:var(--purple);" onclick="removeTag(this)">×</button>
+              </span>
+            </div>
+            <div class="config-tag-add">
+              <select class="config-tag-select" id="tag-select">
+                <option disabled selected>Agregar etiqueta de Odoo...</option>
+                <option>Alta Complejidad</option>
+                <option>Auditoría</option>
+                <option>Documentación</option>
+                <option>Escalado</option>
+                <option>Gestión proactiva</option>
+                <option>Mantenimiento</option>
+                <option>Proyecto especial</option>
+                <option>Soporte remoto</option>
+              </select>
+              <button class="btn-add-tag" onclick="addTag()">+ Agregar</button>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <!-- Nota sugerida por umbrales -->
+          <div>
+            <div class="field-label">Nota automática sugerida — umbrales de tickets sin etiqueta</div>
+            <div style="font-size:12px; color:var(--tx-lo); margin-bottom:14px; max-width:520px; line-height:1.6;">
+              Define a qué porcentaje de tickets sin etiqueta corresponde cada nota. El evaluador siempre puede sobreescribir.
+            </div>
+            <div class="threshold-row">
+              <div class="threshold-cell">
+                <div class="threshold-label" style="color:var(--ok);">→ nota 5</div>
+                <select class="threshold-select"><option>0%</option></select>
+              </div>
+              <div class="threshold-arrow">·</div>
+              <div class="threshold-cell">
+                <div class="threshold-label" style="color:var(--ok);">→ nota 4</div>
+                <select class="threshold-select"><option>≤ 5%</option></select>
+              </div>
+              <div class="threshold-arrow">·</div>
+              <div class="threshold-cell">
+                <div class="threshold-label" style="color:var(--warn);">→ nota 3</div>
+                <select class="threshold-select"><option>≤ 10%</option></select>
+              </div>
+              <div class="threshold-arrow">·</div>
+              <div class="threshold-cell">
+                <div class="threshold-label" style="color:var(--warn);">→ nota 2</div>
+                <select class="threshold-select"><option>≤ 20%</option></select>
+              </div>
+              <div class="threshold-arrow">·</div>
+              <div class="threshold-cell">
+                <div class="threshold-label" style="color:var(--crit);">→ nota 1</div>
+                <select class="threshold-select"><option>> 20%</option></select>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:4px;">
+            <button class="btn-save">Guardar criterio</button>
+            <button class="btn-cancel">Cancelar</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function switchTab(viewId, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-' + viewId).classList.add('active');
+  }
+
+  function selectCriterion(el) {
+    document.querySelectorAll('#view-reporte .criterion-item').forEach(i => i.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function selectConfigItem(el) {
+    document.querySelectorAll('.config-criterion-item').forEach(i => i.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function selectRadio(el) {
+    el.closest('.radio-group').querySelectorAll('.radio-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function setScore(el) {
+    el.closest('.score-selector').querySelectorAll('.score-dot').forEach(d => d.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function setPeriod(el) {
+    el.closest('.period-tabs').querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function removeTag(btn) {
+    btn.closest('.tag-removable').remove();
+  }
+
+  function addTag() {
+    const sel = document.getElementById('tag-select');
+    const val = sel.value;
+    if (!val || sel.selectedIndex === 0) return;
+    const list = document.getElementById('tag-list');
+    const tag = document.createElement('span');
+    tag.className = 'tag-removable';
+    tag.innerHTML = `${val} <button class="tag-remove-btn" onclick="removeTag(this)">×</button>`;
+    list.appendChild(tag);
+    sel.selectedIndex = 0;
+  }
+</script>
+
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Task, TaskGroup } from '../../../core/models/task.models';
 import { Technician } from '../../../core/models/technician.models';
+import { Client } from '../../../core/models/client.models';
 import { typeLabel, typeBadge, statusLabel, statusBadge } from '../../../shared/utils/task-labels';
 import { formatOdooTicketId } from '../../../shared/utils/odoo';
 
@@ -15,10 +16,13 @@ export class CycleTableComponent {
   @Input() taskTypes: { value: string; label: string }[] = [];
   @Input() technicians: Technician[] = [];
   @Input() taskStatuses: { value: string; label: string }[] = [];
+  @Input() clients: Client[] = [];
+  @Input() clientFilter: string | null = null;
   @Input() typeFilter: string | null = null;
   @Input() techFilter: string | null = null;
   @Input() statusFilter: string | null = null;
   @Output() taskSelected = new EventEmitter<Task>();
+  @Output() clientFilterChange = new EventEmitter<string | null>();
   @Output() typeFilterChange = new EventEmitter<string | null>();
   @Output() techFilterChange = new EventEmitter<string | null>();
   @Output() statusFilterChange = new EventEmitter<string | null>();
@@ -26,6 +30,10 @@ export class CycleTableComponent {
   get selectedTechnicianObj(): Technician | null {
     if (!this.techFilter) return null;
     return this.technicians?.find(t => t.id === this.techFilter) ?? null;
+  }
+
+  onClientFilterChange(value: string | null): void {
+    this.clientFilterChange.emit(value);
   }
 
   onTypeFilterChange(value: string | null): void {

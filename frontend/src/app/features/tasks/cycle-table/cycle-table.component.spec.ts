@@ -3,9 +3,13 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CycleTableComponent } from './cycle-table.component';
 import { Task, TaskGroup } from '../../../core/models/task.models';
 import { Technician } from '../../../core/models/technician.models';
+import { Client } from '../../../core/models/client.models';
 import { SharedModule } from '../../../shared/shared.module';
 
 const makeTechnicianUser = (id: string, name: string, email: string) => ({
@@ -57,7 +61,7 @@ describe('CycleTableComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [CycleTableComponent],
-      imports: [NoopAnimationsModule, CommonModule, SharedModule, MatFormFieldModule, MatSelectModule],
+      imports: [NoopAnimationsModule, CommonModule, SharedModule, MatFormFieldModule, MatSelectModule, MatMenuModule, MatButtonModule, MatTooltipModule],
     }).compileComponents();
     fixture = TestBed.createComponent(CycleTableComponent);
     component = fixture.componentInstance;
@@ -147,10 +151,45 @@ describe('CycleTableComponent', () => {
       expect(component.selectedTechnicianObj).toBeNull();
     });
 
-    it('no renderiza ningún filtro para la columna Cliente (no existe esa columna)', () => {
-      const headers: NodeListOf<HTMLElement> = fixture.nativeElement.querySelectorAll('thead th');
-      const headerText = Array.from(headers).map(h => h.textContent?.trim());
-      expect(headerText.some(t => t?.includes('Cliente'))).toBeFalse();
+    it('renderiza el botón de filtro de cliente en el header de la columna Tipo', () => {
+      const btn: HTMLElement = fixture.nativeElement.querySelector('.col-type-filter .client-filter-btn');
+      expect(btn).toBeTruthy();
+    });
+
+    it('client-filter-btn no tiene clase active cuando clientFilter es null', () => {
+      component.clientFilter = null;
+      fixture.detectChanges();
+      const btn: HTMLElement = fixture.nativeElement.querySelector('.client-filter-btn');
+      expect(btn.classList).not.toContain('client-filter-btn--active');
+    });
+
+    it('client-filter-btn tiene clase active cuando hay clientFilter activo', () => {
+      const CLIENTS: Client[] = [
+        { id: 'c1', name: 'ACME S.A.', primaryAddress: null, isActive: true, createdAt: '2026-01-01' },
+      ];
+      component.clients = CLIENTS;
+      component.clientFilter = 'c1';
+      fixture.detectChanges();
+      const btn: HTMLElement = fixture.nativeElement.querySelector('.client-filter-btn');
+      expect(btn.classList).toContain('client-filter-btn--active');
+    });
+
+    it('emite clientFilterChange al llamar onClientFilterChange', () => {
+      const emitted: (string | null)[] = [];
+      component.clientFilterChange.subscribe((v: string | null) => emitted.push(v));
+
+      component.onClientFilterChange('c1');
+
+      expect(emitted).toEqual(['c1']);
+    });
+
+    it('emite clientFilterChange con null al llamar onClientFilterChange(null)', () => {
+      const emitted: (string | null)[] = [];
+      component.clientFilterChange.subscribe((v: string | null) => emitted.push(v));
+
+      component.onClientFilterChange(null);
+
+      expect(emitted).toEqual([null]);
     });
 
     it('renderiza un mat-select de Estado con las opciones de taskStatuses', () => {

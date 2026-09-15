@@ -28,6 +28,40 @@
   }
 }
 
+.type-header-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.client-filter-btn {
+  width: 28px !important;
+  height: 28px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  flex-shrink: 0;
+  color: var(--tx-lo);
+  border: 1px solid transparent !important;
+  border-radius: var(--radius-sm) !important;
+
+  svg { width: 14px; height: 14px; stroke: currentColor; fill: none; flex-shrink: 0; }
+
+  &:hover {
+    color: var(--tx-md) !important;
+    background: var(--elevated) !important;
+    border-color: var(--border-lo) !important;
+  }
+
+  &--active {
+    color: var(--accent) !important;
+    background: var(--accent-bg) !important;
+    border-color: var(--accent-bd) !important;
+  }
+}
+
 .th-filter-field {
   width: 100%;
   min-width: 160px;

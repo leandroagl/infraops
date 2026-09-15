@@ -12,10 +12,6 @@ import { IntegracionesComponent } from './integraciones.component';
 import { IntegrationConfigService, OdooConfigDto, InfraDocConfigDto, VmwareConfigDto } from '../../../core/services/integration-config.service';
 
 const MASK = '••••••••';
-const MOCK_TEAMS = [
-  { id: 7, name: 'Mantenimientos y controles mensuales' },
-  { id: 2, name: 'Soporte técnico' },
-];
 
 describe('IntegracionesComponent', () => {
   let fixture: ComponentFixture<IntegracionesComponent>;
@@ -27,11 +23,9 @@ describe('IntegracionesComponent', () => {
       'getOdoo', 'patchOdoo', 'testOdoo',
       'getInfraDoc', 'patchInfraDoc', 'testInfraDoc',
       'getVmware', 'patchVmware', 'testVmware',
-      'getHelpdeskTeams',
     ]);
-    mockService.getHelpdeskTeams.and.returnValue(of(MOCK_TEAMS));
-    mockService.getOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 30, expirationsTagIds: [], stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null }));
-    mockService.patchOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 30, expirationsTagIds: [], stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null } as OdooConfigDto));
+    mockService.getOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 30, expirationsTagIds: [], updatedAt: null, updatedBy: null }));
+    mockService.patchOdoo.and.returnValue(of({ url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 30, expirationsTagIds: [], updatedAt: null, updatedBy: null } as OdooConfigDto));
     mockService.testOdoo.and.returnValue(of({ ok: true, message: 'OK' }));
     mockService.getInfraDoc.and.returnValue(of({ url: 'https://id.test', apiKey: MASK, updatedAt: null, updatedBy: null }));
     mockService.patchInfraDoc.and.returnValue(of({ url: 'https://id.test', apiKey: MASK, updatedAt: null, updatedBy: null } as InfraDocConfigDto));
@@ -50,26 +44,10 @@ describe('IntegracionesComponent', () => {
     fixture.detectChanges();
   });
 
-  it('carga config de las tres integraciones y los helpdesk teams al iniciar', () => {
+  it('carga config de las tres integraciones al iniciar', () => {
     expect(mockService.getOdoo).toHaveBeenCalled();
     expect(mockService.getInfraDoc).toHaveBeenCalled();
     expect(mockService.getVmware).toHaveBeenCalled();
-    expect(mockService.getHelpdeskTeams).toHaveBeenCalled();
-  });
-
-  it('popula helpdeskTeams con los equipos recibidos de Odoo', () => {
-    expect(comp.helpdeskTeams).toEqual(MOCK_TEAMS);
-    expect(comp.helpdeskTeamsLoading).toBe(false);
-    expect(comp.helpdeskTeamsError).toBe(false);
-  });
-
-  it('setea helpdeskTeamsError cuando getHelpdeskTeams falla', async () => {
-    mockService.getHelpdeskTeams.and.returnValue(throwError(() => new Error('Odoo no disponible')));
-    const freshFixture = TestBed.createComponent(IntegracionesComponent);
-    const freshComp = freshFixture.componentInstance;
-    freshFixture.detectChanges();
-    expect(freshComp.helpdeskTeamsError).toBe(true);
-    expect(freshComp.helpdeskTeamsLoading).toBe(false);
   });
 
   it('popula el form de Odoo con los datos recibidos', () => {
@@ -91,9 +69,8 @@ describe('IntegracionesComponent', () => {
     // Reconfigura el mock para simular una config ya guardada previamente (updatedAt seteado)
     // pero cuya conexión nunca fue probada exitosamente en esta sesión.
     mockService.getOdoo.and.returnValue(of({
-      url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9,
-      expirationsTicketDaysAhead: 30, expirationsTagIds: [],
-      stageInProgressName: '', stageNotDoneName: '', stageDoneName: '',
+      url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK,
+      expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 30, expirationsTagIds: [],
       updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar',
     }));
     mockService.getInfraDoc.and.returnValue(of({ url: 'https://id.test', apiKey: MASK, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));

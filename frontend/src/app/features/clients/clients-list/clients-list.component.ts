@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { ClientsService } from '../../../core/services/clients.service';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   ClientActiveServices,
   ClientSubscriptionHours,
@@ -26,9 +27,12 @@ const MONTH_NAMES = [
 })
 export class ClientsListComponent implements OnInit {
   allClients: ClientWithHoursAndServices[] = [];
-  quickFilter   = '';
   selectedZone: HoursZone | null = null;
-  loadError     = false;
+  serviceFilter: string | null = null;
+  nameFilter: string | null = null;
+  loadError = false;
+
+  get loading(): boolean { return !this.hoursLoaded || !this.servicesLoaded; }
   selectedMonth: number;
   selectedYear:  number;
   sortCol: 'name' | 'hours' | 'status' = 'name';
@@ -43,6 +47,7 @@ export class ClientsListComponent implements OnInit {
 
   constructor(
     private readonly clientsService: ClientsService,
+    private readonly authService: AuthService,
     private readonly router: Router,
   ) {
     const now     = new Date();
@@ -143,23 +148,42 @@ export class ClientsListComponent implements OnInit {
     this.allClients = this.allClients.map((c) => ({ ...c, hours: undefined }));
     this.selectedMonth = m;
     this.selectedYear  = y;
-    this.quickFilter   = '';
     this.selectedZone  = null;
+    this.serviceFilter = null;
+    this.nameFilter    = null;
     this.load$.next();
   }
 
   // ── Filters ─────────────────────────────────────────────────
+  get availableServices(): string[] {
+    const names = new Set<string>();
+    this.allClients.forEach(c =>
+      c.activeServices?.services.forEach(s => names.add(s.name))
+    );
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'es'));
+  }
+
+  onServiceFilterChange(value: string | null): void {
+    this.serviceFilter = value;
+  }
+
+  setNameFilter(id: string | null): void {
+    this.nameFilter = id;
+  }
+
   get filteredClients(): ClientWithHoursAndServices[] {
-    const q    = this.quickFilter.trim().toLowerCase();
     const zone = this.selectedZone;
+    const svc  = this.serviceFilter;
+    const name = this.nameFilter;
     const dir  = this.sortDir === 'asc' ? 1 : -1;
 
     return this.allClients
       .filter((c) => {
-        const textMatch = !q || c.name.toLowerCase().includes(q);
+        const nameMatch = !name || c.id === name;
         const zoneMatch = !zone || (c.hours != null && c.hours.contracted > 0
           && this.getHoursState(c.hours) === zone);
-        return textMatch && zoneMatch;
+        const svcMatch  = !svc || (c.activeServices?.services.some(s => s.name === svc) ?? false);
+        return nameMatch && zoneMatch && svcMatch;
       })
       .sort((a, b) => {
         switch (this.sortCol) {
@@ -203,13 +227,8 @@ export class ClientsListComponent implements OnInit {
   }
 
   // ── KPI helpers ─────────────────────────────────────────────
-  private get textFilteredClients(): ClientWithHoursAndServices[] {
-    const q = this.quickFilter.trim().toLowerCase();
-    return this.allClients.filter((c) => !q || c.name.toLowerCase().includes(q));
-  }
-
   get kpiHours(): { contracted: number; delivered: number; available: number } {
-    return this.textFilteredClients
+    return this.allClients
       .filter((c) => c.hours != null && c.hours.contracted > 0)
       .reduce(
         (acc, c) => ({
@@ -228,7 +247,7 @@ export class ClientsListComponent implements OnInit {
   }
 
   get kpiStates(): { ok: number; warn: number; crit: number; low: number } {
-    return this.textFilteredClients
+    return this.allClients
       .filter((c) => c.hours != null && c.hours.contracted > 0)
       .reduce(
         (acc, c) => {
