@@ -18,6 +18,7 @@ const MOCK_CONFIG = {
   url: 'u', db: 'd', username: 'u', apiKey: '••••••••',
   helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9,
   expirationsTicketDaysAhead: 30, expirationsTagIds: [3],
+  expirationsTypeConfigs: null,
   stageInProgressName: '', stageNotDoneName: '', stageDoneName: '',
   updatedAt: null, updatedBy: null,
 };

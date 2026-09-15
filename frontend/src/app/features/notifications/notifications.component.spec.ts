@@ -48,6 +48,7 @@ describe('NotificationsComponent', () => {
     mockIntegrationConfig.getOdoo.and.returnValue(of({
       expirationsTicketDaysAhead: 20, expirationsTagIds: [],
       helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9,
+      expirationsTypeConfigs: null,
       url: '', db: '', username: '', apiKey: '',
       stageInProgressName: '', stageNotDoneName: '', stageDoneName: '',
       updatedAt: null, updatedBy: null,

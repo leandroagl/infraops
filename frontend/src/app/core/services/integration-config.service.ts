@@ -9,6 +9,12 @@ export interface OdooConfigDto {
   expirationsHelpdeskTeamId: number;
   expirationsTicketDaysAhead: number;
   expirationsTagIds: number[];
+  expirationsTypeConfigs: Record<string, {
+    enabled: boolean;
+    helpdeskTeamId: number | null;
+    daysAhead: number;
+    tagIds: number[];
+  }> | null;
   stageInProgressName: string; stageNotDoneName: string; stageDoneName: string;
   updatedAt: Date | null; updatedBy: string | null;
 }
