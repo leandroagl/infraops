@@ -53,6 +53,8 @@ export class IntegrationConfigService {
         apiKey: MASK,
         helpdeskTeamId: parseInt(this.configService.get('ODOO_HELPDESK_TEAM_ID', '0'), 10),
         expirationsHelpdeskTeamId: parseInt(this.configService.get('ODOO_EXPIRATIONS_HELPDESK_TEAM_ID', '0'), 10),
+        expirationsTicketDaysAhead: 30,
+        expirationsTagIds: [],
         stageInProgressName: '',
         stageNotDoneName: '',
         stageDoneName: '',
@@ -64,6 +66,8 @@ export class IntegrationConfigService {
       url: row.url ?? '', db: row.db ?? '', username: row.username ?? '',
       apiKey: MASK, helpdeskTeamId: row.helpdeskTeamId ?? 0,
       expirationsHelpdeskTeamId: row.expirationsHelpdeskTeamId ?? 0,
+      expirationsTicketDaysAhead: row.expirationsTicketDaysAhead ?? 30,
+      expirationsTagIds: row.expirationsTagIds ?? [],
       stageInProgressName: row.stageInProgressName ?? '',
       stageNotDoneName: row.stageNotDoneName ?? '',
       stageDoneName: row.stageDoneName ?? '',
@@ -79,6 +83,8 @@ export class IntegrationConfigService {
     if (dto.username !== undefined)       existing.username       = dto.username.trim();
     if (dto.helpdeskTeamId !== undefined)     existing.helpdeskTeamId     = dto.helpdeskTeamId;
     if (dto.expirationsHelpdeskTeamId !== undefined) existing.expirationsHelpdeskTeamId = dto.expirationsHelpdeskTeamId;
+    if (dto.expirationsTicketDaysAhead !== undefined) existing.expirationsTicketDaysAhead = dto.expirationsTicketDaysAhead;
+    if (dto.expirationsTagIds !== undefined) existing.expirationsTagIds = dto.expirationsTagIds;
     if (dto.stageInProgressName !== undefined) existing.stageInProgressName = dto.stageInProgressName;
     if (dto.stageNotDoneName !== undefined)    existing.stageNotDoneName    = dto.stageNotDoneName;
     if (dto.stageDoneName !== undefined)       existing.stageDoneName       = dto.stageDoneName;

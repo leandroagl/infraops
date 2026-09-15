@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, Min } from 'class-validator';
+import { IsString, IsOptional, IsInt, Min, IsArray } from 'class-validator';
 
 export class PatchOdooConfigDto {
   @IsOptional()
@@ -28,6 +28,16 @@ export class PatchOdooConfigDto {
   expirationsHelpdeskTeamId?: number;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  expirationsTicketDaysAhead?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  expirationsTagIds?: number[];
+
+  @IsOptional()
   @IsString()
   stageInProgressName?: string;
 
@@ -47,6 +57,8 @@ export class OdooConfigResponseDto {
   apiKey: string;
   helpdeskTeamId: number;
   expirationsHelpdeskTeamId: number;
+  expirationsTicketDaysAhead: number;
+  expirationsTagIds: number[];
   stageInProgressName: string;
   stageNotDoneName: string;
   stageDoneName: string;
