@@ -12,6 +12,7 @@ import { Technician } from '../../core/models/technician.models';
 import { UserRole } from '../../core/models/auth.models';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
 import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/task-create-dialog.component';
 import { environment } from '../../../environments/environment';
 
@@ -65,6 +66,7 @@ export class TasksUnifiedComponent implements OnInit {
     private authService: AuthService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
+    private router: Router,
   ) {
     const now = new Date();
     this.currentMonth = now.getMonth() + 1;
@@ -74,8 +76,14 @@ export class TasksUnifiedComponent implements OnInit {
   get currentUser() { return this.authService.getCurrentUser(); }
   get userRole(): UserRole { return this.currentUser?.role ?? 'TECHNICIAN'; }
 
+  get isAdmin(): boolean { return this.userRole === 'ADMIN'; }
+
   get canCreateTask(): boolean {
     return environment.allowManualTaskCreation && this.userRole === 'ADMIN';
+  }
+
+  openTasksConfig(): void {
+    this.router.navigate(['/tasks/config']);
   }
 
   get hasActiveFilters(): boolean {

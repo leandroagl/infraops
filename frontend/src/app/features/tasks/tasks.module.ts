@@ -18,6 +18,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatTableModule } from '@angular/material/table';
 import { TasksRoutingModule } from './tasks-routing.module';
 import { TasksUnifiedComponent } from './tasks-unified.component';
 import { KpiStripComponent } from './kpi-strip/kpi-strip.component';
@@ -36,6 +37,8 @@ import { RouterDeviceCardComponent } from '../technician/task-drawer/router-form
 import { EsxiHostCardComponent } from '../technician/task-drawer/server-host-form/esxi-host-card/esxi-host-card.component';
 import { BmcHostCardComponent } from '../technician/task-drawer/server-host-form/bmc-host-card/bmc-host-card.component';
 import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/task-create-dialog.component';
+import { TaskConfigComponent } from './config/task-config.component';
+import { TaskEditDialogComponent } from './config/task-edit-dialog/task-edit-dialog.component';
 
 @NgModule({
   declarations: [
@@ -55,6 +58,8 @@ import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/tas
     BmcHostCardComponent,
     TaskCreateDialogComponent,
     ConfirmCloseDialogComponent,
+    TaskConfigComponent,
+    TaskEditDialogComponent,
   ],
   imports: [
     CommonModule,
@@ -76,6 +81,7 @@ import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/tas
     MatNativeDateModule,
     MatTooltipModule,
     MatMenuModule,
+    MatTableModule,
     TasksRoutingModule,
     SharedModule,
   ],
