@@ -2,7 +2,6 @@
   <div class="nc-header">
     <h2 class="nc-header__title">Configuración de vencimientos</h2>
     <div class="nc-header__actions">
-      <button mat-stroked-button (click)="back()">Volver</button>
       <button mat-flat-button color="primary"
               [disabled]="saving || !formValid"
               (click)="save()">
@@ -16,51 +15,60 @@
     <mat-spinner [diameter]="32"></mat-spinner>
   </div>
 
-  <div *ngIf="!loading" [formGroup]="form" class="nc-grid">
-    <div *ngFor="let type of types" class="nc-card" [formGroupName]="type">
+  <div *ngIf="!loading" [formGroup]="form">
+    <mat-table [dataSource]="types" class="nc-config-table">
 
-      <div class="nc-card__header">
-        <div class="nc-card__icon" [ngClass]="typeClass(type)">{{ typeLabel(type).slice(0, 2) }}</div>
-        <div class="nc-card__title-group">
-          <span class="nc-card__title">{{ typeLabel(type) }}</span>
-        </div>
-        <mat-slide-toggle formControlName="enabled" (change)="onToggleChange(type)">
-        </mat-slide-toggle>
-      </div>
+      <ng-container matColumnDef="type">
+        <mat-header-cell *matHeaderCellDef>Tipo</mat-header-cell>
+        <mat-cell *matCellDef="let type">
+          <span class="type-badge" [ngClass]="typeClass(type)">{{ typeLabel(type).slice(0, 2) }}</span>
+          <span class="type-label">{{ typeLabel(type) }}</span>
+        </mat-cell>
+      </ng-container>
 
-      <div class="nc-card__body" [class.is-disabled]="!isEnabled(type)">
+      <ng-container matColumnDef="enabled">
+        <mat-header-cell *matHeaderCellDef>Habilitado</mat-header-cell>
+        <mat-cell *matCellDef="let type" [formGroupName]="type">
+          <mat-slide-toggle formControlName="enabled" (change)="onToggleChange(type)">
+          </mat-slide-toggle>
+        </mat-cell>
+      </ng-container>
 
-        <div class="field">
-          <span class="field-label">Equipo Odoo</span>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <ng-container matColumnDef="helpdeskTeamId">
+        <mat-header-cell *matHeaderCellDef>Equipo Odoo</mat-header-cell>
+        <mat-cell *matCellDef="let type" [formGroupName]="type">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nc-cell-field">
             <mat-select formControlName="helpdeskTeamId">
               <mat-option [value]="null">— Sin equipo —</mat-option>
-              <mat-option *ngFor="let team of teams" [value]="team.id">
-                {{ team.name }}
-              </mat-option>
+              <mat-option *ngFor="let team of teams" [value]="team.id">{{ team.name }}</mat-option>
             </mat-select>
           </mat-form-field>
-        </div>
+        </mat-cell>
+      </ng-container>
 
-        <div class="field">
-          <span class="field-label">Días de anticipación</span>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <ng-container matColumnDef="daysAhead">
+        <mat-header-cell *matHeaderCellDef>Días</mat-header-cell>
+        <mat-cell *matCellDef="let type" [formGroupName]="type">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nc-cell-field nc-cell-field--narrow">
             <input matInput type="number" formControlName="daysAhead" min="1" />
           </mat-form-field>
-        </div>
+        </mat-cell>
+      </ng-container>
 
-        <div class="field">
-          <span class="field-label">Tags Odoo</span>
-          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <ng-container matColumnDef="tagIds">
+        <mat-header-cell *matHeaderCellDef>Tags Odoo</mat-header-cell>
+        <mat-cell *matCellDef="let type" [formGroupName]="type">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="nc-cell-field">
             <mat-select formControlName="tagIds" multiple>
-              <mat-option *ngFor="let tag of tags" [value]="tag.id">
-                {{ tag.name }}
-              </mat-option>
+              <mat-option *ngFor="let tag of tags" [value]="tag.id">{{ tag.name }}</mat-option>
             </mat-select>
           </mat-form-field>
-        </div>
+        </mat-cell>
+      </ng-container>
 
-      </div>
-    </div>
+      <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+
+    </mat-table>
   </div>
 </div>

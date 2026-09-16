@@ -25,6 +25,7 @@ export class NotificationsConfigComponent implements OnInit {
   teams: HelpdeskTeamDto[] = [];
   tags: HelpdeskTagDto[] = [];
   readonly types = EXPIRATION_TYPES;
+  readonly displayedColumns = ['type', 'enabled', 'helpdeskTeamId', 'daysAhead', 'tagIds'];
 
   constructor(
     private readonly fb: FormBuilder,
@@ -126,10 +127,6 @@ export class NotificationsConfigComponent implements OnInit {
       },
       error: () => { this.saving = false; },
     });
-  }
-
-  back(): void {
-    this.router.navigate(['/notifications']);
   }
 
   private applyEnabledState(group: FormGroup, enabled: boolean): void {

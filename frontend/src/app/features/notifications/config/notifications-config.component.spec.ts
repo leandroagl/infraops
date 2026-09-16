@@ -177,8 +177,7 @@ describe('NotificationsConfigComponent', () => {
     expect(comp.saving).toBe(true);
   }));
 
-  it('back() navega a /notifications', () => {
-    comp.back();
-    expect(router.navigate).toHaveBeenCalledWith(['/notifications']);
+  it('displayedColumns incluye todas las columnas de la tabla', () => {
+    expect(comp.displayedColumns).toEqual(['type', 'enabled', 'helpdeskTeamId', 'daysAhead', 'tagIds']);
   });
 });
