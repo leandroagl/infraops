@@ -134,6 +134,41 @@ describe('IntegrationConfigService', () => {
       expect(result.expirationsTicketDaysAhead).toBe(30);
       expect(result.expirationsTagIds).toEqual([]);
     });
+
+    it('retorna expirationsTypeConfigs desde la fila cuando está configurado', async () => {
+      const typeConfigs = {
+        domain: { enabled: true, helpdeskTeamId: 9, daysAhead: 14, tagIds: [3] },
+      };
+      odooRepo.findOne.mockResolvedValue({
+        id: 1, url: 'u', db: 'd', username: 'u', apiKey: null,
+        helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9,
+        expirationsTicketDaysAhead: 30, expirationsTagIds: [],
+        expirationsTypeConfigs: typeConfigs,
+        stageInProgressName: '', stageNotDoneName: '', stageDoneName: '',
+        updatedAt: null, updatedBy: null,
+      });
+      const result = await service.getOdoo();
+      expect(result.expirationsTypeConfigs).toEqual(typeConfigs);
+    });
+
+    it('retorna null para expirationsTypeConfigs cuando la fila no tiene datos', async () => {
+      odooRepo.findOne.mockResolvedValue({
+        id: 1, url: 'u', db: 'd', username: 'u', apiKey: null,
+        helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9,
+        expirationsTicketDaysAhead: 30, expirationsTagIds: [],
+        expirationsTypeConfigs: null,
+        stageInProgressName: '', stageNotDoneName: '', stageDoneName: '',
+        updatedAt: null, updatedBy: null,
+      });
+      const result = await service.getOdoo();
+      expect(result.expirationsTypeConfigs).toBeNull();
+    });
+
+    it('retorna null para expirationsTypeConfigs cuando no hay fila en DB', async () => {
+      odooRepo.findOne.mockResolvedValue(null);
+      const result = await service.getOdoo();
+      expect(result.expirationsTypeConfigs).toBeNull();
+    });
   });
 
   describe('patchOdoo', () => {
@@ -215,6 +250,34 @@ describe('IntegrationConfigService', () => {
       const vBefore = service.getOdooVersion();
       await service.patchOdoo({ url: 'https://x.com' }, 'admin@test.com');
       expect(service.getOdooVersion()).toBe(vBefore + 1);
+    });
+
+    it('persiste expirationsTypeConfigs cuando se provee en el DTO', async () => {
+      odooRepo.findOne.mockResolvedValue(null);
+      odooRepo.save.mockImplementation(async (e: OdooConfig) => e);
+      const configs = {
+        domain:   { enabled: true,  helpdeskTeamId: 9, daysAhead: 14, tagIds: [3] },
+        software: { enabled: false, helpdeskTeamId: null, daysAhead: 30, tagIds: [] },
+      };
+      await service.patchOdoo({ expirationsTypeConfigs: configs }, 'admin@test.com');
+      const saved = odooRepo.save.mock.calls[0][0];
+      expect(saved.expirationsTypeConfigs).toEqual(configs);
+    });
+
+    it('no pisa expirationsTypeConfigs existente cuando el DTO no lo incluye', async () => {
+      const existing = {
+        id: 1, url: 'u', db: 'd', username: 'u', apiKey: 'enc',
+        helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9,
+        expirationsTicketDaysAhead: 30, expirationsTagIds: [],
+        expirationsTypeConfigs: { domain: { enabled: true, helpdeskTeamId: 9, daysAhead: 14, tagIds: [] } },
+        stageInProgressName: '', stageNotDoneName: '', stageDoneName: '',
+        updatedAt: new Date(), updatedBy: 'x',
+      };
+      odooRepo.findOne.mockResolvedValue(existing);
+      odooRepo.save.mockImplementation(async (e: OdooConfig) => e);
+      await service.patchOdoo({ url: 'https://new.com' }, 'admin@test.com');
+      const saved = odooRepo.save.mock.calls[0][0];
+      expect(saved.expirationsTypeConfigs).toEqual(existing.expirationsTypeConfigs);
     });
 
     it('siembra apiKey desde .env al crear primera fila con masked apiKey', async () => {

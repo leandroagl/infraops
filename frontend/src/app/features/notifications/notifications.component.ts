@@ -1,13 +1,12 @@
 import { Component, DestroyRef, inject, OnInit } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
-import { ExpirationItem, ExpirationType } from '../../core/models/notification.models';
+import { ExpirationItem, ExpirationType, ExpirationTypeConfigEntry } from '../../core/models/notification.models';
 import { NotificationsService } from '../../core/services/notifications.service';
 import { formatOdooTicketId, odooTicketUrl } from '../../shared/utils/odoo';
-import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { IntegrationConfigService } from '../../core/services/integration-config.service';
-import { NotificationsConfigDialogComponent } from './config-dialog/notifications-config-dialog.component';
 
 export type UrgencyZone = 'expired' | 'week' | 'soon' | 'attention';
 
@@ -20,7 +19,7 @@ export class NotificationsComponent implements OnInit {
   items: ExpirationItem[] = [];
   loading = false;
   error = '';
-  ticketWindowDays = 30;
+  typeConfigs: Record<string, ExpirationTypeConfigEntry> = {};
   clientFilter: number | null = null;
   filterType: ExpirationType | '' = '';
   selectedUrgency: UrgencyZone | null = null;
@@ -34,13 +33,13 @@ export class NotificationsComponent implements OnInit {
     private readonly notificationsService: NotificationsService,
     private readonly authService: AuthService,
     private readonly integrationConfigService: IntegrationConfigService,
-    private readonly dialog: MatDialog,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
     this.integrationConfigService.getOdoo().subscribe({
       next: (config) => {
-        this.ticketWindowDays = config.expirationsTicketDaysAhead || 30;
+        this.typeConfigs = (config.expirationsTypeConfigs ?? {}) as Record<string, ExpirationTypeConfigEntry>;
       },
     });
     this.load();
@@ -51,17 +50,7 @@ export class NotificationsComponent implements OnInit {
   }
 
   openConfig(): void {
-    this.dialog.open(NotificationsConfigDialogComponent, { width: '480px' })
-      .afterClosed()
-      .subscribe((saved: boolean | undefined) => {
-        if (saved) {
-          this.integrationConfigService.getOdoo().subscribe({
-            next: (config) => {
-              this.ticketWindowDays = config.expirationsTicketDaysAhead || 30;
-            },
-          });
-        }
-      });
+    this.router.navigate(['/notifications/config']);
   }
 
   load(): void {
@@ -183,6 +172,7 @@ export class NotificationsComponent implements OnInit {
   }
 
   ticketPending(item: ExpirationItem): boolean {
-    return item.odooTicketId == null && item.daysUntil <= this.ticketWindowDays;
+    const daysAhead = this.typeConfigs[item.type]?.daysAhead ?? 30;
+    return item.odooTicketId == null && item.daysUntil <= daysAhead;
   }
 }

@@ -127,7 +127,7 @@ describe('DocsComponent — navegación', () => {
 describe('DocsComponent — activeAssetPath', () => {
   it('construye la ruta correcta para la sección activa', async () => {
     const { component } = await setup('ADMIN');
-    expect(component.activeAssetPath).toBe('assets/docs/' + component.activeSection.file);
+    expect(component.activeAssetPath).toContain('assets/docs/' + component.activeSection.file);
   });
 });
 

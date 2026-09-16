@@ -29,6 +29,14 @@ export class OdooConfig {
   @Column({ name: 'expirations_tag_ids', type: 'simple-json', nullable: true })
   expirationsTagIds: number[] | null = null;
 
+  @Column({ name: 'expiration_type_configs', type: 'jsonb', nullable: true })
+  expirationsTypeConfigs: Record<string, {
+    enabled: boolean;
+    helpdeskTeamId: number | null;
+    daysAhead: number;
+    tagIds: number[];
+  }> | null = null;
+
   @Column({ name: 'stage_in_progress_name', type: 'varchar', nullable: true })
   stageInProgressName: string | null = null;
 

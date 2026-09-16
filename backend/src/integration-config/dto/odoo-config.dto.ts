@@ -1,4 +1,25 @@
-import { IsString, IsOptional, IsInt, Min, IsArray } from 'class-validator';
+import {
+  IsString, IsOptional, IsInt, Min, IsArray, IsBoolean, ValidateNested, IsObject,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class ExpirationTypeConfigEntryDto {
+  @IsBoolean()
+  enabled: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  helpdeskTeamId: number | null;
+
+  @IsInt()
+  @Min(1)
+  daysAhead: number;
+
+  @IsArray()
+  @IsInt({ each: true })
+  tagIds: number[];
+}
 
 export class PatchOdooConfigDto {
   @IsOptional()
@@ -48,6 +69,12 @@ export class PatchOdooConfigDto {
   @IsOptional()
   @IsString()
   stageDoneName?: string;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested({ each: true })
+  @Type(() => ExpirationTypeConfigEntryDto)
+  expirationsTypeConfigs?: Record<string, ExpirationTypeConfigEntryDto>;
 }
 
 export class OdooConfigResponseDto {
@@ -59,6 +86,12 @@ export class OdooConfigResponseDto {
   expirationsHelpdeskTeamId: number;
   expirationsTicketDaysAhead: number;
   expirationsTagIds: number[];
+  expirationsTypeConfigs: Record<string, {
+    enabled: boolean;
+    helpdeskTeamId: number | null;
+    daysAhead: number;
+    tagIds: number[];
+  }> | null;
   stageInProgressName: string;
   stageNotDoneName: string;
   stageDoneName: string;

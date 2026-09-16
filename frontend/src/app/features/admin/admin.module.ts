@@ -27,8 +27,6 @@ import { PasswordDisplayDialogComponent } from './users/password-display-dialog/
 import { TechniciansComponent } from './technicians/technicians.component';
 import { AssignTechnicianDialogComponent } from './technicians/assign-technician-dialog/assign-technician-dialog.component';
 import { SyncComponent } from './sync/sync.component';
-import { TaskConfigComponent } from './task-config/task-config.component';
-import { TaskEditDialogComponent } from './task-config/task-edit-dialog/task-edit-dialog.component';
 import { SharedModule } from '../../shared/shared.module';
 import { IntegracionesComponent } from './integraciones/integraciones.component';
 
@@ -41,8 +39,6 @@ import { IntegracionesComponent } from './integraciones/integraciones.component'
     TechniciansComponent,
     AssignTechnicianDialogComponent,
     SyncComponent,
-    TaskConfigComponent,
-    TaskEditDialogComponent,
     IntegracionesComponent,
   ],
   imports: [
