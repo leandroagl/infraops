@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, In, Repository } from 'typeorm';
 import { Client } from '../clients/client.entity';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
@@ -84,7 +84,18 @@ export class TasksService {
       relations: ['client', 'technician', 'technician.user'],
       order: { scheduledDate: 'ASC' },
     });
-    return tasks.map(t => this.withAvatarUrl(t));
+
+    const taskIds = tasks.map(t => t.id);
+    const logs = taskIds.length
+      ? await this.logRepository.find({ where: { taskId: In(taskIds) }, select: ['taskId', 'notes'] })
+      : [];
+    const notesMap = new Map(logs.map(l => [l.taskId, l.notes]));
+
+    return tasks.map(t => {
+      const task = this.withAvatarUrl(t);
+      (task as any).notes = notesMap.get(t.id) ?? null;
+      return task;
+    });
   }
 
   async create(dto: CreateTaskDto): Promise<Task> {
@@ -237,7 +248,10 @@ export class TasksService {
       relations: ['client', 'technician', 'technician.user'],
     });
     if (!task) throw new NotFoundException('Tarea no encontrada');
-    return this.withAvatarUrl(task);
+    const log = await this.logRepository.findOne({ where: { taskId: id }, select: ['taskId', 'notes'] });
+    const result = this.withAvatarUrl(task);
+    (result as any).notes = log?.notes ?? null;
+    return result;
   }
 
   private withAvatarUrl(task: Task): Task {
