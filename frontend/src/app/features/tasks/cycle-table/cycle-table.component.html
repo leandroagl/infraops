@@ -112,7 +112,12 @@
           </span>
         </td>
         <td>
-          <span class="col-notes">—</span>
+          <span class="col-notes"
+                [matTooltip]="task.notes ?? ''"
+                [matTooltipDisabled]="!task.notes"
+                matTooltipClass="notes-tooltip">
+            {{ task.notes ?? '—' }}
+          </span>
         </td>
       </tr>
     </ng-container>
