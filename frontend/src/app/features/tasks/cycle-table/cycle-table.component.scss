@@ -199,6 +199,7 @@
 }
 
 .col-notes {
+  display: block;
   font-family: var(--font-ui);
   font-size: 11px;
   color: var(--tx-lo);
@@ -207,6 +208,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: default;
 }
 
 .empty-state {
