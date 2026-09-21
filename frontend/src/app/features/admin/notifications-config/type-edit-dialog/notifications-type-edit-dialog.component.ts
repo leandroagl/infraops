@@ -63,6 +63,27 @@ export class NotificationsTypeEditDialogComponent implements OnInit {
     });
   }
 
+  private static readonly DEFAULT_LABELS: Record<ExpirationType, string> = {
+    asset_warranty: 'Garantía',
+    certificate:    'Certificado',
+    domain:         'Dominio',
+    software:       'Licencia',
+  };
+
+  private static readonly ITEM_PLACEHOLDERS: Record<ExpirationType, string> = {
+    asset_warranty: 'servidor-01',
+    certificate:    'cert.empresa.com',
+    domain:         'empresa.com',
+    software:       'Microsoft 365',
+  };
+
+  get ticketTitlePreview(): string {
+    const name = (this.form.value.taskName ?? '').trim()
+      || NotificationsTypeEditDialogComponent.DEFAULT_LABELS[this.data.type];
+    const item = NotificationsTypeEditDialogComponent.ITEM_PLACEHOLDERS[this.data.type];
+    return `${name} – ${item}`;
+  }
+
   get isValid(): boolean {
     const v = this.form.value;
     if (this.form.controls.daysAhead.invalid || this.form.controls.time.invalid) return false;
