@@ -44,4 +44,8 @@ export class TasksService {
   updateStatus(id: string, payload: UpdateTaskStatusPayload): Observable<Task> {
     return this.http.patch<Task>(`${this.base}/${id}/status`, payload);
   }
+
+  assignTechnician(id: string, technicianId: string): Observable<Task> {
+    return this.http.patch<Task>(`${this.base}/${id}`, { technicianId });
+  }
 }

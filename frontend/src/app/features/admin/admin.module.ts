@@ -19,6 +19,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { AdminRoutingModule } from './admin-routing.module';
 import { AdminLayoutComponent } from './admin-layout/admin-layout.component';
 import { UsersComponent } from './users/users.component';
@@ -29,6 +30,10 @@ import { AssignTechnicianDialogComponent } from './technicians/assign-technician
 import { SyncComponent } from './sync/sync.component';
 import { SharedModule } from '../../shared/shared.module';
 import { IntegracionesComponent } from './integraciones/integraciones.component';
+import { TaskConfigComponent } from './task-config/task-config.component';
+import { TaskEditDialogComponent } from './task-config/task-edit-dialog/task-edit-dialog.component';
+import { NotificationsConfigComponent } from './notifications-config/notifications-config.component';
+import { NotificationsTypeEditDialogComponent } from './notifications-config/type-edit-dialog/notifications-type-edit-dialog.component';
 
 @NgModule({
   declarations: [
@@ -40,6 +45,10 @@ import { IntegracionesComponent } from './integraciones/integraciones.component'
     AssignTechnicianDialogComponent,
     SyncComponent,
     IntegracionesComponent,
+    TaskConfigComponent,
+    TaskEditDialogComponent,
+    NotificationsConfigComponent,
+    NotificationsTypeEditDialogComponent,
   ],
   imports: [
     CommonModule,
@@ -63,6 +72,7 @@ import { IntegracionesComponent } from './integraciones/integraciones.component'
     MatAutocompleteModule,
     MatIconModule,
     MatTooltipModule,
+    MatSlideToggleModule,
     AdminRoutingModule,
     SharedModule,
   ],

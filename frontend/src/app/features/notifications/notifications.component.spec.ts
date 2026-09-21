@@ -326,9 +326,9 @@ describe('NotificationsComponent', () => {
     expect(component.typeConfigs).toEqual({});
   });
 
-  it('openConfig() navega a /notifications/config', () => {
+  it('openConfig() navega a /admin/vencimientos', () => {
     component.openConfig();
-    expect(mockRouter.navigate).toHaveBeenCalledWith(['/notifications/config']);
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/admin/vencimientos']);
   });
 
   it('ticketPending usa daysAhead del tipo cuando typeConfigs tiene ese tipo', () => {

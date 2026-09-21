@@ -23,12 +23,12 @@ export class Task {
   @JoinColumn({ name: 'client_id' })
   client: Client;
 
-  @Column({ name: 'technician_id', type: 'uuid' })
-  technicianId: string;
+  @Column({ name: 'technician_id', type: 'uuid', nullable: true })
+  technicianId: string | null;
 
-  @ManyToOne(() => Technician)
+  @ManyToOne(() => Technician, { nullable: true })
   @JoinColumn({ name: 'technician_id' })
-  technician: Technician;
+  technician: Technician | null;
 
   @Column({ type: 'enum', enum: TaskType })
   type: TaskType;
@@ -49,6 +49,9 @@ export class Task {
     default: null,
   })
   odooTicketId: number | null;
+
+  @Column({ name: 'expiration_type', type: 'varchar', nullable: true, default: null })
+  expirationType: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

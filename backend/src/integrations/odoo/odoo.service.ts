@@ -26,7 +26,7 @@ import { TICKET_DESCRIPTION_DEFAULTS, TIMESHEET_DESCRIPTION_DEFAULT } from '../.
 import { plainTextToHtml } from '../../task-config/plain-text-to-html';
 import { ExpirationItemDto, ExpirationType } from '../../notifications/dto/expiration-item.dto';
 
-const EXPIRATION_TYPE_LABELS: Record<ExpirationType, string> = {
+const DEFAULT_EXPIRATION_TYPE_LABELS: Record<ExpirationType, string> = {
   asset_warranty: 'Garantía',
   certificate:    'Certificado',
   domain:         'Dominio',
@@ -44,6 +44,7 @@ const TICKET_META: Record<TaskType, { name: string }> = {
   [TaskType.AV_CONTROL]:                 { name: 'Control de antivirus' },
   [TaskType.UPS_CONTROL]:               { name: 'Control de UPS' },
   [TaskType.ENDPOINT_INVENTORY]:         { name: 'Inventario de endpoints' },
+  [TaskType.EXPIRATION_CONTROL]:         { name: 'Vencimiento' },
 };
 
 @Injectable()
@@ -445,7 +446,7 @@ export class OdooService {
           employee_id: employeeId,
           name: description,
           unit_amount: unitAmount,
-          date: new Date().toISOString().split('T')[0],
+          date: new Date().toLocaleDateString('en-CA'),
         },
       ],
       {},
@@ -550,11 +551,13 @@ export class OdooService {
   async createExpirationTicket(
     item: ExpirationItemDto,
     infraopsClientId: string,
+    helpdeskTeamId: number,
+    tagIds: number[],
+    taskName?: string | null,
+    ticketDescription?: string | null,
   ): Promise<number> {
-    const config = await this.integrationConfigService.getOdooConfigDecrypted();
-
-    if (!config.expirationsHelpdeskTeamId) {
-      throw new BadRequestException('expirationsHelpdeskTeamId no está configurado');
+    if (!helpdeskTeamId) {
+      throw new BadRequestException('No hay equipo de Odoo configurado para este tipo de vencimiento');
     }
 
     const partnerId = await this.resolvePartnerId(infraopsClientId);
@@ -564,12 +567,13 @@ export class OdooService {
     }
 
     const saleLineId = await this.resolveSaleLineId(infraopsClientId);
-    const typeLabel = EXPIRATION_TYPE_LABELS[item.type];
+    const typeLabel = taskName?.trim() || DEFAULT_EXPIRATION_TYPE_LABELS[item.type];
     const name = `Vencimiento: ${typeLabel} – ${item.clientName} – ${item.itemName}`;
-    const description = `<p>Fecha de vencimiento: <strong>${item.expireDate}</strong></p><p>Días restantes: ${item.daysUntil}</p>`;
+    const customIntro = ticketDescription?.trim() ? plainTextToHtml(ticketDescription) : '';
+    const description = `${customIntro}<p>Fecha de vencimiento: <strong>${item.expireDate}</strong></p><p>Días restantes: ${item.daysUntil}</p>`;
 
     const payload: Record<string, unknown> = {
-      team_id: config.expirationsHelpdeskTeamId,
+      team_id: helpdeskTeamId,
       partner_id: partnerId,
       name,
       description,
@@ -579,8 +583,8 @@ export class OdooService {
       payload['sale_line_id'] = saleLineId;
     }
 
-    if (config.expirationsTagIds && config.expirationsTagIds.length > 0) {
-      payload['tag_ids'] = [[6, 0, config.expirationsTagIds]];
+    if (tagIds.length > 0) {
+      payload['tag_ids'] = [[6, 0, tagIds]];
     }
 
     const ticketId = await this.systemRpc.callKw<number>(
@@ -604,10 +608,10 @@ export class OdooService {
     employeeId: number,
     unitAmount: number,
     taskType: TaskType,
+    expirationType?: string | null,
   ): Promise<void> {
     const stageId = await this.resolveDoneStageId();
-    const config = await this.taskConfigService.findOne(taskType);
-    const timesheetDescription = config?.timesheetDescription ?? TIMESHEET_DESCRIPTION_DEFAULT;
+    const timesheetDescription = await this.resolveTimesheetDescription(taskType, expirationType);
     await this.logTimesheet(odooTicketId, employeeId, unitAmount, timesheetDescription);
     await this.systemRpc.callKw<boolean>(
       'helpdesk.ticket',
@@ -615,6 +619,19 @@ export class OdooService {
       [[odooTicketId], { stage_id: stageId }],
       {},
     );
+  }
+
+  private async resolveTimesheetDescription(
+    taskType: TaskType,
+    expirationType?: string | null,
+  ): Promise<string> {
+    if (taskType === TaskType.EXPIRATION_CONTROL && expirationType) {
+      const config = await this.integrationConfigService.getOdoo();
+      const typeConfigs = (config.expirationsTypeConfigs ?? {}) as Record<string, { timesheetDescription?: string | null }>;
+      return typeConfigs[expirationType]?.timesheetDescription?.trim() || TIMESHEET_DESCRIPTION_DEFAULT;
+    }
+    const config = await this.taskConfigService.findOne(taskType);
+    return config?.timesheetDescription ?? TIMESHEET_DESCRIPTION_DEFAULT;
   }
 
   async createTicket(

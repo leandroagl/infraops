@@ -50,7 +50,7 @@ export class NotificationsComponent implements OnInit {
   }
 
   openConfig(): void {
-    this.router.navigate(['/notifications/config']);
+    this.router.navigate(['/admin/vencimientos']);
   }
 
   load(): void {

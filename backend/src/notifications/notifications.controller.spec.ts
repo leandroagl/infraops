@@ -6,7 +6,7 @@ import { ExpirationItemDto } from './dto/expiration-item.dto';
 
 describe('NotificationsController', () => {
   let controller: NotificationsController;
-  let service: { getExpirationsWithTickets: jest.Mock };
+  let service: { getExpirationsWithTickets: jest.Mock; getExpirationByTaskId: jest.Mock };
 
   const makeItem = (): ExpirationItemDto => ({
     sourceId: 'd1', type: 'domain', clientId: 1, clientName: 'Acme',
@@ -14,7 +14,7 @@ describe('NotificationsController', () => {
   });
 
   beforeEach(async () => {
-    service = { getExpirationsWithTickets: jest.fn() };
+    service = { getExpirationsWithTickets: jest.fn(), getExpirationByTaskId: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [NotificationsController],
@@ -43,6 +43,12 @@ describe('NotificationsController', () => {
     service.getExpirationsWithTickets.mockResolvedValue([]);
     await controller.getExpirations(undefined);
     expect(service.getExpirationsWithTickets).toHaveBeenCalledWith(undefined);
+  });
+
+  it('delega en getExpirationByTaskId con el taskId de la URL', async () => {
+    service.getExpirationByTaskId.mockResolvedValue(null);
+    await controller.getExpirationByTaskId('task-1');
+    expect(service.getExpirationByTaskId).toHaveBeenCalledWith('task-1');
   });
 
   it('tiene JwtAuthGuard aplicado', () => {

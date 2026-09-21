@@ -1,7 +1,6 @@
 import {
-  IsString, IsOptional, IsInt, Min, IsArray, IsBoolean, ValidateNested, IsObject,
+  IsString, IsOptional, IsInt, Min, IsArray, IsBoolean, IsObject,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export class ExpirationTypeConfigEntryDto {
   @IsBoolean()
@@ -19,6 +18,23 @@ export class ExpirationTypeConfigEntryDto {
   @IsArray()
   @IsInt({ each: true })
   tagIds: number[];
+
+  @IsOptional()
+  @IsString()
+  taskName?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  defaultTimeMinutes?: number | null;
+
+  @IsOptional()
+  @IsString()
+  ticketDescription?: string | null;
+
+  @IsOptional()
+  @IsString()
+  timesheetDescription?: string | null;
 }
 
 export class PatchOdooConfigDto {
@@ -70,10 +86,12 @@ export class PatchOdooConfigDto {
   @IsString()
   stageDoneName?: string;
 
+  // Diccionario por ExpirationType (asset_warranty/certificate/domain/software), no un
+  // objeto único — @ValidateNested + @Type no soportan validar cada valor de un Record,
+  // terminan tratando el diccionario entero como una sola instancia. Se valida a mano
+  // en IntegrationConfigService.patchOdoo().
   @IsOptional()
   @IsObject()
-  @ValidateNested({ each: true })
-  @Type(() => ExpirationTypeConfigEntryDto)
   expirationsTypeConfigs?: Record<string, ExpirationTypeConfigEntryDto>;
 }
 

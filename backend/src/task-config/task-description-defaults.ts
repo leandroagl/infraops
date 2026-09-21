@@ -60,4 +60,5 @@ ${CLOSING_NOTE}`,
   [TaskType.AV_CONTROL]:           'Control mensual de antivirus.',
   [TaskType.UPS_CONTROL]:          'Control mensual de equipos UPS.',
   [TaskType.ENDPOINT_INVENTORY]:   'Relevamiento de endpoints.',
+  [TaskType.EXPIRATION_CONTROL]:   'Vencimiento de garantía, dominio, licencia o certificado.',
 };

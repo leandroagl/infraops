@@ -1,0 +1,60 @@
+<h2 mat-dialog-title>{{ data.type }}</h2>
+
+<mat-dialog-content [formGroup]="form">
+
+  <mat-slide-toggle formControlName="enabled">Habilitado</mat-slide-toggle>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Equipo Odoo</mat-label>
+    <mat-select formControlName="helpdeskTeamId">
+      <mat-option [value]="null">— Sin equipo —</mat-option>
+      <mat-option *ngFor="let team of teams" [value]="team.id">{{ team.name }}</mat-option>
+    </mat-select>
+    <mat-hint *ngIf="loading">Cargando equipos desde Odoo…</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Días de anticipación</mat-label>
+    <input matInput type="number" formControlName="daysAhead" min="1">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Nombre de la tarea</mat-label>
+    <input matInput formControlName="taskName" placeholder="Dejar vacío para usar el nombre predeterminado">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Tiempo predefinido (HH:MM)</mat-label>
+    <input matInput formControlName="time" placeholder="00:30">
+    <mat-hint>Horas y minutos que se imputarán en Odoo al cerrar la tarea</mat-hint>
+    <mat-error *ngIf="form.controls.time.invalid">Formato requerido: HH:MM (ej. 00:30)</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Tags de Odoo</mat-label>
+    <mat-select formControlName="tagIds" multiple>
+      <mat-option *ngFor="let tag of tags" [value]="tag.id">{{ tag.name }}</mat-option>
+    </mat-select>
+    <mat-hint *ngIf="loading">Cargando tags desde Odoo…</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Descripción del ticket en Odoo</mat-label>
+    <textarea matInput formControlName="ticketDescription" rows="6" placeholder="Dejar vacío para usar la descripción predeterminada"></textarea>
+    <mat-hint>Texto plano: se antepone a la fecha de vencimiento y días restantes, que siempre se agregan automáticamente.</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Descripción del timesheet en Odoo</mat-label>
+    <textarea matInput formControlName="timesheetDescription" rows="2" placeholder="Dejar vacío para usar la descripción predeterminada"></textarea>
+    <mat-hint>Texto que se imputa como descripción del parte de horas al cerrar la tarea. Si se deja vacío se usa "Mantenimiento realizado".</mat-hint>
+  </mat-form-field>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()" [disabled]="saving">Cancelar</button>
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="!isValid || loading || saving">
+    {{ saving ? 'Guardando…' : 'Guardar' }}
+  </button>
+</mat-dialog-actions>

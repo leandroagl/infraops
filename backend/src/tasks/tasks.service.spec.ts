@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { In } from 'typeorm';
 import { Client } from '../clients/client.entity';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { InfrastructureService } from '../integrations/infradoc/infrastructure.service';
@@ -31,7 +32,7 @@ describe('TasksService', () => {
   };
   let clientRepository: { findOne: jest.Mock };
   let technicianRepository: { findOne: jest.Mock };
-  let logRepository: { delete: jest.Mock; findOne: jest.Mock };
+  let logRepository: { delete: jest.Mock; findOne: jest.Mock; find: jest.Mock };
   let odooService: {
     createTicket: jest.Mock;
     closeTicket: jest.Mock;
@@ -93,6 +94,7 @@ describe('TasksService', () => {
     scheduledDate: '2026-06-01',
     completedDate: null,
     odooTicketId: null,
+    expirationType: null,
     createdAt: new Date('2026-05-01'),
   };
 
@@ -107,7 +109,7 @@ describe('TasksService', () => {
     };
     clientRepository = { findOne: jest.fn() };
     technicianRepository = { findOne: jest.fn() };
-    logRepository = { delete: jest.fn(), findOne: jest.fn().mockResolvedValue(null) };
+    logRepository = { delete: jest.fn(), findOne: jest.fn().mockResolvedValue(null), find: jest.fn().mockResolvedValue([]) };
     odooService = {
       createTicket: jest.fn(),
       closeTicket: jest.fn(),
@@ -161,7 +163,7 @@ describe('TasksService', () => {
 
       const result = await service.findAll({});
 
-      expect((result[0].technician.user as any).avatarUrl).toBe('/avatars/photo.jpg');
+      expect((result[0].technician!.user as any).avatarUrl).toBe('/avatars/photo.jpg');
     });
 
     it('retorna avatarUrl null cuando el técnico no tiene foto', async () => {
@@ -173,7 +175,37 @@ describe('TasksService', () => {
 
       const result = await service.findAll({});
 
-      expect((result[0].technician.user as any).avatarUrl).toBeNull();
+      expect((result[0].technician!.user as any).avatarUrl).toBeNull();
+    });
+
+    it('incluye las notas del maintenance log de cada tarea', async () => {
+      taskRepository.find.mockResolvedValue([mockTask]);
+      logRepository.find.mockResolvedValue([{ taskId: 'task-1', notes: 'Se reinició el servicio.' }]);
+
+      const result = await service.findAll({});
+
+      expect(logRepository.find).toHaveBeenCalledWith({
+        where: { taskId: In(['task-1']) },
+        select: ['taskId', 'notes'],
+      });
+      expect((result[0] as any).notes).toBe('Se reinició el servicio.');
+    });
+
+    it('notes es null cuando la tarea no tiene maintenance log', async () => {
+      taskRepository.find.mockResolvedValue([mockTask]);
+      logRepository.find.mockResolvedValue([]);
+
+      const result = await service.findAll({});
+
+      expect((result[0] as any).notes).toBeNull();
+    });
+
+    it('no consulta logRepository cuando no hay tareas', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({});
+
+      expect(logRepository.find).not.toHaveBeenCalled();
     });
 
     it('aplica filtro por status cuando se provee', async () => {
@@ -226,15 +258,59 @@ describe('TasksService', () => {
       });
     });
 
-    it('aplica filtro por month y year usando rango de scheduledDate', async () => {
+    it('aplica filtro por month y year usando rango de scheduledDate, y suma la rama de EXPIRATION_CONTROL abiertas', async () => {
       taskRepository.find.mockResolvedValue([mockTask]);
 
       await service.findAll({ year: 2026, month: 6 });
 
       const call = taskRepository.find.mock.calls[0][0];
-      expect(call.where.scheduledDate).toBeDefined();
-      expect(call.where.scheduledDate._type).toBe('between');
-      expect(call.where.scheduledDate._value).toEqual(['2026-06-01', '2026-06-30']);
+      expect(Array.isArray(call.where)).toBe(true);
+      const [monthBranch, persistentBranch] = call.where;
+      expect(monthBranch.scheduledDate._type).toBe('between');
+      expect(monthBranch.scheduledDate._value).toEqual(['2026-06-01', '2026-06-30']);
+      expect(persistentBranch.type).toBe(TaskType.EXPIRATION_CONTROL);
+      expect(persistentBranch.status._type).toBe('in');
+      expect(persistentBranch.status._value).toEqual([TaskStatus.PENDING, TaskStatus.IN_PROGRESS]);
+      expect(persistentBranch.scheduledDate).toBeUndefined();
+    });
+
+    it('no suma la rama persistente si se filtra explícitamente por otro type', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, type: TaskType.WINDOWS_DOMAIN_MAINTENANCE });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(Array.isArray(call.where)).toBe(false);
+      expect(call.where.type).toBe(TaskType.WINDOWS_DOMAIN_MAINTENANCE);
+    });
+
+    it('no suma la rama persistente si se filtra por un status cerrado', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, status: TaskStatus.DONE });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(Array.isArray(call.where)).toBe(false);
+      expect(call.where.status).toBe(TaskStatus.DONE);
+    });
+
+    it('respeta un status abierto explícito en la rama persistente', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, status: TaskStatus.PENDING });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      const [, persistentBranch] = call.where;
+      expect(persistentBranch.status).toBe(TaskStatus.PENDING);
+    });
+
+    it('suma la rama persistente si se filtra explícitamente por type EXPIRATION_CONTROL', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, type: TaskType.EXPIRATION_CONTROL });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(Array.isArray(call.where)).toBe(true);
     });
 
     it('no aplica filtro de rango si solo se provee year sin month', async () => {
@@ -413,6 +489,81 @@ describe('TasksService', () => {
     });
   });
 
+  describe('createFromExistingTicket', () => {
+    const params = {
+      clientId: 'client-1',
+      type: TaskType.EXPIRATION_CONTROL,
+      odooTicketId: 777,
+      scheduledDate: '2026-08-15',
+    };
+
+    it('crea la tarea sin técnico, con el odooTicketId recibido, sin llamar a Odoo', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      taskRepository.create.mockReturnValue({
+        ...mockTask,
+        type: TaskType.EXPIRATION_CONTROL,
+        technicianId: null,
+        technician: null,
+        odooTicketId: 777,
+        scheduledDate: '2026-08-15',
+      });
+      taskRepository.save.mockResolvedValue({
+        ...mockTask,
+        type: TaskType.EXPIRATION_CONTROL,
+        technicianId: null,
+        technician: null,
+        odooTicketId: 777,
+        scheduledDate: '2026-08-15',
+      });
+      taskRepository.findOne.mockResolvedValue({
+        ...mockTask,
+        type: TaskType.EXPIRATION_CONTROL,
+        technicianId: null,
+        technician: null,
+        odooTicketId: 777,
+        scheduledDate: '2026-08-15',
+      });
+
+      const result = await service.createFromExistingTicket(params);
+
+      expect(taskRepository.create).toHaveBeenCalledWith({
+        clientId: 'client-1',
+        technicianId: null,
+        type: TaskType.EXPIRATION_CONTROL,
+        scheduledDate: '2026-08-15',
+        odooTicketId: 777,
+        expirationType: null,
+      });
+      expect(taskRepository.save).toHaveBeenCalled();
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+      expect(infrastructureService.getClientInfrastructure).not.toHaveBeenCalled();
+      expect(result.technicianId).toBeNull();
+      expect(result.odooTicketId).toBe(777);
+    });
+
+    it('persiste expirationType cuando se provee en params', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      taskRepository.create.mockReturnValue({ ...mockTask, expirationType: 'domain' });
+      taskRepository.save.mockResolvedValue({ ...mockTask, expirationType: 'domain' });
+      taskRepository.findOne.mockResolvedValue({ ...mockTask, expirationType: 'domain' });
+
+      await service.createFromExistingTicket({ ...params, expirationType: 'domain' });
+
+      expect(taskRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ expirationType: 'domain' }),
+      );
+    });
+
+    it('lanza NotFoundException si el cliente no existe', async () => {
+      clientRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.createFromExistingTicket(params)).rejects.toThrow(
+        'Cliente no encontrado',
+      );
+      expect(taskRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('update', () => {
     it('actualiza campos editables y devuelve la tarea actualizada', async () => {
       const updatedTask = { ...mockTask, technicianId: 'tech-2' };
@@ -455,6 +606,19 @@ describe('TasksService', () => {
   });
 
   describe('updateStatus', () => {
+    it('lanza BadRequestException al transicionar sin técnico asignado', async () => {
+      taskRepository.findOne.mockResolvedValue({
+        ...mockTask,
+        technicianId: null,
+        technician: null,
+      });
+
+      await expect(
+        service.updateStatus('task-1', TaskStatus.IN_PROGRESS),
+      ).rejects.toThrow('Asigná un técnico antes de continuar');
+      expect(taskRepository.update).not.toHaveBeenCalled();
+    });
+
     it('transiciona PENDING → IN_PROGRESS correctamente', async () => {
       taskRepository.findOne
         .mockResolvedValueOnce(mockTask)
@@ -592,7 +756,28 @@ describe('TasksService', () => {
       await service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 });
 
       expect(odooService.resolveEmployeeId).toHaveBeenCalledWith('user-1');
-      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5, inProgressTask.type);
+      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5, inProgressTask.type, null);
+    });
+
+    it('pasa expirationType de la tarea a closeTicket cuando está seteado', async () => {
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+        type: TaskType.EXPIRATION_CONTROL,
+        expirationType: 'domain',
+        technician: { user: mockUserWithOdooId },
+      };
+      taskRepository.findOne
+        .mockResolvedValueOnce(inProgressTask)
+        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
+      odooService.resolveEmployeeId.mockResolvedValue(22);
+      odooService.closeTicket.mockResolvedValue(undefined);
+      taskRepository.update.mockResolvedValue({ affected: 1 });
+
+      await service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 });
+
+      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5, TaskType.EXPIRATION_CONTROL, 'domain');
     });
 
     it('llama markTicketNotDone al transicionar a NOT_DONE cuando la tarea tiene odooTicketId', async () => {

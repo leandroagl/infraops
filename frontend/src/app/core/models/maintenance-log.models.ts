@@ -202,6 +202,11 @@ export interface VeeamBackupPayload {
   notes: string | null;
 }
 
+export interface ExpirationControlPayload {
+  type: 'EXPIRATION_CONTROL';
+  notes?: string;
+}
+
 export type MaintenancePayload =
   | ServerMaintenancePayload
   | ServerHostPayload
@@ -209,4 +214,5 @@ export type MaintenancePayload =
   | RouterMaintenancePayload
   | TerminalPayload
   | QnapPayload
-  | VeeamBackupPayload;
+  | VeeamBackupPayload
+  | ExpirationControlPayload;

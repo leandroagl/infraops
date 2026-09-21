@@ -83,7 +83,7 @@ export class TasksUnifiedComponent implements OnInit {
   }
 
   openTasksConfig(): void {
-    this.router.navigate(['/tasks/config']);
+    this.router.navigate(['/admin/mantenimientos']);
   }
 
   get hasActiveFilters(): boolean {
@@ -125,14 +125,15 @@ export class TasksUnifiedComponent implements OnInit {
     return this.currentYear === now.getFullYear() && this.currentMonth === (now.getMonth() + 1);
   }
 
-  /** KPIs del ciclo actual */
+  /** KPIs del ciclo actual — EXPIRATION_CONTROL no es cíclica, no cuenta para el ciclo mensual */
   get stats(): CycleStats {
+    const cyclical = this.tasks.filter(t => t.type !== 'EXPIRATION_CONTROL');
     return {
-      assigned:   this.tasks.length,
-      inprogress: this.tasks.filter(t => t.status === 'IN_PROGRESS').length,
-      pending:    this.tasks.filter(t => t.status === 'PENDING').length,
-      done:       this.tasks.filter(t => t.status === 'DONE').length,
-      escalated:  this.tasks.filter(t => t.status === 'ESCALATED' || t.status === 'NOT_DONE').length,
+      assigned:   cyclical.length,
+      inprogress: cyclical.filter(t => t.status === 'IN_PROGRESS').length,
+      pending:    cyclical.filter(t => t.status === 'PENDING').length,
+      done:       cyclical.filter(t => t.status === 'DONE').length,
+      escalated:  cyclical.filter(t => t.status === 'ESCALATED' || t.status === 'NOT_DONE').length,
     };
   }
 
@@ -237,6 +238,12 @@ export class TasksUnifiedComponent implements OnInit {
   onTaskCompleted(): void {
     this.onTaskStatusChanged('DONE');
     this.closeDrawer();
+  }
+
+  /** Actualiza el técnico asignado de la tarea seleccionada en el array local (sin recargar) */
+  onTechnicianAssigned(updated: Task): void {
+    const idx = this.tasks.findIndex(t => t.id === updated.id);
+    if (idx !== -1) this.tasks[idx] = { ...this.tasks[idx], technicianId: updated.technicianId, technician: updated.technician };
   }
 
   onTaskNotDone(): void {

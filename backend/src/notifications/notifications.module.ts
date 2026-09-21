@@ -3,12 +3,14 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotificationsController } from './notifications.controller';
+import { NotificationsConfigController } from './notifications-config.controller';
 import { NotificationsService } from './notifications.service';
 import { ExpirationTicketsService } from './expiration-tickets.service';
 import { ExpirationTicket } from './expiration-ticket.entity';
 import { OdooIntegrationModule } from '../integrations/odoo/odoo-integration.module';
 import { IntegrationConfigModule } from '../integration-config/integration-config.module';
 import { ClientsModule } from '../clients/clients.module';
+import { TasksModule } from '../tasks/tasks.module';
 
 @Module({
   imports: [
@@ -19,8 +21,9 @@ import { ClientsModule } from '../clients/clients.module';
     OdooIntegrationModule,
     IntegrationConfigModule,
     ClientsModule,
+    TasksModule,
   ],
-  controllers: [NotificationsController],
+  controllers: [NotificationsController, NotificationsConfigController],
   providers: [NotificationsService, ExpirationTicketsService],
 })
 export class NotificationsModule {}
