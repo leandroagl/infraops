@@ -18,6 +18,23 @@ export class ExpirationTypeConfigEntryDto {
   @IsArray()
   @IsInt({ each: true })
   tagIds: number[];
+
+  @IsOptional()
+  @IsString()
+  taskName?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  defaultTimeMinutes?: number | null;
+
+  @IsOptional()
+  @IsString()
+  ticketDescription?: string | null;
+
+  @IsOptional()
+  @IsString()
+  timesheetDescription?: string | null;
 }
 
 export class PatchOdooConfigDto {

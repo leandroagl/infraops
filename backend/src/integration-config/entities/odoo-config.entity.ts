@@ -35,6 +35,10 @@ export class OdooConfig {
     helpdeskTeamId: number | null;
     daysAhead: number;
     tagIds: number[];
+    taskName?: string | null;
+    defaultTimeMinutes?: number | null;
+    ticketDescription?: string | null;
+    timesheetDescription?: string | null;
   }> | null = null;
 
   @Column({ name: 'stage_in_progress_name', type: 'varchar', nullable: true })

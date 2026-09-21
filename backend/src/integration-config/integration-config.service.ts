@@ -91,6 +91,8 @@ export class IntegrationConfigService {
       this.validateExpirationTypeConfigs(dto.expirationsTypeConfigs);
       existing.expirationsTypeConfigs = dto.expirationsTypeConfigs as Record<string, {
         enabled: boolean; helpdeskTeamId: number | null; daysAhead: number; tagIds: number[];
+        taskName?: string | null; defaultTimeMinutes?: number | null;
+        ticketDescription?: string | null; timesheetDescription?: string | null;
       }>;
     }
     if (dto.stageInProgressName !== undefined) existing.stageInProgressName = dto.stageInProgressName;
@@ -112,7 +114,11 @@ export class IntegrationConfigService {
   // class-validator no valida cada valor de un Record<string, T> de forma nativa
   // (ver comentario en el DTO) — se valida la forma acá antes de persistir.
   private validateExpirationTypeConfigs(
-    configs: Record<string, { enabled: boolean; helpdeskTeamId: number | null; daysAhead: number; tagIds: number[] }>,
+    configs: Record<string, {
+      enabled: boolean; helpdeskTeamId: number | null; daysAhead: number; tagIds: number[];
+      taskName?: string | null; defaultTimeMinutes?: number | null;
+      ticketDescription?: string | null; timesheetDescription?: string | null;
+    }>,
   ): void {
     for (const [key, entry] of Object.entries(configs)) {
       if (typeof entry.enabled !== 'boolean') {
@@ -127,13 +133,20 @@ export class IntegrationConfigService {
       if (!Array.isArray(entry.tagIds) || !entry.tagIds.every((t) => Number.isInteger(t))) {
         throw new BadRequestException(`expirationsTypeConfigs.${key}.tagIds debe ser un array de enteros`);
       }
+      if (entry.defaultTimeMinutes != null && (!Number.isInteger(entry.defaultTimeMinutes) || entry.defaultTimeMinutes < 1)) {
+        throw new BadRequestException(`expirationsTypeConfigs.${key}.defaultTimeMinutes debe ser null o un entero mayor o igual a 1`);
+      }
     }
   }
 
   async getOdooConfigDecrypted(): Promise<{
     url: string; db: string; username: string; apiKey: string; helpdeskTeamId: number;
     expirationsHelpdeskTeamId: number; expirationsTicketDaysAhead: number; expirationsTagIds: number[];
-    expirationsTypeConfigs: Record<string, { enabled: boolean; helpdeskTeamId: number | null; daysAhead: number; tagIds: number[]; }> | null;
+    expirationsTypeConfigs: Record<string, {
+      enabled: boolean; helpdeskTeamId: number | null; daysAhead: number; tagIds: number[];
+      taskName?: string | null; defaultTimeMinutes?: number | null;
+      ticketDescription?: string | null; timesheetDescription?: string | null;
+    }> | null;
     stageInProgressName: string; stageNotDoneName: string; stageDoneName: string;
   }> {
     const row = await this.odooRepo.findOne({ where: { id: 1 } });
