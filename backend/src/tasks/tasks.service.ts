@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, In, Repository } from 'typeorm';
+import { Between, In, IsNull, Repository } from 'typeorm';
 import { Client } from '../clients/client.entity';
 import { MaintenanceLog } from '../maintenance-logs/maintenance-log.entity';
 import { Technician } from '../technicians/technician.entity';
@@ -72,7 +72,11 @@ export class TasksService {
     const baseWhere: Record<string, unknown> = {};
     if (filters.status) baseWhere['status'] = filters.status;
     if (filters.clientId) baseWhere['clientId'] = filters.clientId;
-    if (filters.technicianId) baseWhere['technicianId'] = filters.technicianId;
+    if (filters.unassigned) {
+      baseWhere['technicianId'] = IsNull();
+    } else if (filters.technicianId) {
+      baseWhere['technicianId'] = filters.technicianId;
+    }
     if (filters.type) baseWhere['type'] = filters.type;
 
     let where: Record<string, unknown> | Record<string, unknown>[] = baseWhere;
