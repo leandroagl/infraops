@@ -240,6 +240,12 @@ export class TasksUnifiedComponent implements OnInit {
     this.closeDrawer();
   }
 
+  /** Actualiza el técnico asignado de la tarea seleccionada en el array local (sin recargar) */
+  onTechnicianAssigned(updated: Task): void {
+    const idx = this.tasks.findIndex(t => t.id === updated.id);
+    if (idx !== -1) this.tasks[idx] = { ...this.tasks[idx], technicianId: updated.technicianId, technician: updated.technician };
+  }
+
   onTaskNotDone(): void {
     this.onTaskStatusChanged('NOT_DONE');
     this.closeDrawer();

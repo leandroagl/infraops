@@ -99,6 +99,16 @@ describe('TasksUnifiedComponent', () => {
     expect(component.stats.inprogress).toBe(1);
   });
 
+  it('onTechnicianAssigned actualiza el técnico de la tarea en el array local sin recargar', () => {
+    const updated = { ...makeTask('t2', 'c1', 'ACME S.A.', 'PENDING'), technicianId: 'tech-2' };
+
+    component.onTechnicianAssigned(updated);
+
+    const task = component.tasks.find(t => t.id === 't2');
+    expect(task?.technicianId).toBe('tech-2');
+    expect(tasksServiceSpy.getAll).toHaveBeenCalledTimes(1);
+  });
+
   it('stats excluye tareas EXPIRATION_CONTROL de los conteos del ciclo', () => {
     tasksServiceSpy.getAll.and.returnValue(of([
       makeTask('t1', 'c1', 'ACME S.A.', 'DONE'),

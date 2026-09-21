@@ -21,6 +21,15 @@
         rel="noopener noreferrer"
         class="d-odoo-link">{{ odooLabel }}</a>
     </div>
+
+    <mat-form-field *ngIf="isUnassigned && (userRole === 'TL' || userRole === 'ADMIN')"
+                    appearance="outline" subscriptSizing="dynamic" style="margin-top:6px">
+      <mat-label>Asignar técnico</mat-label>
+      <mat-select (selectionChange)="assignTechnician($event.value)">
+        <mat-option *ngFor="let t of technicians" [value]="t.id">{{ t.user?.name ?? t.id }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+    <span *ngIf="isUnassigned && userRole === 'TECHNICIAN'" class="d-unassigned-hint">Sin técnico asignado</span>
   </div>
   <button mat-icon-button class="d-close" (click)="drawerClosed.emit()">
     <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round">
@@ -42,8 +51,23 @@
   <!-- Banner solo-lectura -->
   <div *ngIf="!isActiveTask" class="d-readonly">Solo lectura — tarea completada</div>
 
+  <!-- Banner sin técnico asignado -->
+  <div *ngIf="isActiveTask && isUnassigned" class="d-config-warn">⚠ Asigná un técnico antes de continuar.</div>
+
   <!-- Banner de configuración faltante -->
-  <div *ngIf="isActiveTask && isConfigMissing" class="d-config-warn">⚠ {{ configWarningMessage }}</div>
+  <div *ngIf="isActiveTask && !isUnassigned && isConfigMissing" class="d-config-warn">⚠ {{ configWarningMessage }}</div>
+
+  <!-- Detalle del vencimiento -->
+  <div *ngIf="task.type === 'EXPIRATION_CONTROL'" class="d-expiration-detail">
+    <div *ngIf="loadingExpirationDetail" class="skeleton" style="height:48px;border-radius:var(--radius-sm)"></div>
+    <ng-container *ngIf="!loadingExpirationDetail && expirationDetail as detail">
+      <div class="d-expiration-item">{{ detail.itemName ?? 'Ítem ya no vigente en InfraDoc' }}</div>
+      <div class="d-expiration-meta">
+        {{ detail.clientName ?? task.client?.name }} · Vence {{ detail.expireDate }}
+        <span *ngIf="detail.daysUntil != null"> · {{ detail.daysUntil >= 0 ? detail.daysUntil + ' días restantes' : (-detail.daysUntil) + ' días vencido' }}</span>
+      </div>
+    </ng-container>
+  </div>
 
   <!-- Formulario QNAP -->
   <app-qnap-form
@@ -185,6 +209,16 @@
     <ng-container *ngIf="task.type === 'AV_CONTROL' || task.type === 'UPS_CONTROL' || task.type === 'ENDPOINT_INVENTORY'">
       <button mat-flat-button color="primary" data-testid="btn-complete" disabled matTooltip="Formulario no disponible para este tipo de tarea">Completar</button>
       <button mat-stroked-button (click)="drawerClosed.emit()">Cerrar</button>
+    </ng-container>
+
+    <ng-container *ngIf="task.type === 'EXPIRATION_CONTROL'">
+      <button mat-flat-button color="primary" data-testid="btn-complete" (click)="triggerFormComplete()"
+              [disabled]="!canComplete || completing"
+              [matTooltip]="canComplete ? '' : configWarningMessage">
+        <mat-spinner *ngIf="completing" [diameter]="16"></mat-spinner>
+        <span *ngIf="!completing">Marcar vencimiento resuelto</span>
+      </button>
+      <button mat-stroked-button (click)="drawerClosed.emit()" [disabled]="completing">Cerrar</button>
     </ng-container>
 
     <button *ngIf="canMarkNotDone" mat-stroked-button color="warn"
