@@ -21,7 +21,7 @@ export class NotificationsService {
     return this.http.get<ExpirationDetail | null>(`${this.base}/expiration-tickets/by-task/${taskId}`);
   }
 
-  patchConfig(expirationsTypeConfigs: Record<string, ExpirationTypeConfigEntry>): Observable<unknown> {
-    return this.http.patch(`${this.base}/config`, { expirationsTypeConfigs });
+  patchTypeConfig(type: string, entry: ExpirationTypeConfigEntry): Observable<unknown> {
+    return this.http.patch(`${this.base}/config/${type}`, entry);
   }
 }

@@ -27,6 +27,7 @@ export interface ExpirationDetail {
   serial?: string;
   daysUntil: number | null;
   odooTicketId: number | null;
+  defaultTimeMinutes: number | null;
 }
 
 export interface ExpirationTypeConfigEntry {
@@ -34,4 +35,8 @@ export interface ExpirationTypeConfigEntry {
   helpdeskTeamId: number | null;
   daysAhead: number;
   tagIds: number[];
+  taskName?: string | null;
+  defaultTimeMinutes?: number | null;
+  ticketDescription?: string | null;
+  timesheetDescription?: string | null;
 }
