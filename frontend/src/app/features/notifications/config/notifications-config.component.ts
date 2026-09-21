@@ -7,6 +7,7 @@ import {
   HelpdeskTeamDto,
   HelpdeskTagDto,
 } from '../../../core/services/integration-config.service';
+import { NotificationsService } from '../../../core/services/notifications.service';
 import { ExpirationTypeConfigEntry, ExpirationType } from '../../../core/models/notification.models';
 
 export const EXPIRATION_TYPES: ExpirationType[] = [
@@ -30,6 +31,7 @@ export class NotificationsConfigComponent implements OnInit {
   constructor(
     private readonly fb: FormBuilder,
     private readonly svc: IntegrationConfigService,
+    private readonly notificationsSvc: NotificationsService,
     private readonly router: Router,
   ) {
     this.form = this.fb.group(
@@ -120,7 +122,7 @@ export class NotificationsConfigComponent implements OnInit {
       const g = this.form.get(type) as FormGroup;
       expirationsTypeConfigs[type] = g.getRawValue() as ExpirationTypeConfigEntry;
     }
-    this.svc.patchOdoo({ expirationsTypeConfigs } as any).subscribe({
+    this.notificationsSvc.patchConfig(expirationsTypeConfigs).subscribe({
       next: () => {
         this.saving = false;
         this.router.navigate(['/notifications']);

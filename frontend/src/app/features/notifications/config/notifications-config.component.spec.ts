@@ -12,6 +12,7 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { NEVER, of } from 'rxjs';
 import { NotificationsConfigComponent } from './notifications-config.component';
 import { IntegrationConfigService } from '../../../core/services/integration-config.service';
+import { NotificationsService } from '../../../core/services/notifications.service';
 
 const MOCK_TEAMS = [{ id: 9, name: 'Vencimientos' }, { id: 7, name: 'Mantenimientos' }];
 const MOCK_TAGS  = [{ id: 3, name: 'Urgente' }, { id: 5, name: 'Garantía' }];
@@ -31,16 +32,19 @@ describe('NotificationsConfigComponent', () => {
   let fixture: ComponentFixture<NotificationsConfigComponent>;
   let comp: NotificationsConfigComponent;
   let svc: jasmine.SpyObj<IntegrationConfigService>;
+  let notificationsSvc: jasmine.SpyObj<NotificationsService>;
   let router: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
     svc = jasmine.createSpyObj('IntegrationConfigService', [
-      'getOdoo', 'getHelpdeskTeams', 'getHelpdeskTags', 'patchOdoo',
+      'getOdoo', 'getHelpdeskTeams', 'getHelpdeskTags',
     ]);
     svc.getOdoo.and.returnValue(of(mockConfig() as any));
     svc.getHelpdeskTeams.and.returnValue(of(MOCK_TEAMS));
     svc.getHelpdeskTags.and.returnValue(of(MOCK_TAGS));
-    svc.patchOdoo.and.returnValue(of(mockConfig() as any));
+
+    notificationsSvc = jasmine.createSpyObj('NotificationsService', ['patchConfig']);
+    notificationsSvc.patchConfig.and.returnValue(of({}));
 
     router = jasmine.createSpyObj('Router', ['navigate']);
 
@@ -58,6 +62,7 @@ describe('NotificationsConfigComponent', () => {
       ],
       providers: [
         { provide: IntegrationConfigService, useValue: svc },
+        { provide: NotificationsService, useValue: notificationsSvc },
         { provide: Router, useValue: router },
       ],
       schemas: [NO_ERRORS_SCHEMA],
@@ -135,7 +140,7 @@ describe('NotificationsConfigComponent', () => {
     expect(comp.formValid).toBe(true);
   }));
 
-  it('save llama patchOdoo con el payload correcto para tipos activos e inactivos', fakeAsync(() => {
+  it('save llama patchConfig con el payload correcto para tipos activos e inactivos', fakeAsync(() => {
     tick();
     const group = comp.form.get('domain')!;
     group.get('enabled')!.setValue(true);
@@ -145,11 +150,11 @@ describe('NotificationsConfigComponent', () => {
     group.get('tagIds')!.setValue([3]);
     comp.save();
     tick();
-    const call = svc.patchOdoo.calls.mostRecent().args[0];
-    expect(call.expirationsTypeConfigs!['domain']).toEqual({
+    const call = notificationsSvc.patchConfig.calls.mostRecent().args[0];
+    expect(call['domain']).toEqual({
       enabled: true, helpdeskTeamId: 9, daysAhead: 14, tagIds: [3],
     });
-    expect(call.expirationsTypeConfigs!['software'].enabled).toBe(false);
+    expect(call['software'].enabled).toBe(false);
   }));
 
   it('save bloquea cuando formValid es false (enabled sin team)', fakeAsync(() => {
@@ -160,7 +165,7 @@ describe('NotificationsConfigComponent', () => {
     group.get('helpdeskTeamId')!.setValue(null);
     comp.save();
     tick();
-    expect(svc.patchOdoo).not.toHaveBeenCalled();
+    expect(notificationsSvc.patchConfig).not.toHaveBeenCalled();
   }));
 
   it('save navega a /notifications al completar', fakeAsync(() => {
@@ -172,7 +177,7 @@ describe('NotificationsConfigComponent', () => {
 
   it('save activa saving=true mientras está en progreso', fakeAsync(() => {
     tick();
-    svc.patchOdoo.and.returnValue(NEVER);
+    notificationsSvc.patchConfig.and.returnValue(NEVER);
     comp.save();
     expect(comp.saving).toBe(true);
   }));
