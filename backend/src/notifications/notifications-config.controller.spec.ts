@@ -7,7 +7,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 const mockUser = { sub: 'uid-1', email: 'admin@ondra.com.ar', role: 'ADMIN', mustChangePassword: false };
 
 const mockService = {
-  saveTypeConfigs: jest.fn(),
+  saveTypeConfig: jest.fn(),
 };
 
 describe('NotificationsConfigController', () => {
@@ -25,14 +25,14 @@ describe('NotificationsConfigController', () => {
     controller = module.get<NotificationsConfigController>(NotificationsConfigController);
   });
 
-  it('PATCH / pasa expirationsTypeConfigs y el email del JWT como updatedBy', async () => {
-    const configs = { domain: { enabled: true, helpdeskTeamId: 9, daysAhead: 30, tagIds: [] } };
-    mockService.saveTypeConfigs.mockResolvedValue({ expirationsTypeConfigs: configs });
+  it('PATCH /:type pasa el type de la URL, el body y el email del JWT como updatedBy', async () => {
+    const entry = { enabled: true, helpdeskTeamId: 9, daysAhead: 30, tagIds: [] };
+    mockService.saveTypeConfig.mockResolvedValue({ expirationsTypeConfigs: { domain: entry } });
 
-    const result = await controller.patch({ expirationsTypeConfigs: configs }, mockUser as any);
+    const result = await controller.patch('domain', entry, mockUser as any);
 
-    expect(mockService.saveTypeConfigs).toHaveBeenCalledWith(configs, 'admin@ondra.com.ar');
-    expect(result).toEqual({ expirationsTypeConfigs: configs });
+    expect(mockService.saveTypeConfig).toHaveBeenCalledWith('domain', entry, 'admin@ondra.com.ar');
+    expect(result).toEqual({ expirationsTypeConfigs: { domain: entry } });
   });
 
   it('tiene JwtAuthGuard y RolesGuard aplicados', () => {

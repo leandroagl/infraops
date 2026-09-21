@@ -27,4 +27,5 @@ export class ExpirationDetailDto {
   serial?: string;
   daysUntil!: number | null;
   odooTicketId!: number | null;
+  defaultTimeMinutes!: number | null;
 }

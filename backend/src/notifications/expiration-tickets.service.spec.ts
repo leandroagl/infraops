@@ -47,7 +47,7 @@ describe('ExpirationTicketsService', () => {
     odooService = { createExpirationTicket: jest.fn() };
     integrationConfigService = {
       getOdooConfigDecrypted: jest.fn().mockResolvedValue(defaultConfig),
-      getOdoo: jest.fn(),
+      getOdoo: jest.fn().mockResolvedValue(defaultConfig),
       patchOdoo: jest.fn(),
     };
     clientRepo = { findOne: jest.fn(), find: jest.fn().mockResolvedValue([]) };
@@ -171,6 +171,37 @@ describe('ExpirationTicketsService', () => {
         clientId: 'client-uuid-1', itemName: null, daysUntil: null, odooTicketId: 500,
       }));
     });
+
+    it('incluye defaultTimeMinutes resuelto desde expirationsTypeConfigs para el tipo de la fila', async () => {
+      ticketRepo.findOne.mockResolvedValue({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
+      });
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+      integrationConfigService.getOdoo.mockResolvedValue({
+        ...defaultConfig,
+        expirationsTypeConfigs: {
+          domain: { enabled: true, helpdeskTeamId: 9, daysAhead: 30, tagIds: [], defaultTimeMinutes: 20 },
+        },
+      });
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(result?.defaultTimeMinutes).toBe(20);
+    });
+
+    it('defaultTimeMinutes es null si no hay config para ese tipo', async () => {
+      ticketRepo.findOne.mockResolvedValue({
+        type: 'certificate', sourceId: 'c1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
+      });
+      notificationsService.getExpirations.mockResolvedValue([]);
+      integrationConfigService.getOdoo.mockResolvedValue(defaultConfig);
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(result?.defaultTimeMinutes).toBeNull();
+    });
   });
 
   describe('createPendingExpirationTickets', () => {
@@ -246,7 +277,7 @@ describe('ExpirationTicketsService', () => {
 
       expect(odooService.createExpirationTicket).toHaveBeenCalledWith(
         expect.objectContaining({ sourceId: 'd1', type: 'domain' }),
-        'client-uuid-1', 9, [],
+        'client-uuid-1', 9, [], undefined, undefined,
       );
       expect(ticketRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -254,6 +285,29 @@ describe('ExpirationTicketsService', () => {
           expireDate: '2026-07-15', odooTicketId: 500,
           clientId: 'client-uuid-1',
         }),
+      );
+    });
+
+    it('pasa taskName y ticketDescription del tipo configurado a createExpirationTicket', async () => {
+      integrationConfigService.getOdooConfigDecrypted.mockResolvedValue({
+        ...defaultConfig,
+        expirationsTypeConfigs: {
+          domain: {
+            enabled: true, helpdeskTeamId: 9, daysAhead: 30, tagIds: [],
+            taskName: 'Dominio', ticketDescription: 'Verificar renovación',
+          },
+        },
+      });
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+      ticketRepo.find.mockResolvedValue([]);
+      clientRepo.findOne.mockResolvedValue({ id: 'client-uuid-1' });
+      odooService.createExpirationTicket.mockResolvedValue(500);
+
+      await service.createPendingExpirationTickets();
+
+      expect(odooService.createExpirationTicket).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceId: 'd1', type: 'domain' }),
+        'client-uuid-1', 9, [], 'Dominio', 'Verificar renovación',
       );
     });
 
@@ -272,6 +326,7 @@ describe('ExpirationTicketsService', () => {
         type: TaskType.EXPIRATION_CONTROL,
         odooTicketId: 500,
         scheduledDate: expect.any(String),
+        expirationType: 'domain',
       });
       expect(ticketRepo.update).toHaveBeenCalledWith('ticket-row-1', { taskId: 'task-1' });
     });
@@ -311,7 +366,7 @@ describe('ExpirationTicketsService', () => {
       await service.createPendingExpirationTickets();
 
       expect(odooService.createExpirationTicket).toHaveBeenCalledWith(
-        expect.anything(), 'client-uuid-1', 42, [3, 4],
+        expect.anything(), 'client-uuid-1', 42, [3, 4], undefined, undefined,
       );
     });
 
@@ -376,20 +431,26 @@ describe('ExpirationTicketsService', () => {
     });
   });
 
-  describe('saveTypeConfigs', () => {
-    const newConfigs = {
-      domain: { enabled: true, helpdeskTeamId: 9, daysAhead: 30, tagIds: [] },
-    };
+  describe('saveTypeConfig', () => {
+    const entry = { enabled: true, helpdeskTeamId: 9, daysAhead: 30, tagIds: [] };
 
-    it('persiste la config vía IntegrationConfigService.patchOdoo', async () => {
-      integrationConfigService.getOdoo.mockResolvedValue({ expirationsTypeConfigs: null });
-      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: newConfigs });
+    it('persiste la config vía IntegrationConfigService.patchOdoo, mergeada con los otros tipos', async () => {
+      integrationConfigService.getOdoo.mockResolvedValue({
+        expirationsTypeConfigs: { certificate: { enabled: true, helpdeskTeamId: 3, daysAhead: 15, tagIds: [] } },
+      });
+      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: {} });
       notificationsService.getExpirations.mockResolvedValue([]);
 
-      await service.saveTypeConfigs(newConfigs, 'admin@test.com');
+      await service.saveTypeConfig('domain', entry, 'admin@test.com');
 
       expect(integrationConfigService.patchOdoo).toHaveBeenCalledWith(
-        { expirationsTypeConfigs: newConfigs }, 'admin@test.com',
+        {
+          expirationsTypeConfigs: {
+            certificate: { enabled: true, helpdeskTeamId: 3, daysAhead: 15, tagIds: [] },
+            domain: entry,
+          },
+        },
+        'admin@test.com',
       );
     });
 
@@ -397,11 +458,11 @@ describe('ExpirationTicketsService', () => {
       integrationConfigService.getOdoo.mockResolvedValue({
         expirationsTypeConfigs: { domain: { enabled: false, helpdeskTeamId: 9, daysAhead: 30, tagIds: [] } },
       });
-      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: newConfigs });
+      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: { domain: entry } });
       notificationsService.getExpirations.mockResolvedValue([makeItem()]);
       clientRepo.find.mockResolvedValue([{ id: 'client-uuid-1', infradocId: 1 }]);
 
-      await service.saveTypeConfigs(newConfigs, 'admin@test.com');
+      await service.saveTypeConfig('domain', entry, 'admin@test.com');
 
       expect(ticketRepo.insert).toHaveBeenCalledWith([
         expect.objectContaining({
@@ -412,48 +473,48 @@ describe('ExpirationTicketsService', () => {
       expect(odooService.createExpirationTicket).not.toHaveBeenCalled();
     });
 
-    it('no pre-siembra un tipo que ya estaba habilitado (sin transición)', async () => {
+    it('no pre-siembra el tipo que ya estaba habilitado (sin transición)', async () => {
       integrationConfigService.getOdoo.mockResolvedValue({
         expirationsTypeConfigs: { domain: { enabled: true, helpdeskTeamId: 9, daysAhead: 30, tagIds: [] } },
       });
-      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: newConfigs });
+      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: { domain: entry } });
 
-      await service.saveTypeConfigs(newConfigs, 'admin@test.com');
+      await service.saveTypeConfig('domain', entry, 'admin@test.com');
 
       expect(notificationsService.getExpirations).not.toHaveBeenCalled();
       expect(ticketRepo.insert).not.toHaveBeenCalled();
     });
 
-    it('trata la primera config guardada (sin fila previa) como transición a habilitado', async () => {
+    it('trata la primera config guardada para ese tipo (sin fila previa) como transición a habilitado', async () => {
       integrationConfigService.getOdoo.mockResolvedValue({ expirationsTypeConfigs: null });
-      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: newConfigs });
+      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: { domain: entry } });
       notificationsService.getExpirations.mockResolvedValue([]);
 
-      await service.saveTypeConfigs(newConfigs, 'admin@test.com');
+      await service.saveTypeConfig('domain', entry, 'admin@test.com');
 
       expect(notificationsService.getExpirations).toHaveBeenCalledWith(30);
     });
 
     it('no pre-siembra items que ya tienen fila de tracking', async () => {
       integrationConfigService.getOdoo.mockResolvedValue({ expirationsTypeConfigs: {} });
-      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: newConfigs });
+      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: { domain: entry } });
       notificationsService.getExpirations.mockResolvedValue([makeItem()]);
       ticketRepo.find.mockResolvedValue([
         { type: 'domain', sourceId: 'd1', expireDate: '2026-07-15', odooTicketId: 500 },
       ]);
 
-      await service.saveTypeConfigs(newConfigs, 'admin@test.com');
+      await service.saveTypeConfig('domain', entry, 'admin@test.com');
 
       expect(ticketRepo.insert).not.toHaveBeenCalled();
     });
 
     it('omite items cuyo cliente InfraDoc no existe (o está inactivo) al pre-sembrar', async () => {
       integrationConfigService.getOdoo.mockResolvedValue({ expirationsTypeConfigs: {} });
-      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: newConfigs });
+      integrationConfigService.patchOdoo.mockResolvedValue({ expirationsTypeConfigs: { domain: entry } });
       notificationsService.getExpirations.mockResolvedValue([makeItem()]);
       clientRepo.find.mockResolvedValue([]);
 
-      await service.saveTypeConfigs(newConfigs, 'admin@test.com');
+      await service.saveTypeConfig('domain', entry, 'admin@test.com');
 
       expect(ticketRepo.insert).not.toHaveBeenCalled();
     });
