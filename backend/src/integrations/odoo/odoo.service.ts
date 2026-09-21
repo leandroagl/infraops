@@ -568,7 +568,7 @@ export class OdooService {
 
     const saleLineId = await this.resolveSaleLineId(infraopsClientId);
     const typeLabel = taskName?.trim() || DEFAULT_EXPIRATION_TYPE_LABELS[item.type];
-    const name = `Vencimiento: ${typeLabel} – ${item.clientName} – ${item.itemName}`;
+    const name = `${typeLabel} – ${item.itemName}`;
     const customIntro = ticketDescription?.trim() ? plainTextToHtml(ticketDescription) : '';
     const description = `${customIntro}<p>Fecha de vencimiento: <strong>${item.expireDate}</strong></p><p>Días restantes: ${item.daysUntil}</p>`;
 
