@@ -88,6 +88,7 @@ export class IntegrationConfigService {
     if (dto.expirationsTicketDaysAhead !== undefined) existing.expirationsTicketDaysAhead = dto.expirationsTicketDaysAhead;
     if (dto.expirationsTagIds !== undefined) existing.expirationsTagIds = dto.expirationsTagIds;
     if (dto.expirationsTypeConfigs !== undefined) {
+      this.validateExpirationTypeConfigs(dto.expirationsTypeConfigs);
       existing.expirationsTypeConfigs = dto.expirationsTypeConfigs as Record<string, {
         enabled: boolean; helpdeskTeamId: number | null; daysAhead: number; tagIds: number[];
       }>;
@@ -106,6 +107,27 @@ export class IntegrationConfigService {
     await this.odooRepo.save(existing);
     this.incrementOdooVersion();
     return this.getOdoo();
+  }
+
+  // class-validator no valida cada valor de un Record<string, T> de forma nativa
+  // (ver comentario en el DTO) — se valida la forma acá antes de persistir.
+  private validateExpirationTypeConfigs(
+    configs: Record<string, { enabled: boolean; helpdeskTeamId: number | null; daysAhead: number; tagIds: number[] }>,
+  ): void {
+    for (const [key, entry] of Object.entries(configs)) {
+      if (typeof entry.enabled !== 'boolean') {
+        throw new BadRequestException(`expirationsTypeConfigs.${key}.enabled debe ser un valor booleano`);
+      }
+      if (!Number.isInteger(entry.daysAhead) || entry.daysAhead < 1) {
+        throw new BadRequestException(`expirationsTypeConfigs.${key}.daysAhead debe ser un entero mayor o igual a 1`);
+      }
+      if (entry.helpdeskTeamId !== null && (!Number.isInteger(entry.helpdeskTeamId) || entry.helpdeskTeamId < 1)) {
+        throw new BadRequestException(`expirationsTypeConfigs.${key}.helpdeskTeamId debe ser null o un entero mayor o igual a 1`);
+      }
+      if (!Array.isArray(entry.tagIds) || !entry.tagIds.every((t) => Number.isInteger(t))) {
+        throw new BadRequestException(`expirationsTypeConfigs.${key}.tagIds debe ser un array de enteros`);
+      }
+    }
   }
 
   async getOdooConfigDecrypted(): Promise<{
