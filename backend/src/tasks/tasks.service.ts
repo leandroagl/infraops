@@ -189,6 +189,10 @@ export class TasksService {
     });
     if (!task) throw new NotFoundException('Tarea no encontrada');
 
+    if (task.technicianId === null && newStatus !== TaskStatus.PENDING) {
+      throw new BadRequestException('Asigná un técnico antes de continuar');
+    }
+
     const allowed = VALID_TRANSITIONS[task.status];
     if (!allowed.includes(newStatus)) {
       throw new BadRequestException(

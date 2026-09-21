@@ -547,6 +547,19 @@ describe('TasksService', () => {
   });
 
   describe('updateStatus', () => {
+    it('lanza BadRequestException al transicionar sin técnico asignado', async () => {
+      taskRepository.findOne.mockResolvedValue({
+        ...mockTask,
+        technicianId: null,
+        technician: null,
+      });
+
+      await expect(
+        service.updateStatus('task-1', TaskStatus.IN_PROGRESS),
+      ).rejects.toThrow('Asigná un técnico antes de continuar');
+      expect(taskRepository.update).not.toHaveBeenCalled();
+    });
+
     it('transiciona PENDING → IN_PROGRESS correctamente', async () => {
       taskRepository.findOne
         .mockResolvedValueOnce(mockTask)
