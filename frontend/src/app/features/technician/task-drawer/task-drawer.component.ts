@@ -97,14 +97,16 @@ export class TaskDrawerComponent implements OnChanges {
       this._currentStatus = this.task.status;
       this._technicianOverride = null;
       this.loadInfrastructure();
-      this.taskConfigService.getAll().subscribe(configs => {
-        this.taskConfig = configs.find(c => c.taskType === this.task.type) ?? null;
-      });
 
       if (this.task.type === 'EXPIRATION_CONTROL') {
+        // El tiempo predefinido de esta tarea viene por tipo de vencimiento
+        // (expirationsTypeConfigs), no de task_config — se resuelve en loadExpirationDetail.
         this.loadExpirationDetail();
       } else {
         this.expirationDetail = null;
+        this.taskConfigService.getAll().subscribe(configs => {
+          this.taskConfig = configs.find(c => c.taskType === this.task.type) ?? null;
+        });
       }
     }
   }
@@ -134,9 +136,23 @@ export class TaskDrawerComponent implements OnChanges {
 
   loadExpirationDetail(): void {
     this.expirationDetail = null;
+    this.taskConfig = null;
     this.loadingExpirationDetail = true;
     this.notificationsService?.getExpirationByTaskId(this.task.id).subscribe({
-      next: detail => { this.expirationDetail = detail; this.loadingExpirationDetail = false; },
+      next: detail => {
+        this.expirationDetail = detail;
+        this.taskConfig = detail ? {
+          taskType: 'EXPIRATION_CONTROL',
+          defaultTimeMinutes: detail.defaultTimeMinutes,
+          odooTagIds: [],
+          odooTagNames: [],
+          ticketDescription: null,
+          timesheetDescription: null,
+          ondraOwnedHosts: [],
+          updatedAt: '',
+        } : null;
+        this.loadingExpirationDetail = false;
+      },
       error: () => { this.loadingExpirationDetail = false; },
     });
   }
