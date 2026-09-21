@@ -608,10 +608,10 @@ export class OdooService {
     employeeId: number,
     unitAmount: number,
     taskType: TaskType,
+    expirationType?: string | null,
   ): Promise<void> {
     const stageId = await this.resolveDoneStageId();
-    const config = await this.taskConfigService.findOne(taskType);
-    const timesheetDescription = config?.timesheetDescription ?? TIMESHEET_DESCRIPTION_DEFAULT;
+    const timesheetDescription = await this.resolveTimesheetDescription(taskType, expirationType);
     await this.logTimesheet(odooTicketId, employeeId, unitAmount, timesheetDescription);
     await this.systemRpc.callKw<boolean>(
       'helpdesk.ticket',
@@ -619,6 +619,19 @@ export class OdooService {
       [[odooTicketId], { stage_id: stageId }],
       {},
     );
+  }
+
+  private async resolveTimesheetDescription(
+    taskType: TaskType,
+    expirationType?: string | null,
+  ): Promise<string> {
+    if (taskType === TaskType.EXPIRATION_CONTROL && expirationType) {
+      const config = await this.integrationConfigService.getOdoo();
+      const typeConfigs = (config.expirationsTypeConfigs ?? {}) as Record<string, { timesheetDescription?: string | null }>;
+      return typeConfigs[expirationType]?.timesheetDescription?.trim() || TIMESHEET_DESCRIPTION_DEFAULT;
+    }
+    const config = await this.taskConfigService.findOne(taskType);
+    return config?.timesheetDescription ?? TIMESHEET_DESCRIPTION_DEFAULT;
   }
 
   async createTicket(
