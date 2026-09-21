@@ -22,6 +22,9 @@ export class ExpirationTicket {
   @Column({ type: 'int', nullable: true })
   odooTicketId: number | null;
 
+  @Column({ name: 'task_id', type: 'uuid', nullable: true, default: null })
+  taskId: string | null;
+
   @Column({ type: 'timestamptz', default: () => 'now()' })
   createdAt: Date;
 }

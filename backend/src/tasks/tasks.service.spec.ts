@@ -162,7 +162,7 @@ describe('TasksService', () => {
 
       const result = await service.findAll({});
 
-      expect((result[0].technician.user as any).avatarUrl).toBe('/avatars/photo.jpg');
+      expect((result[0].technician!.user as any).avatarUrl).toBe('/avatars/photo.jpg');
     });
 
     it('retorna avatarUrl null cuando el técnico no tiene foto', async () => {
@@ -174,7 +174,7 @@ describe('TasksService', () => {
 
       const result = await service.findAll({});
 
-      expect((result[0].technician.user as any).avatarUrl).toBeNull();
+      expect((result[0].technician!.user as any).avatarUrl).toBeNull();
     });
 
     it('incluye las notas del maintenance log de cada tarea', async () => {
