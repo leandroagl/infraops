@@ -550,11 +550,11 @@ export class OdooService {
   async createExpirationTicket(
     item: ExpirationItemDto,
     infraopsClientId: string,
+    helpdeskTeamId: number,
+    tagIds: number[],
   ): Promise<number> {
-    const config = await this.integrationConfigService.getOdooConfigDecrypted();
-
-    if (!config.expirationsHelpdeskTeamId) {
-      throw new BadRequestException('expirationsHelpdeskTeamId no está configurado');
+    if (!helpdeskTeamId) {
+      throw new BadRequestException('No hay equipo de Odoo configurado para este tipo de vencimiento');
     }
 
     const partnerId = await this.resolvePartnerId(infraopsClientId);
@@ -569,7 +569,7 @@ export class OdooService {
     const description = `<p>Fecha de vencimiento: <strong>${item.expireDate}</strong></p><p>Días restantes: ${item.daysUntil}</p>`;
 
     const payload: Record<string, unknown> = {
-      team_id: config.expirationsHelpdeskTeamId,
+      team_id: helpdeskTeamId,
       partner_id: partnerId,
       name,
       description,
@@ -579,8 +579,8 @@ export class OdooService {
       payload['sale_line_id'] = saleLineId;
     }
 
-    if (config.expirationsTagIds && config.expirationsTagIds.length > 0) {
-      payload['tag_ids'] = [[6, 0, config.expirationsTagIds]];
+    if (tagIds.length > 0) {
+      payload['tag_ids'] = [[6, 0, tagIds]];
     }
 
     const ticketId = await this.systemRpc.callKw<number>(

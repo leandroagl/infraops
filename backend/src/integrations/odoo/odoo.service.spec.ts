@@ -1546,7 +1546,7 @@ describe('OdooService', () => {
     });
 
     it('construye payload con team_id, partner_id, name con typeLabel, sin user_id', async () => {
-      await service.createExpirationTicket(makeExpItem({ type: 'domain', itemName: 'acme.com', clientName: 'Acme' }), 'client-uuid-1');
+      await service.createExpirationTicket(makeExpItem({ type: 'domain', itemName: 'acme.com', clientName: 'Acme' }), 'client-uuid-1', 9, []);
       expect(odooRpc.callKw).toHaveBeenCalledWith(
         'helpdesk.ticket', 'create',
         [expect.objectContaining({
@@ -1563,11 +1563,20 @@ describe('OdooService', () => {
       );
     });
 
+    it('usa el team_id pasado por parámetro, no un valor global', async () => {
+      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1', 42, []);
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket', 'create',
+        [expect.objectContaining({ team_id: 42 })],
+        {},
+      );
+    });
+
     it('incluye sale_line_id si el cliente tiene mapeo', async () => {
       clientRepo.findOne
         .mockResolvedValueOnce(makeClient({ id: 'client-uuid-1', odooPartnerId: 101 }))
         .mockResolvedValueOnce(makeClient({ id: 'client-uuid-1', odooPartnerId: 101, odooSaleLineId: 55 }));
-      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1');
+      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1', 9, []);
       expect(odooRpc.callKw).toHaveBeenCalledWith(
         'helpdesk.ticket', 'create',
         [expect.objectContaining({ sale_line_id: 55 })],
@@ -1581,19 +1590,13 @@ describe('OdooService', () => {
         .mockResolvedValueOnce(makeClient({ id: 'client-uuid-1', odooPartnerId: 101, odooSaleLineId: null }));
       odooRpc.callKw.mockResolvedValue(null);
       odooRpc.callKw.mockResolvedValue(999);
-      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1');
+      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1', 9, []);
       const callArg = odooRpc.callKw.mock.calls[0][2][0] as Record<string, unknown>;
       expect(callArg['sale_line_id']).toBeUndefined();
     });
 
-    it('incluye tag_ids si hay tags configurados', async () => {
-      integrationConfigServiceMock.getOdooConfigDecrypted.mockResolvedValue({
-        url: 'u', db: 'd', username: 'u', apiKey: 'k',
-        helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9,
-        expirationsTicketDaysAhead: 30, expirationsTagIds: [3, 5],
-        stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho',
-      });
-      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1');
+    it('incluye tag_ids si se pasan tags', async () => {
+      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1', 9, [3, 5]);
       expect(odooRpc.callKw).toHaveBeenCalledWith(
         'helpdesk.ticket', 'create',
         [expect.objectContaining({ tag_ids: [[6, 0, [3, 5]]] })],
@@ -1601,32 +1604,26 @@ describe('OdooService', () => {
       );
     });
 
-    it('omite tag_ids si expirationsTagIds está vacío', async () => {
-      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1');
+    it('omite tag_ids si el array de tags está vacío', async () => {
+      await service.createExpirationTicket(makeExpItem(), 'client-uuid-1', 9, []);
       const callArg = odooRpc.callKw.mock.calls[0][2][0] as Record<string, unknown>;
       expect(callArg['tag_ids']).toBeUndefined();
     });
 
-    it('lanza BadRequestException si expirationsHelpdeskTeamId es null', async () => {
-      integrationConfigServiceMock.getOdooConfigDecrypted.mockResolvedValue({
-        url: 'u', db: 'd', username: 'u', apiKey: 'k',
-        helpdeskTeamId: 7, expirationsHelpdeskTeamId: null,
-        expirationsTicketDaysAhead: 30, expirationsTagIds: [],
-        stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho',
-      });
-      await expect(service.createExpirationTicket(makeExpItem(), 'client-uuid-1'))
+    it('lanza BadRequestException si helpdeskTeamId es 0 (sin equipo configurado)', async () => {
+      await expect(service.createExpirationTicket(makeExpItem(), 'client-uuid-1', 0, []))
         .rejects.toThrow(BadRequestException);
     });
 
     it('lanza BadRequestException si partnerId no resuelto', async () => {
       clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: null, taxIdNumber: null }));
-      await expect(service.createExpirationTicket(makeExpItem(), 'client-uuid-1'))
+      await expect(service.createExpirationTicket(makeExpItem(), 'client-uuid-1', 9, []))
         .rejects.toThrow(BadRequestException);
     });
 
     it('lanza ServiceUnavailableException si Odoo devuelve false', async () => {
       odooRpc.callKw.mockResolvedValue(false);
-      await expect(service.createExpirationTicket(makeExpItem(), 'client-uuid-1'))
+      await expect(service.createExpirationTicket(makeExpItem(), 'client-uuid-1', 9, []))
         .rejects.toThrow(ServiceUnavailableException);
     });
 
@@ -1640,7 +1637,7 @@ describe('OdooService', () => {
       for (const [type, label] of cases) {
         odooRpc.callKw.mockResolvedValue(999);
         clientRepo.findOne.mockResolvedValue(makeClient({ id: 'client-uuid-1', odooPartnerId: 101 }));
-        await service.createExpirationTicket(makeExpItem({ type }), 'client-uuid-1');
+        await service.createExpirationTicket(makeExpItem({ type }), 'client-uuid-1', 9, []);
         const callArg = odooRpc.callKw.mock.calls[odooRpc.callKw.mock.calls.length - 1][2][0] as Record<string, unknown>;
         expect(callArg['name']).toContain(label);
       }
