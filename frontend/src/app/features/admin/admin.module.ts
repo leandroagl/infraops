@@ -33,6 +33,7 @@ import { IntegracionesComponent } from './integraciones/integraciones.component'
 import { TaskConfigComponent } from './task-config/task-config.component';
 import { TaskEditDialogComponent } from './task-config/task-edit-dialog/task-edit-dialog.component';
 import { NotificationsConfigComponent } from './notifications-config/notifications-config.component';
+import { NotificationsTypeEditDialogComponent } from './notifications-config/type-edit-dialog/notifications-type-edit-dialog.component';
 
 @NgModule({
   declarations: [
@@ -47,6 +48,7 @@ import { NotificationsConfigComponent } from './notifications-config/notificatio
     TaskConfigComponent,
     TaskEditDialogComponent,
     NotificationsConfigComponent,
+    NotificationsTypeEditDialogComponent,
   ],
   imports: [
     CommonModule,

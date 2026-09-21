@@ -156,6 +156,7 @@ export class TasksService {
     type: TaskType;
     odooTicketId: number;
     scheduledDate: string;
+    expirationType?: string | null;
   }): Promise<Task> {
     const client = await this.clientRepository.findOne({
       where: { id: params.clientId },
@@ -168,6 +169,7 @@ export class TasksService {
       type: params.type,
       scheduledDate: params.scheduledDate,
       odooTicketId: params.odooTicketId,
+      expirationType: params.expirationType ?? null,
     });
     const saved = await this.taskRepository.save(task);
     return this.loadTask(saved.id);
@@ -251,7 +253,7 @@ export class TasksService {
         throw new BadRequestException('Se requiere timeSpentMinutes para marcar una tarea como DONE');
 
       const unitAmount = options.timeSpentMinutes / 60;
-      await this.odooService.closeTicket(task.odooTicketId, employeeId, unitAmount, task.type);
+      await this.odooService.closeTicket(task.odooTicketId, employeeId, unitAmount, task.type, task.expirationType);
     }
 
     await this.taskRepository.update(id, { status: newStatus, completedDate });

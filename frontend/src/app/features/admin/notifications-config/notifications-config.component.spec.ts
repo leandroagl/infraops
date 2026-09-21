@@ -1,21 +1,18 @@
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTableModule } from '@angular/material/table';
+import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-import { NEVER, of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { NotificationsConfigComponent } from './notifications-config.component';
 import { IntegrationConfigService } from '../../../core/services/integration-config.service';
-import { NotificationsService } from '../../../core/services/notifications.service';
+import { ExpirationTypeConfigEntry } from '../../../core/models/notification.models';
+import { NotificationsTypeEditDialogComponent } from './type-edit-dialog/notifications-type-edit-dialog.component';
 
 const MOCK_TEAMS = [{ id: 9, name: 'Vencimientos' }, { id: 7, name: 'Mantenimientos' }];
-const MOCK_TAGS  = [{ id: 3, name: 'Urgente' }, { id: 5, name: 'Garantía' }];
 
 function mockConfig(expirationsTypeConfigs: object | null = null) {
   return {
@@ -32,38 +29,20 @@ describe('NotificationsConfigComponent', () => {
   let fixture: ComponentFixture<NotificationsConfigComponent>;
   let comp: NotificationsConfigComponent;
   let svc: jasmine.SpyObj<IntegrationConfigService>;
-  let notificationsSvc: jasmine.SpyObj<NotificationsService>;
-  let router: jasmine.SpyObj<Router>;
+  let dialog: jasmine.SpyObj<MatDialog>;
 
   beforeEach(async () => {
-    svc = jasmine.createSpyObj('IntegrationConfigService', [
-      'getOdoo', 'getHelpdeskTeams', 'getHelpdeskTags',
-    ]);
+    svc = jasmine.createSpyObj('IntegrationConfigService', ['getOdoo', 'getHelpdeskTeams']);
     svc.getOdoo.and.returnValue(of(mockConfig() as any));
     svc.getHelpdeskTeams.and.returnValue(of(MOCK_TEAMS));
-    svc.getHelpdeskTags.and.returnValue(of(MOCK_TAGS));
-
-    notificationsSvc = jasmine.createSpyObj('NotificationsService', ['patchConfig']);
-    notificationsSvc.patchConfig.and.returnValue(of({}));
-
-    router = jasmine.createSpyObj('Router', ['navigate']);
+    dialog = jasmine.createSpyObj('MatDialog', ['open']);
 
     await TestBed.configureTestingModule({
       declarations: [NotificationsConfigComponent],
-      imports: [
-        NoopAnimationsModule,
-        ReactiveFormsModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatSelectModule,
-        MatButtonModule,
-        MatProgressSpinnerModule,
-        MatSlideToggleModule,
-      ],
+      imports: [NoopAnimationsModule, MatTableModule, MatIconModule, MatButtonModule, MatDialogModule, MatProgressSpinnerModule],
       providers: [
         { provide: IntegrationConfigService, useValue: svc },
-        { provide: NotificationsService, useValue: notificationsSvc },
-        { provide: Router, useValue: router },
+        { provide: MatDialog, useValue: dialog },
       ],
       schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
@@ -73,116 +52,105 @@ describe('NotificationsConfigComponent', () => {
     fixture.detectChanges();
   });
 
-  it('carga config, teams y tags al inicializar', fakeAsync(() => {
-    tick();
+  it('carga los 4 tipos con defaults cuando no hay config guardada', () => {
     expect(svc.getOdoo).toHaveBeenCalled();
-    expect(svc.getHelpdeskTeams).toHaveBeenCalled();
-    expect(svc.getHelpdeskTags).toHaveBeenCalled();
     expect(comp.loading).toBe(false);
-    expect(comp.teams).toEqual(MOCK_TEAMS);
-    expect(comp.tags).toEqual(MOCK_TAGS);
-  }));
+    expect(comp.configs.length).toBe(4);
+    expect(comp.configs.map(c => c.type)).toEqual(['asset_warranty', 'certificate', 'domain', 'software']);
+    expect(comp.configs[0].enabled).toBe(false);
+  });
 
-  it('popula el formulario con expirationsTypeConfigs existente', fakeAsync(() => {
+  it('combina expirationsTypeConfigs existente con defaults para los tipos faltantes', () => {
     const configs = {
-      domain:         { enabled: true,  helpdeskTeamId: 9, daysAhead: 14, tagIds: [3] },
-      asset_warranty: { enabled: false, helpdeskTeamId: null, daysAhead: 60, tagIds: [] },
+      domain: {
+        enabled: true, helpdeskTeamId: 9, daysAhead: 14, tagIds: [3],
+        taskName: 'Dominio', defaultTimeMinutes: 20, ticketDescription: null, timesheetDescription: null,
+      },
     };
     svc.getOdoo.and.returnValue(of(mockConfig(configs) as any));
     const f = TestBed.createComponent(NotificationsConfigComponent);
     f.detectChanges();
-    tick();
-    const domainGroup = f.componentInstance.form.get('domain')!;
-    expect(domainGroup.get('enabled')!.value).toBe(true);
-    expect(domainGroup.get('helpdeskTeamId')!.value).toBe(9);
-    expect(domainGroup.get('daysAhead')!.value).toBe(14);
-    expect(domainGroup.get('tagIds')!.value).toEqual([3]);
-  }));
 
-  it('toggle ON habilita campos del tipo', fakeAsync(() => {
-    tick();
-    const group = comp.form.get('domain')!;
-    expect(group.get('helpdeskTeamId')!.disabled).toBe(true);
-    group.get('enabled')!.setValue(true);
-    comp.onToggleChange('domain');
-    expect(group.get('helpdeskTeamId')!.disabled).toBe(false);
-    expect(group.get('daysAhead')!.disabled).toBe(false);
-    expect(group.get('tagIds')!.disabled).toBe(false);
-  }));
+    const domainRow = f.componentInstance.configs.find(c => c.type === 'domain')!;
+    expect(domainRow.enabled).toBe(true);
+    expect(domainRow.helpdeskTeamId).toBe(9);
+    expect(domainRow.defaultTimeMinutes).toBe(20);
 
-  it('toggle OFF deshabilita campos del tipo', fakeAsync(() => {
-    tick();
-    const group = comp.form.get('software')!;
-    group.get('enabled')!.setValue(true);
-    comp.onToggleChange('software');
-    expect(group.get('helpdeskTeamId')!.disabled).toBe(false);
-    group.get('enabled')!.setValue(false);
-    comp.onToggleChange('software');
-    expect(group.get('helpdeskTeamId')!.disabled).toBe(true);
-    expect(group.get('daysAhead')!.disabled).toBe(true);
-  }));
+    const certRow = f.componentInstance.configs.find(c => c.type === 'certificate')!;
+    expect(certRow.enabled).toBe(false);
+  });
 
-  it('formValid es false cuando un tipo está habilitado pero sin equipo', fakeAsync(() => {
-    tick();
-    const group = comp.form.get('domain')!;
-    group.get('enabled')!.setValue(true);
-    comp.onToggleChange('domain');
-    group.get('helpdeskTeamId')!.setValue(null);
-    expect(comp.formValid).toBe(false);
-  }));
+  it('loading termina en false aunque getOdoo falle', () => {
+    svc.getOdoo.and.returnValue(throwError(() => new Error('fail')));
+    const f = TestBed.createComponent(NotificationsConfigComponent);
+    f.detectChanges();
+    expect(f.componentInstance.loading).toBe(false);
+  });
 
-  it('formValid es true cuando todos los tipos habilitados tienen equipo', fakeAsync(() => {
-    tick();
-    const group = comp.form.get('domain')!;
-    group.get('enabled')!.setValue(true);
-    comp.onToggleChange('domain');
-    group.get('helpdeskTeamId')!.setValue(9);
-    expect(comp.formValid).toBe(true);
-  }));
+  it('carga los equipos para resolver el nombre en la tabla', () => {
+    expect(svc.getHelpdeskTeams).toHaveBeenCalled();
+    expect(comp.teamName(9)).toBe('Vencimientos');
+  });
 
-  it('save llama patchConfig con el payload correcto para tipos activos e inactivos', fakeAsync(() => {
-    tick();
-    const group = comp.form.get('domain')!;
-    group.get('enabled')!.setValue(true);
-    comp.onToggleChange('domain');
-    group.get('helpdeskTeamId')!.setValue(9);
-    group.get('daysAhead')!.setValue(14);
-    group.get('tagIds')!.setValue([3]);
-    comp.save();
-    tick();
-    const call = notificationsSvc.patchConfig.calls.mostRecent().args[0];
-    expect(call['domain']).toEqual({
-      enabled: true, helpdeskTeamId: 9, daysAhead: 14, tagIds: [3],
+  it('teamName devuelve "—" para un id sin equipo asociado', () => {
+    expect(comp.teamName(null)).toBe('—');
+    expect(comp.teamName(999)).toBe('—');
+  });
+
+  it('openEdit abre el dialog con el tipo y la entrada de la fila', () => {
+    const row = comp.configs[0];
+    dialog.open.and.returnValue({ afterClosed: () => of(null) } as any);
+
+    comp.openEdit(row);
+
+    expect(dialog.open).toHaveBeenCalledWith(NotificationsTypeEditDialogComponent, {
+      data: { type: row.type, entry: row },
+      width: '640px', maxWidth: '90vw',
     });
-    expect(call['software'].enabled).toBe(false);
-  }));
+  });
 
-  it('save bloquea cuando formValid es false (enabled sin team)', fakeAsync(() => {
-    tick();
-    const group = comp.form.get('domain')!;
-    group.get('enabled')!.setValue(true);
-    comp.onToggleChange('domain');
-    group.get('helpdeskTeamId')!.setValue(null);
-    comp.save();
-    tick();
-    expect(notificationsSvc.patchConfig).not.toHaveBeenCalled();
-  }));
+  it('actualiza la fila local cuando el dialog devuelve una entrada guardada', () => {
+    const row = comp.configs.find(c => c.type === 'domain')!;
+    const updated: ExpirationTypeConfigEntry = { ...row, enabled: true, helpdeskTeamId: 9 };
+    dialog.open.and.returnValue({ afterClosed: () => of(updated) } as any);
 
-  it('save navega a /notifications al completar', fakeAsync(() => {
-    tick();
-    comp.save();
-    tick();
-    expect(router.navigate).toHaveBeenCalledWith(['/notifications']);
-  }));
+    comp.openEdit(row);
 
-  it('save activa saving=true mientras está en progreso', fakeAsync(() => {
-    tick();
-    notificationsSvc.patchConfig.and.returnValue(NEVER);
-    comp.save();
-    expect(comp.saving).toBe(true);
-  }));
+    const result = comp.configs.find(c => c.type === 'domain')!;
+    expect(result.enabled).toBe(true);
+    expect(result.helpdeskTeamId).toBe(9);
+  });
+
+  it('no modifica las filas cuando el dialog se cierra sin guardar', () => {
+    const before = [...comp.configs];
+    dialog.open.and.returnValue({ afterClosed: () => of(null) } as any);
+
+    comp.openEdit(comp.configs[0]);
+
+    expect(comp.configs).toEqual(before);
+  });
+
+  it('solo actualiza la fila correspondiente cuando hay más de un tipo', () => {
+    const domainRow = comp.configs.find(c => c.type === 'domain')!;
+    const certRow = comp.configs.find(c => c.type === 'certificate')!;
+    const updated: ExpirationTypeConfigEntry = { ...domainRow, enabled: true };
+    dialog.open.and.returnValue({ afterClosed: () => of(updated) } as any);
+
+    comp.openEdit(domainRow);
+
+    expect(comp.configs.find(c => c.type === 'domain')!.enabled).toBe(true);
+    expect(comp.configs.find(c => c.type === 'certificate')!).toEqual(certRow);
+  });
+
+  it('formatMinutes muestra "— sin configurar" cuando minutes es null', () => {
+    expect(comp.formatMinutes(null)).toBe('— sin configurar');
+  });
+
+  it('formatMinutes formatea 90 minutos como 1:30 h', () => {
+    expect(comp.formatMinutes(90)).toBe('1:30 h');
+  });
 
   it('displayedColumns incluye todas las columnas de la tabla', () => {
-    expect(comp.displayedColumns).toEqual(['type', 'enabled', 'helpdeskTeamId', 'daysAhead', 'tagIds']);
+    expect(comp.displayedColumns).toEqual(['type', 'enabled', 'helpdeskTeamId', 'daysAhead', 'defaultTimeMinutes', 'tagIds', 'actions']);
   });
 });

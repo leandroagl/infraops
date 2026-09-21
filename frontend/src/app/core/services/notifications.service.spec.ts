@@ -36,12 +36,16 @@ describe('NotificationsService', () => {
     req.flush(null);
   });
 
-  it('patchConfig hace PATCH a /notifications/config con expirationsTypeConfigs', () => {
-    const configs = { domain: { enabled: true, helpdeskTeamId: 9, daysAhead: 30, tagIds: [] } };
-    service.patchConfig(configs).subscribe();
-    const req = http.expectOne(`${base}/config`);
+  it('patchTypeConfig hace PATCH a /notifications/config/:type con la entrada completa', () => {
+    const entry = {
+      enabled: true, helpdeskTeamId: 9, daysAhead: 30, tagIds: [],
+      taskName: 'Dominio', defaultTimeMinutes: 20,
+      ticketDescription: null, timesheetDescription: null,
+    };
+    service.patchTypeConfig('domain', entry).subscribe();
+    const req = http.expectOne(`${base}/config/domain`);
     expect(req.request.method).toBe('PATCH');
-    expect(req.request.body).toEqual({ expirationsTypeConfigs: configs });
+    expect(req.request.body).toEqual(entry);
     req.flush({});
   });
 });

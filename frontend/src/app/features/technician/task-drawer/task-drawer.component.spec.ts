@@ -458,6 +458,43 @@ describe('TaskDrawerComponent — pure unit tests', () => {
 
   // ── loadExpirationDetail() ───────────────────────────────────────────────
 
+  describe('ngOnChanges — sourcing de taskConfig por tipo', () => {
+    const emptyInfra = { windowsVMs: [], domainControllers: [], linuxVMs: [], esxiHosts: [], nas: [], routers: [] };
+
+    it('para EXPIRATION_CONTROL no llama a taskConfigService.getAll', () => {
+      const getAllSpy = jasmine.createSpy('getAll');
+      const notifComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(emptyInfra) } as any,
+        { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } as any,
+        { updateStatus: () => of({}) } as any,
+        mockDialog,
+        { getAll: getAllSpy } as any,
+        { getExpirationByTaskId: () => of(null) } as any,
+      );
+      notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL' });
+
+      notifComponent.ngOnChanges({ task: {} as any });
+
+      expect(getAllSpy).not.toHaveBeenCalled();
+    });
+
+    it('para otros tipos sigue llamando a taskConfigService.getAll como antes', () => {
+      const getAllSpy = jasmine.createSpy('getAll').and.returnValue(of([mockTaskConfig]));
+      const notifComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(emptyInfra) } as any,
+        { create: () => of({}), update: () => of({}), get: () => throwError(() => ({ status: 404 })) } as any,
+        { updateStatus: () => of({}) } as any,
+        mockDialog,
+        { getAll: getAllSpy } as any,
+      );
+      notifComponent.task = makeTask({ type: 'WINDOWS_DOMAIN_MAINTENANCE' });
+
+      notifComponent.ngOnChanges({ task: {} as any });
+
+      expect(getAllSpy).toHaveBeenCalled();
+    });
+  });
+
   describe('loadExpirationDetail()', () => {
     it('pide el detalle cuando el tipo es EXPIRATION_CONTROL', () => {
       const getDetailSpy = jasmine.createSpy('getExpirationByTaskId').and.returnValue(of({
@@ -479,6 +516,47 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(getDetailSpy).toHaveBeenCalledWith('task-1');
       expect(notifComponent.expirationDetail?.itemName).toBe('acme.com');
       expect(notifComponent.loadingExpirationDetail).toBe(false);
+    });
+
+    it('sintetiza taskConfig con defaultTimeMinutes del detalle en vez de leer taskConfigService', () => {
+      const getDetailSpy = jasmine.createSpy('getExpirationByTaskId').and.returnValue(of({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-08-01', clientId: 'client-1',
+        clientName: 'Acme', itemName: 'acme.com', daysUntil: 5, odooTicketId: 500,
+        defaultTimeMinutes: 45,
+      }));
+      const getAllSpy = jasmine.createSpy('getAll');
+      const notifComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: () => of({}), update: () => of({}) } as any,
+        { updateStatus: () => of({}) } as any,
+        mockDialog,
+        { getAll: getAllSpy } as any,
+        { getExpirationByTaskId: getDetailSpy } as any,
+      );
+      notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL' });
+
+      notifComponent.loadExpirationDetail();
+
+      expect(notifComponent.taskConfig?.defaultTimeMinutes).toBe(45);
+      expect(notifComponent.taskConfig?.taskType).toBe('EXPIRATION_CONTROL');
+      expect(getAllSpy).not.toHaveBeenCalled();
+    });
+
+    it('taskConfig queda null si el detalle no trae fila (ticket sin Task asociada)', () => {
+      const getDetailSpy = jasmine.createSpy('getExpirationByTaskId').and.returnValue(of(null));
+      const notifComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: () => of({}), update: () => of({}) } as any,
+        { updateStatus: () => of({}) } as any,
+        mockDialog,
+        makeMockTaskConfigService(),
+        { getExpirationByTaskId: getDetailSpy } as any,
+      );
+      notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL' });
+
+      notifComponent.loadExpirationDetail();
+
+      expect(notifComponent.taskConfig).toBeNull();
     });
 
     it('deja loadingExpirationDetail en false si falla', () => {

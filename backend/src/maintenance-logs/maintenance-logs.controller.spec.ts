@@ -40,6 +40,7 @@ describe('MaintenanceLogsController', () => {
     status: TaskStatus.IN_PROGRESS,
     scheduledDate: '2026-06-01',
     completedDate: null,
+    expirationType: null,
     odooTicketId: null,
     createdAt: new Date('2026-05-01'),
   };

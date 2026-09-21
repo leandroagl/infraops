@@ -94,6 +94,7 @@ describe('TasksService', () => {
     scheduledDate: '2026-06-01',
     completedDate: null,
     odooTicketId: null,
+    expirationType: null,
     createdAt: new Date('2026-05-01'),
   };
 
@@ -531,12 +532,26 @@ describe('TasksService', () => {
         type: TaskType.EXPIRATION_CONTROL,
         scheduledDate: '2026-08-15',
         odooTicketId: 777,
+        expirationType: null,
       });
       expect(taskRepository.save).toHaveBeenCalled();
       expect(odooService.createTicket).not.toHaveBeenCalled();
       expect(infrastructureService.getClientInfrastructure).not.toHaveBeenCalled();
       expect(result.technicianId).toBeNull();
       expect(result.odooTicketId).toBe(777);
+    });
+
+    it('persiste expirationType cuando se provee en params', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      taskRepository.create.mockReturnValue({ ...mockTask, expirationType: 'domain' });
+      taskRepository.save.mockResolvedValue({ ...mockTask, expirationType: 'domain' });
+      taskRepository.findOne.mockResolvedValue({ ...mockTask, expirationType: 'domain' });
+
+      await service.createFromExistingTicket({ ...params, expirationType: 'domain' });
+
+      expect(taskRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ expirationType: 'domain' }),
+      );
     });
 
     it('lanza NotFoundException si el cliente no existe', async () => {
@@ -741,7 +756,28 @@ describe('TasksService', () => {
       await service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 });
 
       expect(odooService.resolveEmployeeId).toHaveBeenCalledWith('user-1');
-      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5, inProgressTask.type);
+      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5, inProgressTask.type, null);
+    });
+
+    it('pasa expirationType de la tarea a closeTicket cuando está seteado', async () => {
+      const inProgressTask = {
+        ...mockTask,
+        status: TaskStatus.IN_PROGRESS,
+        odooTicketId: 42,
+        type: TaskType.EXPIRATION_CONTROL,
+        expirationType: 'domain',
+        technician: { user: mockUserWithOdooId },
+      };
+      taskRepository.findOne
+        .mockResolvedValueOnce(inProgressTask)
+        .mockResolvedValueOnce({ ...inProgressTask, status: TaskStatus.DONE });
+      odooService.resolveEmployeeId.mockResolvedValue(22);
+      odooService.closeTicket.mockResolvedValue(undefined);
+      taskRepository.update.mockResolvedValue({ affected: 1 });
+
+      await service.updateStatus('task-1', TaskStatus.DONE, { timeSpentMinutes: 90 });
+
+      expect(odooService.closeTicket).toHaveBeenCalledWith(42, 22, 1.5, TaskType.EXPIRATION_CONTROL, 'domain');
     });
 
     it('llama markTicketNotDone al transicionar a NOT_DONE cuando la tarea tiene odooTicketId', async () => {

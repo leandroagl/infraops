@@ -3,6 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { TaskConfigService } from '../../../core/services/task-config.service';
 import { TaskTypeConfigDto } from '../../../core/models/task.models';
 import { TaskEditDialogComponent } from './task-edit-dialog/task-edit-dialog.component';
+import { formatMinutes } from '../../../shared/utils/time-format';
 
 @Component({
   selector: 'app-task-config',
@@ -41,10 +42,7 @@ export class TaskConfigComponent implements OnInit {
   }
 
   formatMinutes(minutes: number | null): string {
-    if (minutes == null) return '— sin configurar';
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    return `${h}:${m.toString().padStart(2, '0')} h`;
+    return formatMinutes(minutes);
   }
 
   readonly taskTypeLabels: Partial<Record<string, string>> = {

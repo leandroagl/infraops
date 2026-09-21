@@ -17,6 +17,10 @@ type TypeConfigEntry = {
   helpdeskTeamId: number | null;
   daysAhead: number;
   tagIds: number[];
+  taskName?: string | null;
+  defaultTimeMinutes?: number | null;
+  ticketDescription?: string | null;
+  timesheetDescription?: string | null;
 };
 type TypeConfigs = Record<string, TypeConfigEntry>;
 
@@ -61,6 +65,9 @@ export class ExpirationTicketsService {
       (i) => i.type === row.type && i.sourceId === row.sourceId,
     );
 
+    const config = await this.integrationConfigService.getOdoo();
+    const typeConfigs = (config.expirationsTypeConfigs ?? {}) as TypeConfigs;
+
     return {
       type: row.type,
       sourceId: row.sourceId,
@@ -73,6 +80,7 @@ export class ExpirationTicketsService {
       serial: liveItem?.serial,
       daysUntil: liveItem?.daysUntil ?? null,
       odooTicketId: row.odooTicketId,
+      defaultTimeMinutes: typeConfigs[row.type]?.defaultTimeMinutes ?? null,
     };
   }
 
@@ -127,7 +135,7 @@ export class ExpirationTicketsService {
 
         try {
           const odooTicketId = await this.odooService.createExpirationTicket(
-            item, client.id, cfg.helpdeskTeamId!, cfg.tagIds,
+            item, client.id, cfg.helpdeskTeamId!, cfg.tagIds, cfg.taskName, cfg.ticketDescription,
           );
           const savedTicket = await this.ticketRepo.save({
             type: item.type,
@@ -144,6 +152,7 @@ export class ExpirationTicketsService {
               type: TaskType.EXPIRATION_CONTROL,
               odooTicketId,
               scheduledDate: new Date().toISOString().slice(0, 10),
+              expirationType: item.type,
             });
             await this.ticketRepo.update(savedTicket.id, { taskId: task.id });
           } catch (err: unknown) {
@@ -169,20 +178,19 @@ export class ExpirationTicketsService {
   // deshabilitado a habilitado, pre-siembra su backlog actual (filas sin
   // odooTicketId real) para que el cron no dispare tickets para todo lo que
   // ya estaba pendiente — solo lo que aparezca de ahí en adelante.
-  async saveTypeConfigs(newConfigs: TypeConfigs, updatedBy: string): Promise<OdooConfigResponseDto> {
+  async saveTypeConfig(type: string, entry: TypeConfigEntry, updatedBy: string): Promise<OdooConfigResponseDto> {
     const before = await this.integrationConfigService.getOdoo();
     const oldConfigs = (before.expirationsTypeConfigs ?? {}) as TypeConfigs;
+    const wasEnabled = oldConfigs[type]?.enabled ?? false;
 
+    const newConfigs: TypeConfigs = { ...oldConfigs, [type]: entry };
     const result = await this.integrationConfigService.patchOdoo(
       { expirationsTypeConfigs: newConfigs },
       updatedBy,
     );
 
-    for (const [type, entry] of Object.entries(newConfigs)) {
-      const wasEnabled = oldConfigs[type]?.enabled ?? false;
-      if (entry.enabled && !wasEnabled) {
-        await this.seedBacklogForType(type, entry.daysAhead);
-      }
+    if (entry.enabled && !wasEnabled) {
+      await this.seedBacklogForType(type, entry.daysAhead);
     }
 
     return result;
