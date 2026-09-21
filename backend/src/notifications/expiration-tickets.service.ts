@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { NotificationsService } from './notifications.service';
 import { ExpirationTicket } from './expiration-ticket.entity';
-import { ExpirationItemDto } from './dto/expiration-item.dto';
+import { ExpirationItemDto, ExpirationDetailDto } from './dto/expiration-item.dto';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { IntegrationConfigService } from '../integration-config/integration-config.service';
 import { OdooConfigResponseDto } from '../integration-config/dto/odoo-config.dto';
@@ -50,6 +50,30 @@ export class ExpirationTicketsService {
         ? { ...item, odooTicketId: row.odooTicketId }
         : item;
     });
+  }
+
+  async getExpirationByTaskId(taskId: string): Promise<ExpirationDetailDto | null> {
+    const row = await this.ticketRepo.findOne({ where: { taskId } });
+    if (!row) return null;
+
+    const items = await this.notificationsService.getExpirations();
+    const liveItem = items.find(
+      (i) => i.type === row.type && i.sourceId === row.sourceId,
+    );
+
+    return {
+      type: row.type,
+      sourceId: row.sourceId,
+      expireDate: row.expireDate,
+      clientId: row.clientId,
+      clientName: liveItem?.clientName ?? null,
+      itemName: liveItem?.itemName ?? null,
+      make: liveItem?.make,
+      model: liveItem?.model,
+      serial: liveItem?.serial,
+      daysUntil: liveItem?.daysUntil ?? null,
+      odooTicketId: row.odooTicketId,
+    };
   }
 
   @Cron('0 8 * * *')

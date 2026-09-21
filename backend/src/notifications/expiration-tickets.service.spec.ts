@@ -13,7 +13,7 @@ import { TaskType } from '../tasks/task-type.enum';
 describe('ExpirationTicketsService', () => {
   let service: ExpirationTicketsService;
   let notificationsService: { getExpirations: jest.Mock };
-  let ticketRepo: { find: jest.Mock; save: jest.Mock; insert: jest.Mock; update: jest.Mock };
+  let ticketRepo: { find: jest.Mock; findOne: jest.Mock; save: jest.Mock; insert: jest.Mock; update: jest.Mock };
   let odooService: { createExpirationTicket: jest.Mock };
   let integrationConfigService: { getOdooConfigDecrypted: jest.Mock; getOdoo: jest.Mock; patchOdoo: jest.Mock };
   let clientRepo: { findOne: jest.Mock; find: jest.Mock };
@@ -39,6 +39,7 @@ describe('ExpirationTicketsService', () => {
     notificationsService = { getExpirations: jest.fn() };
     ticketRepo = {
       find: jest.fn().mockResolvedValue([]),
+      findOne: jest.fn().mockResolvedValue(null),
       save: jest.fn().mockResolvedValue({ id: 'ticket-row-1' }),
       insert: jest.fn().mockResolvedValue(undefined),
       update: jest.fn().mockResolvedValue(undefined),
@@ -126,6 +127,49 @@ describe('ExpirationTicketsService', () => {
 
       const result = await service.getExpirationsWithTickets();
       expect(result[0].odooTicketId).toBeUndefined();
+    });
+  });
+
+  describe('getExpirationByTaskId', () => {
+    it('devuelve null si no hay fila con ese taskId', async () => {
+      ticketRepo.findOne.mockResolvedValue(null);
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(result).toBeNull();
+      expect(ticketRepo.findOne).toHaveBeenCalledWith({ where: { taskId: 'task-1' } });
+    });
+
+    it('devuelve el detalle enriquecido con el ítem vivo de InfraDoc cuando existe', async () => {
+      ticketRepo.findOne.mockResolvedValue({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
+      });
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(notificationsService.getExpirations).toHaveBeenCalledWith();
+      expect(result).toEqual(expect.objectContaining({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', clientName: 'Acme', itemName: 'acme.com',
+        daysUntil: 17, odooTicketId: 500,
+      }));
+    });
+
+    it('devuelve un detalle parcial (sin itemName) si el ítem ya no aparece en InfraDoc', async () => {
+      ticketRepo.findOne.mockResolvedValue({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
+      });
+      notificationsService.getExpirations.mockResolvedValue([]);
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(result).toEqual(expect.objectContaining({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', itemName: null, daysUntil: null, odooTicketId: 500,
+      }));
     });
   });
 
