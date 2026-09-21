@@ -1,7 +1,7 @@
 <form [formGroup]="form" class="mf" *ngIf="form">
 
   <!-- ── Servidores Windows ─────────────────────────────── -->
-  <ng-container *ngIf="hasServers">
+  <ng-container *ngIf="hasServers && !isNotesOnlyType">
 
     <div class="mf-section-lbl">Servidores</div>
 
@@ -51,7 +51,7 @@
   </ng-container>
 
   <!-- ── Controladores de dominio ────────────────────────────── -->
-  <ng-container *ngIf="hasDomainControllers">
+  <ng-container *ngIf="hasDomainControllers && !isNotesOnlyType">
 
     <div class="mf-section-lbl">Controladores de dominio</div>
 
@@ -100,7 +100,7 @@
     <div class="mf-empty">Formulario no disponible para este tipo de tarea.</div>
   </ng-container>
 
-  <div *ngIf="!hasServers && !isTerminalType && !isUnsupported" class="mf-empty">
+  <div *ngIf="!hasServers && !isTerminalType && !isUnsupported && !isNotesOnlyType" class="mf-empty">
     No hay activos registrados para controlar.
   </div>
 

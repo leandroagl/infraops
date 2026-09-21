@@ -221,12 +221,40 @@ describe('MaintenanceFormComponent', () => {
     });
   });
 
+  // ── buildPayload — EXPIRATION_CONTROL ───────────────────────────────────────
+
+  describe('buildPayload — EXPIRATION_CONTROL', () => {
+    it('isNotesOnlyType es true para EXPIRATION_CONTROL', () => {
+      init(makeTask('EXPIRATION_CONTROL'), makeInfra());
+      expect(component.isNotesOnlyType).toBeTrue();
+    });
+
+    it('isNotesOnlyType es false para otros tipos', () => {
+      init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra());
+      expect(component.isNotesOnlyType).toBeFalse();
+    });
+
+    it('should build ExpirationControlPayload with solo notes, sin servers ni domainControllers', () => {
+      init(makeTask('EXPIRATION_CONTROL'), makeInfra());
+      component.form.patchValue({ notes: 'Licencia renovada por 1 año.' });
+      const payload = component.buildPayload() as any;
+      expect(payload).toEqual({ type: 'EXPIRATION_CONTROL', notes: 'Licencia renovada por 1 año.' });
+    });
+
+    it('patchFormFromPayload rellena notes desde un ExpirationControlPayload guardado', () => {
+      init(makeTask('EXPIRATION_CONTROL'), makeInfra());
+      component.savedPayload = { type: 'EXPIRATION_CONTROL', notes: 'Dominio renovado.' } as any;
+      component.ngOnChanges({ savedPayload: new SimpleChange(null, component.savedPayload, false) });
+      expect(component.form.get('notes')?.value).toBe('Dominio renovado.');
+    });
+  });
+
   // ── Outputs ─────────────────────────────────────────────────────────────────
 
   describe('outputs', () => {
     it('should emit requestComplete with payload on submit()', () => {
       init(makeTask('WINDOWS_DOMAIN_MAINTENANCE'), makeInfra({ esxiHosts: [], nas: [], routers: [] }));
-      const emitted: (WindowsDomainPayload | TerminalPayload)[] = [];
+      const emitted: (WindowsDomainPayload | TerminalPayload | { type: string })[] = [];
       component.requestComplete.subscribe(p => emitted.push(p));
       component.submit();
       expect(emitted.length).toBe(1);

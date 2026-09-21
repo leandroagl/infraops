@@ -29,6 +29,13 @@ describe('NotificationsService', () => {
     req.flush([]);
   });
 
+  it('getExpirationByTaskId hace GET a /notifications/expiration-tickets/by-task/:taskId', () => {
+    service.getExpirationByTaskId('task-1').subscribe();
+    const req = http.expectOne(`${base}/expiration-tickets/by-task/task-1`);
+    expect(req.request.method).toBe('GET');
+    req.flush(null);
+  });
+
   it('patchConfig hace PATCH a /notifications/config con expirationsTypeConfigs', () => {
     const configs = { domain: { enabled: true, helpdeskTeamId: 9, daysAhead: 30, tagIds: [] } };
     service.patchConfig(configs).subscribe();

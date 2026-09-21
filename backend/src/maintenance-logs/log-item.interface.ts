@@ -108,8 +108,14 @@ export interface TerminalPayload {
   notes?: string;
 }
 
+export interface ExpirationControlPayload {
+  type: 'EXPIRATION_CONTROL';
+  notes?: string;
+}
+
 export type MaintenancePayload =
   | ServerHostPayload
   | WindowsDomainPayload
   | RouterMaintenancePayload
-  | TerminalPayload;
+  | TerminalPayload
+  | ExpirationControlPayload;
