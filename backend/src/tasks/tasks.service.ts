@@ -28,6 +28,8 @@ const INFRA_ERROR_MESSAGES: Partial<Record<TaskType, string>> = {
   [TaskType.VEEAM_BACKUP]:               'El cliente no tiene dispositivos NAS/QNAP registrados en InfraDoc (requerido para Veeam)',
 };
 
+const OPEN_STATUSES: TaskStatus[] = [TaskStatus.PENDING, TaskStatus.IN_PROGRESS];
+
 const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   [TaskStatus.PENDING]: [TaskStatus.IN_PROGRESS, TaskStatus.NOT_DONE],
   [TaskStatus.IN_PROGRESS]: [
@@ -67,16 +69,36 @@ export class TasksService {
   ) {}
 
   async findAll(filters: FilterTasksDto): Promise<Task[]> {
-    const where: Record<string, unknown> = {};
-    if (filters.status) where['status'] = filters.status;
-    if (filters.clientId) where['clientId'] = filters.clientId;
-    if (filters.technicianId) where['technicianId'] = filters.technicianId;
-    if (filters.type) where['type'] = filters.type;
+    const baseWhere: Record<string, unknown> = {};
+    if (filters.status) baseWhere['status'] = filters.status;
+    if (filters.clientId) baseWhere['clientId'] = filters.clientId;
+    if (filters.technicianId) baseWhere['technicianId'] = filters.technicianId;
+    if (filters.type) baseWhere['type'] = filters.type;
+
+    let where: Record<string, unknown> | Record<string, unknown>[] = baseWhere;
+
     if (filters.year && filters.month) {
       const y = filters.year;
       const m = String(filters.month).padStart(2, '0');
       const lastDay = new Date(y, filters.month, 0).getDate();
-      where['scheduledDate'] = Between(`${y}-${m}-01`, `${y}-${m}-${String(lastDay).padStart(2, '0')}`);
+      const scheduledDate = Between(`${y}-${m}-01`, `${y}-${m}-${String(lastDay).padStart(2, '0')}`);
+      const monthWhere = { ...baseWhere, scheduledDate };
+
+      const typeAllowsExpiration = !filters.type || filters.type === TaskType.EXPIRATION_CONTROL;
+      const statusAllowsOpen = !filters.status || OPEN_STATUSES.includes(filters.status);
+
+      if (typeAllowsExpiration && statusAllowsOpen) {
+        where = [
+          monthWhere,
+          {
+            ...baseWhere,
+            type: TaskType.EXPIRATION_CONTROL,
+            status: filters.status ?? In(OPEN_STATUSES),
+          },
+        ];
+      } else {
+        where = monthWhere;
+      }
     }
 
     const tasks = await this.taskRepository.find({

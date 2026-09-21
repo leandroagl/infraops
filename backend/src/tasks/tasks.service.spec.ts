@@ -257,15 +257,59 @@ describe('TasksService', () => {
       });
     });
 
-    it('aplica filtro por month y year usando rango de scheduledDate', async () => {
+    it('aplica filtro por month y year usando rango de scheduledDate, y suma la rama de EXPIRATION_CONTROL abiertas', async () => {
       taskRepository.find.mockResolvedValue([mockTask]);
 
       await service.findAll({ year: 2026, month: 6 });
 
       const call = taskRepository.find.mock.calls[0][0];
-      expect(call.where.scheduledDate).toBeDefined();
-      expect(call.where.scheduledDate._type).toBe('between');
-      expect(call.where.scheduledDate._value).toEqual(['2026-06-01', '2026-06-30']);
+      expect(Array.isArray(call.where)).toBe(true);
+      const [monthBranch, persistentBranch] = call.where;
+      expect(monthBranch.scheduledDate._type).toBe('between');
+      expect(monthBranch.scheduledDate._value).toEqual(['2026-06-01', '2026-06-30']);
+      expect(persistentBranch.type).toBe(TaskType.EXPIRATION_CONTROL);
+      expect(persistentBranch.status._type).toBe('in');
+      expect(persistentBranch.status._value).toEqual([TaskStatus.PENDING, TaskStatus.IN_PROGRESS]);
+      expect(persistentBranch.scheduledDate).toBeUndefined();
+    });
+
+    it('no suma la rama persistente si se filtra explícitamente por otro type', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, type: TaskType.WINDOWS_DOMAIN_MAINTENANCE });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(Array.isArray(call.where)).toBe(false);
+      expect(call.where.type).toBe(TaskType.WINDOWS_DOMAIN_MAINTENANCE);
+    });
+
+    it('no suma la rama persistente si se filtra por un status cerrado', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, status: TaskStatus.DONE });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(Array.isArray(call.where)).toBe(false);
+      expect(call.where.status).toBe(TaskStatus.DONE);
+    });
+
+    it('respeta un status abierto explícito en la rama persistente', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, status: TaskStatus.PENDING });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      const [, persistentBranch] = call.where;
+      expect(persistentBranch.status).toBe(TaskStatus.PENDING);
+    });
+
+    it('suma la rama persistente si se filtra explícitamente por type EXPIRATION_CONTROL', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, type: TaskType.EXPIRATION_CONTROL });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(Array.isArray(call.where)).toBe(true);
     });
 
     it('no aplica filtro de rango si solo se provee year sin month', async () => {
