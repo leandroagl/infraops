@@ -50,6 +50,9 @@ export class Task {
   })
   odooTicketId: number | null;
 
+  @Column({ name: 'expiration_type', type: 'varchar', nullable: true, default: null })
+  expirationType: string | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }
