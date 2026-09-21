@@ -129,6 +129,28 @@ export class TasksService {
     return this.loadTask(saved.id);
   }
 
+  async createFromExistingTicket(params: {
+    clientId: string;
+    type: TaskType;
+    odooTicketId: number;
+    scheduledDate: string;
+  }): Promise<Task> {
+    const client = await this.clientRepository.findOne({
+      where: { id: params.clientId },
+    });
+    if (!client) throw new NotFoundException('Cliente no encontrado');
+
+    const task = this.taskRepository.create({
+      clientId: params.clientId,
+      technicianId: null,
+      type: params.type,
+      scheduledDate: params.scheduledDate,
+      odooTicketId: params.odooTicketId,
+    });
+    const saved = await this.taskRepository.save(task);
+    return this.loadTask(saved.id);
+  }
+
   async update(id: string, dto: UpdateTaskDto): Promise<Task> {
     if (Object.keys(dto).length === 0) {
       throw new BadRequestException(

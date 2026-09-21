@@ -444,6 +444,67 @@ describe('TasksService', () => {
     });
   });
 
+  describe('createFromExistingTicket', () => {
+    const params = {
+      clientId: 'client-1',
+      type: TaskType.EXPIRATION_CONTROL,
+      odooTicketId: 777,
+      scheduledDate: '2026-08-15',
+    };
+
+    it('crea la tarea sin técnico, con el odooTicketId recibido, sin llamar a Odoo', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      taskRepository.create.mockReturnValue({
+        ...mockTask,
+        type: TaskType.EXPIRATION_CONTROL,
+        technicianId: null,
+        technician: null,
+        odooTicketId: 777,
+        scheduledDate: '2026-08-15',
+      });
+      taskRepository.save.mockResolvedValue({
+        ...mockTask,
+        type: TaskType.EXPIRATION_CONTROL,
+        technicianId: null,
+        technician: null,
+        odooTicketId: 777,
+        scheduledDate: '2026-08-15',
+      });
+      taskRepository.findOne.mockResolvedValue({
+        ...mockTask,
+        type: TaskType.EXPIRATION_CONTROL,
+        technicianId: null,
+        technician: null,
+        odooTicketId: 777,
+        scheduledDate: '2026-08-15',
+      });
+
+      const result = await service.createFromExistingTicket(params);
+
+      expect(taskRepository.create).toHaveBeenCalledWith({
+        clientId: 'client-1',
+        technicianId: null,
+        type: TaskType.EXPIRATION_CONTROL,
+        scheduledDate: '2026-08-15',
+        odooTicketId: 777,
+      });
+      expect(taskRepository.save).toHaveBeenCalled();
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+      expect(infrastructureService.getClientInfrastructure).not.toHaveBeenCalled();
+      expect(result.technicianId).toBeNull();
+      expect(result.odooTicketId).toBe(777);
+    });
+
+    it('lanza NotFoundException si el cliente no existe', async () => {
+      clientRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.createFromExistingTicket(params)).rejects.toThrow(
+        'Cliente no encontrado',
+      );
+      expect(taskRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('update', () => {
     it('actualiza campos editables y devuelve la tarea actualizada', async () => {
       const updatedTask = { ...mockTask, technicianId: 'tech-2' };
