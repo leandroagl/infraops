@@ -155,7 +155,7 @@ Muestra los routers del cliente. Para cada router se registra:
 
 Accesible para roles **ADMIN**, **TL** y **COORDINATOR**.
 
-El Panel Admin agrupa las secciones de gestión interna: Usuarios, Técnicos, Alertas de vencimiento, Programación y Sync. La gestión de tareas se hace desde la vista `/tasks` (ver sección anterior), accesible desde la barra de navegación principal.
+El Panel Admin agrupa las secciones de gestión interna en pestañas: **Usuarios**, **Sync**, **Integraciones**, **Mantenimientos** y **Vencimientos**. La gestión de tareas se hace desde la vista `/tasks` (ver sección anterior), y el listado de vencimientos desde `/notifications` (ver más abajo) — ambas accesibles desde la barra de navegación principal, no desde el Panel Admin.
 
 ### Usuarios
 
@@ -174,38 +174,58 @@ Cada técnico tiene un perfil separado del usuario que incluye sus datos de Odoo
 - **Ver lista:** técnicos activos con usuario asociado
 - **Asignar técnico:** vincular un usuario existente con un perfil de técnico
 
-### Alertas de vencimiento
+### Alertas de vencimiento (`/notifications`, accesible a todos los roles)
 
-Lista de todos los ítems con fecha de vencimiento próxima o ya vencida en toda la cartera de clientes.
+Lista de todos los ítems con fecha de vencimiento próxima o ya vencida en toda la cartera de clientes. Se lee en vivo desde InfraDoc en cada visita, no se cachea nada.
 
 **Tipos de alerta:**
 - Licencias de software
 - Garantías de hardware
 - Dominios web
-- Baterías UPS
+- Certificados
 
-**Semáforo visual:**
-- 🔴 **Vencido:** ya pasó la fecha
-- 🟡 **Esta semana:** vence en los próximos 7 días
-- 🟠 **Próximo:** vence entre 8 y 20 días
-- ⚪ **Atención:** vence entre 21 y 45 días
+**Semáforo visual (panel superior, funciona como filtro rápido al hacer clic):**
+- 🔴 **Vencidos:** ya pasó la fecha
+- 🔴 **Esta semana:** vence en los próximos 7 días
+- 🟡 **Próximos:** vence entre 8 y 20 días
+- 🔵 **Atención:** vence entre 21 y 45 días
 
-**Filtros:** por tipo de alerta y por urgencia. A la derecha de los filtros se muestran chips con el conteo de ítems por categoría de urgencia (Vencidos · Esta semana · Próximo · Mostrando).
-
-Por defecto muestra los próximos 90 días. El checkbox **"Ver todos los futuros"** quita ese límite.
+**Filtros:** buscador por cliente, filtro por tipo (en el header de la columna Tipo), y las cuatro zonas del panel superior. No hay límite de días ni checkbox — siempre se trae el histórico completo, los filtros ya acotan la vista.
 
 **Columnas de la tabla:**
 
 | Columna | Descripción |
 |---|---|
-| Cliente | Cliente al que pertenece el ítem |
-| Ítem | Nombre del activo, licencia o dominio |
-| Marca | Solo para garantías de hardware (campo de InfraDoc) |
-| Modelo | Solo para garantías de hardware |
-| Serie | Número de serie del hardware (tipografía monoespaciada) |
-| Tipo | Categoría de la alerta |
-| Vencimiento | Fecha de vencimiento |
-| Estado | Badge de urgencia según el semáforo |
+| Cliente | Cliente al que pertenece el ítem (ordenable) |
+| Ítem | Nombre del activo, licencia, dominio o certificado — marca, modelo y N° de serie se muestran debajo cuando aplican |
+| Tipo | Categoría de la alerta (filtro en el header) |
+| Vence | Fecha de vencimiento junto con "vence en N días" / "vencido hace N días" (ordenable) |
+| Ticket | Enlace al ticket de Odoo si ya se creó automáticamente, "pendiente" si el ítem está dentro de la ventana de creación pero el ticket todavía no se generó, o "—" si todavía no corresponde |
+
+Para **ADMIN**, un ícono de engranaje en la barra superior abre la configuración de creación automática de tickets (ver "Configuración de Vencimientos" más abajo).
+
+### Configuración de Mantenimientos (Admin → pestaña **Mantenimientos**, solo ADMIN)
+
+Configura, por tipo de tarea de mantenimiento, el tiempo predefinido que se imputa en Odoo al cerrar la tarea, los tags de Odoo que se aplican al ticket, y las descripciones de ticket y timesheet (si se dejan vacías, se usa el texto estándar de ese tipo de tarea).
+
+Para **Mantenimiento de hosts VMware/BMC** se configuran además los **hosts ONDRA**: servidores propios de ONDRA que se excluyen del mantenimiento de clientes y se asignan al cliente interno.
+
+### Configuración de Vencimientos (Admin → pestaña **Vencimientos**, solo ADMIN)
+
+Controla la creación automática de tickets en Odoo para vencimientos próximos. Un cron corre todos los días a las 8am y revisa, **por tipo de vencimiento**, si hay algo dentro de la ventana configurada sin ticket creado todavía.
+
+Para cada tipo (Garantía, Certificado, Dominio, Licencia) se configura:
+
+| Campo | Descripción |
+|---|---|
+| Habilitado | Si está apagado, ese tipo nunca genera ticket automático, sin importar el resto de la config |
+| Equipo Odoo | A qué equipo (`team_id`) va el ticket. Obligatorio si el tipo está habilitado |
+| Días | Con cuántos días de anticipación al vencimiento se crea el ticket |
+| Tags Odoo | Tags que se aplican al ticket (opcional) |
+
+> **Al activar un tipo por primera vez**, el sistema no crea tickets para todo lo que ya estaba vencido o próximo a vencer en ese momento — esos ítems quedan marcados internamente como "ya vistos" sin ticket real, y solo se crea ticket automático para lo que aparezca de ahí en adelante. Esto evita un alud de tickets el día que se activa un tipo.
+
+Los tickets se crean sin técnico asignado (quedan en la cola del equipo configurado, a triagear manualmente) y sin línea de venta asociada.
 
 ### Programación de mantenimientos
 

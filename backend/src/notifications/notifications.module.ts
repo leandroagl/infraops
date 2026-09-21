@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotificationsController } from './notifications.controller';
+import { NotificationsConfigController } from './notifications-config.controller';
 import { NotificationsService } from './notifications.service';
 import { ExpirationTicketsService } from './expiration-tickets.service';
 import { ExpirationTicket } from './expiration-ticket.entity';
@@ -20,7 +21,7 @@ import { ClientsModule } from '../clients/clients.module';
     IntegrationConfigModule,
     ClientsModule,
   ],
-  controllers: [NotificationsController],
+  controllers: [NotificationsController, NotificationsConfigController],
   providers: [NotificationsService, ExpirationTicketsService],
 })
 export class NotificationsModule {}

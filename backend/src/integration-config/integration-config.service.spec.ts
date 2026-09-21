@@ -280,6 +280,49 @@ describe('IntegrationConfigService', () => {
       expect(saved.expirationsTypeConfigs).toEqual(existing.expirationsTypeConfigs);
     });
 
+    it('lanza BadRequestException si una entrada de expirationsTypeConfigs tiene enabled no booleano', async () => {
+      odooRepo.findOne.mockResolvedValue(null);
+      await expect(service.patchOdoo(
+        { expirationsTypeConfigs: { domain: { enabled: 'si' as unknown as boolean, helpdeskTeamId: null, daysAhead: 30, tagIds: [] } } },
+        'admin@test.com',
+      )).rejects.toThrow(BadRequestException);
+      expect(odooRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('lanza BadRequestException si daysAhead no es un entero >= 1', async () => {
+      odooRepo.findOne.mockResolvedValue(null);
+      await expect(service.patchOdoo(
+        { expirationsTypeConfigs: { domain: { enabled: true, helpdeskTeamId: null, daysAhead: 0, tagIds: [] } } },
+        'admin@test.com',
+      )).rejects.toThrow(BadRequestException);
+    });
+
+    it('lanza BadRequestException si helpdeskTeamId no es null ni un entero >= 1', async () => {
+      odooRepo.findOne.mockResolvedValue(null);
+      await expect(service.patchOdoo(
+        { expirationsTypeConfigs: { domain: { enabled: true, helpdeskTeamId: 0, daysAhead: 30, tagIds: [] } } },
+        'admin@test.com',
+      )).rejects.toThrow(BadRequestException);
+    });
+
+    it('lanza BadRequestException si tagIds no es un array de enteros', async () => {
+      odooRepo.findOne.mockResolvedValue(null);
+      await expect(service.patchOdoo(
+        { expirationsTypeConfigs: { domain: { enabled: true, helpdeskTeamId: null, daysAhead: 30, tagIds: ['x'] as unknown as number[] } } },
+        'admin@test.com',
+      )).rejects.toThrow(BadRequestException);
+    });
+
+    it('acepta helpdeskTeamId null en una entrada de expirationsTypeConfigs', async () => {
+      odooRepo.findOne.mockResolvedValue(null);
+      odooRepo.save.mockImplementation(async (e: OdooConfig) => e);
+      await service.patchOdoo(
+        { expirationsTypeConfigs: { domain: { enabled: true, helpdeskTeamId: null, daysAhead: 30, tagIds: [] } } },
+        'admin@test.com',
+      );
+      expect(odooRepo.save).toHaveBeenCalled();
+    });
+
     it('siembra apiKey desde .env al crear primera fila con masked apiKey', async () => {
       odooRepo.findOne.mockResolvedValue(null);
       odooRepo.save.mockImplementation(async (e: OdooConfig) => e);

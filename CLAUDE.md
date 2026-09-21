@@ -142,11 +142,24 @@ registeredAt, notes?
 4. **Asignación fija por defecto:** cada cliente tiene un técnico asignado por defecto
    para cada tipo de tarea. El TL puede reasignar antes de ejecutar.
 
-5. **Alertas de vencimiento:** InfraOps notifica visualmente y por mail ante vencimientos
-   de licencias, garantías, dominios y baterías UPS. Estas alertas pertenecen al flujo
-   de mantenimiento de servidores, no al de visitas.
+5. **Alertas de vencimiento:** InfraOps muestra visualmente los vencimientos próximos o
+   ya vencidos de licencias, garantías, dominios y certificados (módulo Vencimientos,
+   `/notifications`). Se lee en vivo desde InfraDoc, sin cachear.
 
-6. **Payload jsonb:** el payload de MaintenanceLog varía según TaskType. Usar jsonb
+6. **Creación automática de tickets por vencimiento:** un cron diario (8am) revisa, por
+   tipo de vencimiento, si hay ítems dentro de la ventana configurada sin ticket creado
+   todavía, y abre un ticket en Odoo (sin técnico asignado) en el equipo configurado
+   para ese tipo. Se controla desde Admin → pestaña **Vencimientos**, con
+   habilitado/equipo/días/tags configurables por tipo — un tipo apagado nunca genera
+   ticket, sin importar el resto de la config. Al activar un tipo por primera vez no se
+   generan tickets para el backlog ya existente en ese momento, solo para lo que
+   aparezca de ahí en adelante — evita un alud de tickets el día que se activa.
+   Se deduplica por (tipo, id de origen InfraDoc, fecha de vencimiento) en la tabla
+   `expiration_tickets`, que es una **excepción acotada** a la regla 3: no guarda
+   inventario de InfraDoc, solo registra qué ticket propio ya se creó para cada
+   vencimiento.
+
+7. **Payload jsonb:** el payload de MaintenanceLog varía según TaskType. Usar jsonb
    en PostgreSQL. No crear tablas separadas por tipo de control.
 
 ---
@@ -332,7 +345,10 @@ Cuando un componente nuevo duplique lógica existente, **refactorizar primero** 
 
 ### Vistas definidas
 - `/tasks` — Vista unificada de tareas por ciclo (todos los roles, comportamiento varía por rol)
-- `/admin` — Panel Admin: usuarios, técnicos, alertas, programación, sync, integraciones
+- `/notifications` — Vencimientos: licencias, garantías, dominios y certificados próximos a
+  vencer, con indicador de ticket automático ya creado en Odoo
+- `/admin` — Panel Admin: Usuarios, Sync, Integraciones, Mantenimientos (config. por tipo de
+  tarea), Vencimientos (config. de creación automática de tickets por tipo)
 - `/clients` — Lista de clientes con horas de suscripción y detalle por cliente
 - `/docs` — Módulo de documentación integrada, contenido filtrado por rol
 - `/profile` — Perfil del usuario, cambio de contraseña, avatar upload
