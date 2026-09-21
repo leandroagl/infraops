@@ -1620,7 +1620,7 @@ describe('OdooService', () => {
         [expect.objectContaining({
           team_id: 9,
           partner_id: 101,
-          name: 'Vencimiento: Dominio – Acme – acme.com',
+          name: 'Dominio – acme.com',
         })],
         {},
       );
@@ -1717,7 +1717,7 @@ describe('OdooService', () => {
         'client-uuid-1', 9, [], 'Renovación de dominio',
       );
       const callArg = odooRpc.callKw.mock.calls[odooRpc.callKw.mock.calls.length - 1][2][0] as Record<string, unknown>;
-      expect(callArg['name']).toBe('Vencimiento: Renovación de dominio – Acme – acme.com');
+      expect(callArg['name']).toBe('Renovación de dominio – acme.com');
     });
 
     it('cae al label default si taskName es undefined, vacío o solo espacios', async () => {
@@ -1728,7 +1728,7 @@ describe('OdooService', () => {
           'client-uuid-1', 9, [], taskName,
         );
         const callArg = odooRpc.callKw.mock.calls[odooRpc.callKw.mock.calls.length - 1][2][0] as Record<string, unknown>;
-        expect(callArg['name']).toBe('Vencimiento: Dominio – Acme – acme.com');
+        expect(callArg['name']).toBe('Dominio – acme.com');
       }
     });
 
