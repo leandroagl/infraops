@@ -13,6 +13,8 @@ services:
     build: ./backend
     restart: unless-stopped
     env_file: ./backend/.env
+    environment:
+      - TZ=America/Argentina/Buenos_Aires
     depends_on:
       - db
     volumes:

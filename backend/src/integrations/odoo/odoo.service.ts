@@ -446,7 +446,7 @@ export class OdooService {
           employee_id: employeeId,
           name: description,
           unit_amount: unitAmount,
-          date: new Date().toISOString().split('T')[0],
+          date: new Date().toLocaleDateString('en-CA'),
         },
       ],
       {},
