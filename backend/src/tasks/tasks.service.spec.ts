@@ -321,6 +321,24 @@ describe('TasksService', () => {
       const call = taskRepository.find.mock.calls[0][0];
       expect(call.where.scheduledDate).toBeUndefined();
     });
+
+    it('aplica IsNull en technicianId cuando unassigned=true', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ unassigned: true });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(call.where.technicianId).toMatchObject({ _type: 'isNull' });
+    });
+
+    it('ignora technicianId cuando unassigned=true', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ unassigned: true, technicianId: 'tech-1' });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(call.where.technicianId).toMatchObject({ _type: 'isNull' });
+    });
   });
 
   describe('create', () => {

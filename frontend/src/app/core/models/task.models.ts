@@ -51,6 +51,7 @@ export interface CycleStats {
   pending: number;
   done: number;
   escalated?: number;
+  unassigned: number;
 }
 
 export interface TaskTypeConfigDto {

@@ -11,6 +11,7 @@ export interface TaskFilters {
   type?: string;
   year?: number;
   month?: number;
+  unassigned?: boolean;
 }
 
 export interface CreateTaskPayload {
@@ -34,6 +35,7 @@ export class TasksService {
     if (filters.type)         params = params.set('type',         filters.type);
     if (filters.year)         params = params.set('year',         String(filters.year));
     if (filters.month)        params = params.set('month',        String(filters.month));
+    if (filters.unassigned)   params = params.set('unassigned',   'true');
     return this.http.get<Task[]>(this.base, { params });
   }
 

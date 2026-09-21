@@ -34,6 +34,7 @@ export class TasksUnifiedComponent implements OnInit {
   clientFilter: string | null = null;
   typeFilter: TaskType | null = null;
   statusFilter: TaskStatus | null = null;
+  unassignedFilter = false;
 
   readonly taskTypes: { value: TaskType; label: string }[] = [
     { value: 'SERVER_HOST_MAINTENANCE',  label: 'Servidores' },
@@ -87,7 +88,7 @@ export class TasksUnifiedComponent implements OnInit {
   }
 
   get hasActiveFilters(): boolean {
-    return !!(this.clientFilter || this.typeFilter || this.statusFilter || this.techFilter);
+    return !!(this.clientFilter || this.typeFilter || this.statusFilter || this.techFilter || this.unassignedFilter);
   }
 
   /** Ciclo cerrado si el mes/año seleccionado es anterior al actual */
@@ -134,6 +135,7 @@ export class TasksUnifiedComponent implements OnInit {
       pending:    cyclical.filter(t => t.status === 'PENDING').length,
       done:       cyclical.filter(t => t.status === 'DONE').length,
       escalated:  cyclical.filter(t => t.status === 'ESCALATED' || t.status === 'NOT_DONE').length,
+      unassigned: this.tasks.filter(t => t.technicianId === null).length,
     };
   }
 
@@ -154,10 +156,11 @@ export class TasksUnifiedComponent implements OnInit {
           month: this.currentMonth,
           year:  this.currentYear,
         };
-        if (this.techFilter)   filters.technicianId = this.techFilter;
-        if (this.clientFilter) filters.clientId     = this.clientFilter;
-        if (this.typeFilter)   filters.type         = this.typeFilter;
-        if (this.statusFilter) filters.status       = this.statusFilter;
+        if (this.unassignedFilter) { filters.unassigned = true; }
+        else if (this.techFilter)  { filters.technicianId = this.techFilter; }
+        if (this.clientFilter) filters.clientId = this.clientFilter;
+        if (this.typeFilter)   filters.type     = this.typeFilter;
+        if (this.statusFilter) filters.status   = this.statusFilter;
         return this.tasksService.getAll(filters);
       }),
       takeUntilDestroyed(this.destroyRef),
@@ -213,15 +216,23 @@ export class TasksUnifiedComponent implements OnInit {
 
   onTechFilterChange(value: string | null): void {
     this.techFilter = value;
+    this.unassignedFilter = false;
+    this.onFilterChange();
+  }
+
+  onUnassignedFilterChange(val: boolean): void {
+    this.unassignedFilter = val;
+    if (val) this.techFilter = null;
     this.onFilterChange();
   }
 
   clearFilters(): void {
-    this.clientFilter = null;
-    this.typeFilter   = null;
-    this.statusFilter = null;
-    this.techFilter   = null;
-    this.selectedTask = null;
+    this.clientFilter    = null;
+    this.typeFilter      = null;
+    this.statusFilter    = null;
+    this.techFilter      = null;
+    this.unassignedFilter = false;
+    this.selectedTask    = null;
     this.load();
   }
 
