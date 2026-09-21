@@ -1642,6 +1642,50 @@ describe('OdooService', () => {
         expect(callArg['name']).toContain(label);
       }
     });
+
+    it('usa taskName recibido en el nombre en vez del label default', async () => {
+      await service.createExpirationTicket(
+        makeExpItem({ type: 'domain', clientName: 'Acme', itemName: 'acme.com' }),
+        'client-uuid-1', 9, [], 'Renovación de dominio',
+      );
+      const callArg = odooRpc.callKw.mock.calls[odooRpc.callKw.mock.calls.length - 1][2][0] as Record<string, unknown>;
+      expect(callArg['name']).toBe('Vencimiento: Renovación de dominio – Acme – acme.com');
+    });
+
+    it('cae al label default si taskName es undefined, vacío o solo espacios', async () => {
+      for (const taskName of [undefined, '', '   ']) {
+        odooRpc.callKw.mockResolvedValue(999);
+        await service.createExpirationTicket(
+          makeExpItem({ type: 'domain', clientName: 'Acme', itemName: 'acme.com' }),
+          'client-uuid-1', 9, [], taskName,
+        );
+        const callArg = odooRpc.callKw.mock.calls[odooRpc.callKw.mock.calls.length - 1][2][0] as Record<string, unknown>;
+        expect(callArg['name']).toBe('Vencimiento: Dominio – Acme – acme.com');
+      }
+    });
+
+    it('antepone ticketDescription convertido a HTML a la fecha/días restantes', async () => {
+      await service.createExpirationTicket(
+        makeExpItem({ expireDate: '2026-10-15', daysUntil: 20 }),
+        'client-uuid-1', 9, [], undefined, 'Verificar con el proveedor antes de renovar',
+      );
+      const callArg = odooRpc.callKw.mock.calls[odooRpc.callKw.mock.calls.length - 1][2][0] as Record<string, unknown>;
+      const description = callArg['description'] as string;
+      expect(description).toContain('Verificar con el proveedor antes de renovar');
+      expect(description).toContain('2026-10-15');
+      expect(description).toContain('20');
+    });
+
+    it('la descripción incluye fecha y días restantes aunque no haya ticketDescription configurado', async () => {
+      await service.createExpirationTicket(
+        makeExpItem({ expireDate: '2026-10-15', daysUntil: 20 }),
+        'client-uuid-1', 9, [],
+      );
+      const callArg = odooRpc.callKw.mock.calls[odooRpc.callKw.mock.calls.length - 1][2][0] as Record<string, unknown>;
+      const description = callArg['description'] as string;
+      expect(description).toContain('2026-10-15');
+      expect(description).toContain('20');
+    });
   });
 
   describe('getClientActiveServices', () => {

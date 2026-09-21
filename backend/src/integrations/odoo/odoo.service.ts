@@ -26,7 +26,7 @@ import { TICKET_DESCRIPTION_DEFAULTS, TIMESHEET_DESCRIPTION_DEFAULT } from '../.
 import { plainTextToHtml } from '../../task-config/plain-text-to-html';
 import { ExpirationItemDto, ExpirationType } from '../../notifications/dto/expiration-item.dto';
 
-const EXPIRATION_TYPE_LABELS: Record<ExpirationType, string> = {
+const DEFAULT_EXPIRATION_TYPE_LABELS: Record<ExpirationType, string> = {
   asset_warranty: 'Garantía',
   certificate:    'Certificado',
   domain:         'Dominio',
@@ -553,6 +553,8 @@ export class OdooService {
     infraopsClientId: string,
     helpdeskTeamId: number,
     tagIds: number[],
+    taskName?: string | null,
+    ticketDescription?: string | null,
   ): Promise<number> {
     if (!helpdeskTeamId) {
       throw new BadRequestException('No hay equipo de Odoo configurado para este tipo de vencimiento');
@@ -565,9 +567,10 @@ export class OdooService {
     }
 
     const saleLineId = await this.resolveSaleLineId(infraopsClientId);
-    const typeLabel = EXPIRATION_TYPE_LABELS[item.type];
+    const typeLabel = taskName?.trim() || DEFAULT_EXPIRATION_TYPE_LABELS[item.type];
     const name = `Vencimiento: ${typeLabel} – ${item.clientName} – ${item.itemName}`;
-    const description = `<p>Fecha de vencimiento: <strong>${item.expireDate}</strong></p><p>Días restantes: ${item.daysUntil}</p>`;
+    const customIntro = ticketDescription?.trim() ? plainTextToHtml(ticketDescription) : '';
+    const description = `${customIntro}<p>Fecha de vencimiento: <strong>${item.expireDate}</strong></p><p>Días restantes: ${item.daysUntil}</p>`;
 
     const payload: Record<string, unknown> = {
       team_id: helpdeskTeamId,
