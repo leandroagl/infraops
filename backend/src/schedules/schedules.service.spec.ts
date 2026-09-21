@@ -211,6 +211,18 @@ describe('SchedulesService', () => {
         TaskType.ROUTER_MAINTENANCE,
       ]);
     });
+
+    it('excluye EXPIRATION_CONTROL de la query de taskStats', async () => {
+      scheduleRepo.find.mockResolvedValue([]);
+      taskRepo.find.mockResolvedValue([]);
+
+      await service.getMonthlyPreview(2026, 8);
+
+      const call = taskRepo.find.mock.calls[0][0] as { where: Record<string, any> };
+      expect(call.where.type._type).toBe('not');
+      expect(call.where.type._value._type).toBe('in');
+      expect(call.where.type._value._value).toEqual([TaskType.EXPIRATION_CONTROL]);
+    });
   });
 
   describe('generateMonth', () => {
@@ -364,6 +376,20 @@ describe('SchedulesService', () => {
       expect(tasksService.updateStatus).toHaveBeenCalledWith('t-2', TaskStatus.NOT_DONE, {
         reason: 'Cierre automático de fin de mes',
       });
+    });
+
+    it('excluye EXPIRATION_CONTROL de la query de cierre de mes anterior', async () => {
+      taskRepo.find.mockResolvedValue([]);
+
+      await service.generateMonth(2026, 8);
+
+      const firstCall = taskRepo.find.mock.calls[0][0] as { where: Array<Record<string, any>> };
+      expect(firstCall.where).toHaveLength(2);
+      for (const clause of firstCall.where) {
+        expect(clause.type._type).toBe('not');
+        expect(clause.type._value._type).toBe('in');
+        expect(clause.type._value._value).toEqual([TaskType.EXPIRATION_CONTROL]);
+      }
     });
 
     it('calcula correctamente el mes anterior cuando es enero', async () => {

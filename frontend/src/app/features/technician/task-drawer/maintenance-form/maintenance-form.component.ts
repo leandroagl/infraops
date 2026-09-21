@@ -11,6 +11,7 @@ import { Task } from '../../../../core/models/task.models';
 import { ClientInfrastructure } from '../../../../core/models/infradoc.models';
 import {
   DcHealthSnapshot,
+  ExpirationControlPayload,
   MaintenancePayload,
   TerminalPayload,
   WindowsDomainPayload,
@@ -29,8 +30,8 @@ export class MaintenanceFormComponent implements OnChanges {
   @Input() savedPayload: MaintenancePayload | null = null;
   @Input() readOnly = false;
 
-  @Output() requestComplete = new EventEmitter<WindowsDomainPayload | TerminalPayload>();
-  @Output() requestSave     = new EventEmitter<WindowsDomainPayload | TerminalPayload>();
+  @Output() requestComplete = new EventEmitter<WindowsDomainPayload | TerminalPayload | ExpirationControlPayload>();
+  @Output() requestSave     = new EventEmitter<WindowsDomainPayload | TerminalPayload | ExpirationControlPayload>();
   @Output() requestNotDone  = new EventEmitter<void>();
 
   form!: FormGroup;
@@ -88,6 +89,10 @@ export class MaintenanceFormComponent implements OnChanges {
     return this.task?.type === 'AV_CONTROL'
       || this.task?.type === 'UPS_CONTROL'
       || this.task?.type === 'ENDPOINT_INVENTORY';
+  }
+
+  get isNotesOnlyType(): boolean {
+    return this.task?.type === 'EXPIRATION_CONTROL';
   }
 
   // ── Summary getters ──────────────────────────────────────────────────────────
@@ -173,8 +178,16 @@ export class MaintenanceFormComponent implements OnChanges {
 
   // ── Payload construction ────────────────────────────────────────────────────
 
-  buildPayload(): WindowsDomainPayload | TerminalPayload {
+  buildPayload(): WindowsDomainPayload | TerminalPayload | ExpirationControlPayload {
     const v = this.form.value;
+
+    if (this.isNotesOnlyType) {
+      const payload: ExpirationControlPayload = {
+        type: 'EXPIRATION_CONTROL',
+        notes: v.notes || undefined,
+      };
+      return payload;
+    }
 
     if (this.isTerminalType) {
       const payload: TerminalPayload = {
@@ -259,6 +272,9 @@ export class MaintenanceFormComponent implements OnChanges {
         observations:   t.observations ?? '',
         notes:          t.notes ?? '',
       });
+    } else if (payload.type === 'EXPIRATION_CONTROL') {
+      const e = payload as ExpirationControlPayload;
+      this.form.patchValue({ notes: e.notes ?? '' });
     }
   }
 

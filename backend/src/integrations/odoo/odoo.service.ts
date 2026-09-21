@@ -44,6 +44,7 @@ const TICKET_META: Record<TaskType, { name: string }> = {
   [TaskType.AV_CONTROL]:                 { name: 'Control de antivirus' },
   [TaskType.UPS_CONTROL]:               { name: 'Control de UPS' },
   [TaskType.ENDPOINT_INVENTORY]:         { name: 'Inventario de endpoints' },
+  [TaskType.EXPIRATION_CONTROL]:         { name: 'Vencimiento' },
 };
 
 @Injectable()

@@ -162,7 +162,7 @@ describe('TasksService', () => {
 
       const result = await service.findAll({});
 
-      expect((result[0].technician.user as any).avatarUrl).toBe('/avatars/photo.jpg');
+      expect((result[0].technician!.user as any).avatarUrl).toBe('/avatars/photo.jpg');
     });
 
     it('retorna avatarUrl null cuando el técnico no tiene foto', async () => {
@@ -174,7 +174,7 @@ describe('TasksService', () => {
 
       const result = await service.findAll({});
 
-      expect((result[0].technician.user as any).avatarUrl).toBeNull();
+      expect((result[0].technician!.user as any).avatarUrl).toBeNull();
     });
 
     it('incluye las notas del maintenance log de cada tarea', async () => {
@@ -257,15 +257,59 @@ describe('TasksService', () => {
       });
     });
 
-    it('aplica filtro por month y year usando rango de scheduledDate', async () => {
+    it('aplica filtro por month y year usando rango de scheduledDate, y suma la rama de EXPIRATION_CONTROL abiertas', async () => {
       taskRepository.find.mockResolvedValue([mockTask]);
 
       await service.findAll({ year: 2026, month: 6 });
 
       const call = taskRepository.find.mock.calls[0][0];
-      expect(call.where.scheduledDate).toBeDefined();
-      expect(call.where.scheduledDate._type).toBe('between');
-      expect(call.where.scheduledDate._value).toEqual(['2026-06-01', '2026-06-30']);
+      expect(Array.isArray(call.where)).toBe(true);
+      const [monthBranch, persistentBranch] = call.where;
+      expect(monthBranch.scheduledDate._type).toBe('between');
+      expect(monthBranch.scheduledDate._value).toEqual(['2026-06-01', '2026-06-30']);
+      expect(persistentBranch.type).toBe(TaskType.EXPIRATION_CONTROL);
+      expect(persistentBranch.status._type).toBe('in');
+      expect(persistentBranch.status._value).toEqual([TaskStatus.PENDING, TaskStatus.IN_PROGRESS]);
+      expect(persistentBranch.scheduledDate).toBeUndefined();
+    });
+
+    it('no suma la rama persistente si se filtra explícitamente por otro type', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, type: TaskType.WINDOWS_DOMAIN_MAINTENANCE });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(Array.isArray(call.where)).toBe(false);
+      expect(call.where.type).toBe(TaskType.WINDOWS_DOMAIN_MAINTENANCE);
+    });
+
+    it('no suma la rama persistente si se filtra por un status cerrado', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, status: TaskStatus.DONE });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(Array.isArray(call.where)).toBe(false);
+      expect(call.where.status).toBe(TaskStatus.DONE);
+    });
+
+    it('respeta un status abierto explícito en la rama persistente', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, status: TaskStatus.PENDING });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      const [, persistentBranch] = call.where;
+      expect(persistentBranch.status).toBe(TaskStatus.PENDING);
+    });
+
+    it('suma la rama persistente si se filtra explícitamente por type EXPIRATION_CONTROL', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({ year: 2026, month: 6, type: TaskType.EXPIRATION_CONTROL });
+
+      const call = taskRepository.find.mock.calls[0][0];
+      expect(Array.isArray(call.where)).toBe(true);
     });
 
     it('no aplica filtro de rango si solo se provee year sin month', async () => {
@@ -444,6 +488,67 @@ describe('TasksService', () => {
     });
   });
 
+  describe('createFromExistingTicket', () => {
+    const params = {
+      clientId: 'client-1',
+      type: TaskType.EXPIRATION_CONTROL,
+      odooTicketId: 777,
+      scheduledDate: '2026-08-15',
+    };
+
+    it('crea la tarea sin técnico, con el odooTicketId recibido, sin llamar a Odoo', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      taskRepository.create.mockReturnValue({
+        ...mockTask,
+        type: TaskType.EXPIRATION_CONTROL,
+        technicianId: null,
+        technician: null,
+        odooTicketId: 777,
+        scheduledDate: '2026-08-15',
+      });
+      taskRepository.save.mockResolvedValue({
+        ...mockTask,
+        type: TaskType.EXPIRATION_CONTROL,
+        technicianId: null,
+        technician: null,
+        odooTicketId: 777,
+        scheduledDate: '2026-08-15',
+      });
+      taskRepository.findOne.mockResolvedValue({
+        ...mockTask,
+        type: TaskType.EXPIRATION_CONTROL,
+        technicianId: null,
+        technician: null,
+        odooTicketId: 777,
+        scheduledDate: '2026-08-15',
+      });
+
+      const result = await service.createFromExistingTicket(params);
+
+      expect(taskRepository.create).toHaveBeenCalledWith({
+        clientId: 'client-1',
+        technicianId: null,
+        type: TaskType.EXPIRATION_CONTROL,
+        scheduledDate: '2026-08-15',
+        odooTicketId: 777,
+      });
+      expect(taskRepository.save).toHaveBeenCalled();
+      expect(odooService.createTicket).not.toHaveBeenCalled();
+      expect(infrastructureService.getClientInfrastructure).not.toHaveBeenCalled();
+      expect(result.technicianId).toBeNull();
+      expect(result.odooTicketId).toBe(777);
+    });
+
+    it('lanza NotFoundException si el cliente no existe', async () => {
+      clientRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.createFromExistingTicket(params)).rejects.toThrow(
+        'Cliente no encontrado',
+      );
+      expect(taskRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('update', () => {
     it('actualiza campos editables y devuelve la tarea actualizada', async () => {
       const updatedTask = { ...mockTask, technicianId: 'tech-2' };
@@ -486,6 +591,19 @@ describe('TasksService', () => {
   });
 
   describe('updateStatus', () => {
+    it('lanza BadRequestException al transicionar sin técnico asignado', async () => {
+      taskRepository.findOne.mockResolvedValue({
+        ...mockTask,
+        technicianId: null,
+        technician: null,
+      });
+
+      await expect(
+        service.updateStatus('task-1', TaskStatus.IN_PROGRESS),
+      ).rejects.toThrow('Asigná un técnico antes de continuar');
+      expect(taskRepository.update).not.toHaveBeenCalled();
+    });
+
     it('transiciona PENDING → IN_PROGRESS correctamente', async () => {
       taskRepository.findOne
         .mockResolvedValueOnce(mockTask)

@@ -37,6 +37,7 @@ export function typeLabel(type: TaskType): string {
     AV_CONTROL:                 'Antivirus',
     UPS_CONTROL:                'UPS',
     ENDPOINT_INVENTORY:         'Inventario',
+    EXPIRATION_CONTROL:         'Vencimiento',
   };
   return labels[type] ?? '';
 }
@@ -54,6 +55,7 @@ export function typeLabelLong(type: TaskType): string {
     AV_CONTROL:                 'Control antivirus',
     UPS_CONTROL:                'Control UPS',
     ENDPOINT_INVENTORY:         'Inventario',
+    EXPIRATION_CONTROL:         'Vencimiento de licencia, dominio, garantía o certificado',
   };
   return labels[type] ?? '';
 }
@@ -71,6 +73,7 @@ export function typeBadge(type: TaskType): string {
     AV_CONTROL:                 'badge--neutral',
     UPS_CONTROL:                'badge--neutral',
     ENDPOINT_INVENTORY:         'badge--neutral',
+    EXPIRATION_CONTROL:         'badge--warn',
   };
   return map[type] ?? 'badge--neutral';
 }

@@ -13,6 +13,9 @@ import { MatDialog } from '@angular/material/dialog';
 import { Task, TaskStatus, TaskType } from '../../../core/models/task.models';
 import { UserRole } from '../../../core/models/auth.models';
 import { ClientInfrastructure } from '../../../core/models/infradoc.models';
+import { Technician } from '../../../core/models/technician.models';
+import { ExpirationDetail } from '../../../core/models/notification.models';
+import { NotificationsService } from '../../../core/services/notifications.service';
 import {
   MaintenancePayload,
   RouterMaintenancePayload,
@@ -49,11 +52,13 @@ export class TaskDrawerComponent implements OnChanges {
   @Input() task!: Task;
   @Input() userRole: UserRole = 'TECHNICIAN';
   @Input() cycleClosed = false;
+  @Input() technicians: Technician[] = [];
 
   @Output() taskCompleted = new EventEmitter<void>();
   @Output() taskNotDone = new EventEmitter<void>();
   @Output() taskStatusChanged = new EventEmitter<TaskStatus>();
   @Output() drawerClosed = new EventEmitter<void>();
+  @Output() technicianAssigned = new EventEmitter<Task>();
 
   @ViewChild(MaintenanceFormComponent) maintenanceForm?: MaintenanceFormComponent;
   @ViewChild(QnapFormComponent) qnapForm?: QnapFormComponent;
@@ -71,9 +76,12 @@ export class TaskDrawerComponent implements OnChanges {
   saveProgressError = '';
   completing = false;
   taskConfig: TaskTypeConfigDto | null = null;
+  expirationDetail: ExpirationDetail | null = null;
+  loadingExpirationDetail = false;
 
   private pendingPayload: MaintenancePayload | null = null;
   private _currentStatus = '';
+  private _technicianOverride: { technicianId: string | null; technician: Task['technician'] } | null = null;
 
   constructor(
     private infradocService: InfradocService,
@@ -81,20 +89,56 @@ export class TaskDrawerComponent implements OnChanges {
     private tasksService: TasksService,
     private dialog: MatDialog,
     private taskConfigService: TaskConfigService,
+    private notificationsService?: NotificationsService,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['task'] && this.task) {
       this._currentStatus = this.task.status;
+      this._technicianOverride = null;
       this.loadInfrastructure();
       this.taskConfigService.getAll().subscribe(configs => {
         this.taskConfig = configs.find(c => c.taskType === this.task.type) ?? null;
       });
+
+      if (this.task.type === 'EXPIRATION_CONTROL') {
+        this.loadExpirationDetail();
+      } else {
+        this.expirationDetail = null;
+      }
     }
   }
 
   private get effectiveStatus(): string {
     return this._currentStatus || this.task.status;
+  }
+
+  // ── Asignación de técnico ────────────────────────────────────────────────────
+
+  get effectiveTechnicianId(): string | null {
+    return this._technicianOverride ? this._technicianOverride.technicianId : this.task.technicianId;
+  }
+
+  get isUnassigned(): boolean {
+    return this.effectiveTechnicianId == null;
+  }
+
+  assignTechnician(technicianId: string): void {
+    this.tasksService.assignTechnician(this.task.id, technicianId).subscribe(updated => {
+      this._technicianOverride = { technicianId: updated.technicianId, technician: updated.technician };
+      this.technicianAssigned.emit({ ...this.task, technicianId: updated.technicianId, technician: updated.technician });
+    });
+  }
+
+  // ── Detalle de vencimiento (EXPIRATION_CONTROL) ─────────────────────────────
+
+  loadExpirationDetail(): void {
+    this.expirationDetail = null;
+    this.loadingExpirationDetail = true;
+    this.notificationsService?.getExpirationByTaskId(this.task.id).subscribe({
+      next: detail => { this.expirationDetail = detail; this.loadingExpirationDetail = false; },
+      error: () => { this.loadingExpirationDetail = false; },
+    });
   }
 
   loadInfrastructure(): void {
@@ -192,22 +236,32 @@ export class TaskDrawerComponent implements OnChanges {
   }
 
   get isConfigMissing(): boolean {
+    if (this.task.type === 'EXPIRATION_CONTROL') {
+      // El tagging de Odoo ya se resolvió al crear el ticket (expirationsTypeConfigs) —
+      // acá solo hace falta el tiempo estimado para el timesheet al cerrar.
+      return this.taskConfig?.defaultTimeMinutes == null;
+    }
     return this.taskConfig?.defaultTimeMinutes == null
       || !this.taskConfig?.odooTagIds?.length;
   }
 
   get formReadOnly(): boolean {
-    return !this.isActiveTask || this.isConfigMissing;
+    return !this.isActiveTask || this.isConfigMissing || this.isUnassigned;
   }
 
   get configWarningMessage(): string {
+    if (this.isUnassigned) return 'Asigná un técnico antes de continuar.';
+    if (this.task.type === 'EXPIRATION_CONTROL') {
+      return 'El administrador debe configurar el tiempo estimado para este tipo de tarea antes de poder trabajarla.';
+    }
     return 'El administrador debe configurar el tiempo estimado y los tags de Odoo para este tipo de tarea antes de poder trabajarla.';
   }
 
   get canComplete(): boolean {
     return this.isActiveTask
       && this.canExecute
-      && !this.isConfigMissing;
+      && !this.isConfigMissing
+      && !this.isUnassigned;
   }
 
   // ── Actions ──────────────────────────────────────────────────────────────────

@@ -4,11 +4,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { NotificationsService } from './notifications.service';
 import { ExpirationTicket } from './expiration-ticket.entity';
-import { ExpirationItemDto } from './dto/expiration-item.dto';
+import { ExpirationItemDto, ExpirationDetailDto } from './dto/expiration-item.dto';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { IntegrationConfigService } from '../integration-config/integration-config.service';
 import { OdooConfigResponseDto } from '../integration-config/dto/odoo-config.dto';
 import { Client } from '../clients/client.entity';
+import { TasksService } from '../tasks/tasks.service';
+import { TaskType } from '../tasks/task-type.enum';
 
 type TypeConfigEntry = {
   enabled: boolean;
@@ -30,6 +32,7 @@ export class ExpirationTicketsService {
     private readonly ticketRepo: Repository<ExpirationTicket>,
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,
+    private readonly tasksService: TasksService,
   ) {}
 
   async getExpirationsWithTickets(days?: number): Promise<ExpirationItemDto[]> {
@@ -47,6 +50,30 @@ export class ExpirationTicketsService {
         ? { ...item, odooTicketId: row.odooTicketId }
         : item;
     });
+  }
+
+  async getExpirationByTaskId(taskId: string): Promise<ExpirationDetailDto | null> {
+    const row = await this.ticketRepo.findOne({ where: { taskId } });
+    if (!row) return null;
+
+    const items = await this.notificationsService.getExpirations();
+    const liveItem = items.find(
+      (i) => i.type === row.type && i.sourceId === row.sourceId,
+    );
+
+    return {
+      type: row.type,
+      sourceId: row.sourceId,
+      expireDate: row.expireDate,
+      clientId: row.clientId,
+      clientName: liveItem?.clientName ?? null,
+      itemName: liveItem?.itemName ?? null,
+      make: liveItem?.make,
+      model: liveItem?.model,
+      serial: liveItem?.serial,
+      daysUntil: liveItem?.daysUntil ?? null,
+      odooTicketId: row.odooTicketId,
+    };
   }
 
   @Cron('0 8 * * *')
@@ -102,7 +129,7 @@ export class ExpirationTicketsService {
           const odooTicketId = await this.odooService.createExpirationTicket(
             item, client.id, cfg.helpdeskTeamId!, cfg.tagIds,
           );
-          await this.ticketRepo.save({
+          const savedTicket = await this.ticketRepo.save({
             type: item.type,
             sourceId: item.sourceId,
             expireDate: item.expireDate,
@@ -110,6 +137,20 @@ export class ExpirationTicketsService {
             odooTicketId,
           });
           created++;
+
+          try {
+            const task = await this.tasksService.createFromExistingTicket({
+              clientId: client.id,
+              type: TaskType.EXPIRATION_CONTROL,
+              odooTicketId,
+              scheduledDate: new Date().toISOString().slice(0, 10),
+            });
+            await this.ticketRepo.update(savedTicket.id, { taskId: task.id });
+          } catch (err: unknown) {
+            this.logger.error(
+              `Ticket ${odooTicketId} creado pero falló crear la Task asociada: ${(err as Error).message}`,
+            );
+          }
         } catch (err: unknown) {
           this.logger.error(
             `Error creando ticket para ${item.type} ${item.sourceId}: ${(err as Error).message}`,

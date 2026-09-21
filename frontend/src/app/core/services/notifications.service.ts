@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ExpirationItem, ExpirationTypeConfigEntry } from '../models/notification.models';
+import { ExpirationDetail, ExpirationItem, ExpirationTypeConfigEntry } from '../models/notification.models';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationsService {
@@ -15,6 +15,10 @@ export class NotificationsService {
       ? new HttpParams().set('days', String(days))
       : new HttpParams();
     return this.http.get<ExpirationItem[]>(`${this.base}/expirations`, { params });
+  }
+
+  getExpirationByTaskId(taskId: string): Observable<ExpirationDetail | null> {
+    return this.http.get<ExpirationDetail | null>(`${this.base}/expiration-tickets/by-task/${taskId}`);
   }
 
   patchConfig(expirationsTypeConfigs: Record<string, ExpirationTypeConfigEntry>): Observable<unknown> {

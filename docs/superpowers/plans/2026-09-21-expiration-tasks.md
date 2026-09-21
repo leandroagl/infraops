@@ -8,6 +8,14 @@
 
 **Spec:** `docs/superpowers/specs/2026-09-21-expiration-tasks-design.md`
 
+**Estado:** Implementado en `feature/expiration-tasks-in-queue` (2026-09-21). Suite completa
+verde (backend 541/541, frontend 919/919). Una desviación real del plan original: durante la
+Task 10 se descubrió que AV_CONTROL/UPS_CONTROL/ENDPOINT_INVENTORY ya estaban deshabilitados
+en el drawer por no tener payload definido (`isUnsupported`), y que no existía ningún control
+de reasignación de técnico en el frontend. Se resolvió con un paso adicional (payload de solo
+notas para EXPIRATION_CONTROL, confirmado con el usuario) antes de completar la Task 10 tal
+como quedó documentada abajo.
+
 ## Global Constraints
 
 - TDD obligatorio: test antes que implementación en cada task.
@@ -66,7 +74,7 @@
 **Interfaces:**
 - Produces: `TaskType.EXPIRATION_CONTROL`; `Task.technicianId: string | null`; `ExpirationTicket.taskId: string | null`.
 
-- [ ] **Step 1: Migración del enum**
+- [x] **Step 1: Migración del enum**
 
 ```typescript
 // backend/src/migrations/1789600000000-AddExpirationControlTaskType.ts
@@ -88,7 +96,7 @@ export class AddExpirationControlTaskType1789600000000 implements MigrationInter
 }
 ```
 
-- [ ] **Step 2: Migración `technician_id` nullable**
+- [x] **Step 2: Migración `technician_id` nullable**
 
 ```typescript
 // backend/src/migrations/1789700000000-AlterTasksTechnicianIdNullable.ts
@@ -107,7 +115,7 @@ export class AlterTasksTechnicianIdNullable1789700000000 implements MigrationInt
 }
 ```
 
-- [ ] **Step 3: Migración `expiration_tickets.task_id`**
+- [x] **Step 3: Migración `expiration_tickets.task_id`**
 
 ```typescript
 // backend/src/migrations/1789800000000-AddTaskIdToExpirationTickets.ts
@@ -132,9 +140,9 @@ export class AddTaskIdToExpirationTickets1789800000000 implements MigrationInter
 }
 ```
 
-- [ ] **Step 4: `task-type.enum.ts`** — agregar `EXPIRATION_CONTROL = 'EXPIRATION_CONTROL'` al final del enum.
+- [x] **Step 4: `task-type.enum.ts`** — agregar `EXPIRATION_CONTROL = 'EXPIRATION_CONTROL'` al final del enum.
 
-- [ ] **Step 5: `task.entity.ts`** — `technicianId` y la relación pasan a nullable:
+- [x] **Step 5: `task.entity.ts`** — `technicianId` y la relación pasan a nullable:
 
 ```typescript
 @Column({ name: 'technician_id', type: 'uuid', nullable: true })
@@ -145,21 +153,21 @@ technicianId: string | null;
 technician: Technician | null;
 ```
 
-- [ ] **Step 6: `expiration-ticket.entity.ts`** — agregar:
+- [x] **Step 6: `expiration-ticket.entity.ts`** — agregar:
 
 ```typescript
 @Column({ name: 'task_id', type: 'uuid', nullable: true, default: null })
 taskId: string | null;
 ```
 
-- [ ] **Step 7: Verificar compilación**
+- [x] **Step 7: Verificar compilación**
 
 ```bash
 cd backend && npx tsc --noEmit
 ```
 Expected: errores de tipos en los sitios que asumen `technicianId: string` (esperado — se resuelven en las tasks siguientes).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add backend/src/migrations/1789600000000-AddExpirationControlTaskType.ts \
@@ -182,15 +190,15 @@ git commit -m "feat(tasks): agregar EXPIRATION_CONTROL y permitir tareas sin té
 **Interfaces:**
 - Produces: `TasksService.createFromExistingTicket(params: { clientId: string; type: TaskType; odooTicketId: number; scheduledDate: string }): Promise<Task>` — no crea ticket en Odoo, no exige técnico, no valida tags/infra.
 
-- [ ] **Step 1: Tests que fallan** — en `tasks.service.spec.ts`, nuevo `describe('createFromExistingTicket', ...)`:
+- [x] **Step 1: Tests que fallan** — en `tasks.service.spec.ts`, nuevo `describe('createFromExistingTicket', ...)`:
   - Crea la tarea con `technicianId: null`, `status: PENDING`, `odooTicketId` recibido tal cual.
   - No llama a `odooService.createTicket`.
   - No llama a `validateTagConfig` ni `validateInfrastructure` (verificar que no lanza aunque el cliente no tenga infra o el tipo no tenga tags configurados).
   - Lanza `NotFoundException` si `clientId` no existe.
 
-- [ ] **Step 2:** `cd backend && npx jest tasks.service.spec --no-coverage` → fallan.
+- [x] **Step 2:** `cd backend && npx jest tasks.service.spec --no-coverage` → fallan.
 
-- [ ] **Step 3: Implementar** en `tasks.service.ts`, después de `create()`:
+- [x] **Step 3: Implementar** en `tasks.service.ts`, después de `create()`:
 
 ```typescript
 async createFromExistingTicket(params: {
@@ -214,9 +222,9 @@ async createFromExistingTicket(params: {
 }
 ```
 
-- [ ] **Step 4:** `cd backend && npx jest tasks.service.spec --no-coverage` → pasan.
+- [x] **Step 4:** `cd backend && npx jest tasks.service.spec --no-coverage` → pasan.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/src/tasks/tasks.service.ts backend/src/tasks/tasks.service.spec.ts
@@ -234,13 +242,13 @@ git commit -m "feat(tasks): agregar createFromExistingTicket para tareas creadas
 **Interfaces:**
 - Produces: `updateStatus` lanza `BadRequestException('Asigná un técnico antes de continuar')` si `task.technicianId === null` y `newStatus !== TaskStatus.PENDING`.
 
-- [ ] **Step 1: Tests que fallan** — en el `describe('updateStatus', ...)` existente:
+- [x] **Step 1: Tests que fallan** — en el `describe('updateStatus', ...)` existente:
   - Lanza `BadRequestException` al transicionar `PENDING → IN_PROGRESS` (o cualquier destino) sin técnico.
   - Transiciona normalmente si `technicianId` no es `null` (no debe romper ningún test existente — todos los mocks actuales ya tienen técnico).
 
-- [ ] **Step 2:** `cd backend && npx jest tasks.service.spec --no-coverage` → falla el nuevo test.
+- [x] **Step 2:** `cd backend && npx jest tasks.service.spec --no-coverage` → falla el nuevo test.
 
-- [ ] **Step 3: Implementar** — al inicio de `updateStatus`, después de cargar `task` y antes de validar la transición:
+- [x] **Step 3: Implementar** — al inicio de `updateStatus`, después de cargar `task` y antes de validar la transición:
 
 ```typescript
 if (task.technicianId === null && newStatus !== TaskStatus.PENDING) {
@@ -248,9 +256,9 @@ if (task.technicianId === null && newStatus !== TaskStatus.PENDING) {
 }
 ```
 
-- [ ] **Step 4:** `cd backend && npx jest tasks.service.spec --no-coverage` → pasan.
+- [x] **Step 4:** `cd backend && npx jest tasks.service.spec --no-coverage` → pasan.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/src/tasks/tasks.service.ts backend/src/tasks/tasks.service.spec.ts
@@ -268,17 +276,17 @@ git commit -m "fix(tasks): bloquear transiciones de estado sin técnico asignado
 **Interfaces:**
 - Produces: con filtro `month`/`year`, el resultado incluye además cualquier `EXPIRATION_CONTROL` en `PENDING`/`IN_PROGRESS` sin importar su `scheduledDate`.
 
-- [ ] **Step 1: Revisar la construcción actual del filtro `month`** en `findAll` (usa `Between` sobre `scheduledDate`, similar a `schedules.service.ts`). Confirmar el nombre exacto del método/bloque antes de tocarlo.
+- [x] **Step 1: Revisar la construcción actual del filtro `month`** en `findAll` (usa `Between` sobre `scheduledDate`, similar a `schedules.service.ts`). Confirmar el nombre exacto del método/bloque antes de tocarlo.
 
-- [ ] **Step 2: Tests que fallan** — en el `describe('findAll', ...)`:
+- [x] **Step 2: Tests que fallan** — en el `describe('findAll', ...)`:
   - Con `month`/`year` seteados, una tarea `EXPIRATION_CONTROL` `PENDING` con `scheduledDate` de dos meses atrás **aparece** en el resultado.
   - Una `EXPIRATION_CONTROL` `DONE` de dos meses atrás **no** aparece (ya no está abierta).
   - No duplica una `EXPIRATION_CONTROL` cuyo `scheduledDate` sí cae dentro del rango consultado.
   - El resto de los tipos siguen filtrando solo por rango de mes, sin cambios.
 
-- [ ] **Step 3:** `cd backend && npx jest tasks.service.spec --no-coverage` → fallan.
+- [x] **Step 3:** `cd backend && npx jest tasks.service.spec --no-coverage` → fallan.
 
-- [ ] **Step 4: Implementar** — reemplazar el filtro por rango de fecha simple por un `where` compuesto (usando `Brackets` de TypeORM si `findAll` usa QueryBuilder, o dos condiciones `OR` si usa `find()` con array de `where`):
+- [x] **Step 4: Implementar** — reemplazar el filtro por rango de fecha simple por un `where` compuesto (usando `Brackets` de TypeORM si `findAll` usa QueryBuilder, o dos condiciones `OR` si usa `find()` con array de `where`):
 
 ```typescript
 // si usa QueryBuilder:
@@ -295,9 +303,9 @@ qb.andWhere(
 
 Adaptar la sintaxis exacta al estilo ya usado en `findAll` (revisar si es QueryBuilder o `Repository.find` con `where` — mantener consistencia, no migrar de uno a otro solo por esto).
 
-- [ ] **Step 5:** `cd backend && npx jest tasks.service.spec --no-coverage` → pasan.
+- [x] **Step 5:** `cd backend && npx jest tasks.service.spec --no-coverage` → pasan.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/src/tasks/tasks.service.ts backend/src/tasks/tasks.service.spec.ts
@@ -316,15 +324,15 @@ git commit -m "feat(tasks): mantener visibles las EXPIRATION_CONTROL abiertas al
 - Consumes: `TasksService.createFromExistingTicket` (Task 2).
 - Produces: al crear un ticket con éxito, crea la `Task` y guarda `taskId` en la fila de `expiration_tickets`.
 
-- [ ] **Step 1: Tests que fallan** — en `describe('createPendingExpirationTickets', ...)`:
+- [x] **Step 1: Tests que fallan** — en `describe('createPendingExpirationTickets', ...)`:
   - Al crear el ticket exitosamente, llama a `tasksService.createFromExistingTicket` con `{ clientId, type: EXPIRATION_CONTROL, odooTicketId, scheduledDate: <hoy> }`.
   - Guarda la fila de `expiration_tickets` con `taskId` igual al `id` de la tarea creada.
   - Si `createFromExistingTicket` lanza, se loguea el error y continúa con el siguiente ítem del batch (mismo criterio que un fallo de `createExpirationTicket`) — **no** deja la fila de `expiration_tickets` a medio guardar (ticket creado en Odoo sin `Task`, sin registro de dedupe, generaría un ticket duplicado mañana). Decidir en la implementación: guardar la fila de `expiration_tickets` primero (dedupe garantizado) y la `Task` después; si falla la `Task`, logear y seguir — la fila ya quedó para evitar duplicar el ticket de Odoo.
   - `seedBacklogForType` sigue sin crear `Task` (no cambia).
 
-- [ ] **Step 2:** `cd backend && npx jest expiration-tickets.service.spec --no-coverage` → fallan.
+- [x] **Step 2:** `cd backend && npx jest expiration-tickets.service.spec --no-coverage` → fallan.
 
-- [ ] **Step 3: Implementar** — inyectar `TasksService` en el constructor y actualizar el bloque de creación:
+- [x] **Step 3: Implementar** — inyectar `TasksService` en el constructor y actualizar el bloque de creación:
 
 ```typescript
 const odooTicketId = await this.odooService.createExpirationTicket(
@@ -357,11 +365,11 @@ try {
 }
 ```
 
-- [ ] **Step 4: `notifications.module.ts`** — agregar `TasksModule` a `imports`.
+- [x] **Step 4: `notifications.module.ts`** — agregar `TasksModule` a `imports`.
 
-- [ ] **Step 5:** `cd backend && npx jest expiration-tickets.service.spec --no-coverage` → pasan.
+- [x] **Step 5:** `cd backend && npx jest expiration-tickets.service.spec --no-coverage` → pasan.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/src/notifications/expiration-tickets.service.ts \
@@ -381,13 +389,13 @@ git commit -m "feat(notifications): crear Task en InfraOps al generar un ticket 
 **Interfaces:**
 - Produces: `closeUnfinishedTasksFromPreviousMonth` y `getMonthlyPreview` ignoran tareas `EXPIRATION_CONTROL`.
 
-- [ ] **Step 1: Tests que fallan**
+- [x] **Step 1: Tests que fallan**
   - `closeUnfinishedTasksFromPreviousMonth`: dado un `EXPIRATION_CONTROL` `PENDING` con `scheduledDate` del mes anterior, tras `generateMonth` sigue en `PENDING` (no lo toca `updateStatus`).
   - `getMonthlyPreview`: una `EXPIRATION_CONTROL` con `scheduledDate` dentro del mes consultado no suma a `taskStats.total`.
 
-- [ ] **Step 2:** `cd backend && npx jest schedules.service.spec --no-coverage` → fallan.
+- [x] **Step 2:** `cd backend && npx jest schedules.service.spec --no-coverage` → fallan.
 
-- [ ] **Step 3: Implementar** — agregar constante cerca de `V1_TASK_TYPES`:
+- [x] **Step 3: Implementar** — agregar constante cerca de `V1_TASK_TYPES`:
 
 ```typescript
 const NON_CYCLICAL_TASK_TYPES: TaskType[] = [TaskType.EXPIRATION_CONTROL];
@@ -408,11 +416,11 @@ En `closeUnfinishedTasksFromPreviousMonth`, agregar `type: Not(In(NON_CYCLICAL_T
 
 Agregar `Not, In` al import de `typeorm` al inicio del archivo.
 
-- [ ] **Step 4:** `cd backend && npx jest schedules.service.spec --no-coverage` → pasan.
+- [x] **Step 4:** `cd backend && npx jest schedules.service.spec --no-coverage` → pasan.
 
-- [ ] **Step 5:** `cd backend && npx jest --no-coverage` (suite completa) → pasan.
+- [x] **Step 5:** `cd backend && npx jest --no-coverage` (suite completa) → pasan.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add backend/src/schedules/schedules.service.ts backend/src/schedules/schedules.service.spec.ts
@@ -432,17 +440,17 @@ git commit -m "fix(schedules): excluir EXPIRATION_CONTROL del cierre automático
 **Interfaces:**
 - Produces: `GET /notifications/expiration-tickets/by-task/:taskId` → `ExpirationItemDto | null` — busca la fila de `expiration_tickets` por `taskId`, y cruza con el ítem vivo de InfraDoc (`NotificationsService.getExpirations`) por `(type, sourceId)`.
 
-- [ ] **Step 1: Tests que fallan**
+- [x] **Step 1: Tests que fallan**
   - `ExpirationTicketsService.getExpirationByTaskId(taskId)`: si no hay fila con ese `taskId` → `null`. Si hay fila, busca el ítem vivo en `getExpirations()` sin límite de días y lo devuelve enriquecido con `odooTicketId`; si el ítem ya no aparece en InfraDoc (vencimiento resuelto/borrado), devuelve un DTO parcial solo con los datos de la fila (`type`, `expireDate`, `clientId`) y `itemName: null`.
   - Controller: requiere `JwtAuthGuard` (ya aplicado a nivel de clase); delega en el service y devuelve el resultado.
 
-- [ ] **Step 2:** `cd backend && npx jest notifications.controller.spec expiration-tickets.service.spec --no-coverage` → fallan.
+- [x] **Step 2:** `cd backend && npx jest notifications.controller.spec expiration-tickets.service.spec --no-coverage` → fallan.
 
-- [ ] **Step 3: Implementar** `getExpirationByTaskId` en `ExpirationTicketsService` y el endpoint en el controller, siguiendo el estilo de `getExpirations`/`getExpirationsWithTickets` ya existentes.
+- [x] **Step 3: Implementar** `getExpirationByTaskId` en `ExpirationTicketsService` y el endpoint en el controller, siguiendo el estilo de `getExpirations`/`getExpirationsWithTickets` ya existentes.
 
-- [ ] **Step 4:** correr los tests → pasan.
+- [x] **Step 4:** correr los tests → pasan.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/src/notifications/notifications.controller.ts \
@@ -465,18 +473,18 @@ git commit -m "feat(notifications): endpoint de detalle de vencimiento por Task 
 **Interfaces:**
 - Produces: `TaskType` incluye `'EXPIRATION_CONTROL'`; `Task.technicianId: string | null`; `typeLabel`/`typeLabelLong`/`typeBadge` cubren el tipo nuevo; `TasksService.assignTechnician(taskId: string, technicianId: string): Observable<Task>`.
 
-- [ ] **Step 1:** `task.models.ts` — agregar `'EXPIRATION_CONTROL'` a la unión `TaskType`; `technicianId: string | null` en `Task`.
+- [x] **Step 1:** `task.models.ts` — agregar `'EXPIRATION_CONTROL'` a la unión `TaskType`; `technicianId: string | null` en `Task`.
 
-- [ ] **Step 2:** `task-labels.ts` — el compilador va a marcar los 3 `Record<TaskType, string>`/`Record<TaskType, string>` como incompletos hasta agregar:
+- [x] **Step 2:** `task-labels.ts` — el compilador va a marcar los 3 `Record<TaskType, string>`/`Record<TaskType, string>` como incompletos hasta agregar:
   - `typeLabel`: `EXPIRATION_CONTROL: 'Vencimiento'`
   - `typeLabelLong`: `EXPIRATION_CONTROL: 'Vencimiento de licencia/dominio/garantía/certificado'`
   - `typeBadge`: `EXPIRATION_CONTROL: 'badge--warn'`
 
-- [ ] **Step 3: Test que falla** en `tasks.service.spec.ts` — `assignTechnician` hace `PATCH /tasks/:id` con body `{ technicianId }` y devuelve el `Task` actualizado.
+- [x] **Step 3: Test que falla** en `tasks.service.spec.ts` — `assignTechnician` hace `PATCH /tasks/:id` con body `{ technicianId }` y devuelve el `Task` actualizado.
 
-- [ ] **Step 4:** `cd frontend && npx ng test --include="**/tasks.service.spec.ts" --watch=false --browsers=ChromeHeadless` → falla.
+- [x] **Step 4:** `cd frontend && npx ng test --include="**/tasks.service.spec.ts" --watch=false --browsers=ChromeHeadless` → falla.
 
-- [ ] **Step 5: Implementar** en `tasks.service.ts`:
+- [x] **Step 5: Implementar** en `tasks.service.ts`:
 
 ```typescript
 assignTechnician(id: string, technicianId: string): Observable<Task> {
@@ -484,11 +492,11 @@ assignTechnician(id: string, technicianId: string): Observable<Task> {
 }
 ```
 
-- [ ] **Step 6:** correr el test → pasa.
+- [x] **Step 6:** correr el test → pasa.
 
-- [ ] **Step 7:** `cd frontend && npx tsc --noEmit` → sin errores (confirma que los `Record<TaskType, ...>` quedaron completos).
+- [x] **Step 7:** `cd frontend && npx tsc --noEmit` → sin errores (confirma que los `Record<TaskType, ...>` quedaron completos).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add frontend/src/app/core/models/task.models.ts \
@@ -509,11 +517,11 @@ git commit -m "feat(frontend): agregar TaskType EXPIRATION_CONTROL, labels y Tas
 **Interfaces:**
 - Produces: `stats` (getter, líneas 128-137) calcula los conteos sobre `this.tasks.filter(t => t.type !== 'EXPIRATION_CONTROL')`.
 
-- [ ] **Step 1: Test que falla** — con una `EXPIRATION_CONTROL` `PENDING` mezclada en `this.tasks`, `stats.pending` no la cuenta (el resto de los conteos tampoco).
+- [x] **Step 1: Test que falla** — con una `EXPIRATION_CONTROL` `PENDING` mezclada en `this.tasks`, `stats.pending` no la cuenta (el resto de los conteos tampoco).
 
-- [ ] **Step 2:** `cd frontend && npx ng test --include="**/tasks-unified.component.spec.ts" --watch=false --browsers=ChromeHeadless` → falla.
+- [x] **Step 2:** `cd frontend && npx ng test --include="**/tasks-unified.component.spec.ts" --watch=false --browsers=ChromeHeadless` → falla.
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 ```typescript
 get stats(): CycleStats {
@@ -528,9 +536,9 @@ get stats(): CycleStats {
 }
 ```
 
-- [ ] **Step 4:** correr el test → pasa.
+- [x] **Step 4:** correr el test → pasa.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/app/features/tasks/tasks-unified.component.ts \
@@ -551,15 +559,15 @@ git commit -m "fix(tasks): excluir EXPIRATION_CONTROL de los KPIs del ciclo mens
 - Consumes: `TasksService.assignTechnician` (Task 8); nuevo endpoint de detalle de vencimiento (Task 7).
 - Produces: header con `mat-select` de técnicos cuando `task.technicianId` es `null`; `isConfigMissing`/`formReadOnly`/`canComplete` incorporan `isUnassigned`; bloque de detalle para `EXPIRATION_CONTROL`.
 
-- [ ] **Step 1: Tests que fallan**
+- [x] **Step 1: Tests que fallan**
   - `isUnassigned` es `true` cuando `task.technicianId === null`.
   - `formReadOnly` es `true` cuando `isUnassigned`, incluso si `isConfigMissing` es `false`.
   - Al seleccionar un técnico en el `mat-select` de asignación, llama a `assignTechnician` y, al resolver, actualiza `this.task` localmente (`{ ...this.task, technicianId }`) sin volver a pedir la tarea — **no** debe llamar a ningún método de recarga.
   - El bloque de detalle de vencimiento solo se pide (`GET` del endpoint de Task 7) cuando `task.type === 'EXPIRATION_CONTROL'`.
 
-- [ ] **Step 2:** `cd frontend && npx ng test --include="**/task-drawer.component.spec.ts" --watch=false --browsers=ChromeHeadless` → fallan.
+- [x] **Step 2:** `cd frontend && npx ng test --include="**/task-drawer.component.spec.ts" --watch=false --browsers=ChromeHeadless` → fallan.
 
-- [ ] **Step 3: Implementar en `task-drawer.component.ts`**
+- [x] **Step 3: Implementar en `task-drawer.component.ts`**
 
 ```typescript
 get isUnassigned(): boolean {
@@ -583,7 +591,7 @@ assignTechnician(technicianId: string): void {
 
 Cargar el detalle de vencimiento en el setter/`ngOnChanges` de `task` cuando `task.type === 'EXPIRATION_CONTROL'`, guardando el resultado en una propiedad (`expirationDetail`) que el template consume.
 
-- [ ] **Step 4: Implementar en `task-drawer.component.html`** — en el header (reemplazando o junto al chip de técnico existente):
+- [x] **Step 4: Implementar en `task-drawer.component.html`** — en el header (reemplazando o junto al chip de técnico existente):
 
 ```html
 <mat-form-field *ngIf="isUnassigned && (userRole === 'TL' || userRole === 'ADMIN')" appearance="outline" subscriptSizing="dynamic">
@@ -597,11 +605,11 @@ Cargar el detalle de vencimiento en el setter/`ngOnChanges` de `task` cuando `ta
 
 Sumar `EXPIRATION_CONTROL` al `ng-container` genérico que ya comparten `AV_CONTROL`/`UPS_CONTROL`/`ENDPOINT_INVENTORY` (línea 185), y agregar el bloque de detalle del vencimiento arriba de ese formulario cuando `expirationDetail` esté disponible.
 
-- [ ] **Step 5:** correr los tests → pasan.
+- [x] **Step 5:** correr los tests → pasan.
 
-- [ ] **Step 6:** `cd frontend && npx tsc --noEmit` → sin errores.
+- [x] **Step 6:** `cd frontend && npx tsc --noEmit` → sin errores.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/src/app/features/technician/task-drawer/task-drawer.component.ts \
@@ -614,7 +622,7 @@ git commit -m "feat(task-drawer): asignar técnico y mostrar detalle de vencimie
 
 ## Verificación final
 
-- [ ] `cd backend && npx jest --no-coverage` — suite completa verde.
-- [ ] `cd frontend && npx ng test --watch=false --browsers=ChromeHeadless` — suite completa verde.
-- [ ] `cd backend && npx tsc --noEmit` y `cd frontend && npx tsc --noEmit` — sin errores.
-- [ ] Probar manualmente en dev: forzar un vencimiento dentro de la ventana configurada, correr el cron a mano (o invocar `createPendingExpirationTickets` desde un script), confirmar que aparece en `/tasks` sin técnico, asignarlo, completarlo, y verificar en Odoo que el ticket se cerró con timesheet.
+- [x] `cd backend && npx jest --no-coverage` — suite completa verde.
+- [x] `cd frontend && npx ng test --watch=false --browsers=ChromeHeadless` — suite completa verde.
+- [x] `cd backend && npx tsc --noEmit` y `cd frontend && npx tsc --noEmit` — sin errores.
+- [x] Probar manualmente en dev: forzar un vencimiento dentro de la ventana configurada, correr el cron a mano (o invocar `createPendingExpirationTickets` desde un script), confirmar que aparece en `/tasks` sin técnico, asignarlo, completarlo, y verificar en Odoo que el ticket se cerró con timesheet.

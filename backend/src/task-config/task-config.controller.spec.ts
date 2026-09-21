@@ -31,10 +31,10 @@ describe('TaskConfigController', () => {
   });
 
   describe('GET /task-config', () => {
-    it('devuelve los 10 tipos de tarea con defaults para los que no tienen fila', async () => {
+    it('devuelve los 11 tipos de tarea con defaults para los que no tienen fila', async () => {
       mockRepo.find.mockResolvedValue([]);
       const result = await controller.findAll();
-      expect(result).toHaveLength(10);
+      expect(result).toHaveLength(11);
       expect(result[0].defaultTimeMinutes).toBeNull();
       expect(result[0].odooTagIds).toEqual([]);
     });
@@ -49,7 +49,7 @@ describe('TaskConfigController', () => {
       };
       mockRepo.find.mockResolvedValue([existing]);
       const result = await controller.findAll();
-      expect(result).toHaveLength(10);
+      expect(result).toHaveLength(11);
       const srv = result.find(r => r.taskType === TaskType.SERVER_HOST_MAINTENANCE)!;
       expect(srv.defaultTimeMinutes).toBe(90);
       expect(srv.odooTagIds).toEqual([1, 2]);

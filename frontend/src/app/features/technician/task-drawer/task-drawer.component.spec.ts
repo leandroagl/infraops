@@ -8,6 +8,7 @@ import { InfradocService } from '../../../core/services/infradoc.service';
 import { MaintenanceLogsService } from '../../../core/services/maintenance-logs.service';
 import { TasksService } from '../../../core/services/tasks.service';
 import { TaskConfigService } from '../../../core/services/task-config.service';
+import { NotificationsService } from '../../../core/services/notifications.service';
 import { Task, TaskType, TaskStatus, TaskTypeConfigDto } from '../../../core/models/task.models';
 import {
   TerminalPayload,
@@ -232,6 +233,50 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       component.taskConfig = mockTaskConfig;
       expect(component.isConfigMissing).toBe(false);
     });
+
+    it('para EXPIRATION_CONTROL es false sin tags si hay defaultTimeMinutes', () => {
+      component.task = { ...makeTask(), type: 'EXPIRATION_CONTROL' };
+      component.taskConfig = {
+        taskType: 'EXPIRATION_CONTROL',
+        defaultTimeMinutes: 30,
+        odooTagIds: [],
+        odooTagNames: [],
+        ticketDescription: null,
+        timesheetDescription: null,
+        ondraOwnedHosts: [],
+        updatedAt: '',
+      };
+      expect(component.isConfigMissing).toBe(false);
+    });
+
+    it('para EXPIRATION_CONTROL es true si falta defaultTimeMinutes', () => {
+      component.task = { ...makeTask(), type: 'EXPIRATION_CONTROL' };
+      component.taskConfig = {
+        taskType: 'EXPIRATION_CONTROL',
+        defaultTimeMinutes: null,
+        odooTagIds: [],
+        odooTagNames: [],
+        ticketDescription: null,
+        timesheetDescription: null,
+        ondraOwnedHosts: [],
+        updatedAt: '',
+      };
+      expect(component.isConfigMissing).toBe(true);
+    });
+  });
+
+  // ── isUnassigned ─────────────────────────────────────────────────────────
+
+  describe('isUnassigned', () => {
+    it('es true cuando technicianId es null', () => {
+      component.task = { ...makeTask(), technicianId: null };
+      expect(component.isUnassigned).toBe(true);
+    });
+
+    it('es false cuando technicianId está asignado', () => {
+      component.task = { ...makeTask(), technicianId: 'tech-1' };
+      expect(component.isUnassigned).toBe(false);
+    });
   });
 
   // ── canComplete ──────────────────────────────────────────────────────────
@@ -270,6 +315,12 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         ondraOwnedHosts: [],
         updatedAt: '',
       };
+      expect(component.canComplete).toBe(false);
+    });
+
+    it('canComplete es false cuando la tarea no tiene técnico asignado', () => {
+      component.task = { ...makeTask(), status: 'IN_PROGRESS', technicianId: null };
+      component['taskConfig'] = mockTaskConfig;
       expect(component.canComplete).toBe(false);
     });
   });
@@ -360,6 +411,92 @@ describe('TaskDrawerComponent — pure unit tests', () => {
 
       expect(saveComponent.saveProgressError).toBeTruthy();
       expect(saveComponent.saveProgressMsg).toBe('');
+    });
+  });
+
+  // ── assignTechnician() ───────────────────────────────────────────────────
+
+  describe('assignTechnician()', () => {
+    let assignSpy: jasmine.Spy;
+    let assignComponent: TaskDrawerComponent;
+
+    beforeEach(() => {
+      assignSpy = jasmine.createSpy('assignTechnician').and.returnValue(of({
+        id: 'task-1',
+        technicianId: 'tech-2',
+        technician: { id: 'tech-2', user: { id: 'u2', name: 'Enzo', email: 'enzo@ondra', avatarUrl: null } },
+      }));
+      assignComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: () => of({}), update: () => of({}) } as any,
+        { updateStatus: () => of({}), assignTechnician: assignSpy } as any,
+        mockDialog,
+        makeMockTaskConfigService(),
+      );
+      assignComponent.task = makeTask({ technicianId: null });
+    });
+
+    it('llama a tasksService.assignTechnician con el id de la tarea y el técnico elegido', () => {
+      assignComponent.assignTechnician('tech-2');
+      expect(assignSpy).toHaveBeenCalledWith('task-1', 'tech-2');
+    });
+
+    it('isUnassigned pasa a false tras asignar', () => {
+      expect(assignComponent.isUnassigned).toBe(true);
+      assignComponent.assignTechnician('tech-2');
+      expect(assignComponent.isUnassigned).toBe(false);
+    });
+
+    it('emite technicianAssigned con la tarea actualizada', () => {
+      const emitted: Task[] = [];
+      assignComponent.technicianAssigned.subscribe(t => emitted.push(t));
+      assignComponent.assignTechnician('tech-2');
+      expect(emitted.length).toBe(1);
+      expect(emitted[0].technicianId).toBe('tech-2');
+    });
+  });
+
+  // ── loadExpirationDetail() ───────────────────────────────────────────────
+
+  describe('loadExpirationDetail()', () => {
+    it('pide el detalle cuando el tipo es EXPIRATION_CONTROL', () => {
+      const getDetailSpy = jasmine.createSpy('getExpirationByTaskId').and.returnValue(of({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-08-01', clientId: 'client-1',
+        clientName: 'Acme', itemName: 'acme.com', daysUntil: 5, odooTicketId: 500,
+      }));
+      const notifComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: () => of({}), update: () => of({}) } as any,
+        { updateStatus: () => of({}) } as any,
+        mockDialog,
+        makeMockTaskConfigService(),
+        { getExpirationByTaskId: getDetailSpy } as any,
+      );
+      notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL' });
+
+      notifComponent.loadExpirationDetail();
+
+      expect(getDetailSpy).toHaveBeenCalledWith('task-1');
+      expect(notifComponent.expirationDetail?.itemName).toBe('acme.com');
+      expect(notifComponent.loadingExpirationDetail).toBe(false);
+    });
+
+    it('deja loadingExpirationDetail en false si falla', () => {
+      const getDetailSpy = jasmine.createSpy('getExpirationByTaskId').and.returnValue(throwError(() => new Error('caído')));
+      const notifComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: () => of({}), update: () => of({}) } as any,
+        { updateStatus: () => of({}) } as any,
+        mockDialog,
+        makeMockTaskConfigService(),
+        { getExpirationByTaskId: getDetailSpy } as any,
+      );
+      notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL' });
+
+      notifComponent.loadExpirationDetail();
+
+      expect(notifComponent.expirationDetail).toBeNull();
+      expect(notifComponent.loadingExpirationDetail).toBe(false);
     });
   });
 
@@ -612,6 +749,7 @@ describe('TaskDrawerComponent — template tests', () => {
         { provide: TasksService, useValue: { updateStatus: () => of({}) } },
         { provide: MatDialog, useValue: { open: () => ({ afterClosed: () => of(false) }) } },
         { provide: TaskConfigService, useValue: { getAll: () => of([mockTaskConfig]) } },
+        { provide: NotificationsService, useValue: { getExpirationByTaskId: () => of(null) } },
       ],
     }).compileComponents();
 

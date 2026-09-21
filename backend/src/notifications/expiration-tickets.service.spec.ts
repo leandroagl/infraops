@@ -7,14 +7,17 @@ import { ExpirationItemDto } from './dto/expiration-item.dto';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { IntegrationConfigService } from '../integration-config/integration-config.service';
 import { Client } from '../clients/client.entity';
+import { TasksService } from '../tasks/tasks.service';
+import { TaskType } from '../tasks/task-type.enum';
 
 describe('ExpirationTicketsService', () => {
   let service: ExpirationTicketsService;
   let notificationsService: { getExpirations: jest.Mock };
-  let ticketRepo: { find: jest.Mock; save: jest.Mock; insert: jest.Mock };
+  let ticketRepo: { find: jest.Mock; findOne: jest.Mock; save: jest.Mock; insert: jest.Mock; update: jest.Mock };
   let odooService: { createExpirationTicket: jest.Mock };
   let integrationConfigService: { getOdooConfigDecrypted: jest.Mock; getOdoo: jest.Mock; patchOdoo: jest.Mock };
   let clientRepo: { findOne: jest.Mock; find: jest.Mock };
+  let tasksService: { createFromExistingTicket: jest.Mock };
 
   const makeItem = (overrides: Partial<ExpirationItemDto> = {}): ExpirationItemDto => ({
     sourceId: 'd1', type: 'domain', clientId: 1, clientName: 'Acme',
@@ -34,7 +37,13 @@ describe('ExpirationTicketsService', () => {
 
   beforeEach(async () => {
     notificationsService = { getExpirations: jest.fn() };
-    ticketRepo = { find: jest.fn().mockResolvedValue([]), save: jest.fn().mockResolvedValue(undefined), insert: jest.fn().mockResolvedValue(undefined) };
+    ticketRepo = {
+      find: jest.fn().mockResolvedValue([]),
+      findOne: jest.fn().mockResolvedValue(null),
+      save: jest.fn().mockResolvedValue({ id: 'ticket-row-1' }),
+      insert: jest.fn().mockResolvedValue(undefined),
+      update: jest.fn().mockResolvedValue(undefined),
+    };
     odooService = { createExpirationTicket: jest.fn() };
     integrationConfigService = {
       getOdooConfigDecrypted: jest.fn().mockResolvedValue(defaultConfig),
@@ -42,6 +51,7 @@ describe('ExpirationTicketsService', () => {
       patchOdoo: jest.fn(),
     };
     clientRepo = { findOne: jest.fn(), find: jest.fn().mockResolvedValue([]) };
+    tasksService = { createFromExistingTicket: jest.fn().mockResolvedValue({ id: 'task-1' }) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -51,6 +61,7 @@ describe('ExpirationTicketsService', () => {
         { provide: OdooService,               useValue: odooService },
         { provide: IntegrationConfigService,  useValue: integrationConfigService },
         { provide: getRepositoryToken(Client), useValue: clientRepo },
+        { provide: TasksService,              useValue: tasksService },
       ],
     }).compile();
 
@@ -116,6 +127,49 @@ describe('ExpirationTicketsService', () => {
 
       const result = await service.getExpirationsWithTickets();
       expect(result[0].odooTicketId).toBeUndefined();
+    });
+  });
+
+  describe('getExpirationByTaskId', () => {
+    it('devuelve null si no hay fila con ese taskId', async () => {
+      ticketRepo.findOne.mockResolvedValue(null);
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(result).toBeNull();
+      expect(ticketRepo.findOne).toHaveBeenCalledWith({ where: { taskId: 'task-1' } });
+    });
+
+    it('devuelve el detalle enriquecido con el ítem vivo de InfraDoc cuando existe', async () => {
+      ticketRepo.findOne.mockResolvedValue({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
+      });
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(notificationsService.getExpirations).toHaveBeenCalledWith();
+      expect(result).toEqual(expect.objectContaining({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', clientName: 'Acme', itemName: 'acme.com',
+        daysUntil: 17, odooTicketId: 500,
+      }));
+    });
+
+    it('devuelve un detalle parcial (sin itemName) si el ítem ya no aparece en InfraDoc', async () => {
+      ticketRepo.findOne.mockResolvedValue({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
+      });
+      notificationsService.getExpirations.mockResolvedValue([]);
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(result).toEqual(expect.objectContaining({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', itemName: null, daysUntil: null, odooTicketId: 500,
+      }));
     });
   });
 
@@ -201,6 +255,45 @@ describe('ExpirationTicketsService', () => {
           clientId: 'client-uuid-1',
         }),
       );
+    });
+
+    it('crea la Task asociada al ticket y guarda taskId en la fila de expiration_tickets', async () => {
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+      ticketRepo.find.mockResolvedValue([]);
+      ticketRepo.save.mockResolvedValue({ id: 'ticket-row-1' });
+      clientRepo.findOne.mockResolvedValue({ id: 'client-uuid-1' });
+      odooService.createExpirationTicket.mockResolvedValue(500);
+      tasksService.createFromExistingTicket.mockResolvedValue({ id: 'task-1' });
+
+      await service.createPendingExpirationTickets();
+
+      expect(tasksService.createFromExistingTicket).toHaveBeenCalledWith({
+        clientId: 'client-uuid-1',
+        type: TaskType.EXPIRATION_CONTROL,
+        odooTicketId: 500,
+        scheduledDate: expect.any(String),
+      });
+      expect(ticketRepo.update).toHaveBeenCalledWith('ticket-row-1', { taskId: 'task-1' });
+    });
+
+    it('si falla crear la Task, loguea y no aborta el batch — la fila de expiration_tickets ya quedó guardada', async () => {
+      notificationsService.getExpirations.mockResolvedValue([
+        makeItem({ sourceId: 'd1' }),
+        makeItem({ sourceId: 'd2', itemName: 'otro.com' }),
+      ]);
+      ticketRepo.find.mockResolvedValue([]);
+      ticketRepo.save.mockResolvedValue({ id: 'ticket-row-1' });
+      clientRepo.findOne.mockResolvedValue({ id: 'client-uuid-1' });
+      odooService.createExpirationTicket.mockResolvedValue(500);
+      tasksService.createFromExistingTicket
+        .mockRejectedValueOnce(new Error('DB caída'))
+        .mockResolvedValueOnce({ id: 'task-2' });
+
+      await expect(service.createPendingExpirationTickets()).resolves.toBeUndefined();
+
+      expect(odooService.createExpirationTicket).toHaveBeenCalledTimes(2);
+      expect(ticketRepo.save).toHaveBeenCalledTimes(2);
+      expect(ticketRepo.update).toHaveBeenCalledTimes(1);
     });
 
     it('usa el helpdeskTeamId y tagIds propios del tipo, no un valor global', async () => {
