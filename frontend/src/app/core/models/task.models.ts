@@ -8,7 +8,8 @@ export type TaskType =
   | 'SITE_VISIT'
   | 'AV_CONTROL'
   | 'UPS_CONTROL'
-  | 'ENDPOINT_INVENTORY';
+  | 'ENDPOINT_INVENTORY'
+  | 'EXPIRATION_CONTROL';
 
 export type TaskStatus =
   | 'PENDING'
@@ -20,7 +21,7 @@ export type TaskStatus =
 export interface Task {
   id: string;
   clientId: string;
-  technicianId: string;
+  technicianId: string | null;
   type: TaskType;
   status: TaskStatus;
   scheduledDate: string;
