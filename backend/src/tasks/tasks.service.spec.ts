@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { In } from 'typeorm';
 import { Client } from '../clients/client.entity';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { InfrastructureService } from '../integrations/infradoc/infrastructure.service';
@@ -31,7 +32,7 @@ describe('TasksService', () => {
   };
   let clientRepository: { findOne: jest.Mock };
   let technicianRepository: { findOne: jest.Mock };
-  let logRepository: { delete: jest.Mock; findOne: jest.Mock };
+  let logRepository: { delete: jest.Mock; findOne: jest.Mock; find: jest.Mock };
   let odooService: {
     createTicket: jest.Mock;
     closeTicket: jest.Mock;
@@ -107,7 +108,7 @@ describe('TasksService', () => {
     };
     clientRepository = { findOne: jest.fn() };
     technicianRepository = { findOne: jest.fn() };
-    logRepository = { delete: jest.fn(), findOne: jest.fn().mockResolvedValue(null) };
+    logRepository = { delete: jest.fn(), findOne: jest.fn().mockResolvedValue(null), find: jest.fn().mockResolvedValue([]) };
     odooService = {
       createTicket: jest.fn(),
       closeTicket: jest.fn(),
@@ -174,6 +175,36 @@ describe('TasksService', () => {
       const result = await service.findAll({});
 
       expect((result[0].technician.user as any).avatarUrl).toBeNull();
+    });
+
+    it('incluye las notas del maintenance log de cada tarea', async () => {
+      taskRepository.find.mockResolvedValue([mockTask]);
+      logRepository.find.mockResolvedValue([{ taskId: 'task-1', notes: 'Se reinició el servicio.' }]);
+
+      const result = await service.findAll({});
+
+      expect(logRepository.find).toHaveBeenCalledWith({
+        where: { taskId: In(['task-1']) },
+        select: ['taskId', 'notes'],
+      });
+      expect((result[0] as any).notes).toBe('Se reinició el servicio.');
+    });
+
+    it('notes es null cuando la tarea no tiene maintenance log', async () => {
+      taskRepository.find.mockResolvedValue([mockTask]);
+      logRepository.find.mockResolvedValue([]);
+
+      const result = await service.findAll({});
+
+      expect((result[0] as any).notes).toBeNull();
+    });
+
+    it('no consulta logRepository cuando no hay tareas', async () => {
+      taskRepository.find.mockResolvedValue([]);
+
+      await service.findAll({});
+
+      expect(logRepository.find).not.toHaveBeenCalled();
     });
 
     it('aplica filtro por status cuando se provee', async () => {
