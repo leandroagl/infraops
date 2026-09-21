@@ -37,8 +37,6 @@ import { RouterDeviceCardComponent } from '../technician/task-drawer/router-form
 import { EsxiHostCardComponent } from '../technician/task-drawer/server-host-form/esxi-host-card/esxi-host-card.component';
 import { BmcHostCardComponent } from '../technician/task-drawer/server-host-form/bmc-host-card/bmc-host-card.component';
 import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/task-create-dialog.component';
-import { TaskConfigComponent } from './config/task-config.component';
-import { TaskEditDialogComponent } from './config/task-edit-dialog/task-edit-dialog.component';
 
 @NgModule({
   declarations: [
@@ -58,8 +56,6 @@ import { TaskEditDialogComponent } from './config/task-edit-dialog/task-edit-dia
     BmcHostCardComponent,
     TaskCreateDialogComponent,
     ConfirmCloseDialogComponent,
-    TaskConfigComponent,
-    TaskEditDialogComponent,
   ],
   imports: [
     CommonModule,

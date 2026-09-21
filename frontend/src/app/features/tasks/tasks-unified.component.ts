@@ -83,7 +83,7 @@ export class TasksUnifiedComponent implements OnInit {
   }
 
   openTasksConfig(): void {
-    this.router.navigate(['/tasks/config']);
+    this.router.navigate(['/admin/mantenimientos']);
   }
 
   get hasActiveFilters(): boolean {
