@@ -8,6 +8,11 @@ import { TICKET_DESCRIPTION_DEFAULTS, TIMESHEET_DESCRIPTION_DEFAULT } from './ta
 
 const ALL_TASK_TYPES = Object.values(TaskType);
 
+// EXPIRATION_CONTROL se configura por tipo de vencimiento (Garantía/Certificado/Dominio/
+// Licencia) desde Admin → Vencimientos, no acá — un único tiempo/tags/descripción no tiene
+// sentido para los 4 tipos.
+const MANTENIMIENTOS_TASK_TYPES = ALL_TASK_TYPES.filter(t => t !== TaskType.EXPIRATION_CONTROL);
+
 @Injectable()
 export class TaskConfigService {
   constructor(
@@ -18,7 +23,7 @@ export class TaskConfigService {
   async findAll(): Promise<TaskTypeConfig[]> {
     const rows = await this.repo.find();
     const byType = new Map(rows.map(r => [r.taskType, r]));
-    return ALL_TASK_TYPES.map(taskType => {
+    return MANTENIMIENTOS_TASK_TYPES.map(taskType => {
       const config = byType.get(taskType) ?? this.defaultConfig(taskType);
       config.defaultTicketDescription = TICKET_DESCRIPTION_DEFAULTS[taskType];
       config.defaultTimesheetDescription = TIMESHEET_DESCRIPTION_DEFAULT;

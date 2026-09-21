@@ -75,9 +75,11 @@
     [task]="selectedTask"
     [userRole]="userRole"
     [cycleClosed]="cycleClosed"
+    [technicians]="technicians"
     (taskCompleted)="onTaskCompleted()"
     (taskNotDone)="onTaskNotDone()"
     (taskStatusChanged)="onTaskStatusChanged($event)"
+    (technicianAssigned)="onTechnicianAssigned($event)"
     (drawerClosed)="closeDrawer()">
   </app-task-drawer>
 </div>

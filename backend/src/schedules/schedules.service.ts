@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, Repository } from 'typeorm';
+import { Between, In, Not, Repository } from 'typeorm';
 import { ClientSchedule } from './client-schedule.entity';
 import { RotationConfig, RotationFrequency } from './rotation-config.entity';
 import { MONTH_TO_GROUP, ScheduleGroup } from './schedule-group.enum';
@@ -60,6 +60,8 @@ const V1_TASK_TYPES: TaskType[] = [
   TaskType.VEEAM_BACKUP,
   TaskType.ROUTER_MAINTENANCE,
 ];
+
+const NON_CYCLICAL_TASK_TYPES: TaskType[] = [TaskType.EXPIRATION_CONTROL];
 
 const THROTTLE_MS = 800;
 
@@ -204,7 +206,10 @@ export class SchedulesService {
     const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(lastDayNum).padStart(2, '0')}`;
 
     const tasks = await this.taskRepo.find({
-      where: { scheduledDate: Between(firstDay, lastDay) as unknown as string },
+      where: {
+        scheduledDate: Between(firstDay, lastDay) as unknown as string,
+        type: Not(In(NON_CYCLICAL_TASK_TYPES)),
+      },
       select: ['id', 'status', 'clientId'],
     });
 
@@ -251,8 +256,16 @@ export class SchedulesService {
 
     const unfinished = await this.taskRepo.find({
       where: [
-        { scheduledDate: Between(firstDay, lastDay) as unknown as string, status: TaskStatus.PENDING },
-        { scheduledDate: Between(firstDay, lastDay) as unknown as string, status: TaskStatus.IN_PROGRESS },
+        {
+          scheduledDate: Between(firstDay, lastDay) as unknown as string,
+          status: TaskStatus.PENDING,
+          type: Not(In(NON_CYCLICAL_TASK_TYPES)),
+        },
+        {
+          scheduledDate: Between(firstDay, lastDay) as unknown as string,
+          status: TaskStatus.IN_PROGRESS,
+          type: Not(In(NON_CYCLICAL_TASK_TYPES)),
+        },
       ],
       select: ['id'],
     });

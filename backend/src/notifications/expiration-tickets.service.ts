@@ -4,17 +4,23 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { NotificationsService } from './notifications.service';
 import { ExpirationTicket } from './expiration-ticket.entity';
-import { ExpirationItemDto } from './dto/expiration-item.dto';
+import { ExpirationItemDto, ExpirationDetailDto } from './dto/expiration-item.dto';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { IntegrationConfigService } from '../integration-config/integration-config.service';
 import { OdooConfigResponseDto } from '../integration-config/dto/odoo-config.dto';
 import { Client } from '../clients/client.entity';
+import { TasksService } from '../tasks/tasks.service';
+import { TaskType } from '../tasks/task-type.enum';
 
 type TypeConfigEntry = {
   enabled: boolean;
   helpdeskTeamId: number | null;
   daysAhead: number;
   tagIds: number[];
+  taskName?: string | null;
+  defaultTimeMinutes?: number | null;
+  ticketDescription?: string | null;
+  timesheetDescription?: string | null;
 };
 type TypeConfigs = Record<string, TypeConfigEntry>;
 
@@ -30,6 +36,7 @@ export class ExpirationTicketsService {
     private readonly ticketRepo: Repository<ExpirationTicket>,
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,
+    private readonly tasksService: TasksService,
   ) {}
 
   async getExpirationsWithTickets(days?: number): Promise<ExpirationItemDto[]> {
@@ -47,6 +54,34 @@ export class ExpirationTicketsService {
         ? { ...item, odooTicketId: row.odooTicketId }
         : item;
     });
+  }
+
+  async getExpirationByTaskId(taskId: string): Promise<ExpirationDetailDto | null> {
+    const row = await this.ticketRepo.findOne({ where: { taskId } });
+    if (!row) return null;
+
+    const items = await this.notificationsService.getExpirations();
+    const liveItem = items.find(
+      (i) => i.type === row.type && i.sourceId === row.sourceId,
+    );
+
+    const config = await this.integrationConfigService.getOdoo();
+    const typeConfigs = (config.expirationsTypeConfigs ?? {}) as TypeConfigs;
+
+    return {
+      type: row.type,
+      sourceId: row.sourceId,
+      expireDate: row.expireDate,
+      clientId: row.clientId,
+      clientName: liveItem?.clientName ?? null,
+      itemName: liveItem?.itemName ?? null,
+      make: liveItem?.make,
+      model: liveItem?.model,
+      serial: liveItem?.serial,
+      daysUntil: liveItem?.daysUntil ?? null,
+      odooTicketId: row.odooTicketId,
+      defaultTimeMinutes: typeConfigs[row.type]?.defaultTimeMinutes ?? null,
+    };
   }
 
   @Cron('0 8 * * *')
@@ -100,9 +135,9 @@ export class ExpirationTicketsService {
 
         try {
           const odooTicketId = await this.odooService.createExpirationTicket(
-            item, client.id, cfg.helpdeskTeamId!, cfg.tagIds,
+            item, client.id, cfg.helpdeskTeamId!, cfg.tagIds, cfg.taskName, cfg.ticketDescription,
           );
-          await this.ticketRepo.save({
+          const savedTicket = await this.ticketRepo.save({
             type: item.type,
             sourceId: item.sourceId,
             expireDate: item.expireDate,
@@ -110,6 +145,21 @@ export class ExpirationTicketsService {
             odooTicketId,
           });
           created++;
+
+          try {
+            const task = await this.tasksService.createFromExistingTicket({
+              clientId: client.id,
+              type: TaskType.EXPIRATION_CONTROL,
+              odooTicketId,
+              scheduledDate: new Date().toISOString().slice(0, 10),
+              expirationType: item.type,
+            });
+            await this.ticketRepo.update(savedTicket.id, { taskId: task.id });
+          } catch (err: unknown) {
+            this.logger.error(
+              `Ticket ${odooTicketId} creado pero falló crear la Task asociada: ${(err as Error).message}`,
+            );
+          }
         } catch (err: unknown) {
           this.logger.error(
             `Error creando ticket para ${item.type} ${item.sourceId}: ${(err as Error).message}`,
@@ -128,20 +178,19 @@ export class ExpirationTicketsService {
   // deshabilitado a habilitado, pre-siembra su backlog actual (filas sin
   // odooTicketId real) para que el cron no dispare tickets para todo lo que
   // ya estaba pendiente — solo lo que aparezca de ahí en adelante.
-  async saveTypeConfigs(newConfigs: TypeConfigs, updatedBy: string): Promise<OdooConfigResponseDto> {
+  async saveTypeConfig(type: string, entry: TypeConfigEntry, updatedBy: string): Promise<OdooConfigResponseDto> {
     const before = await this.integrationConfigService.getOdoo();
     const oldConfigs = (before.expirationsTypeConfigs ?? {}) as TypeConfigs;
+    const wasEnabled = oldConfigs[type]?.enabled ?? false;
 
+    const newConfigs: TypeConfigs = { ...oldConfigs, [type]: entry };
     const result = await this.integrationConfigService.patchOdoo(
       { expirationsTypeConfigs: newConfigs },
       updatedBy,
     );
 
-    for (const [type, entry] of Object.entries(newConfigs)) {
-      const wasEnabled = oldConfigs[type]?.enabled ?? false;
-      if (entry.enabled && !wasEnabled) {
-        await this.seedBacklogForType(type, entry.daysAhead);
-      }
+    if (entry.enabled && !wasEnabled) {
+      await this.seedBacklogForType(type, entry.daysAhead);
     }
 
     return result;

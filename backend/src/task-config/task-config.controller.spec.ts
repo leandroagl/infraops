@@ -31,12 +31,18 @@ describe('TaskConfigController', () => {
   });
 
   describe('GET /task-config', () => {
-    it('devuelve los 10 tipos de tarea con defaults para los que no tienen fila', async () => {
+    it('devuelve los 10 tipos de tarea de Mantenimientos con defaults para los que no tienen fila', async () => {
       mockRepo.find.mockResolvedValue([]);
       const result = await controller.findAll();
       expect(result).toHaveLength(10);
       expect(result[0].defaultTimeMinutes).toBeNull();
       expect(result[0].odooTagIds).toEqual([]);
+    });
+
+    it('no incluye EXPIRATION_CONTROL — se configura por tipo desde Vencimientos, no acá', async () => {
+      mockRepo.find.mockResolvedValue([]);
+      const result = await controller.findAll();
+      expect(result.find(r => r.taskType === TaskType.EXPIRATION_CONTROL)).toBeUndefined();
     });
 
     it('combina filas de DB con defaults para tipos faltantes', async () => {

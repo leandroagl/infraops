@@ -99,6 +99,29 @@ describe('TasksUnifiedComponent', () => {
     expect(component.stats.inprogress).toBe(1);
   });
 
+  it('onTechnicianAssigned actualiza el técnico de la tarea en el array local sin recargar', () => {
+    const updated = { ...makeTask('t2', 'c1', 'ACME S.A.', 'PENDING'), technicianId: 'tech-2' };
+
+    component.onTechnicianAssigned(updated);
+
+    const task = component.tasks.find(t => t.id === 't2');
+    expect(task?.technicianId).toBe('tech-2');
+    expect(tasksServiceSpy.getAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('stats excluye tareas EXPIRATION_CONTROL de los conteos del ciclo', () => {
+    tasksServiceSpy.getAll.and.returnValue(of([
+      makeTask('t1', 'c1', 'ACME S.A.', 'DONE'),
+      makeTask('t2', 'c1', 'ACME S.A.', 'PENDING'),
+      { ...makeTask('t3', 'c2', 'Distribuidora', 'PENDING'), type: 'EXPIRATION_CONTROL', technicianId: null, technician: undefined },
+    ]));
+    component.load();
+
+    expect(component.stats.assigned).toBe(2);
+    expect(component.stats.done).toBe(1);
+    expect(component.stats.pending).toBe(1);
+  });
+
   it('navegar al mes anterior recarga con el mes correcto', () => {
     const prevMonth = component.currentMonth === 1 ? 12 : component.currentMonth - 1;
     const prevYear  = component.currentMonth === 1 ? component.currentYear - 1 : component.currentYear;

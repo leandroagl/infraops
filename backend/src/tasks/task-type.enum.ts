@@ -9,4 +9,5 @@ export enum TaskType {
   AV_CONTROL                 = 'AV_CONTROL',
   UPS_CONTROL                = 'UPS_CONTROL',
   ENDPOINT_INVENTORY         = 'ENDPOINT_INVENTORY',
+  EXPIRATION_CONTROL         = 'EXPIRATION_CONTROL',
 }

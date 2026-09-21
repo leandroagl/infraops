@@ -1,26 +1,8 @@
-.nc-page {
-  padding: 28px 32px;
+.section-header {
+  padding: 20px 0 16px;
 }
-
-.nc-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-
-  &__title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--tx-hi);
-    margin: 0;
-  }
-
-  &__actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-}
+.section-title    { font-size: 15px; font-weight: 600; color: var(--tx-hi); margin-bottom: 4px; }
+.section-subtitle { font-size: 12px; color: var(--tx-md); }
 
 .nc-loading {
   display: flex;
@@ -28,19 +10,14 @@
   padding: 48px 0;
 }
 
-.nc-spinner-inline {
-  display: inline-block;
-  vertical-align: middle;
-  margin-right: 6px;
-}
-
 .nc-config-table {
   width: 100%;
 
-  .mat-column-type       { flex: 1.5; }
-  .mat-column-enabled    { flex: 0 0 100px; }
-  .mat-column-daysAhead  { flex: 0 0 110px; }
-  .mat-column-tagIds     { flex: 2; }
+  .mat-column-type              { flex: 1.5; }
+  .mat-column-enabled           { flex: 0 0 100px; }
+  .mat-column-daysAhead         { flex: 0 0 90px; }
+  .mat-column-defaultTimeMinutes { flex: 0 0 140px; }
+  .mat-column-tagIds            { flex: 0 0 100px; }
 }
 
 .type-badge {
@@ -69,8 +46,25 @@
   color: var(--tx-hi);
 }
 
-.nc-cell-field {
-  width: 100%;
+.time-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-bd);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+.time-unset { font-size: 12px; color: var(--tx-lo); font-style: italic; }
 
-  &--narrow { max-width: 90px; }
+.tag-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 100px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-bd);
 }

@@ -1,7 +1,7 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ExpirationTicketsService } from './expiration-tickets.service';
-import { ExpirationItemDto } from './dto/expiration-item.dto';
+import { ExpirationDetailDto, ExpirationItemDto } from './dto/expiration-item.dto';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
@@ -13,5 +13,10 @@ export class NotificationsController {
     const parsed = days !== undefined ? parseInt(days, 10) : undefined;
     const parsedDays = parsed !== undefined && isNaN(parsed) ? undefined : parsed;
     return this.expirationTicketsService.getExpirationsWithTickets(parsedDays);
+  }
+
+  @Get('expiration-tickets/by-task/:taskId')
+  getExpirationByTaskId(@Param('taskId') taskId: string): Promise<ExpirationDetailDto | null> {
+    return this.expirationTicketsService.getExpirationByTaskId(taskId);
   }
 }

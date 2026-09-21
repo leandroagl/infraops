@@ -1,18 +1,21 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
-import { Router } from '@angular/router';
-import { catchError, forkJoin, of } from 'rxjs';
-import {
-  IntegrationConfigService,
-  HelpdeskTeamDto,
-  HelpdeskTagDto,
-} from '../../../core/services/integration-config.service';
-import { NotificationsService } from '../../../core/services/notifications.service';
-import { ExpirationTypeConfigEntry, ExpirationType } from '../../../core/models/notification.models';
+import { MatDialog } from '@angular/material/dialog';
+import { forkJoin } from 'rxjs';
+import { IntegrationConfigService, HelpdeskTeamDto } from '../../../core/services/integration-config.service';
+import { ExpirationType, ExpirationTypeConfigEntry } from '../../../core/models/notification.models';
+import { NotificationsTypeEditDialogComponent } from './type-edit-dialog/notifications-type-edit-dialog.component';
+import { formatMinutes } from '../../../shared/utils/time-format';
 
 export const EXPIRATION_TYPES: ExpirationType[] = [
   'asset_warranty', 'certificate', 'domain', 'software',
 ];
+
+type ConfigRow = ExpirationTypeConfigEntry & { type: ExpirationType };
+
+const DEFAULT_ENTRY: ExpirationTypeConfigEntry = {
+  enabled: false, helpdeskTeamId: null, daysAhead: 30, tagIds: [],
+  taskName: null, defaultTimeMinutes: null, ticketDescription: null, timesheetDescription: null,
+};
 
 @Component({
   selector: 'app-notifications-config',
@@ -20,78 +23,58 @@ export const EXPIRATION_TYPES: ExpirationType[] = [
   styleUrl: './notifications-config.component.scss',
 })
 export class NotificationsConfigComponent implements OnInit {
-  form: FormGroup;
-  loading = true;
-  saving = false;
+  configs: ConfigRow[] = [];
   teams: HelpdeskTeamDto[] = [];
-  tags: HelpdeskTagDto[] = [];
-  readonly types = EXPIRATION_TYPES;
-  readonly displayedColumns = ['type', 'enabled', 'helpdeskTeamId', 'daysAhead', 'tagIds'];
+  loading = true;
+  readonly displayedColumns = ['type', 'enabled', 'helpdeskTeamId', 'daysAhead', 'defaultTimeMinutes', 'tagIds', 'actions'];
 
   constructor(
-    private readonly fb: FormBuilder,
     private readonly svc: IntegrationConfigService,
-    private readonly notificationsSvc: NotificationsService,
-    private readonly router: Router,
-  ) {
-    this.form = this.fb.group(
-      Object.fromEntries(
-        EXPIRATION_TYPES.map(type => [
-          type,
-          this.fb.group({
-            enabled:        [false],
-            helpdeskTeamId: [{ value: null, disabled: true }],
-            daysAhead:      [{ value: 30,   disabled: true }],
-            tagIds:         [{ value: [],   disabled: true }],
-          }),
-        ]),
-      ),
-    );
-  }
+    private readonly dialog: MatDialog,
+  ) {}
 
   ngOnInit(): void {
     forkJoin({
       config: this.svc.getOdoo(),
-      teams:  this.svc.getHelpdeskTeams().pipe(catchError(() => of([]))),
-      tags:   this.svc.getHelpdeskTags().pipe(catchError(() => of([]))),
+      teams: this.svc.getHelpdeskTeams(),
     }).subscribe({
-      next: ({ config, teams, tags }) => {
+      next: ({ config, teams }) => {
         this.teams = teams;
-        this.tags  = tags;
-        const configs = (config.expirationsTypeConfigs ?? {}) as Record<string, ExpirationTypeConfigEntry>;
-        for (const type of EXPIRATION_TYPES) {
-          const entry = configs[type];
-          if (entry) {
-            const group = this.form.get(type) as FormGroup;
-            group.get('enabled')!.setValue(entry.enabled);
-            group.get('helpdeskTeamId')!.setValue(entry.helpdeskTeamId);
-            group.get('daysAhead')!.setValue(entry.daysAhead);
-            group.get('tagIds')!.setValue(entry.tagIds);
-            this.applyEnabledState(group, entry.enabled);
-          }
-        }
+        const typeConfigs = (config.expirationsTypeConfigs ?? {}) as Record<string, ExpirationTypeConfigEntry>;
+        this.configs = EXPIRATION_TYPES.map(type => ({
+          type,
+          ...(typeConfigs[type] ?? DEFAULT_ENTRY),
+        }));
         this.loading = false;
       },
       error: () => { this.loading = false; },
     });
   }
 
-  onToggleChange(type: string): void {
-    const group = this.form.get(type) as FormGroup;
-    const enabled = group.get('enabled')!.value as boolean;
-    this.applyEnabledState(group, enabled);
+  openEdit(row: ConfigRow): void {
+    this.dialog.open(NotificationsTypeEditDialogComponent, {
+      data: { type: row.type, entry: row },
+      width: '640px', maxWidth: '90vw',
+    })
+      .afterClosed()
+      .subscribe((updated: ExpirationTypeConfigEntry | null) => {
+        if (updated) this.onConfigUpdated(row.type, updated);
+      });
   }
 
-  isEnabled(type: string): boolean {
-    return !!(this.form.get(type) as FormGroup).get('enabled')!.value;
+  onConfigUpdated(type: ExpirationType, updated: ExpirationTypeConfigEntry): void {
+    this.configs = this.configs.map(c =>
+      c.type === type ? { type, ...updated } : c
+    );
   }
 
-  get formValid(): boolean {
-    return EXPIRATION_TYPES.every(type => {
-      const g = this.form.get(type) as FormGroup;
-      const enabled = g.get('enabled')!.value as boolean;
-      return !enabled || !!g.get('helpdeskTeamId')!.value;
-    });
+  teamName(id: number | null): string {
+    if (id == null) return '—';
+    return this.teams.find(t => t.id === id)?.name ?? '—';
+  }
+
+  formatMinutes(minutes: number | null): string {
+    return formatMinutes(minutes);
   }
 
   typeClass(type: ExpirationType): string {
@@ -112,29 +95,5 @@ export class NotificationsConfigComponent implements OnInit {
       software:       'Licencia',
     };
     return map[type];
-  }
-
-  save(): void {
-    if (!this.formValid) return;
-    this.saving = true;
-    const expirationsTypeConfigs: Record<string, ExpirationTypeConfigEntry> = {};
-    for (const type of EXPIRATION_TYPES) {
-      const g = this.form.get(type) as FormGroup;
-      expirationsTypeConfigs[type] = g.getRawValue() as ExpirationTypeConfigEntry;
-    }
-    this.notificationsSvc.patchConfig(expirationsTypeConfigs).subscribe({
-      next: () => {
-        this.saving = false;
-        this.router.navigate(['/notifications']);
-      },
-      error: () => { this.saving = false; },
-    });
-  }
-
-  private applyEnabledState(group: FormGroup, enabled: boolean): void {
-    ['helpdeskTeamId', 'daysAhead', 'tagIds'].forEach(ctrl => {
-      const c = group.get(ctrl)!;
-      enabled ? c.enable() : c.disable();
-    });
   }
 }

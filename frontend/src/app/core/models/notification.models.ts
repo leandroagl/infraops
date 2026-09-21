@@ -14,9 +14,29 @@ export interface ExpirationItem {
   odooTicketId?: number;
 }
 
+/** Detalle de un vencimiento resuelto por taskId, para el drawer de una tarea EXPIRATION_CONTROL. */
+export interface ExpirationDetail {
+  type: ExpirationType;
+  sourceId: string;
+  expireDate: string;
+  clientId: string;
+  clientName: string | null;
+  itemName: string | null;
+  make?: string;
+  model?: string;
+  serial?: string;
+  daysUntil: number | null;
+  odooTicketId: number | null;
+  defaultTimeMinutes: number | null;
+}
+
 export interface ExpirationTypeConfigEntry {
   enabled: boolean;
   helpdeskTeamId: number | null;
   daysAhead: number;
   tagIds: number[];
+  taskName?: string | null;
+  defaultTimeMinutes?: number | null;
+  ticketDescription?: string | null;
+  timesheetDescription?: string | null;
 }
