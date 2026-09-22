@@ -9,7 +9,7 @@ const mockUser = { sub: 'uid-1', email: 'admin@ondra.com.ar', role: 'ADMIN', mus
 const mockOdooResp = { url: 'u', db: 'd', username: 'u', apiKey: MASK, helpdeskTeamId: 7, updatedAt: null, updatedBy: null };
 
 const mockService = {
-  getOdoo: jest.fn(), patchOdoo: jest.fn(), testOdoo: jest.fn(),
+  getOdooPublic: jest.fn(), getOdoo: jest.fn(), patchOdoo: jest.fn(), testOdoo: jest.fn(),
   getInfraDoc: jest.fn(), patchInfraDoc: jest.fn(), testInfraDoc: jest.fn(),
   getVmware: jest.fn(), patchVmware: jest.fn(), testVmware: jest.fn(),
 };
@@ -27,6 +27,12 @@ describe('IntegrationConfigController', () => {
       .overrideGuard(RolesGuard).useValue({ canActivate: () => true })
       .compile();
     controller = module.get<IntegrationConfigController>(IntegrationConfigController);
+  });
+
+  it('GET /odoo/public delega en service.getOdooPublic', async () => {
+    const pub = { ticketsBaseUrl: 'https://ondra.odoo.com/odoo/helpdesk/7/tickets' };
+    mockService.getOdooPublic.mockResolvedValue(pub);
+    expect(await controller.getOdooPublic()).toEqual(pub);
   });
 
   it('GET /odoo delega en service.getOdoo', async () => {

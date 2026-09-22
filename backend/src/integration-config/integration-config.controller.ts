@@ -16,6 +16,10 @@ import { PatchVmwareConfigDto, VmwareConfigResponseDto } from './dto/vmware-conf
 export class IntegrationConfigController {
   constructor(private readonly svc: IntegrationConfigService) {}
 
+  @Get('odoo/public')
+  @Roles()
+  getOdooPublic(): Promise<{ ticketsBaseUrl: string }> { return this.svc.getOdooPublic(); }
+
   @Get('odoo')
   getOdoo(): Promise<OdooConfigResponseDto> { return this.svc.getOdoo(); }
 

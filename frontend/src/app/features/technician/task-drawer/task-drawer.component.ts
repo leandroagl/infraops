@@ -41,7 +41,8 @@ import { TaskConfigService } from '../../../core/services/task-config.service';
 import { TaskTypeConfigDto } from '../../../core/models/task.models';
 import { statusLabel, statusBadge, typeLabel, typeBadge } from '../../../shared/utils/task-labels';
 import { daysUntilCycleClose, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
-import { formatOdooTicketId, odooTicketUrl } from '../../../shared/utils/odoo';
+import { formatOdooTicketId } from '../../../shared/utils/odoo';
+import { OdooUrlService } from '../../../core/services/odoo-url.service';
 
 @Component({
   selector: 'app-task-drawer',
@@ -89,6 +90,7 @@ export class TaskDrawerComponent implements OnChanges {
     private tasksService: TasksService,
     private dialog: MatDialog,
     private taskConfigService: TaskConfigService,
+    private odooUrl: OdooUrlService,
     private notificationsService?: NotificationsService,
   ) {}
 
@@ -429,7 +431,9 @@ export class TaskDrawerComponent implements OnChanges {
   }
 
   get odooLink(): string | null {
-    return this.task.odooTicketId != null ? odooTicketUrl(this.task.odooTicketId) : null;
+    if (this.task.odooTicketId == null) return null;
+    const url = this.odooUrl.ticketUrl(this.task.odooTicketId);
+    return url || null;
   }
 
   get veeamPayload(): VeeamBackupPayload | undefined {

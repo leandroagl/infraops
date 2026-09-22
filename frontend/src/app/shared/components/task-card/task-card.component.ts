@@ -3,7 +3,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Task } from '../../../core/models/task.models';
 import { daysUntilCycleClose, urgencyLabel, urgencyClass } from '../../utils/urgency';
 import { typeLabel, typeBadge } from '../../utils/task-labels';
-import { formatOdooTicketId, odooTicketUrl } from '../../utils/odoo';
+import { formatOdooTicketId } from '../../utils/odoo';
+import { OdooUrlService } from '../../../core/services/odoo-url.service';
 
 @Component({
   selector: 'app-task-card',
@@ -15,6 +16,8 @@ export class TaskCardComponent {
   @Input() active = false;
   @Input() showTechnicianAvatar = false;
   @Output() selected = new EventEmitter<Task>();
+
+  constructor(private readonly odooUrl: OdooUrlService) {}
 
   get isActive(): boolean {
     return this.task.status === 'PENDING' || this.task.status === 'IN_PROGRESS';
@@ -40,7 +43,9 @@ export class TaskCardComponent {
   }
 
   get odooLink(): string | null {
-    return this.task.odooTicketId != null ? odooTicketUrl(this.task.odooTicketId) : null;
+    if (this.task.odooTicketId == null) return null;
+    const url = this.odooUrl.ticketUrl(this.task.odooTicketId);
+    return url || null;
   }
 
   get technicianInitial(): string {
