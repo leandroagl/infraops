@@ -3,10 +3,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import { ExpirationItem, ExpirationType, ExpirationTypeConfigEntry } from '../../core/models/notification.models';
 import { NotificationsService } from '../../core/services/notifications.service';
-import { formatOdooTicketId, odooTicketUrl } from '../../shared/utils/odoo';
+import { formatOdooTicketId } from '../../shared/utils/odoo';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { IntegrationConfigService } from '../../core/services/integration-config.service';
+import { OdooUrlService } from '../../core/services/odoo-url.service';
 
 export type UrgencyZone = 'expired' | 'week' | 'soon' | 'attention';
 
@@ -34,6 +35,7 @@ export class NotificationsComponent implements OnInit {
     private readonly authService: AuthService,
     private readonly integrationConfigService: IntegrationConfigService,
     private readonly router: Router,
+    private readonly odooUrl: OdooUrlService,
   ) {}
 
   ngOnInit(): void {
@@ -168,7 +170,9 @@ export class NotificationsComponent implements OnInit {
   }
 
   ticketLink(item: ExpirationItem): string | null {
-    return item.odooTicketId != null ? odooTicketUrl(item.odooTicketId) : null;
+    if (item.odooTicketId == null) return null;
+    const url = this.odooUrl.ticketUrl(item.odooTicketId);
+    return url || null;
   }
 
   ticketPending(item: ExpirationItem): boolean {
