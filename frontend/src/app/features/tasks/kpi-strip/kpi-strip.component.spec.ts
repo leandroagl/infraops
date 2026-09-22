@@ -5,7 +5,8 @@ import { KpiStripComponent } from './kpi-strip.component';
 import { CycleStats } from '../../../core/models/task.models';
 import { daysUntilCycleClose, urgencyLabel } from '../../../shared/utils/urgency';
 
-const STATS: CycleStats = { assigned: 24, inprogress: 4, pending: 10, done: 8, escalated: 2 };
+const STATS: CycleStats = { assigned: 24, inprogress: 4, pending: 10, done: 8, escalated: 2, unassigned: 0 };
+const STATS_WITH_UNASSIGNED: CycleStats = { ...STATS, unassigned: 3 };
 
 describe('KpiStripComponent', () => {
   let component: KpiStripComponent;
@@ -128,6 +129,57 @@ describe('KpiStripComponent', () => {
       fixture.detectChanges();
       const totalZone: HTMLElement = fixture.nativeElement.querySelector('.kpi-zone--total');
       expect(totalZone.classList).toContain('kpi-zone--active');
+    });
+  });
+
+  describe('zone sin asignar', () => {
+    it('no renderiza la zone cuando unassigned === 0', () => {
+      component.stats = STATS;
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.kpi-zone--unassigned')).toBeNull();
+    });
+
+    it('renderiza la zone cuando unassigned > 0', () => {
+      component.stats = STATS_WITH_UNASSIGNED;
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.kpi-zone--unassigned')).not.toBeNull();
+    });
+
+    it('muestra el valor correcto de unassigned', () => {
+      component.stats = STATS_WITH_UNASSIGNED;
+      fixture.detectChanges();
+      const zone: HTMLElement = fixture.nativeElement.querySelector('.kpi-zone--unassigned');
+      expect(zone.textContent).toContain('3');
+    });
+
+    it('emite true al hacer click cuando el filtro está inactivo', () => {
+      component.stats = STATS_WITH_UNASSIGNED;
+      component.activeUnassignedFilter = false;
+      fixture.detectChanges();
+      const emitted: boolean[] = [];
+      component.unassignedFilterChange.subscribe((v: boolean) => emitted.push(v));
+      const zone: HTMLElement = fixture.nativeElement.querySelector('.kpi-zone--unassigned');
+      zone.click();
+      expect(emitted).toEqual([true]);
+    });
+
+    it('emite false al hacer click cuando el filtro está activo (toggle off)', () => {
+      component.stats = STATS_WITH_UNASSIGNED;
+      component.activeUnassignedFilter = true;
+      fixture.detectChanges();
+      const emitted: boolean[] = [];
+      component.unassignedFilterChange.subscribe((v: boolean) => emitted.push(v));
+      const zone: HTMLElement = fixture.nativeElement.querySelector('.kpi-zone--unassigned');
+      zone.click();
+      expect(emitted).toEqual([false]);
+    });
+
+    it('aplica kpi-zone--active cuando activeUnassignedFilter es true', () => {
+      component.stats = STATS_WITH_UNASSIGNED;
+      component.activeUnassignedFilter = true;
+      fixture.detectChanges();
+      const zone: HTMLElement = fixture.nativeElement.querySelector('.kpi-zone--unassigned');
+      expect(zone.classList).toContain('kpi-zone--active');
     });
   });
 });

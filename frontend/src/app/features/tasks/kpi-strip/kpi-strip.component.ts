@@ -11,7 +11,9 @@ export class KpiStripComponent {
   @Input() stats!: CycleStats;
   @Input() closed = false;
   @Input() activeStatusFilter: string | null = null;
+  @Input() activeUnassignedFilter = false;
   @Output() statusFilterChange = new EventEmitter<string | null>();
+  @Output() unassignedFilterChange = new EventEmitter<boolean>();
 
   toggleStatusFilter(status: string): void {
     this.statusFilterChange.emit(this.activeStatusFilter === status ? null : status);
