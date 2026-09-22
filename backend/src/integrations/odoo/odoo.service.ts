@@ -570,7 +570,7 @@ export class OdooService {
     const typeLabel = taskName?.trim() || DEFAULT_EXPIRATION_TYPE_LABELS[item.type];
     const name = `${typeLabel} – ${item.itemName}`;
     const customIntro = ticketDescription?.trim() ? plainTextToHtml(ticketDescription) : '';
-    const description = `${customIntro}<p>Fecha de vencimiento: <strong>${item.expireDate}</strong></p><p>Días restantes: ${item.daysUntil}</p>`;
+    const description = `${customIntro}<p>Fecha de vencimiento: <strong>${item.expireDate}</strong></p>`;
 
     const payload: Record<string, unknown> = {
       team_id: helpdeskTeamId,

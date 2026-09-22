@@ -1732,7 +1732,7 @@ describe('OdooService', () => {
       }
     });
 
-    it('antepone ticketDescription convertido a HTML a la fecha/días restantes', async () => {
+    it('antepone ticketDescription convertido a HTML a la fecha de vencimiento', async () => {
       await service.createExpirationTicket(
         makeExpItem({ expireDate: '2026-10-15', daysUntil: 20 }),
         'client-uuid-1', 9, [], undefined, 'Verificar con el proveedor antes de renovar',
@@ -1741,10 +1741,10 @@ describe('OdooService', () => {
       const description = callArg['description'] as string;
       expect(description).toContain('Verificar con el proveedor antes de renovar');
       expect(description).toContain('2026-10-15');
-      expect(description).toContain('20');
+      expect(description).not.toContain('Días restantes');
     });
 
-    it('la descripción incluye fecha y días restantes aunque no haya ticketDescription configurado', async () => {
+    it('la descripción incluye la fecha de vencimiento aunque no haya ticketDescription configurado', async () => {
       await service.createExpirationTicket(
         makeExpItem({ expireDate: '2026-10-15', daysUntil: 20 }),
         'client-uuid-1', 9, [],
@@ -1752,7 +1752,7 @@ describe('OdooService', () => {
       const callArg = odooRpc.callKw.mock.calls[odooRpc.callKw.mock.calls.length - 1][2][0] as Record<string, unknown>;
       const description = callArg['description'] as string;
       expect(description).toContain('2026-10-15');
-      expect(description).toContain('20');
+      expect(description).not.toContain('Días restantes');
     });
   });
 
