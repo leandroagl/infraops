@@ -1,5 +1,4 @@
-import { formatOdooTicketId, odooTicketUrl } from './odoo';
-import { environment } from '../../../environments/environment';
+import { formatOdooTicketId } from './odoo';
 
 describe('formatOdooTicketId()', () => {
   it('pads 1 to #00001', () => {
@@ -16,15 +15,5 @@ describe('formatOdooTicketId()', () => {
 
   it('no trunca números de más de 5 dígitos', () => {
     expect(formatOdooTicketId(123456)).toBe('#123456');
-  });
-});
-
-describe('odooTicketUrl()', () => {
-  it('construye la URL usando environment.odooTicketsUrl', () => {
-    expect(odooTicketUrl(5174)).toBe(`${environment.odooTicketsUrl}/5174`);
-  });
-
-  it('el resultado contiene el id como segmento final', () => {
-    expect(odooTicketUrl(99)).toContain('/99');
   });
 });

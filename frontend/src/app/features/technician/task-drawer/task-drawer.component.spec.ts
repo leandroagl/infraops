@@ -9,6 +9,7 @@ import { MaintenanceLogsService } from '../../../core/services/maintenance-logs.
 import { TasksService } from '../../../core/services/tasks.service';
 import { TaskConfigService } from '../../../core/services/task-config.service';
 import { NotificationsService } from '../../../core/services/notifications.service';
+import { OdooUrlService } from '../../../core/services/odoo-url.service';
 import { Task, TaskType, TaskStatus, TaskTypeConfigDto } from '../../../core/models/task.models';
 import {
   TerminalPayload,
@@ -62,6 +63,8 @@ const mockDialog = {
   open: () => ({ afterClosed: () => of(null) }),
 } as unknown as MatDialog;
 
+const mockOdooUrl = { ticketUrl: (id: number) => `https://ondra.odoo.com/odoo/helpdesk/7/tickets/${id}` } as any;
+
 const mockDialogThatConfirms: MatDialog = {
   open: () => ({ afterClosed: () => of({ confirmed: true }) }),
 } as unknown as MatDialog;
@@ -91,7 +94,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
   const mockTasks = { updateStatus: () => of({}) } as any;
 
   beforeEach(() => {
-    component = new TaskDrawerComponent(mockInfradoc, mockLogs, mockTasks, mockDialog, makeMockTaskConfigService());
+    component = new TaskDrawerComponent(mockInfradoc, mockLogs, mockTasks, mockDialog, makeMockTaskConfigService(), mockOdooUrl);
     component.task = makeTask();
   });
 
@@ -343,6 +346,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: updateStatusSpy } as any,
         mockDialog,
         makeMockTaskConfigService(),
+        mockOdooUrl,
       );
       saveComponent.task = makeTask({ status: 'PENDING' });
     });
@@ -432,6 +436,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: () => of({}), assignTechnician: assignSpy } as any,
         mockDialog,
         makeMockTaskConfigService(),
+        mockOdooUrl,
       );
       assignComponent.task = makeTask({ technicianId: null });
     });
@@ -469,6 +474,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: () => of({}) } as any,
         mockDialog,
         { getAll: getAllSpy } as any,
+        mockOdooUrl,
         { getExpirationByTaskId: () => of(null) } as any,
       );
       notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL' });
@@ -486,6 +492,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: () => of({}) } as any,
         mockDialog,
         { getAll: getAllSpy } as any,
+        mockOdooUrl,
       );
       notifComponent.task = makeTask({ type: 'WINDOWS_DOMAIN_MAINTENANCE' });
 
@@ -507,6 +514,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: () => of({}) } as any,
         mockDialog,
         makeMockTaskConfigService(),
+        mockOdooUrl,
         { getExpirationByTaskId: getDetailSpy } as any,
       );
       notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL' });
@@ -531,6 +539,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: () => of({}) } as any,
         mockDialog,
         { getAll: getAllSpy } as any,
+        mockOdooUrl,
         { getExpirationByTaskId: getDetailSpy } as any,
       );
       notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL' });
@@ -550,6 +559,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: () => of({}) } as any,
         mockDialog,
         makeMockTaskConfigService(),
+        mockOdooUrl,
         { getExpirationByTaskId: getDetailSpy } as any,
       );
       notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL' });
@@ -567,6 +577,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: () => of({}) } as any,
         mockDialog,
         makeMockTaskConfigService(),
+        mockOdooUrl,
         { getExpirationByTaskId: getDetailSpy } as any,
       );
       notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL' });
@@ -596,6 +607,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: updateStatusSpy } as any,
         mockDialogThatConfirms,
         makeMockTaskConfigService(),
+        mockOdooUrl,
       );
       completeComponent.taskConfig = mockTaskConfig;
     });
@@ -656,6 +668,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: updateStatusSpy } as any,
         mockDialogThatConfirms,
         makeMockTaskConfigService(),
+        mockOdooUrl,
       );
       notDoneComponent.task = makeTask({ status: 'IN_PROGRESS' });
       notDoneComponent.taskConfig = mockTaskConfig;
@@ -677,6 +690,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: updateStatusSpy } as any,
         dialogWithReason,
         makeMockTaskConfigService(),
+        mockOdooUrl,
       );
       reasonComponent.task = makeTask({ status: 'IN_PROGRESS' });
       reasonComponent.taskConfig = mockTaskConfig;
@@ -696,6 +710,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: updateStatusSpy } as any,
         cancelDialog,
         makeMockTaskConfigService(),
+        mockOdooUrl,
       );
       cancelComponent.task = makeTask({ status: 'IN_PROGRESS' });
       cancelComponent.taskConfig = mockTaskConfig;
@@ -752,6 +767,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         { updateStatus: () => of({}) } as any,
         mockDialog,
         makeMockTaskConfigService(),
+        mockOdooUrl,
       );
       loadComponent.task = makeTask();
     });
@@ -827,6 +843,7 @@ describe('TaskDrawerComponent — template tests', () => {
         { provide: TasksService, useValue: { updateStatus: () => of({}) } },
         { provide: MatDialog, useValue: { open: () => ({ afterClosed: () => of(false) }) } },
         { provide: TaskConfigService, useValue: { getAll: () => of([mockTaskConfig]) } },
+        { provide: OdooUrlService, useValue: mockOdooUrl },
         { provide: NotificationsService, useValue: { getExpirationByTaskId: () => of(null) } },
       ],
     }).compileComponents();

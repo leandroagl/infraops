@@ -77,6 +77,11 @@ export class IntegrationConfigService {
     };
   }
 
+  async getOdooPublic(): Promise<{ ticketsBaseUrl: string }> {
+    const cfg = await this.getOdoo();
+    return { ticketsBaseUrl: `${cfg.url}/odoo/helpdesk/${cfg.helpdeskTeamId}/tickets` };
+  }
+
   async patchOdoo(dto: PatchOdooConfigDto, updatedBy: string): Promise<OdooConfigResponseDto> {
     const existing = (await this.odooRepo.findOne({ where: { id: 1 } })) ?? new OdooConfig();
     existing.id = 1;
