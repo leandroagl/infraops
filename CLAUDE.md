@@ -403,6 +403,13 @@ docs/
 
   - Proponer siempre que sea necesario, la actualización de los archivos CLAUDE.md y README.md
   - Proponer actualizar el docs/manual-usuario.md siempre que sea necesario
+  - Hay una cadena de mail activa ("Automatización de operaciones técnicas — seguimiento")
+    donde se reporta a un stakeholder externo qué procesos manuales pasó a automatizar
+    InfraOps. Cuando se implemente una feature nueva que resuelva un flujo que antes era
+    manual (no un fix de bug, no un refactor interno, no una mejora de UX menor), proponer
+    sumarlo como update a esa cadena: Proceso / Antes vs Ahora / Herramienta (sin
+    profundizar técnicamente) / Métrica de impacto (si no hay un número concreto, no
+    inventarlo) / Estado.
 
 ## Design System — Tokens y convenciones visuales
 
