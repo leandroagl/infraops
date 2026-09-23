@@ -15,6 +15,7 @@ export interface RawInfradocAsset {
   interface_name: string | null;
   asset_uri: string | null;
   asset_uri_2: string | null;
+  asset_archived_at: string | null;
 }
 
 @Injectable()
@@ -44,7 +45,7 @@ export class InfradocAssetsService {
 
     const data = response.data.data;
     if (!Array.isArray(data)) return [];
-    return data as RawInfradocAsset[];
+    return this.excludeArchived(data as RawInfradocAsset[]);
   }
 
   async getAssetInterfaces(assetId: number): Promise<RawInfradocAsset[]> {
@@ -67,6 +68,12 @@ export class InfradocAssetsService {
 
     const data = response.data.data;
     if (!Array.isArray(data)) return [];
-    return data as RawInfradocAsset[];
+    return this.excludeArchived(data as RawInfradocAsset[]);
+  }
+
+  // Un asset archivado en InfraDoc equivale a eliminado para InfraOps — nunca
+  // debe llegar a InfrastructureService ni a la detección de infraestructura.
+  private excludeArchived(assets: RawInfradocAsset[]): RawInfradocAsset[] {
+    return assets.filter((a) => !a.asset_archived_at);
   }
 }

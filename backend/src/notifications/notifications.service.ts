@@ -5,10 +5,10 @@ import { firstValueFrom } from 'rxjs';
 import { ExpirationItemDto, ExpirationType } from './dto/expiration-item.dto';
 
 interface RawClient     { client_id: string; client_name: string; }
-interface RawAsset      { asset_id: string; asset_name: string; asset_make: string | null; asset_model: string | null; asset_serial: string | null; asset_warranty_expire: string | null; asset_client_id: string; }
-interface RawCert       { certificate_id: string; certificate_name: string; certificate_expire: string | null; certificate_client_id: string; }
-interface RawDomain     { domain_id: string; domain_name: string; domain_expire: string | null; domain_client_id: string; }
-interface RawSoftware   { software_id: string; software_name: string; software_expire: string | null; software_client_id: string; }
+interface RawAsset      { asset_id: string; asset_name: string; asset_make: string | null; asset_model: string | null; asset_serial: string | null; asset_warranty_expire: string | null; asset_client_id: string; asset_archived_at: string | null; }
+interface RawCert       { certificate_id: string; certificate_name: string; certificate_expire: string | null; certificate_client_id: string; certificate_archived_at: string | null; }
+interface RawDomain     { domain_id: string; domain_name: string; domain_expire: string | null; domain_client_id: string; domain_archived_at: string | null; }
+interface RawSoftware   { software_id: string; software_name: string; software_expire: string | null; software_client_id: string; software_archived_at: string | null; }
 
 interface InfradocResponse<T> { success: string; data: T[]; }
 
@@ -50,19 +50,19 @@ export class NotificationsService {
     const items: ExpirationItemDto[] = [];
 
     for (const r of this.safe(assetsRes.data)) {
-      if (!r.asset_id || !r.asset_warranty_expire || !r.asset_client_id) continue;
+      if (!r.asset_id || !r.asset_warranty_expire || !r.asset_client_id || r.asset_archived_at) continue;
       items.push(this.toItem(r.asset_id, 'asset_warranty', r.asset_client_id, r.asset_name, r.asset_warranty_expire, clientMap, today, r.asset_make ?? undefined, r.asset_model ?? undefined, r.asset_serial ?? undefined));
     }
     for (const r of this.safe(certsRes.data)) {
-      if (!r.certificate_id || !r.certificate_expire || !r.certificate_client_id) continue;
+      if (!r.certificate_id || !r.certificate_expire || !r.certificate_client_id || r.certificate_archived_at) continue;
       items.push(this.toItem(r.certificate_id, 'certificate', r.certificate_client_id, r.certificate_name, r.certificate_expire, clientMap, today));
     }
     for (const r of this.safe(domainsRes.data)) {
-      if (!r.domain_id || !r.domain_expire || !r.domain_client_id) continue;
+      if (!r.domain_id || !r.domain_expire || !r.domain_client_id || r.domain_archived_at) continue;
       items.push(this.toItem(r.domain_id, 'domain', r.domain_client_id, r.domain_name, r.domain_expire, clientMap, today));
     }
     for (const r of this.safe(softwareRes.data)) {
-      if (!r.software_id || !r.software_expire || !r.software_client_id) continue;
+      if (!r.software_id || !r.software_expire || !r.software_client_id || r.software_archived_at) continue;
       items.push(this.toItem(r.software_id, 'software', r.software_client_id, r.software_name, r.software_expire, clientMap, today));
     }
 

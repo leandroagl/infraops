@@ -205,6 +205,54 @@ describe('NotificationsService', () => {
     expect(result).toHaveLength(0);
   });
 
+  it('excluye un asset archivado (asset_archived_at no nulo)', async () => {
+    setupMock([
+      { asset_id: '1', asset_name: 'Activo',    asset_warranty_expire: '2026-07-05', asset_client_id: '1', asset_archived_at: null },
+      { asset_id: '2', asset_name: 'Archivado', asset_warranty_expire: '2026-07-05', asset_client_id: '1', asset_archived_at: '2026-06-01 10:00:00' },
+    ]);
+
+    const result = await service.getExpirations(90);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].itemName).toBe('Activo');
+  });
+
+  it('excluye un certificado archivado', async () => {
+    setupMock([], [
+      { certificate_id: '1', certificate_name: 'activo.pem',    certificate_expire: '2026-07-05', certificate_client_id: '1', certificate_archived_at: null },
+      { certificate_id: '2', certificate_name: 'archivado.pem', certificate_expire: '2026-07-05', certificate_client_id: '1', certificate_archived_at: '2026-06-01 10:00:00' },
+    ]);
+
+    const result = await service.getExpirations(90);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].itemName).toBe('activo.pem');
+  });
+
+  it('excluye un dominio archivado', async () => {
+    setupMock([], [], [
+      { domain_id: '1', domain_name: 'activo.com',    domain_expire: '2026-07-05', domain_client_id: '1', domain_archived_at: null },
+      { domain_id: '2', domain_name: 'archivado.com', domain_expire: '2026-07-05', domain_client_id: '1', domain_archived_at: '2026-06-01 10:00:00' },
+    ]);
+
+    const result = await service.getExpirations(90);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].itemName).toBe('activo.com');
+  });
+
+  it('excluye un software archivado', async () => {
+    setupMock([], [], [], [
+      { software_id: '1', software_name: 'Activo',    software_expire: '2026-07-05', software_client_id: '1', software_archived_at: null },
+      { software_id: '2', software_name: 'Archivado', software_expire: '2026-07-05', software_client_id: '1', software_archived_at: '2026-06-01 10:00:00' },
+    ]);
+
+    const result = await service.getExpirations(90);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].itemName).toBe('Activo');
+  });
+
   it('lanza Error cuando INFRADOC_URL no está configurado', async () => {
     delete process.env.INFRADOC_URL;
     await expect(service.getExpirations(90)).rejects.toThrow(

@@ -253,6 +253,13 @@ curl "https://itflow.yourdomain.com/api/v1/clients/read.php?api_key=YOUR_KEY&lim
 | asset_mac | string | Filter by MAC address (searches primary interface) |
 | asset_uri | string | Filter by URI |
 
+<wrap em>Note: despite the module summary below listing no Archive endpoint, ''read.php'' rows
+include an ''asset_archived_at'' field (datetime, null if active) not covered by the create/update
+parameters — a non-null value means the asset was archived (removed) in the UI. There is no
+archive/unarchive endpoint; archiving happens only through the InfraDoc web UI. Confirmed live
+against a real instance 2026-09-23. **InfraOps must filter these out** — an archived asset is
+equivalent to deleted and must never surface in infrastructure views or task detection.</wrap>
+
 **Create/Update Parameters (POST)**:
 
 ^ Parameter ^ Type ^ Required (Create) ^ Description ^
@@ -268,7 +275,7 @@ curl "https://itflow.yourdomain.com/api/v1/clients/read.php?api_key=YOUR_KEY&lim
 | asset_ip | string | No | IP address (stored in primary interface) |
 | asset_mac | string | No | MAC address (stored in primary interface) |
 | asset_uri | string | No | Management URL |
-| asset_status | string | No | Status (Deployed, Spare, etc.) |
+| asset_status | string | No | Status (Deployed, Spare, etc.) — distinct from archiving |
 | asset_purchase_date | date | No | Purchase date (YYYY-MM-DD) |
 | asset_warranty_expire | date | No | Warranty expiration date |
 | asset_install_date | date | No | Installation date |
@@ -329,6 +336,10 @@ curl -X POST "https://itflow.example.com/api/v1/assets/create.php" \
 | certificate_id | integer | Get specific certificate by ID |
 | certificate_name | string | Filter by certificate name |
 
+<wrap em>Note: ''read.php'' rows include ''certificate_archived_at'' (datetime, null if active),
+not covered by the create parameters below. Confirmed live 2026-09-23 — InfraOps must filter
+these out, same as assets.</wrap>
+
 **Create Parameters (POST)**:
 
 ^ Parameter ^ Type ^ Required ^ Description ^
@@ -363,6 +374,10 @@ curl -X POST "https://itflow.example.com/api/v1/assets/create.php" \
 
 ^ Parameter ^ Type ^ Description ^
 | client_name | string | Get specific client by exact name |
+
+<wrap em>Note: ''read.php'' rows include ''client_archived_at'' (datetime, null if active) — this
+is what a non-null value from archive.php actually looks like in the response; InfraOps already
+relies on this field (see ''clients/infradoc/infradoc.service.ts''). Confirmed live 2026-09-23.</wrap>
 
 **Create Parameters (POST)**:
 
@@ -574,6 +589,7 @@ curl -X POST "https://itflow.example.com/api/v1/assets/create.php" \
 | domain_dnshost | integer | DNS host vendor ID |
 | domain_mailhost | integer | Mail host vendor ID |
 | domain_client_id | integer | Client ID |
+| domain_archived_at | datetime | Archive timestamp (null if active) — confirmed live 2026-09-23, missing from the original vendor doc; InfraOps must filter these out |
 
 ----
 
@@ -806,6 +822,9 @@ curl "https://itflow.example.com/api/v1/invoice_items/read.php?api_key=YOUR_KEY&
 | software_name | string | Get by exact name |
 | software_type | string | Filter by type |
 
+<wrap em>Note: ''read.php'' rows include ''software_archived_at'' (datetime, null if active).
+Confirmed live 2026-09-23 — InfraOps must filter these out.</wrap>
+
 ----
 
 ==== Tickets ''/api/v1/tickets/'' ====
@@ -1029,13 +1048,13 @@ curl -X POST "https://itflow.example.com/api/v1/contacts/create.php" \
 ===== API Module Summary =====
 
 ^ Module ^ Read ^ Create ^ Update ^ Delete ^ Archive ^ Other ^
-| Assets | ✓ | ✓ | ✓ | ✓ | - | - |
-| Certificates | ✓ | ✓ | - | - | - | - |
+| Assets | ✓ | ✓ | ✓ | ✓ | UI only* | - |
+| Certificates | ✓ | ✓ | - | - | UI only* | - |
 | Clients | ✓ | ✓ | ✓ | - | ✓ | unarchive |
 | Contacts | ✓ | ✓ | ✓ | ✓ | ✓ | unarchive |
 | Credentials | ✓ | ✓ | ✓ | - | - | - |
 | Documents | ✓ | ✓ | ✓ | - | - | - |
-| Domains | ✓ | - | - | - | - | - |
+| Domains | ✓ | - | - | - | UI only* | - |
 | Expenses | ✓ | - | - | - | - | - |
 | Invoices | ✓ | - | - | - | - | - |
 | [[#invoice_items_api_v1_invoice_items|Invoice Items]] | ✓ | - | - | - | - | - |
@@ -1044,9 +1063,17 @@ curl -X POST "https://itflow.example.com/api/v1/contacts/create.php" \
 | Payments | ✓ | - | - | - | - | - |
 | Products | ✓ | - | - | - | - | - |
 | Quotes | ✓ | - | - | - | - | - |
-| Software | ✓ | - | - | - | - | - |
+| Software | ✓ | - | - | - | UI only* | - |
 | Tickets | ✓ | ✓ | - | - | - | resolve |
 | Vendors | ✓ | - | - | - | - | - |
+
+<wrap em>* "UI only" = no archive/unarchive API endpoint exists for this module, but ''read.php''
+rows still carry an ''<entity>_archived_at'' field (datetime, null if active) reflecting archiving
+done through the InfraDoc web UI. Confirmed live against a real instance 2026-09-23 for assets,
+certificates, domains, software and clients — none of this was documented in the original vendor
+doc despite InfraOps' client sync already relying on ''client_archived_at''. Any consumer reading
+these modules must treat a non-null ''*_archived_at'' as "does not exist" — InfraOps does this in
+''InfradocAssetsService'' and ''NotificationsService.getExpirations''.</wrap>
 
 
 ## Documentación completa ITFlow
