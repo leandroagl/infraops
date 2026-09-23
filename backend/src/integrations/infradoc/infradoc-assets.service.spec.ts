@@ -18,6 +18,7 @@ describe('InfradocAssetsService', () => {
     asset_ip: '10.0.1.5',
     asset_os: 'Windows Server 2019',
     asset_model: 'Dell PowerEdge R640',
+    asset_archived_at: null,
     ...override,
   });
 
@@ -122,6 +123,23 @@ describe('InfradocAssetsService', () => {
     expect(result).toEqual([]);
   });
 
+  it('excluye assets con asset_archived_at no nulo', async () => {
+    httpService.get.mockReturnValue(
+      of(axiosRes({
+        success: 'True', count: 2,
+        data: [
+          makeRawAsset({ asset_id: '101', asset_archived_at: null }),
+          makeRawAsset({ asset_id: '102', asset_archived_at: '2026-07-30 09:01:19' }),
+        ],
+      })),
+    );
+
+    const result = await service.getAssets(42);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].asset_id).toBe('101');
+  });
+
   it('propaga asset_uri y asset_uri_2 desde la respuesta de InfraDoc', async () => {
     httpService.get.mockReturnValue(
       of(axiosRes({
@@ -175,6 +193,19 @@ describe('InfradocAssetsService', () => {
       await expect(service.getAssetInterfaces(101)).rejects.toThrow(
         ServiceUnavailableException,
       );
+    });
+
+    it('excluye interfaces de un asset con asset_archived_at no nulo', async () => {
+      httpService.get.mockReturnValue(
+        of(axiosRes({
+          success: 'True', count: 1,
+          data: [makeRawAsset({ interface_name: 'iLO', asset_archived_at: '2026-07-30 09:01:19' })],
+        })),
+      );
+
+      const result = await service.getAssetInterfaces(101);
+
+      expect(result).toEqual([]);
     });
   });
 });
