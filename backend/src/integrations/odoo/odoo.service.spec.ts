@@ -1842,4 +1842,47 @@ describe('OdooService', () => {
       expect(callArg.where).toMatchObject({ isActive: true });
     });
   });
+
+  describe('assignTechnicianToTicket', () => {
+    it('resuelve el odooUserId del técnico y actualiza user_id en el ticket de Odoo', async () => {
+      technicianRepo.findOne.mockResolvedValue(makeTechnician());
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: 201 }));
+      odooRpc.callKw.mockResolvedValue(true);
+
+      await service.assignTechnicianToTicket(42, 'tech-uuid-1');
+
+      expect(technicianRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 'tech-uuid-1' },
+        relations: ['user'],
+      });
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'write',
+        [[42], { user_id: 201 }],
+        {},
+      );
+    });
+
+    it('lanza BadRequestException si el técnico no existe', async () => {
+      technicianRepo.findOne.mockResolvedValue(null);
+
+      await expect(service.assignTechnicianToTicket(42, 'no-existe')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(odooRpc.callKw).not.toHaveBeenCalled();
+    });
+
+    it('lanza BadRequestException si el técnico no tiene usuario con odooUserId', async () => {
+      technicianRepo.findOne.mockResolvedValue(
+        makeTechnician('user-uuid-1'),
+      );
+      userRepo.findOne.mockResolvedValue(makeUser({ odooUserId: null }));
+      // resolveUserId llamará userRepo.findOne — mock para que no encuentre en Odoo tampoco
+      odooRpc.callKw.mockResolvedValue([]);
+
+      await expect(service.assignTechnicianToTicket(42, 'tech-uuid-1')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
 });

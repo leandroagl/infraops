@@ -701,6 +701,31 @@ export class OdooService {
     return ticketId;
   }
 
+  async assignTechnicianToTicket(odooTicketId: number, technicianId: string): Promise<void> {
+    const technician = await this.technicianRepo.findOne({
+      where: { id: technicianId },
+      relations: ['user'],
+    });
+    if (!technician) {
+      throw new BadRequestException(`Técnico ${technicianId} no encontrado`);
+    }
+    if (!technician.user) {
+      throw new BadRequestException(`Técnico ${technicianId} no tiene usuario asociado`);
+    }
+
+    const odooUserId = await this.resolveUserId(technician.user.id);
+    if (odooUserId === null) {
+      throw new BadRequestException(`Técnico ${technicianId} no tiene ID de Odoo`);
+    }
+
+    await this.systemRpc.callKw<boolean>(
+      'helpdesk.ticket',
+      'write',
+      [[odooTicketId], { user_id: odooUserId }],
+      {},
+    );
+  }
+
   async postInternalNote(ticketId: number, note: string, technicianUserId: string): Promise<void> {
     const partnerId = await this.resolveUserPartnerId(technicianUserId);
     const kwargs: Record<string, unknown> = {
