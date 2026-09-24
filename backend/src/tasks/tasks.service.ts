@@ -203,6 +203,11 @@ export class TasksService {
     if (dto.odooTicketId !== undefined) updates.odooTicketId = dto.odooTicketId;
 
     await this.taskRepository.update(id, updates);
+
+    if (dto.technicianId !== undefined && task.odooTicketId !== null) {
+      await this.odooService.assignTechnicianToTicket(task.odooTicketId, dto.technicianId);
+    }
+
     return this.loadTask(id);
   }
 

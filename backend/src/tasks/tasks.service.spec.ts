@@ -39,6 +39,7 @@ describe('TasksService', () => {
     markTicketNotDone: jest.Mock;
     resolveEmployeeId: jest.Mock;
     postInternalNote: jest.Mock;
+    assignTechnicianToTicket: jest.Mock;
   };
   let infrastructureService: { getClientInfrastructure: jest.Mock };
   let taskConfigService: { findOne: jest.Mock };
@@ -116,6 +117,7 @@ describe('TasksService', () => {
       markTicketNotDone: jest.fn().mockResolvedValue(undefined),
       resolveEmployeeId: jest.fn(),
       postInternalNote: jest.fn().mockResolvedValue(undefined),
+      assignTechnicianToTicket: jest.fn().mockResolvedValue(undefined),
     };
     infrastructureService = { getClientInfrastructure: jest.fn() };
     taskConfigService = {
@@ -620,6 +622,43 @@ describe('TasksService', () => {
       await expect(
         service.update('task-1', { technicianId: 'nonexistent' }),
       ).rejects.toThrow('Técnico no encontrado');
+    });
+
+    it('llama assignTechnicianToTicket cuando se asigna técnico y la tarea tiene odooTicketId', async () => {
+      const taskWithTicket = { ...mockTask, odooTicketId: 42 };
+      taskRepository.findOne
+        .mockResolvedValueOnce(taskWithTicket)
+        .mockResolvedValueOnce({ ...taskWithTicket, technicianId: 'tech-2' });
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      taskRepository.update.mockResolvedValue({ affected: 1 });
+
+      await service.update('task-1', { technicianId: 'tech-2' });
+
+      expect(odooService.assignTechnicianToTicket).toHaveBeenCalledWith(42, 'tech-2');
+    });
+
+    it('no llama assignTechnicianToTicket cuando la tarea no tiene odooTicketId', async () => {
+      taskRepository.findOne
+        .mockResolvedValueOnce(mockTask)
+        .mockResolvedValueOnce({ ...mockTask, technicianId: 'tech-2' });
+      technicianRepository.findOne.mockResolvedValue(mockTechnician);
+      taskRepository.update.mockResolvedValue({ affected: 1 });
+
+      await service.update('task-1', { technicianId: 'tech-2' });
+
+      expect(odooService.assignTechnicianToTicket).not.toHaveBeenCalled();
+    });
+
+    it('no llama assignTechnicianToTicket cuando solo cambia scheduledDate', async () => {
+      const taskWithTicket = { ...mockTask, odooTicketId: 42 };
+      taskRepository.findOne
+        .mockResolvedValueOnce(taskWithTicket)
+        .mockResolvedValueOnce(taskWithTicket);
+      taskRepository.update.mockResolvedValue({ affected: 1 });
+
+      await service.update('task-1', { scheduledDate: '2026-07-01' });
+
+      expect(odooService.assignTechnicianToTicket).not.toHaveBeenCalled();
     });
   });
 
