@@ -37,7 +37,7 @@ function makeTask(id: string, clientId: string, techId: string, status: Task['st
     id, clientId, technicianId: techId,
     type: 'SERVER_HOST_MAINTENANCE', status,
     scheduledDate: '2026-08-01', completedDate: null,
-    odooTicketId: 3810, createdAt: '2026-08-01T00:00:00Z',
+    odooTicketId: 3810, expirationType: null, createdAt: '2026-08-01T00:00:00Z',
     client: { id: clientId, name: 'ACME S.A.' },
     technician: { id: techId, user: { id: 'u1', name: 'Valen', email: 'v@ondra', avatarUrl: null } },
   };

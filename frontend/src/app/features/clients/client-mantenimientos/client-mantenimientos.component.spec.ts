@@ -17,6 +17,7 @@ const mockTask: Task = {
   scheduledDate: '2026-06-01T00:00:00.000Z',
   completedDate: null,
   odooTicketId: null,
+  expirationType: null,
   createdAt: '2026-06-01T00:00:00.000Z',
   technician: { id: 'tech1', user: { id: 'u1', name: 'Valen', email: 'v@ondra.com', avatarUrl: null } },
 };

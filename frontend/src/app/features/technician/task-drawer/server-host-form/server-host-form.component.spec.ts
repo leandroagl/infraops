@@ -8,7 +8,7 @@ const makeTask = (): Task => ({
   id: '1', clientId: '10', technicianId: '2',
   type: 'SERVER_HOST_MAINTENANCE', status: 'PENDING',
   scheduledDate: '2026-06-01T00:00:00.000Z',
-  completedDate: null, odooTicketId: null,
+  completedDate: null, odooTicketId: null, expirationType: null,
   createdAt: '2026-05-01T00:00:00.000Z',
 });
 

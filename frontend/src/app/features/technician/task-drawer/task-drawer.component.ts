@@ -39,7 +39,7 @@ import {
 } from './confirm-close-dialog/confirm-close-dialog.component';
 import { TaskConfigService } from '../../../core/services/task-config.service';
 import { TaskTypeConfigDto } from '../../../core/models/task.models';
-import { statusLabel, statusBadge, typeLabel, typeBadge } from '../../../shared/utils/task-labels';
+import { statusLabel, statusBadge, typeLabel, typeBadge, expirationTypeLabel } from '../../../shared/utils/task-labels';
 import { daysUntilCycleClose, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
 import { formatOdooTicketId } from '../../../shared/utils/odoo';
 import { OdooUrlService } from '../../../core/services/odoo-url.service';
@@ -444,7 +444,11 @@ export class TaskDrawerComponent implements OnChanges {
 
   // ── Labels ──────────────────────────────────────────────────name───────────
 
-  typeLabel(type: TaskType): string  { return typeLabel(type); }
+  typeLabel(type: TaskType): string  {
+    return type === 'EXPIRATION_CONTROL'
+      ? expirationTypeLabel(this.task?.expirationType)
+      : typeLabel(type);
+  }
   typeBadge(type: TaskType): string  { return typeBadge(type); }
   statusLabel(status: string): string { return statusLabel(status as Parameters<typeof statusLabel>[0]); }
   statusBadge(status: string): string { return statusBadge(status as Parameters<typeof statusBadge>[0]); }

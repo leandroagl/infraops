@@ -14,7 +14,7 @@ describe('ExpirationTicketsService', () => {
   let service: ExpirationTicketsService;
   let notificationsService: { getExpirations: jest.Mock };
   let ticketRepo: { find: jest.Mock; findOne: jest.Mock; save: jest.Mock; insert: jest.Mock; update: jest.Mock };
-  let odooService: { createExpirationTicket: jest.Mock };
+  let odooService: { createExpirationTicket: jest.Mock; getHelpdeskSlas: jest.Mock };
   let integrationConfigService: { getOdooConfigDecrypted: jest.Mock; getOdoo: jest.Mock; patchOdoo: jest.Mock };
   let clientRepo: { findOne: jest.Mock; find: jest.Mock };
   let tasksService: { createFromExistingTicket: jest.Mock };
@@ -44,7 +44,7 @@ describe('ExpirationTicketsService', () => {
       insert: jest.fn().mockResolvedValue(undefined),
       update: jest.fn().mockResolvedValue(undefined),
     };
-    odooService = { createExpirationTicket: jest.fn() };
+    odooService = { createExpirationTicket: jest.fn(), getHelpdeskSlas: jest.fn().mockResolvedValue([]) };
     integrationConfigService = {
       getOdooConfigDecrypted: jest.fn().mockResolvedValue(defaultConfig),
       getOdoo: jest.fn().mockResolvedValue(defaultConfig),
@@ -201,6 +201,52 @@ describe('ExpirationTicketsService', () => {
       const result = await service.getExpirationByTaskId('task-1');
 
       expect(result?.defaultTimeMinutes).toBeNull();
+    });
+
+    it('incluye teamSlas con los SLAs del equipo configurado para el tipo', async () => {
+      ticketRepo.findOne.mockResolvedValue({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
+      });
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+      odooService.getHelpdeskSlas.mockResolvedValue([{ id: 5, name: 'SLA Normal', time_days: 18 }]);
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(odooService.getHelpdeskSlas).toHaveBeenCalledWith(9);
+      expect(result?.teamSlas).toEqual([{ id: 5, name: 'SLA Normal', time_days: 18 }]);
+    });
+
+    it('teamSlas es null si el tipo no tiene helpdeskTeamId configurado', async () => {
+      ticketRepo.findOne.mockResolvedValue({
+        type: 'certificate', sourceId: 'c1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
+      });
+      notificationsService.getExpirations.mockResolvedValue([]);
+      integrationConfigService.getOdoo.mockResolvedValue({
+        ...defaultConfig,
+        expirationsTypeConfigs: {
+          certificate: { enabled: false, helpdeskTeamId: null, daysAhead: 30, tagIds: [] },
+        },
+      });
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(odooService.getHelpdeskSlas).not.toHaveBeenCalled();
+      expect(result?.teamSlas).toBeNull();
+    });
+
+    it('teamSlas es null si la consulta de SLAs falla (degradación graceful)', async () => {
+      ticketRepo.findOne.mockResolvedValue({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
+      });
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+      odooService.getHelpdeskSlas.mockRejectedValue(new Error('Odoo no disponible'));
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(result?.teamSlas).toBeNull();
     });
   });
 

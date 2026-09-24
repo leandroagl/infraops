@@ -2,7 +2,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Task } from '../../../core/models/task.models';
 import { daysUntilCycleClose, urgencyLabel, urgencyClass } from '../../utils/urgency';
-import { typeLabel, typeBadge } from '../../utils/task-labels';
+import { typeLabel, typeBadge, expirationTypeLabel } from '../../utils/task-labels';
 import { formatOdooTicketId } from '../../utils/odoo';
 import { OdooUrlService } from '../../../core/services/odoo-url.service';
 
@@ -33,9 +33,14 @@ export class TaskCardComponent {
     return 'tc-srv';
   }
 
+  get isExpiration(): boolean    { return this.task.type === 'EXPIRATION_CONTROL'; }
   get urgencyLabelText(): string { return urgencyLabel(this.days); }
   get urgencyClassStr(): string  { return urgencyClass(this.days); }
-  get typeLabel(): string        { return typeLabel(this.task.type); }
+  get typeLabel(): string {
+    return this.isExpiration
+      ? expirationTypeLabel(this.task.expirationType)
+      : typeLabel(this.task.type);
+  }
   get typeBadgeClass(): string   { return typeBadge(this.task.type); }
 
   get odooLabel(): string | null {
