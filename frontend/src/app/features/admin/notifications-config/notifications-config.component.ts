@@ -4,6 +4,7 @@ import { forkJoin } from 'rxjs';
 import { IntegrationConfigService, HelpdeskTeamDto } from '../../../core/services/integration-config.service';
 import { ExpirationType, ExpirationTypeConfigEntry } from '../../../core/models/notification.models';
 import { NotificationsTypeEditDialogComponent } from './type-edit-dialog/notifications-type-edit-dialog.component';
+import { UrgentTicketsDialogComponent } from './urgent-tickets-dialog/urgent-tickets-dialog.component';
 import { formatMinutes } from '../../../shared/utils/time-format';
 
 export const EXPIRATION_TYPES: ExpirationType[] = [
@@ -85,6 +86,13 @@ export class NotificationsConfigComponent implements OnInit {
       software:       'badge--win',
     };
     return map[type];
+  }
+
+  openUrgentTickets(): void {
+    this.dialog.open(UrgentTicketsDialogComponent, {
+      data: { maxDays: 6 },
+      width: '560px', maxWidth: '90vw',
+    });
   }
 
   typeLabel(type: ExpirationType): string {

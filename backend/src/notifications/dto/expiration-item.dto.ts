@@ -15,6 +15,25 @@ export class ExpirationItemDto {
 }
 
 /** Detalle de un vencimiento para el drawer de una Task, resuelto por taskId. */
+export class UrgentBacklogPreviewItemDto {
+  type!: ExpirationType;
+  sourceId!: string;
+  expireDate!: string;
+  clientName!: string | null;
+  itemName!: string | null;
+  daysUntil!: number;
+}
+
+export class UrgentBacklogPreviewDto {
+  count!: number;
+  items!: UrgentBacklogPreviewItemDto[];
+}
+
+export class UrgentBacklogResultDto {
+  created!: number;
+  errors!: number;
+}
+
 export class ExpirationDetailDto {
   type!: ExpirationType;
   sourceId!: string;

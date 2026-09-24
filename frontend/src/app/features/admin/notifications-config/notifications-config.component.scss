@@ -1,6 +1,12 @@
 .section-header {
   padding: 20px 0 16px;
 }
+.section-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
 .section-title    { font-size: 15px; font-weight: 600; color: var(--tx-hi); margin-bottom: 4px; }
 .section-subtitle { font-size: 12px; color: var(--tx-md); }
 

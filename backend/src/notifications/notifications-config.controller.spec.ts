@@ -8,6 +8,8 @@ const mockUser = { sub: 'uid-1', email: 'admin@ondra.com.ar', role: 'ADMIN', mus
 
 const mockService = {
   saveTypeConfig: jest.fn(),
+  getUrgentBacklogPreview: jest.fn(),
+  createUrgentBacklogTickets: jest.fn(),
 };
 
 describe('NotificationsConfigController', () => {
@@ -33,6 +35,32 @@ describe('NotificationsConfigController', () => {
 
     expect(mockService.saveTypeConfig).toHaveBeenCalledWith('domain', entry, 'admin@ondra.com.ar');
     expect(result).toEqual({ expirationsTypeConfigs: { domain: entry } });
+  });
+
+  it('GET /urgent-preview llama getUrgentBacklogPreview con maxDays parseado', async () => {
+    mockService.getUrgentBacklogPreview.mockResolvedValue({ count: 2, items: [] });
+    const result = await controller.urgentPreview('4');
+    expect(mockService.getUrgentBacklogPreview).toHaveBeenCalledWith(4);
+    expect(result).toEqual({ count: 2, items: [] });
+  });
+
+  it('GET /urgent-preview usa 6 como default si no se pasa maxDays', async () => {
+    mockService.getUrgentBacklogPreview.mockResolvedValue({ count: 0, items: [] });
+    await controller.urgentPreview(undefined);
+    expect(mockService.getUrgentBacklogPreview).toHaveBeenCalledWith(6);
+  });
+
+  it('POST /urgent-tickets llama createUrgentBacklogTickets con maxDays parseado', async () => {
+    mockService.createUrgentBacklogTickets.mockResolvedValue({ created: 3, errors: 0 });
+    const result = await controller.createUrgentTickets('6');
+    expect(mockService.createUrgentBacklogTickets).toHaveBeenCalledWith(6);
+    expect(result).toEqual({ created: 3, errors: 0 });
+  });
+
+  it('POST /urgent-tickets usa 6 como default si no se pasa maxDays', async () => {
+    mockService.createUrgentBacklogTickets.mockResolvedValue({ created: 0, errors: 0 });
+    await controller.createUrgentTickets(undefined);
+    expect(mockService.createUrgentBacklogTickets).toHaveBeenCalledWith(6);
   });
 
   it('tiene JwtAuthGuard y RolesGuard aplicados', () => {
