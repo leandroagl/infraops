@@ -112,6 +112,23 @@ describe('CycleTableComponent', () => {
     expect(firstRow.textContent).toContain('3810');
   });
 
+  describe('typeLabel', () => {
+    it('retorna el subtipo de vencimiento para EXPIRATION_CONTROL con expirationType conocido', () => {
+      const t = { ...makeTask('tx', 'c1', 'tech1'), type: 'EXPIRATION_CONTROL' as const, expirationType: 'domain' };
+      expect(component.typeLabel(t)).toBe('Dominio');
+    });
+
+    it('retorna "Vencimiento" para EXPIRATION_CONTROL sin expirationType', () => {
+      const t = { ...makeTask('tx', 'c1', 'tech1'), type: 'EXPIRATION_CONTROL' as const, expirationType: null };
+      expect(component.typeLabel(t)).toBe('Vencimiento');
+    });
+
+    it('retorna el label genérico para tipos no-expiration', () => {
+      const t = makeTask('tx', 'c1', 'tech1');
+      expect(component.typeLabel(t)).toBe('VMware / BMC');
+    });
+  });
+
   describe('filtros en el header de columna', () => {
     it('renderiza un mat-select de Tipo con las opciones de taskTypes', () => {
       const select: HTMLElement = fixture.nativeElement.querySelector('.col-type-filter mat-select');

@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { Task, TaskGroup } from '../../../core/models/task.models';
 import { Technician } from '../../../core/models/technician.models';
 import { Client } from '../../../core/models/client.models';
-import { typeLabel, typeBadge, statusLabel, statusBadge } from '../../../shared/utils/task-labels';
+import { typeLabel, typeBadge, statusLabel, statusBadge, expirationTypeLabel } from '../../../shared/utils/task-labels';
 import { formatOdooTicketId } from '../../../shared/utils/odoo';
 
 @Component({
@@ -57,7 +57,11 @@ export class CycleTableComponent {
     return Math.round((this.groupDoneCount(group) / group.tasks.length) * 100);
   }
 
-  typeLabel(t: Task): string  { return typeLabel(t.type); }
+  typeLabel(t: Task): string  {
+    return t.type === 'EXPIRATION_CONTROL'
+      ? expirationTypeLabel(t.expirationType)
+      : typeLabel(t.type);
+  }
   typeBadge(t: Task): string  { return typeBadge(t.type); }
   statusLabel(t: Task): string { return statusLabel(t.status); }
   statusBadge(t: Task): string { return statusBadge(t.status); }
