@@ -1,6 +1,14 @@
 <div class="section-header">
-  <h2 class="section-title">Configuración de vencimientos</h2>
-  <p class="section-subtitle">Ticketera, tiempo predefinido y descripciones por tipo de vencimiento</p>
+  <div class="section-header-row">
+    <div>
+      <h2 class="section-title">Configuración de vencimientos</h2>
+      <p class="section-subtitle">Ticketera, tiempo predefinido y descripciones por tipo de vencimiento</p>
+    </div>
+    <button mat-stroked-button (click)="openUrgentTickets()" matTooltip="Crear tickets para vencimientos con menos de 6 días sin ticket">
+      <mat-icon>warning</mat-icon>
+      Tickets urgentes
+    </button>
+  </div>
 </div>
 
 <div *ngIf="loading" class="nc-loading">

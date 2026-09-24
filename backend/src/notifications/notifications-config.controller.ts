@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -8,6 +8,7 @@ import type { JwtPayload } from '../auth/auth.types';
 import { ExpirationTicketsService } from './expiration-tickets.service';
 import { ExpirationTypeConfigEntryDto } from '../integration-config/dto/odoo-config.dto';
 import { OdooConfigResponseDto } from '../integration-config/dto/odoo-config.dto';
+import { UrgentBacklogPreviewDto, UrgentBacklogResultDto } from './dto/expiration-item.dto';
 
 @Controller('notifications/config')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,5 +23,17 @@ export class NotificationsConfigController {
     @CurrentUser() user: JwtPayload,
   ): Promise<OdooConfigResponseDto> {
     return this.expirationTicketsService.saveTypeConfig(type, dto, user.email);
+  }
+
+  @Get('urgent-preview')
+  urgentPreview(@Query('maxDays') maxDays?: string): Promise<UrgentBacklogPreviewDto> {
+    const days = maxDays !== undefined ? parseInt(maxDays, 10) : 6;
+    return this.expirationTicketsService.getUrgentBacklogPreview(isNaN(days) ? 6 : days);
+  }
+
+  @Post('urgent-tickets')
+  createUrgentTickets(@Query('maxDays') maxDays?: string): Promise<UrgentBacklogResultDto> {
+    const days = maxDays !== undefined ? parseInt(maxDays, 10) : 6;
+    return this.expirationTicketsService.createUrgentBacklogTickets(isNaN(days) ? 6 : days);
   }
 }

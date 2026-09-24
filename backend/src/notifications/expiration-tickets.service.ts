@@ -1,10 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, LessThanOrEqual, Repository } from 'typeorm';
 import { NotificationsService } from './notifications.service';
 import { ExpirationTicket } from './expiration-ticket.entity';
-import { ExpirationItemDto, ExpirationDetailDto } from './dto/expiration-item.dto';
+import {
+  ExpirationItemDto, ExpirationDetailDto,
+  UrgentBacklogPreviewDto, UrgentBacklogPreviewItemDto, UrgentBacklogResultDto,
+} from './dto/expiration-item.dto';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { IntegrationConfigService } from '../integration-config/integration-config.service';
 import { OdooConfigResponseDto } from '../integration-config/dto/odoo-config.dto';
@@ -244,6 +247,97 @@ export class ExpirationTicketsService {
     if (rows.length === 0) return;
     await this.ticketRepo.insert(rows);
     this.logger.log(`Backlog pre-sembrado para ${type}: ${rows.length} vencimientos marcados sin ticket automático`);
+  }
+
+  async getUrgentBacklogPreview(maxDays: number): Promise<UrgentBacklogPreviewDto> {
+    const rows = await this.getUrgentBacklogRows(maxDays);
+    if (rows.length === 0) return { count: 0, items: [] };
+
+    const liveItems = await this.notificationsService.getExpirations(maxDays + 30);
+    const byKey = new Map(liveItems.map(i => [this.key(i.type, i.sourceId, i.expireDate), i]));
+
+    const today = new Date();
+    const items: UrgentBacklogPreviewItemDto[] = rows.map(row => {
+      const live = byKey.get(this.key(row.type, row.sourceId, row.expireDate));
+      const daysUntil = live?.daysUntil
+        ?? Math.floor((new Date(row.expireDate).getTime() - today.getTime()) / 86_400_000);
+      return {
+        type: row.type,
+        sourceId: row.sourceId,
+        expireDate: row.expireDate,
+        clientName: live?.clientName ?? null,
+        itemName: live?.itemName ?? null,
+        daysUntil,
+      };
+    });
+
+    return { count: rows.length, items };
+  }
+
+  async createUrgentBacklogTickets(maxDays: number): Promise<UrgentBacklogResultDto> {
+    const rows = await this.getUrgentBacklogRows(maxDays);
+    if (rows.length === 0) return { created: 0, errors: 0 };
+
+    const config = await this.integrationConfigService.getOdooConfigDecrypted();
+    const typeConfigs = (config.expirationsTypeConfigs ?? {}) as TypeConfigs;
+
+    const liveItems = await this.notificationsService.getExpirations(maxDays + 30);
+    const byKey = new Map(liveItems.map(i => [this.key(i.type, i.sourceId, i.expireDate), i]));
+
+    let created = 0;
+    let errors = 0;
+
+    for (const row of rows) {
+      const cfg = typeConfigs[row.type];
+      if (!cfg?.helpdeskTeamId) {
+        this.logger.warn(`createUrgentBacklogTickets: ${row.type} sin helpdeskTeamId — omitiendo`);
+        errors++;
+        continue;
+      }
+
+      const liveItem = byKey.get(this.key(row.type, row.sourceId, row.expireDate));
+      if (!liveItem) {
+        this.logger.warn(`createUrgentBacklogTickets: ${row.type}/${row.sourceId} no encontrado en InfraDoc — omitiendo`);
+        errors++;
+        continue;
+      }
+
+      try {
+        const odooTicketId = await this.odooService.createExpirationTicket(
+          liveItem, row.clientId, cfg.helpdeskTeamId!, cfg.tagIds, cfg.taskName, cfg.ticketDescription,
+        );
+        await this.ticketRepo.update(row.id, { odooTicketId });
+        created++;
+
+        try {
+          const task = await this.tasksService.createFromExistingTicket({
+            clientId: row.clientId,
+            type: TaskType.EXPIRATION_CONTROL,
+            odooTicketId,
+            scheduledDate: new Date().toISOString().slice(0, 10),
+            expirationType: row.type,
+          });
+          await this.ticketRepo.update(row.id, { taskId: task.id });
+        } catch (err: unknown) {
+          this.logger.error(`Ticket urgente ${odooTicketId} creado pero falló crear la Task: ${(err as Error).message}`);
+        }
+      } catch (err: unknown) {
+        this.logger.error(`Error en ticket urgente ${row.type}/${row.sourceId}: ${(err as Error).message}`);
+        errors++;
+      }
+    }
+
+    this.logger.log(`createUrgentBacklogTickets: ${created} creados, ${errors} errores`);
+    return { created, errors };
+  }
+
+  private async getUrgentBacklogRows(maxDays: number): Promise<ExpirationTicket[]> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() + maxDays);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    return this.ticketRepo.find({
+      where: { odooTicketId: IsNull(), expireDate: LessThanOrEqual(cutoffStr) },
+    });
   }
 
   private key(type: string, sourceId: string, expireDate: string): string {

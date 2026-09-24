@@ -1,0 +1,62 @@
+<h2 mat-dialog-title>Tickets urgentes</h2>
+
+<mat-dialog-content>
+
+  <div *ngIf="loading" class="utd-loading">
+    <mat-spinner [diameter]="28"></mat-spinner>
+    <span>Cargando vista previa…</span>
+  </div>
+
+  <ng-container *ngIf="!loading && !error">
+    <p *ngIf="preview?.count === 0" class="utd-empty">
+      No hay vencimientos sin ticket dentro de los próximos {{ data.maxDays }} días.
+    </p>
+
+    <ng-container *ngIf="preview && preview.count > 0">
+      <p class="utd-summary">
+        <strong>{{ preview.count }}</strong> vencimiento{{ preview.count !== 1 ? 's' : '' }} sin ticket en los próximos {{ data.maxDays }} días:
+      </p>
+
+      <mat-table [dataSource]="preview.items" class="utd-table">
+
+        <ng-container matColumnDef="type">
+          <mat-header-cell *matHeaderCellDef>Tipo</mat-header-cell>
+          <mat-cell *matCellDef="let item">{{ typeLabel(item.type) }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="itemName">
+          <mat-header-cell *matHeaderCellDef>Ítem</mat-header-cell>
+          <mat-cell *matCellDef="let item">
+            <span class="item-name">{{ item.itemName ?? '—' }}</span>
+            <span *ngIf="item.clientName" class="client-name">{{ item.clientName }}</span>
+          </mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="daysUntil">
+          <mat-header-cell *matHeaderCellDef>Vence en</mat-header-cell>
+          <mat-cell *matCellDef="let item">
+            <span class="days-chip" [ngClass]="daysClass(item)">{{ daysLabel(item) }}</span>
+          </mat-cell>
+        </ng-container>
+
+        <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+        <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+      </mat-table>
+    </ng-container>
+  </ng-container>
+
+  <p *ngIf="error" class="utd-error">{{ error }}</p>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()" [disabled]="creating">Cancelar</button>
+  <button
+    mat-flat-button color="primary"
+    (click)="confirm()"
+    [disabled]="loading || creating || !preview?.count"
+  >
+    <mat-spinner *ngIf="creating" [diameter]="16" class="btn-spinner"></mat-spinner>
+    {{ creating ? 'Creando…' : 'Crear tickets' }}
+  </button>
+</mat-dialog-actions>
