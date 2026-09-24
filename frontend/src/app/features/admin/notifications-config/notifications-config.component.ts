@@ -90,7 +90,7 @@ export class NotificationsConfigComponent implements OnInit {
 
   openUrgentTickets(): void {
     this.dialog.open(UrgentTicketsDialogComponent, {
-      data: { maxDays: 6 },
+      data: { maxDays: 17 },
       width: '560px', maxWidth: '90vw',
     });
   }
