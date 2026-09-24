@@ -10,9 +10,14 @@
     <div class="d-client">{{ task.client?.name ?? task.clientId }}</div>
     <span class="badge badge--type" [ngClass]="typeBadge(task.type)">{{ typeLabel(task.type) }}</span>
     <div class="d-meta">
-      <span class="urg" [ngClass]="urgencyClass(daysUntilCycleClose())">
+      <span *ngIf="task.type !== 'EXPIRATION_CONTROL'" class="urg" [ngClass]="urgencyClass(daysUntilCycleClose())">
         {{ urgencyLabel(daysUntilCycleClose()) }}
       </span>
+      <ng-container *ngIf="task.type === 'EXPIRATION_CONTROL' && expirationDetail?.teamSlas?.length">
+        <span *ngFor="let sla of expirationDetail!.teamSlas!" class="urg urg-ok">
+          SLA {{ sla.time_days }}d hábiles
+        </span>
+      </ng-container>
       <span class="badge" [ngClass]="statusBadge(task.status)">{{ statusLabel(task.status) }}</span>
       <a
         *ngIf="odooLink"
@@ -26,7 +31,7 @@
                     appearance="outline" subscriptSizing="dynamic" style="margin-top:6px">
       <mat-label>Asignar técnico</mat-label>
       <mat-select (selectionChange)="assignTechnician($event.value)">
-        <mat-option *ngFor="let t of technicians" [value]="t.id">{{ t.user?.name ?? t.id }}</mat-option>
+        <mat-option *ngFor="let t of technicians" [value]="t.id">{{ t.user.name }}</mat-option>
       </mat-select>
     </mat-form-field>
     <span *ngIf="isUnassigned && userRole === 'TECHNICIAN'" class="d-unassigned-hint">Sin técnico asignado</span>

@@ -67,6 +67,16 @@ export class ExpirationTicketsService {
 
     const config = await this.integrationConfigService.getOdoo();
     const typeConfigs = (config.expirationsTypeConfigs ?? {}) as TypeConfigs;
+    const helpdeskTeamId = typeConfigs[row.type]?.helpdeskTeamId ?? null;
+
+    let teamSlas: { id: number; name: string; time_days: number }[] | null = null;
+    if (helpdeskTeamId) {
+      try {
+        teamSlas = await this.odooService.getHelpdeskSlas(helpdeskTeamId);
+      } catch {
+        teamSlas = null;
+      }
+    }
 
     return {
       type: row.type,
@@ -81,6 +91,7 @@ export class ExpirationTicketsService {
       daysUntil: liveItem?.daysUntil ?? null,
       odooTicketId: row.odooTicketId,
       defaultTimeMinutes: typeConfigs[row.type]?.defaultTimeMinutes ?? null,
+      teamSlas,
     };
   }
 

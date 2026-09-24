@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -38,5 +38,10 @@ export class OdooController {
   @Get('helpdesk-teams')
   getHelpdeskTeams(): Promise<{ id: number; name: string }[]> {
     return this.odooService.getHelpdeskTeams();
+  }
+
+  @Get('helpdesk-slas')
+  getHelpdeskSlas(@Query('teamId', ParseIntPipe) teamId: number): Promise<{ id: number; name: string; time_days: number }[]> {
+    return this.odooService.getHelpdeskSlas(teamId);
   }
 }

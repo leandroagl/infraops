@@ -25,6 +25,7 @@ const makeTask = (type = 'WINDOWS_DOMAIN_MAINTENANCE'): Task => ({
   scheduledDate: '2026-06-01T00:00:00.000Z',
   completedDate: null,
   odooTicketId: null,
+  expirationType: null,
   createdAt: '2026-05-01T00:00:00.000Z',
 });
 

@@ -41,9 +41,10 @@ describe('NotificationsTypeEditDialogComponent', () => {
   function setup(entry: ExpirationTypeConfigEntry = makeEntry()): void {
     TestBed.resetTestingModule();
     notificationsSvc = jasmine.createSpyObj('NotificationsService', ['patchTypeConfig']);
-    integrationSvc = jasmine.createSpyObj('IntegrationConfigService', ['getHelpdeskTeams', 'getHelpdeskTags']);
+    integrationSvc = jasmine.createSpyObj('IntegrationConfigService', ['getHelpdeskTeams', 'getHelpdeskTags', 'getHelpdeskSlas']);
     integrationSvc.getHelpdeskTeams.and.returnValue(of(TEAMS));
     integrationSvc.getHelpdeskTags.and.returnValue(of(TAGS));
+    integrationSvc.getHelpdeskSlas.and.returnValue(of([{ id: 5, name: 'SLA Normal', time_days: 18 }]));
     dialogRef = jasmine.createSpyObj('MatDialogRef', ['close']);
 
     TestBed.configureTestingModule({

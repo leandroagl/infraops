@@ -1,12 +1,13 @@
-import { Component, Inject, OnInit } from '@angular/core';
+import { Component, Inject, OnInit, OnDestroy } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { forkJoin } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 import { NotificationsService } from '../../../../core/services/notifications.service';
 import {
   IntegrationConfigService,
   HelpdeskTeamDto,
   HelpdeskTagDto,
+  HelpdeskSlaDto,
 } from '../../../../core/services/integration-config.service';
 import { ExpirationType, ExpirationTypeConfigEntry } from '../../../../core/models/notification.models';
 import { TIME_PATTERN, minutesToTime, timeToMinutes } from '../../../../shared/utils/time-format';
@@ -16,11 +17,15 @@ import { TIME_PATTERN, minutesToTime, timeToMinutes } from '../../../../shared/u
   templateUrl: './notifications-type-edit-dialog.component.html',
   styleUrls: ['./notifications-type-edit-dialog.component.scss'],
 })
-export class NotificationsTypeEditDialogComponent implements OnInit {
+export class NotificationsTypeEditDialogComponent implements OnInit, OnDestroy {
   teams: HelpdeskTeamDto[] = [];
   tags: HelpdeskTagDto[] = [];
+  teamSlas: HelpdeskSlaDto[] = [];
   loading = true;
+  loadingSlas = false;
   saving = false;
+
+  private teamSub?: Subscription;
 
   form = new FormGroup({
     enabled:              new FormControl(false),
@@ -58,8 +63,30 @@ export class NotificationsTypeEditDialogComponent implements OnInit {
       teams: this.integrationConfigService.getHelpdeskTeams(),
       tags: this.integrationConfigService.getHelpdeskTags(),
     }).subscribe({
-      next: ({ teams, tags }) => { this.teams = teams; this.tags = tags; this.loading = false; },
+      next: ({ teams, tags }) => {
+        this.teams = teams;
+        this.tags = tags;
+        this.loading = false;
+        this.loadSlasForTeam(this.form.value.helpdeskTeamId ?? null);
+      },
       error: () => { this.loading = false; },
+    });
+
+    this.teamSub = this.form.controls.helpdeskTeamId.valueChanges.subscribe(teamId => {
+      this.loadSlasForTeam(teamId);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.teamSub?.unsubscribe();
+  }
+
+  private loadSlasForTeam(teamId: number | null): void {
+    if (!teamId) { this.teamSlas = []; return; }
+    this.loadingSlas = true;
+    this.integrationConfigService.getHelpdeskSlas(teamId).subscribe({
+      next: slas => { this.teamSlas = slas; this.loadingSlas = false; },
+      error: () => { this.teamSlas = []; this.loadingSlas = false; },
     });
   }
 

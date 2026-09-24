@@ -548,6 +548,18 @@ export class OdooService {
     return teams.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.name.localeCompare(b.name));
   }
 
+  async getHelpdeskSlas(teamId: number): Promise<{ id: number; name: string; time_days: number }[]> {
+    const slas = await this.systemRpc.callKw<Array<{ id: number; name: string; time_days: number }>>(
+      'helpdesk.sla',
+      'search_read',
+      [[['team_id', '=', teamId]]],
+      { fields: ['id', 'name', 'time_days'] },
+    );
+    return slas
+      .map(s => ({ id: s.id, name: s.name, time_days: s.time_days }))
+      .sort((a, b) => a.time_days - b.time_days);
+  }
+
   async createExpirationTicket(
     item: ExpirationItemDto,
     infraopsClientId: string,
