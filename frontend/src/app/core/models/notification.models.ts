@@ -31,6 +31,25 @@ export interface ExpirationDetail {
   teamSlas: { id: number; name: string; time_days: number }[] | null;
 }
 
+export interface UrgentBacklogPreviewItem {
+  type: ExpirationType;
+  sourceId: string;
+  expireDate: string;
+  clientName: string | null;
+  itemName: string | null;
+  daysUntil: number;
+}
+
+export interface UrgentBacklogPreview {
+  count: number;
+  items: UrgentBacklogPreviewItem[];
+}
+
+export interface UrgentBacklogResult {
+  created: number;
+  errors: number;
+}
+
 export interface ExpirationTypeConfigEntry {
   enabled: boolean;
   helpdeskTeamId: number | null;

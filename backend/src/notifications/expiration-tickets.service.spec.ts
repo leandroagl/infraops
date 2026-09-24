@@ -477,6 +477,152 @@ describe('ExpirationTicketsService', () => {
     });
   });
 
+  describe('getUrgentBacklogPreview', () => {
+    it('devuelve count 0 e items vacíos si no hay filas urgentes en backlog', async () => {
+      ticketRepo.find.mockResolvedValue([]);
+      const result = await service.getUrgentBacklogPreview(6);
+      expect(result).toEqual({ count: 0, items: [] });
+      expect(notificationsService.getExpirations).not.toHaveBeenCalled();
+    });
+
+    it('devuelve count e items enriquecidos con datos de InfraDoc', async () => {
+      ticketRepo.find.mockResolvedValue([
+        { id: 'row-1', type: 'domain', sourceId: 'd1', expireDate: '2026-07-15', clientId: 'client-uuid-1', odooTicketId: null },
+      ]);
+      notificationsService.getExpirations.mockResolvedValue([makeItem({ daysUntil: 3 })]);
+
+      const result = await service.getUrgentBacklogPreview(6);
+
+      expect(result.count).toBe(1);
+      expect(result.items[0]).toMatchObject({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientName: 'Acme', itemName: 'acme.com', daysUntil: 3,
+      });
+    });
+
+    it('usa daysUntil calculado desde expireDate si el ítem no está en InfraDoc', async () => {
+      const future = new Date();
+      future.setDate(future.getDate() + 50);
+      const futureStr = future.toISOString().slice(0, 10);
+
+      ticketRepo.find.mockResolvedValue([
+        { id: 'row-1', type: 'domain', sourceId: 'gone', expireDate: futureStr, clientId: 'client-uuid-1', odooTicketId: null },
+      ]);
+      notificationsService.getExpirations.mockResolvedValue([]);
+
+      const result = await service.getUrgentBacklogPreview(6);
+
+      expect(result.count).toBe(1);
+      expect(result.items[0].daysUntil).toBeGreaterThanOrEqual(49);
+      expect(result.items[0].daysUntil).toBeLessThanOrEqual(50);
+      expect(result.items[0].clientName).toBeNull();
+      expect(result.items[0].itemName).toBeNull();
+    });
+
+    it('consulta InfraDoc con maxDays + 30 para cubrir margen de expirados', async () => {
+      ticketRepo.find.mockResolvedValue([
+        { id: 'row-1', type: 'domain', sourceId: 'd1', expireDate: '2026-07-15', clientId: 'client-uuid-1', odooTicketId: null },
+      ]);
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+
+      await service.getUrgentBacklogPreview(6);
+
+      expect(notificationsService.getExpirations).toHaveBeenCalledWith(36);
+    });
+  });
+
+  describe('createUrgentBacklogTickets', () => {
+    it('devuelve created 0 y errors 0 si no hay filas urgentes en backlog', async () => {
+      ticketRepo.find.mockResolvedValue([]);
+      const result = await service.createUrgentBacklogTickets(6);
+      expect(result).toEqual({ created: 0, errors: 0 });
+      expect(odooService.createExpirationTicket).not.toHaveBeenCalled();
+    });
+
+    it('crea ticket, actualiza la fila con odooTicketId y crea Task', async () => {
+      ticketRepo.find.mockResolvedValue([
+        { id: 'row-1', type: 'domain', sourceId: 'd1', expireDate: '2026-07-15', clientId: 'client-uuid-1', odooTicketId: null },
+      ]);
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+      odooService.createExpirationTicket.mockResolvedValue(700);
+      tasksService.createFromExistingTicket.mockResolvedValue({ id: 'task-urgent-1' });
+
+      const result = await service.createUrgentBacklogTickets(6);
+
+      expect(result).toEqual({ created: 1, errors: 0 });
+      expect(odooService.createExpirationTicket).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceId: 'd1', type: 'domain' }),
+        'client-uuid-1', 9, [], undefined, undefined,
+      );
+      expect(ticketRepo.update).toHaveBeenCalledWith('row-1', { odooTicketId: 700 });
+      expect(tasksService.createFromExistingTicket).toHaveBeenCalledWith(expect.objectContaining({
+        clientId: 'client-uuid-1', odooTicketId: 700, expirationType: 'domain',
+      }));
+      expect(ticketRepo.update).toHaveBeenCalledWith('row-1', { taskId: 'task-urgent-1' });
+    });
+
+    it('cuenta como error y continúa si la fila no tiene helpdeskTeamId configurado', async () => {
+      integrationConfigService.getOdooConfigDecrypted.mockResolvedValue({
+        ...defaultConfig,
+        expirationsTypeConfigs: { domain: { enabled: true, helpdeskTeamId: null, daysAhead: 18, tagIds: [] } },
+      });
+      ticketRepo.find.mockResolvedValue([
+        { id: 'row-1', type: 'domain', sourceId: 'd1', expireDate: '2026-07-15', clientId: 'client-uuid-1', odooTicketId: null },
+      ]);
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+
+      const result = await service.createUrgentBacklogTickets(6);
+
+      expect(result).toEqual({ created: 0, errors: 1 });
+      expect(odooService.createExpirationTicket).not.toHaveBeenCalled();
+    });
+
+    it('cuenta como error y continúa si el ítem no aparece en InfraDoc', async () => {
+      ticketRepo.find.mockResolvedValue([
+        { id: 'row-1', type: 'domain', sourceId: 'gone', expireDate: '2026-07-15', clientId: 'client-uuid-1', odooTicketId: null },
+      ]);
+      notificationsService.getExpirations.mockResolvedValue([]);
+
+      const result = await service.createUrgentBacklogTickets(6);
+
+      expect(result).toEqual({ created: 0, errors: 1 });
+      expect(odooService.createExpirationTicket).not.toHaveBeenCalled();
+    });
+
+    it('error en Odoo no aborta el batch — cuenta como error y sigue con el siguiente', async () => {
+      ticketRepo.find.mockResolvedValue([
+        { id: 'row-1', type: 'domain', sourceId: 'd1', expireDate: '2026-07-15', clientId: 'client-uuid-1', odooTicketId: null },
+        { id: 'row-2', type: 'domain', sourceId: 'd2', expireDate: '2026-07-15', clientId: 'client-uuid-1', odooTicketId: null },
+      ]);
+      notificationsService.getExpirations.mockResolvedValue([
+        makeItem({ sourceId: 'd1' }),
+        makeItem({ sourceId: 'd2', itemName: 'otro.com' }),
+      ]);
+      odooService.createExpirationTicket
+        .mockRejectedValueOnce(new Error('Odoo error'))
+        .mockResolvedValueOnce(701);
+
+      const result = await service.createUrgentBacklogTickets(6);
+
+      expect(result).toEqual({ created: 1, errors: 1 });
+      expect(ticketRepo.update).toHaveBeenCalledTimes(2); // odooTicketId + taskId para row-2
+    });
+
+    it('si falla crear la Task no aborta — el ticket ya quedó guardado en la fila', async () => {
+      ticketRepo.find.mockResolvedValue([
+        { id: 'row-1', type: 'domain', sourceId: 'd1', expireDate: '2026-07-15', clientId: 'client-uuid-1', odooTicketId: null },
+      ]);
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+      odooService.createExpirationTicket.mockResolvedValue(700);
+      tasksService.createFromExistingTicket.mockRejectedValue(new Error('DB caída'));
+
+      const result = await service.createUrgentBacklogTickets(6);
+
+      expect(result).toEqual({ created: 1, errors: 0 });
+      expect(ticketRepo.update).toHaveBeenCalledWith('row-1', { odooTicketId: 700 });
+    });
+  });
+
   describe('saveTypeConfig', () => {
     const entry = { enabled: true, helpdeskTeamId: 9, daysAhead: 30, tagIds: [] };
 

@@ -2,7 +2,10 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ExpirationDetail, ExpirationItem, ExpirationTypeConfigEntry } from '../models/notification.models';
+import {
+  ExpirationDetail, ExpirationItem, ExpirationTypeConfigEntry,
+  UrgentBacklogPreview, UrgentBacklogResult,
+} from '../models/notification.models';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationsService {
@@ -23,5 +26,15 @@ export class NotificationsService {
 
   patchTypeConfig(type: string, entry: ExpirationTypeConfigEntry): Observable<unknown> {
     return this.http.patch(`${this.base}/config/${type}`, entry);
+  }
+
+  getUrgentBacklogPreview(maxDays = 6): Observable<UrgentBacklogPreview> {
+    const params = new HttpParams().set('maxDays', String(maxDays));
+    return this.http.get<UrgentBacklogPreview>(`${this.base}/config/urgent-preview`, { params });
+  }
+
+  createUrgentBacklogTickets(maxDays = 6): Observable<UrgentBacklogResult> {
+    const params = new HttpParams().set('maxDays', String(maxDays));
+    return this.http.post<UrgentBacklogResult>(`${this.base}/config/urgent-tickets`, null, { params });
   }
 }

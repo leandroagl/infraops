@@ -1,0 +1,66 @@
+.utd-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0;
+  color: var(--tx-md);
+  font-size: 13px;
+}
+
+.utd-empty {
+  color: var(--tx-md);
+  font-size: 13px;
+  padding: 12px 0;
+}
+
+.utd-summary {
+  font-size: 13px;
+  color: var(--tx-md);
+  margin-bottom: 12px;
+
+  strong { color: var(--tx-hi); }
+}
+
+.utd-table {
+  width: 100%;
+  min-width: 420px;
+
+  .mat-column-type     { flex: 0 0 110px; }
+  .mat-column-daysUntil { flex: 0 0 110px; justify-content: flex-end; }
+}
+
+.item-name {
+  font-size: 13px;
+  color: var(--tx-hi);
+  display: block;
+}
+.client-name {
+  font-size: 11px;
+  color: var(--tx-lo);
+  display: block;
+  margin-top: 1px;
+}
+
+.days-chip {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+
+  &.days--crit { background: var(--crit-bg); color: var(--crit); border: 1px solid var(--crit-bd); }
+  &.days--warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-bd); }
+  &.days--ok   { background: var(--ok-bg);   color: var(--ok);   border: 1px solid var(--ok-bd);   }
+}
+
+.utd-error {
+  color: var(--crit);
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.btn-spinner {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: middle;
+}
