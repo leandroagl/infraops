@@ -15,7 +15,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     id: 'task-1', clientId: 'client-1', technicianId: 'tech-1',
     type: 'WINDOWS_DOMAIN_MAINTENANCE', status: 'PENDING',
     scheduledDate: dateOffsetDays(10), completedDate: null,
-    odooTicketId: null, createdAt: '2026-01-01T00:00:00.000Z',
+    odooTicketId: null, expirationType: null, createdAt: '2026-01-01T00:00:00.000Z',
     ...overrides,
   };
 }

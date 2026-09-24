@@ -1885,4 +1885,34 @@ describe('OdooService', () => {
       );
     });
   });
+
+  describe('getHelpdeskSlas', () => {
+    it('retorna los SLAs del equipo ordenados por time_days ascendente', async () => {
+      odooRpc.callKw.mockResolvedValue([
+        { id: 2, name: 'SLA Urgente', time_days: 5 },
+        { id: 1, name: 'SLA Normal', time_days: 18 },
+      ]);
+
+      const result = await service.getHelpdeskSlas(7);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.sla',
+        'search_read',
+        [[['team_id', '=', 7]]],
+        { fields: ['id', 'name', 'time_days'] },
+      );
+      expect(result).toEqual([
+        { id: 2, name: 'SLA Urgente', time_days: 5 },
+        { id: 1, name: 'SLA Normal', time_days: 18 },
+      ]);
+    });
+
+    it('retorna array vacío si el equipo no tiene SLAs', async () => {
+      odooRpc.callKw.mockResolvedValue([]);
+
+      const result = await service.getHelpdeskSlas(7);
+
+      expect(result).toEqual([]);
+    });
+  });
 });

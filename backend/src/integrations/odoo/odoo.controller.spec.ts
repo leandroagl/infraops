@@ -13,6 +13,7 @@ describe('OdooController', () => {
     getSyncStatus: jest.Mock;
     getHelpdeskTeams: jest.Mock;
     getHelpdeskTags: jest.Mock;
+    getHelpdeskSlas: jest.Mock;
   };
 
   const mockSyncResult: OdooSyncResult = {
@@ -32,6 +33,7 @@ describe('OdooController', () => {
       getSyncStatus: jest.fn().mockResolvedValue(mockStatus),
       getHelpdeskTeams: jest.fn().mockResolvedValue([{ id: 7, name: 'Mantenimientos' }]),
       getHelpdeskTags: jest.fn().mockResolvedValue([{ id: 3, name: 'Urgente' }]),
+      getHelpdeskSlas: jest.fn().mockResolvedValue([{ id: 5, name: 'SLA Normal', time_days: 18 }]),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -95,6 +97,14 @@ describe('OdooController', () => {
       const result = await controller.getHelpdeskTags();
       expect(odooService.getHelpdeskTags).toHaveBeenCalledTimes(1);
       expect(result).toEqual([{ id: 3, name: 'Urgente' }]);
+    });
+  });
+
+  describe('getHelpdeskSlas', () => {
+    it('delega en odooService.getHelpdeskSlas con el teamId y retorna los SLAs', async () => {
+      const result = await controller.getHelpdeskSlas(7);
+      expect(odooService.getHelpdeskSlas).toHaveBeenCalledWith(7);
+      expect(result).toEqual([{ id: 5, name: 'SLA Normal', time_days: 18 }]);
     });
   });
 });

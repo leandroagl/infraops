@@ -60,6 +60,17 @@ export function typeLabelLong(type: TaskType): string {
   return labels[type] ?? '';
 }
 
+/** Label legible para un subtipo de vencimiento (expirationType). */
+export function expirationTypeLabel(expirationType: string | null | undefined): string {
+  const map: Record<string, string> = {
+    asset_warranty: 'Garantía',
+    certificate:    'Certificado',
+    domain:         'Dominio',
+    software:       'Licencia',
+  };
+  return (expirationType && map[expirationType]) ? map[expirationType] : 'Vencimiento';
+}
+
 /** Clase CSS badge para un TaskType. */
 export function typeBadge(type: TaskType): string {
   const map: Record<TaskType, string> = {

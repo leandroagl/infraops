@@ -27,6 +27,7 @@ export interface VmwareConfigDto {
 export interface TestConnectionResult { ok: boolean; message: string; }
 export interface HelpdeskTeamDto { id: number; name: string; }
 export interface HelpdeskTagDto { id: number; name: string; }
+export interface HelpdeskSlaDto { id: number; name: string; time_days: number; }
 
 @Injectable({ providedIn: 'root' })
 export class IntegrationConfigService {
@@ -39,6 +40,7 @@ export class IntegrationConfigService {
   testOdoo(): Observable<TestConnectionResult>                       { return this.http.post<TestConnectionResult>(`${this.base}/odoo/test`, {}); }
   getHelpdeskTeams(): Observable<HelpdeskTeamDto[]>                  { return this.http.get<HelpdeskTeamDto[]>(`${this.odooBase}/helpdesk-teams`); }
   getHelpdeskTags(): Observable<HelpdeskTagDto[]>                    { return this.http.get<HelpdeskTagDto[]>(`${this.odooBase}/helpdesk-tags`); }
+  getHelpdeskSlas(teamId: number): Observable<HelpdeskSlaDto[]>      { return this.http.get<HelpdeskSlaDto[]>(`${this.odooBase}/helpdesk-slas`, { params: { teamId } }); }
 
   getInfraDoc(): Observable<InfraDocConfigDto>                              { return this.http.get<InfraDocConfigDto>(`${this.base}/infradoc`); }
   patchInfraDoc(dto: Partial<InfraDocConfigDto>): Observable<InfraDocConfigDto> { return this.http.patch<InfraDocConfigDto>(`${this.base}/infradoc`, dto); }

@@ -20,7 +20,7 @@
 
   <div class="tc-bottom">
     <div class="tc-chips">
-      <span *ngIf="isActive" class="urg" [ngClass]="urgencyClassStr">{{ urgencyLabelText }}</span>
+      <span *ngIf="isActive && !isExpiration" class="urg" [ngClass]="urgencyClassStr">{{ urgencyLabelText }}</span>
       <span class="badge badge--type" [ngClass]="typeBadgeClass">{{ typeLabel }}</span>
     </div>
     <a

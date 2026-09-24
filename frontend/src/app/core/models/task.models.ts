@@ -27,6 +27,7 @@ export interface Task {
   scheduledDate: string;
   completedDate: string | null;
   odooTicketId: number | null;
+  expirationType: string | null;
   notes?: string | null;
   createdAt: string;
   client?: { id: string; name: string };

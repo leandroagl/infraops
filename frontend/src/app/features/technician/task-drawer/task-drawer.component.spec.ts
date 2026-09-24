@@ -30,6 +30,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     scheduledDate: '2099-01-01',
     completedDate: null,
     odooTicketId: null,
+    expirationType: null,
     createdAt: '2026-01-01T00:00:00Z',
     client: { id: 'client-1', name: 'Acme Corp' },
     ...overrides,
