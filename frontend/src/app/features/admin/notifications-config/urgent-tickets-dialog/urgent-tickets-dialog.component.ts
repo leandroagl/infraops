@@ -6,6 +6,7 @@ import { UrgentBacklogPreview, UrgentBacklogPreviewItem } from '../../../../core
 import { ExpirationType } from '../../../../core/models/notification.models';
 
 export interface UrgentTicketsDialogData {
+  minDays: number;
   maxDays: number;
 }
 
@@ -29,7 +30,7 @@ export class UrgentTicketsDialogComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.svc.getUrgentBacklogPreview(this.data.maxDays).subscribe({
+    this.svc.getUrgentBacklogPreview(this.data.minDays, this.data.maxDays).subscribe({
       next: (preview) => {
         this.preview = preview;
         this.loading = false;
@@ -43,7 +44,7 @@ export class UrgentTicketsDialogComponent implements OnInit {
 
   confirm(): void {
     this.creating = true;
-    this.svc.createUrgentBacklogTickets(this.data.maxDays).subscribe({
+    this.svc.createUrgentBacklogTickets(this.data.minDays, this.data.maxDays).subscribe({
       next: (result) => {
         this.dialogRef.close(result);
         this.snackBar.open(
