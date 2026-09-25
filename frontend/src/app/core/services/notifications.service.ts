@@ -28,13 +28,13 @@ export class NotificationsService {
     return this.http.patch(`${this.base}/config/${type}`, entry);
   }
 
-  getUrgentBacklogPreview(maxDays = 6): Observable<UrgentBacklogPreview> {
-    const params = new HttpParams().set('maxDays', String(maxDays));
+  getUrgentBacklogPreview(minDays: number, maxDays: number): Observable<UrgentBacklogPreview> {
+    const params = new HttpParams().set('minDays', String(minDays)).set('maxDays', String(maxDays));
     return this.http.get<UrgentBacklogPreview>(`${this.base}/config/urgent-preview`, { params });
   }
 
-  createUrgentBacklogTickets(maxDays = 6): Observable<UrgentBacklogResult> {
-    const params = new HttpParams().set('maxDays', String(maxDays));
+  createUrgentBacklogTickets(minDays: number, maxDays: number): Observable<UrgentBacklogResult> {
+    const params = new HttpParams().set('minDays', String(minDays)).set('maxDays', String(maxDays));
     return this.http.post<UrgentBacklogResult>(`${this.base}/config/urgent-tickets`, null, { params });
   }
 }

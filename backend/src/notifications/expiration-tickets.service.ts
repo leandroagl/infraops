@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, LessThanOrEqual, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { NotificationsService } from './notifications.service';
 import { ExpirationTicket } from './expiration-ticket.entity';
 import {
@@ -148,32 +148,8 @@ export class ExpirationTicketsService {
         }
 
         try {
-          const odooTicketId = await this.odooService.createExpirationTicket(
-            item, client.id, cfg.helpdeskTeamId!, cfg.tagIds, cfg.taskName, cfg.ticketDescription,
-          );
-          const savedTicket = await this.ticketRepo.save({
-            type: item.type,
-            sourceId: item.sourceId,
-            expireDate: item.expireDate,
-            clientId: client.id,
-            odooTicketId,
-          });
+          await this.createTicketWithTask(item, client.id, cfg);
           created++;
-
-          try {
-            const task = await this.tasksService.createFromExistingTicket({
-              clientId: client.id,
-              type: TaskType.EXPIRATION_CONTROL,
-              odooTicketId,
-              scheduledDate: new Date().toISOString().slice(0, 10),
-              expirationType: item.type,
-            });
-            await this.ticketRepo.update(savedTicket.id, { taskId: task.id });
-          } catch (err: unknown) {
-            this.logger.error(
-              `Ticket ${odooTicketId} creado pero falló crear la Task asociada: ${(err as Error).message}`,
-            );
-          }
         } catch (err: unknown) {
           this.logger.error(
             `Error creando ticket para ${item.type} ${item.sourceId}: ${(err as Error).message}`,
@@ -186,6 +162,52 @@ export class ExpirationTicketsService {
     } catch (err: unknown) {
       this.logger.error(`createPendingExpirationTickets falló: ${(err as Error).message}`, err as Error);
     }
+  }
+
+  // Crea el ticket en Odoo, persiste (o actualiza) la fila de expiration_tickets y
+  // crea la Task asociada. Si existingRowId viene informado, actualiza esa fila
+  // (backlog pre-sembrado) en vez de insertar una nueva.
+  private async createTicketWithTask(
+    item: ExpirationItemDto,
+    clientId: string,
+    cfg: TypeConfigEntry,
+    existingRowId?: string,
+  ): Promise<number> {
+    const odooTicketId = await this.odooService.createExpirationTicket(
+      item, clientId, cfg.helpdeskTeamId!, cfg.tagIds, cfg.taskName, cfg.ticketDescription,
+    );
+
+    let ticketRowId: string;
+    if (existingRowId) {
+      await this.ticketRepo.update(existingRowId, { odooTicketId });
+      ticketRowId = existingRowId;
+    } else {
+      const saved = await this.ticketRepo.save({
+        type: item.type,
+        sourceId: item.sourceId,
+        expireDate: item.expireDate,
+        clientId,
+        odooTicketId,
+      });
+      ticketRowId = saved.id;
+    }
+
+    try {
+      const task = await this.tasksService.createFromExistingTicket({
+        clientId,
+        type: TaskType.EXPIRATION_CONTROL,
+        odooTicketId,
+        scheduledDate: new Date().toISOString().slice(0, 10),
+        expirationType: item.type,
+      });
+      await this.ticketRepo.update(ticketRowId, { taskId: task.id });
+    } catch (err: unknown) {
+      this.logger.error(
+        `Ticket ${odooTicketId} creado pero falló crear la Task asociada: ${(err as Error).message}`,
+      );
+    }
+
+    return odooTicketId;
   }
 
   // Guarda la config por tipo del módulo Vencimientos. Cuando un tipo pasa de
@@ -249,80 +271,49 @@ export class ExpirationTicketsService {
     this.logger.log(`Backlog pre-sembrado para ${type}: ${rows.length} vencimientos marcados sin ticket automático`);
   }
 
-  async getUrgentBacklogPreview(maxDays: number): Promise<UrgentBacklogPreviewDto> {
-    const rows = await this.getUrgentBacklogRows(maxDays);
-    if (rows.length === 0) return { count: 0, items: [] };
+  // "Tickets urgentes" — catch-up manual, acotado por [minDays, maxDays], para vencimientos
+  // de tipos habilitados que todavía no tienen ticket real. A diferencia del cron diario
+  // (que respeta el daysAhead propio de cada tipo), compara siempre en vivo contra InfraDoc,
+  // así detecta tanto backlog pre-sembrado (fila con odooTicketId null) como vencimientos
+  // que nunca llegaron a tener fila de tracking.
+  async getUrgentBacklogPreview(minDays: number, maxDays: number): Promise<UrgentBacklogPreviewDto> {
+    const candidates = await this.getUrgentCandidates(minDays, maxDays);
+    if (candidates.length === 0) return { count: 0, items: [] };
 
-    const liveItems = await this.notificationsService.getExpirations(maxDays + 30);
-    const byKey = new Map(liveItems.map(i => [this.key(i.type, i.sourceId, i.expireDate), i]));
+    const items: UrgentBacklogPreviewItemDto[] = candidates.map(({ item }) => ({
+      type: item.type,
+      sourceId: item.sourceId,
+      expireDate: item.expireDate,
+      clientName: item.clientName,
+      itemName: item.itemName,
+      daysUntil: item.daysUntil,
+    }));
 
-    const today = new Date();
-    const items: UrgentBacklogPreviewItemDto[] = rows.map(row => {
-      const live = byKey.get(this.key(row.type, row.sourceId, row.expireDate));
-      const daysUntil = live?.daysUntil
-        ?? Math.floor((new Date(row.expireDate).getTime() - today.getTime()) / 86_400_000);
-      return {
-        type: row.type,
-        sourceId: row.sourceId,
-        expireDate: row.expireDate,
-        clientName: live?.clientName ?? null,
-        itemName: live?.itemName ?? null,
-        daysUntil,
-      };
-    });
-
-    return { count: rows.length, items };
+    return { count: items.length, items };
   }
 
-  async createUrgentBacklogTickets(maxDays: number): Promise<UrgentBacklogResultDto> {
-    const rows = await this.getUrgentBacklogRows(maxDays);
-    if (rows.length === 0) return { created: 0, errors: 0 };
-
-    const config = await this.integrationConfigService.getOdooConfigDecrypted();
-    const typeConfigs = (config.expirationsTypeConfigs ?? {}) as TypeConfigs;
-
-    const liveItems = await this.notificationsService.getExpirations(maxDays + 30);
-    const byKey = new Map(liveItems.map(i => [this.key(i.type, i.sourceId, i.expireDate), i]));
+  async createUrgentBacklogTickets(minDays: number, maxDays: number): Promise<UrgentBacklogResultDto> {
+    const candidates = await this.getUrgentCandidates(minDays, maxDays);
+    if (candidates.length === 0) return { created: 0, errors: 0 };
 
     let created = 0;
     let errors = 0;
 
-    for (const row of rows) {
-      const cfg = typeConfigs[row.type];
-      if (!cfg?.helpdeskTeamId) {
-        this.logger.warn(`createUrgentBacklogTickets: ${row.type} sin helpdeskTeamId — omitiendo`);
-        errors++;
-        continue;
-      }
-
-      const liveItem = byKey.get(this.key(row.type, row.sourceId, row.expireDate));
-      if (!liveItem) {
-        this.logger.warn(`createUrgentBacklogTickets: ${row.type}/${row.sourceId} no encontrado en InfraDoc — omitiendo`);
+    for (const { item, cfg, existingRow } of candidates) {
+      const client = await this.clientRepo.findOne({
+        where: { infradocId: item.clientId, isActive: true },
+      });
+      if (!client) {
+        this.logger.warn(`Cliente InfraDoc ${item.clientId} no encontrado (o inactivo) en InfraOps — omitiendo`);
         errors++;
         continue;
       }
 
       try {
-        const odooTicketId = await this.odooService.createExpirationTicket(
-          liveItem, row.clientId, cfg.helpdeskTeamId!, cfg.tagIds, cfg.taskName, cfg.ticketDescription,
-        );
-        await this.ticketRepo.update(row.id, { odooTicketId });
+        await this.createTicketWithTask(item, client.id, cfg, existingRow?.id);
         created++;
-
-        try {
-          const task = await this.tasksService.createFromExistingTicket({
-            clientId: row.clientId,
-            type: TaskType.EXPIRATION_CONTROL,
-            odooTicketId,
-            scheduledDate: new Date().toISOString().slice(0, 10),
-            expirationType: row.type,
-          });
-          await this.ticketRepo.update(row.id, { taskId: task.id });
-        } catch (err: unknown) {
-          this.logger.error(`Ticket urgente ${odooTicketId} creado pero falló crear la Task: ${(err as Error).message}`);
-        }
       } catch (err: unknown) {
-        this.logger.error(`Error en ticket urgente ${row.type}/${row.sourceId}: ${(err as Error).message}`);
+        this.logger.error(`Error en ticket urgente ${item.type}/${item.sourceId}: ${(err as Error).message}`);
         errors++;
       }
     }
@@ -331,13 +322,32 @@ export class ExpirationTicketsService {
     return { created, errors };
   }
 
-  private async getUrgentBacklogRows(maxDays: number): Promise<ExpirationTicket[]> {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() + maxDays);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
-    return this.ticketRepo.find({
-      where: { odooTicketId: IsNull(), expireDate: LessThanOrEqual(cutoffStr) },
-    });
+  private async getUrgentCandidates(
+    minDays: number,
+    maxDays: number,
+  ): Promise<{ item: ExpirationItemDto; cfg: TypeConfigEntry; existingRow: ExpirationTicket | null }[]> {
+    const config = await this.integrationConfigService.getOdooConfigDecrypted();
+    const typeConfigs = (config.expirationsTypeConfigs ?? {}) as TypeConfigs;
+    const enabledEntries = Object.entries(typeConfigs).filter(([, c]) => c.enabled && c.helpdeskTeamId);
+    if (enabledEntries.length === 0) return [];
+    const configByType = new Map(enabledEntries);
+
+    const items = await this.notificationsService.getExpirations(maxDays);
+    const inRange = items.filter(
+      (i) => configByType.has(i.type) && i.daysUntil >= minDays && i.daysUntil <= maxDays,
+    );
+    if (inRange.length === 0) return [];
+
+    const existingRows = await this.ticketRepo.find();
+    const rowByKey = new Map(existingRows.map((r) => [this.key(r.type, r.sourceId, r.expireDate), r]));
+
+    return inRange
+      .map((item) => ({
+        item,
+        cfg: configByType.get(item.type)!,
+        existingRow: rowByKey.get(this.key(item.type, item.sourceId, item.expireDate)) ?? null,
+      }))
+      .filter(({ existingRow }) => existingRow?.odooTicketId == null);
   }
 
   private key(type: string, sourceId: string, expireDate: string): string {
