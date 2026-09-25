@@ -90,8 +90,14 @@ export class TasksService {
 
       const typeAllowsExpiration = !filters.type || filters.type === TaskType.EXPIRATION_CONTROL;
       const statusAllowsOpen = !filters.status || OPEN_STATUSES.includes(filters.status);
+      const now = new Date();
+      const isCurrentMonth = filters.year === now.getFullYear() && filters.month === now.getMonth() + 1;
 
-      if (typeAllowsExpiration && statusAllowsOpen) {
+      // La rama "todas las EXPIRATION_CONTROL abiertas, sin filtro de fecha" solo suma en la
+      // vista del mes calendario actual (para que un vencimiento pendiente siga visible aunque
+      // no haya sido creado este mes). En cualquier otro mes se filtra por scheduledDate como
+      // el resto de los tipos, para no reinyectar el mismo vencimiento abierto en todo el histórico.
+      if (typeAllowsExpiration && statusAllowsOpen && isCurrentMonth) {
         where = [
           monthWhere,
           {
@@ -265,7 +271,16 @@ export class TasksService {
       await this.odooService.closeTicket(task.odooTicketId, employeeId, unitAmount, task.type, task.expirationType);
     }
 
-    await this.taskRepository.update(id, { status: newStatus, completedDate });
+    const updates: Partial<Task> = { status: newStatus, completedDate };
+    if (isTerminal && completedDate && task.type === TaskType.EXPIRATION_CONTROL) {
+      // Refechar al mes en que se resolvió, no al mes en que se creó el ticket —
+      // así el histórico por mes muestra el vencimiento donde efectivamente se cerró.
+      const y = completedDate.getFullYear();
+      const m = String(completedDate.getMonth() + 1).padStart(2, '0');
+      updates.scheduledDate = `${y}-${m}-01`;
+    }
+
+    await this.taskRepository.update(id, updates);
 
     if (newStatus === TaskStatus.DONE && task.odooTicketId !== null) {
       const log = await this.logRepository.findOne({ where: { taskId: id } });
