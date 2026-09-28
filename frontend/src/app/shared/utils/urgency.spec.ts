@@ -1,4 +1,4 @@
-import { daysFromToday, daysUntilCycleClose, urgencyLabel, urgencyClass } from './urgency';
+import { daysFromToday, daysUntilCycleClose, urgencyLabel, urgencyClass, daysUntilLabel, daysUntilLevel } from './urgency';
 
 /** Genera una fecha ISO YYYY-MM-DD como hora local, N días desde hoy. */
 function localIsoDate(offsetDays: number): string {
@@ -71,6 +71,38 @@ describe('urgency utils', () => {
 
     it('nunca es negativo dentro del mes actual', () => {
       expect(daysUntilCycleClose()).toBeGreaterThanOrEqual(0);
+    });
+  });
+
+  describe('daysUntilLabel()', () => {
+    it('días negativos → "Vencido hace Nd"', () => {
+      expect(daysUntilLabel(-5)).toBe('Vencido hace 5d');
+    });
+
+    it('días === 0 → "Vence hoy"', () => {
+      expect(daysUntilLabel(0)).toBe('Vence hoy');
+    });
+
+    it('días positivos → "Nd"', () => {
+      expect(daysUntilLabel(22)).toBe('22d');
+    });
+  });
+
+  describe('daysUntilLevel()', () => {
+    it('días negativos → "crit"', () => {
+      expect(daysUntilLevel(-1)).toBe('crit');
+    });
+
+    it('días === 0 → "crit"', () => {
+      expect(daysUntilLevel(0)).toBe('crit');
+    });
+
+    it('días === 3 → "warn"', () => {
+      expect(daysUntilLevel(3)).toBe('warn');
+    });
+
+    it('días > 3 → "ok"', () => {
+      expect(daysUntilLevel(4)).toBe('ok');
     });
   });
 

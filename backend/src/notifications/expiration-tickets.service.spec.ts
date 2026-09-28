@@ -14,7 +14,7 @@ describe('ExpirationTicketsService', () => {
   let service: ExpirationTicketsService;
   let notificationsService: { getExpirations: jest.Mock };
   let ticketRepo: { find: jest.Mock; findOne: jest.Mock; save: jest.Mock; insert: jest.Mock; update: jest.Mock };
-  let odooService: { createExpirationTicket: jest.Mock; getHelpdeskSlas: jest.Mock };
+  let odooService: { createExpirationTicket: jest.Mock; getTicketSlaDeadline: jest.Mock };
   let integrationConfigService: { getOdooConfigDecrypted: jest.Mock; getOdoo: jest.Mock; patchOdoo: jest.Mock };
   let clientRepo: { findOne: jest.Mock; find: jest.Mock };
   let tasksService: { createFromExistingTicket: jest.Mock };
@@ -44,7 +44,7 @@ describe('ExpirationTicketsService', () => {
       insert: jest.fn().mockResolvedValue(undefined),
       update: jest.fn().mockResolvedValue(undefined),
     };
-    odooService = { createExpirationTicket: jest.fn(), getHelpdeskSlas: jest.fn().mockResolvedValue([]) };
+    odooService = { createExpirationTicket: jest.fn(), getTicketSlaDeadline: jest.fn().mockResolvedValue(null) };
     integrationConfigService = {
       getOdooConfigDecrypted: jest.fn().mockResolvedValue(defaultConfig),
       getOdoo: jest.fn().mockResolvedValue(defaultConfig),
@@ -203,50 +203,60 @@ describe('ExpirationTicketsService', () => {
       expect(result?.defaultTimeMinutes).toBeNull();
     });
 
-    it('incluye teamSlas con los SLAs del equipo configurado para el tipo', async () => {
+    it('incluye slaDaysUntil calculado desde el sla_deadline real del ticket en Odoo', async () => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 6, 1));
       ticketRepo.findOne.mockResolvedValue({
         type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
         clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
       });
       notificationsService.getExpirations.mockResolvedValue([makeItem()]);
-      odooService.getHelpdeskSlas.mockResolvedValue([{ id: 5, name: 'SLA Normal', time_hours: 18 }]);
+      odooService.getTicketSlaDeadline.mockResolvedValue('2026-07-15 12:00:00');
 
       const result = await service.getExpirationByTaskId('task-1');
 
-      expect(odooService.getHelpdeskSlas).toHaveBeenCalledWith(9);
-      expect(result?.teamSlas).toEqual([{ id: 5, name: 'SLA Normal', time_hours: 18 }]);
+      expect(odooService.getTicketSlaDeadline).toHaveBeenCalledWith(500);
+      expect(result?.slaDaysUntil).toBe(14);
+
+      jest.useRealTimers();
     });
 
-    it('teamSlas es null si el tipo no tiene helpdeskTeamId configurado', async () => {
+    it('slaDaysUntil es null si la tarea no tiene odooTicketId', async () => {
       ticketRepo.findOne.mockResolvedValue({
         type: 'certificate', sourceId: 'c1', expireDate: '2026-07-15',
-        clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
+        clientId: 'client-uuid-1', odooTicketId: null, taskId: 'task-1',
       });
       notificationsService.getExpirations.mockResolvedValue([]);
-      integrationConfigService.getOdoo.mockResolvedValue({
-        ...defaultConfig,
-        expirationsTypeConfigs: {
-          certificate: { enabled: false, helpdeskTeamId: null, daysAhead: 30, tagIds: [] },
-        },
-      });
 
       const result = await service.getExpirationByTaskId('task-1');
 
-      expect(odooService.getHelpdeskSlas).not.toHaveBeenCalled();
-      expect(result?.teamSlas).toBeNull();
+      expect(odooService.getTicketSlaDeadline).not.toHaveBeenCalled();
+      expect(result?.slaDaysUntil).toBeNull();
     });
 
-    it('teamSlas es null si la consulta de SLAs falla (degradación graceful)', async () => {
+    it('slaDaysUntil es null si Odoo no devuelve deadline para el ticket (sin SLA aplicable)', async () => {
       ticketRepo.findOne.mockResolvedValue({
         type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
         clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
       });
       notificationsService.getExpirations.mockResolvedValue([makeItem()]);
-      odooService.getHelpdeskSlas.mockRejectedValue(new Error('Odoo no disponible'));
+      odooService.getTicketSlaDeadline.mockResolvedValue(null);
 
       const result = await service.getExpirationByTaskId('task-1');
 
-      expect(result?.teamSlas).toBeNull();
+      expect(result?.slaDaysUntil).toBeNull();
+    });
+
+    it('slaDaysUntil es null si falla la consulta a Odoo (degradación graceful)', async () => {
+      ticketRepo.findOne.mockResolvedValue({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
+      });
+      notificationsService.getExpirations.mockResolvedValue([makeItem()]);
+      odooService.getTicketSlaDeadline.mockRejectedValue(new Error('Odoo no disponible'));
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(result?.slaDaysUntil).toBeNull();
     });
   });
 
