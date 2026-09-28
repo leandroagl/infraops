@@ -67,9 +67,9 @@ describe('MaintenanceLogsService', () => {
     type: 'WINDOWS_DOMAIN_MAINTENANCE',
     windows: {
       servers: [
-        { serverId: 1, serverName: '47DC', rebootScript: 'ok', updates: 'ok' },
+        { serverId: 1, serverName: '47DC', restartScript: 'ok', updates: 'ok' },
       ],
-      dcdiag: 'OK',
+      domainControllers: [],
     },
   };
 
@@ -229,11 +229,11 @@ describe('MaintenanceLogsService', () => {
             {
               serverId: 1,
               serverName: '47DC',
-              rebootScript: 'error',
+              restartScript: 'error',
               updates: 'pending',
             },
           ],
-          dcdiag: 'OK',
+          domainControllers: [],
         },
       };
       const updatedLog = { ...mockLog, payload: updatedPayload };
@@ -251,7 +251,7 @@ describe('MaintenanceLogsService', () => {
       });
       expect(
         (result.payload as WindowsDomainPayload).windows.servers[0]
-          .rebootScript,
+          .restartScript,
       ).toBe('error');
     });
 
