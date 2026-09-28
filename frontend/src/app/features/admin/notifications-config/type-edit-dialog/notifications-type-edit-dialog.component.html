@@ -17,7 +17,7 @@
     <span *ngIf="loadingSlas">Cargando SLAs del equipo…</span>
     <ng-container *ngIf="!loadingSlas && teamSlas.length">
       SLA del equipo:
-      <span *ngFor="let sla of teamSlas" class="badge badge--neutral" style="margin-left: 4px; font-size: 10px;">{{ sla.name }} · {{ sla.time_days }}d hábiles</span>
+      <span *ngFor="let sla of teamSlas" class="badge badge--neutral" style="margin-left: 4px; font-size: 10px;">{{ sla.name }} · {{ sla.time_hours }}h hábiles</span>
     </ng-container>
     <ng-container *ngIf="!loadingSlas && !teamSlas.length">Sin SLAs configurados en Odoo para este equipo.</ng-container>
   </div>

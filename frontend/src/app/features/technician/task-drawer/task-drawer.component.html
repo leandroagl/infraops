@@ -15,7 +15,7 @@
       </span>
       <ng-container *ngIf="task.type === 'EXPIRATION_CONTROL' && expirationDetail?.teamSlas?.length">
         <span *ngFor="let sla of expirationDetail!.teamSlas!" class="urg urg-ok">
-          SLA {{ sla.time_days }}d hábiles
+          SLA {{ sla.time_hours }}h hábiles
         </span>
       </ng-container>
       <span class="badge" [ngClass]="statusBadge(task.status)">{{ statusLabel(task.status) }}</span>
