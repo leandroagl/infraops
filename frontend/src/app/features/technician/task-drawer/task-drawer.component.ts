@@ -40,7 +40,7 @@ import {
 import { TaskConfigService } from '../../../core/services/task-config.service';
 import { TaskTypeConfigDto } from '../../../core/models/task.models';
 import { statusLabel, statusBadge, typeLabel, typeBadge, expirationTypeLabel } from '../../../shared/utils/task-labels';
-import { daysUntilCycleClose, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
+import { daysUntilCycleClose, urgencyLabel, urgencyClass, daysUntilLabel, daysUntilLevel } from '../../../shared/utils/urgency';
 import { formatOdooTicketId } from '../../../shared/utils/odoo';
 import { OdooUrlService } from '../../../core/services/odoo-url.service';
 
@@ -200,6 +200,9 @@ export class TaskDrawerComponent implements OnChanges {
   daysUntilCycleClose(): number      { return daysUntilCycleClose(); }
   urgencyLabel(days: number): string { return urgencyLabel(days); }
   urgencyClass(days: number): string { return urgencyClass(days); }
+
+  slaLabel(days: number): string { return `SLA ${daysUntilLabel(days)}`; }
+  slaClass(days: number): string { return `urg-${daysUntilLevel(days)}`; }
 
   // ── Icon style ──────────────────────────────────────────────────────────────
 

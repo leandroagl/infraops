@@ -28,7 +28,7 @@ export interface ExpirationDetail {
   daysUntil: number | null;
   odooTicketId: number | null;
   defaultTimeMinutes: number | null;
-  teamSlas: { id: number; name: string; time_hours: number }[] | null;
+  slaDaysUntil: number | null;
 }
 
 export interface UrgentBacklogPreviewItem {

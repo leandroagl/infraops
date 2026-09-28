@@ -562,6 +562,20 @@ export class OdooService {
       .sort((a, b) => a.time_hours - b.time_hours);
   }
 
+  // Deadline real del ticket (helpdesk.ticket.sla_deadline), ya calculado por Odoo
+  // teniendo en cuenta el calendario laboral del equipo — no se reimplementa esa
+  // aritmética acá. null si el ticket no tiene SLA aplicable o ya no existe.
+  async getTicketSlaDeadline(ticketId: number): Promise<string | null> {
+    const tickets = await this.systemRpc.callKw<Array<{ id: number; sla_deadline: string | false }>>(
+      'helpdesk.ticket',
+      'search_read',
+      [[['id', '=', ticketId]]],
+      { fields: ['sla_deadline'] },
+    );
+    const deadline = tickets[0]?.sla_deadline;
+    return deadline || null;
+  }
+
   async createExpirationTicket(
     item: ExpirationItemDto,
     infraopsClientId: string,

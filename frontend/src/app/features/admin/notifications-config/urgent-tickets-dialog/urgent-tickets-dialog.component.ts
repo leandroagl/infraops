@@ -4,6 +4,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NotificationsService } from '../../../../core/services/notifications.service';
 import { UrgentBacklogPreview, UrgentBacklogPreviewItem } from '../../../../core/models/notification.models';
 import { ExpirationType } from '../../../../core/models/notification.models';
+import { daysUntilLabel, daysUntilLevel } from '../../../../shared/utils/urgency';
 
 export interface UrgentTicketsDialogData {
   minDays: number;
@@ -76,14 +77,10 @@ export class UrgentTicketsDialogComponent implements OnInit {
   }
 
   daysLabel(item: UrgentBacklogPreviewItem): string {
-    if (item.daysUntil < 0) return `Vencido hace ${Math.abs(item.daysUntil)}d`;
-    if (item.daysUntil === 0) return 'Vence hoy';
-    return `${item.daysUntil}d`;
+    return daysUntilLabel(item.daysUntil);
   }
 
   daysClass(item: UrgentBacklogPreviewItem): string {
-    if (item.daysUntil <= 0) return 'days--crit';
-    if (item.daysUntil <= 3) return 'days--warn';
-    return 'days--ok';
+    return `days--${daysUntilLevel(item.daysUntil)}`;
   }
 }
