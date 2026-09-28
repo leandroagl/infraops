@@ -27,7 +27,7 @@ export interface VmwareConfigDto {
 export interface TestConnectionResult { ok: boolean; message: string; }
 export interface HelpdeskTeamDto { id: number; name: string; }
 export interface HelpdeskTagDto { id: number; name: string; }
-export interface HelpdeskSlaDto { id: number; name: string; time_days: number; }
+export interface HelpdeskSlaDto { id: number; name: string; time_hours: number; }
 
 @Injectable({ providedIn: 'root' })
 export class IntegrationConfigService {

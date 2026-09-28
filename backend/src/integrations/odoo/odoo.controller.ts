@@ -41,7 +41,7 @@ export class OdooController {
   }
 
   @Get('helpdesk-slas')
-  getHelpdeskSlas(@Query('teamId', ParseIntPipe) teamId: number): Promise<{ id: number; name: string; time_days: number }[]> {
+  getHelpdeskSlas(@Query('teamId', ParseIntPipe) teamId: number): Promise<{ id: number; name: string; time_hours: number }[]> {
     return this.odooService.getHelpdeskSlas(teamId);
   }
 }

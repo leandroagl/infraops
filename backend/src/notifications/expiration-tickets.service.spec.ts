@@ -209,12 +209,12 @@ describe('ExpirationTicketsService', () => {
         clientId: 'client-uuid-1', odooTicketId: 500, taskId: 'task-1',
       });
       notificationsService.getExpirations.mockResolvedValue([makeItem()]);
-      odooService.getHelpdeskSlas.mockResolvedValue([{ id: 5, name: 'SLA Normal', time_days: 18 }]);
+      odooService.getHelpdeskSlas.mockResolvedValue([{ id: 5, name: 'SLA Normal', time_hours: 18 }]);
 
       const result = await service.getExpirationByTaskId('task-1');
 
       expect(odooService.getHelpdeskSlas).toHaveBeenCalledWith(9);
-      expect(result?.teamSlas).toEqual([{ id: 5, name: 'SLA Normal', time_days: 18 }]);
+      expect(result?.teamSlas).toEqual([{ id: 5, name: 'SLA Normal', time_hours: 18 }]);
     });
 
     it('teamSlas es null si el tipo no tiene helpdeskTeamId configurado', async () => {
