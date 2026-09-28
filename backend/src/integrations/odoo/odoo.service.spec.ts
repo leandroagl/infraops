@@ -1915,4 +1915,36 @@ describe('OdooService', () => {
       expect(result).toEqual([]);
     });
   });
+
+  describe('getTicketSlaDeadline', () => {
+    it('retorna el sla_deadline del ticket', async () => {
+      odooRpc.callKw.mockResolvedValue([{ id: 500, sla_deadline: '2026-07-15 12:00:00' }]);
+
+      const result = await service.getTicketSlaDeadline(500);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'search_read',
+        [[['id', '=', 500]]],
+        { fields: ['sla_deadline'] },
+      );
+      expect(result).toBe('2026-07-15 12:00:00');
+    });
+
+    it('retorna null si el ticket no tiene sla_deadline (Odoo devuelve false)', async () => {
+      odooRpc.callKw.mockResolvedValue([{ id: 500, sla_deadline: false }]);
+
+      const result = await service.getTicketSlaDeadline(500);
+
+      expect(result).toBeNull();
+    });
+
+    it('retorna null si el ticket no existe', async () => {
+      odooRpc.callKw.mockResolvedValue([]);
+
+      const result = await service.getTicketSlaDeadline(999);
+
+      expect(result).toBeNull();
+    });
+  });
 });

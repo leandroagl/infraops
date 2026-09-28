@@ -70,14 +70,14 @@ export class ExpirationTicketsService {
 
     const config = await this.integrationConfigService.getOdoo();
     const typeConfigs = (config.expirationsTypeConfigs ?? {}) as TypeConfigs;
-    const helpdeskTeamId = typeConfigs[row.type]?.helpdeskTeamId ?? null;
 
-    let teamSlas: { id: number; name: string; time_hours: number }[] | null = null;
-    if (helpdeskTeamId) {
+    let slaDaysUntil: number | null = null;
+    if (row.odooTicketId != null) {
       try {
-        teamSlas = await this.odooService.getHelpdeskSlas(helpdeskTeamId);
+        const deadline = await this.odooService.getTicketSlaDeadline(row.odooTicketId);
+        if (deadline) slaDaysUntil = this.daysBetweenNowAnd(deadline);
       } catch {
-        teamSlas = null;
+        slaDaysUntil = null;
       }
     }
 
@@ -94,8 +94,16 @@ export class ExpirationTicketsService {
       daysUntil: liveItem?.daysUntil ?? null,
       odooTicketId: row.odooTicketId,
       defaultTimeMinutes: typeConfigs[row.type]?.defaultTimeMinutes ?? null,
-      teamSlas,
+      slaDaysUntil,
     };
+  }
+
+  private daysBetweenNowAnd(datetime: string): number {
+    const target = new Date(datetime.replace(' ', 'T') + 'Z');
+    target.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Math.round((target.getTime() - today.getTime()) / 86_400_000);
   }
 
   @Cron('0 8 * * *')
