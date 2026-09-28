@@ -72,7 +72,7 @@ export class ExpirationTicketsService {
     const typeConfigs = (config.expirationsTypeConfigs ?? {}) as TypeConfigs;
     const helpdeskTeamId = typeConfigs[row.type]?.helpdeskTeamId ?? null;
 
-    let teamSlas: { id: number; name: string; time_days: number }[] | null = null;
+    let teamSlas: { id: number; name: string; time_hours: number }[] | null = null;
     if (helpdeskTeamId) {
       try {
         teamSlas = await this.odooService.getHelpdeskSlas(helpdeskTeamId);

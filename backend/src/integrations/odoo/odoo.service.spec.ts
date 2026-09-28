@@ -1887,10 +1887,10 @@ describe('OdooService', () => {
   });
 
   describe('getHelpdeskSlas', () => {
-    it('retorna los SLAs del equipo ordenados por time_days ascendente', async () => {
+    it('retorna los SLAs del equipo ordenados por time_hours ascendente, mapeando el campo Odoo "time"', async () => {
       odooRpc.callKw.mockResolvedValue([
-        { id: 2, name: 'SLA Urgente', time_days: 5 },
-        { id: 1, name: 'SLA Normal', time_days: 18 },
+        { id: 2, name: 'SLA Urgente', time: 5 },
+        { id: 1, name: 'SLA Normal', time: 18 },
       ]);
 
       const result = await service.getHelpdeskSlas(7);
@@ -1899,11 +1899,11 @@ describe('OdooService', () => {
         'helpdesk.sla',
         'search_read',
         [[['team_id', '=', 7]]],
-        { fields: ['id', 'name', 'time_days'] },
+        { fields: ['id', 'name', 'time'] },
       );
       expect(result).toEqual([
-        { id: 2, name: 'SLA Urgente', time_days: 5 },
-        { id: 1, name: 'SLA Normal', time_days: 18 },
+        { id: 2, name: 'SLA Urgente', time_hours: 5 },
+        { id: 1, name: 'SLA Normal', time_hours: 18 },
       ]);
     });
 

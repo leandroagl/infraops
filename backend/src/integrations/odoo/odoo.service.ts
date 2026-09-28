@@ -548,16 +548,18 @@ export class OdooService {
     return teams.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  async getHelpdeskSlas(teamId: number): Promise<{ id: number; name: string; time_days: number }[]> {
-    const slas = await this.systemRpc.callKw<Array<{ id: number; name: string; time_days: number }>>(
+  async getHelpdeskSlas(teamId: number): Promise<{ id: number; name: string; time_hours: number }[]> {
+    // helpdesk.sla expone el target como "time" (float, horas hábiles) — no "time_days".
+    // Confirmado en vivo contra Odoo: el widget "Time" muestra 144:00, 24:00, etc. (HH:MM de horas).
+    const slas = await this.systemRpc.callKw<Array<{ id: number; name: string; time: number }>>(
       'helpdesk.sla',
       'search_read',
       [[['team_id', '=', teamId]]],
-      { fields: ['id', 'name', 'time_days'] },
+      { fields: ['id', 'name', 'time'] },
     );
     return slas
-      .map(s => ({ id: s.id, name: s.name, time_days: s.time_days }))
-      .sort((a, b) => a.time_days - b.time_days);
+      .map(s => ({ id: s.id, name: s.name, time_hours: s.time }))
+      .sort((a, b) => a.time_hours - b.time_hours);
   }
 
   async createExpirationTicket(
