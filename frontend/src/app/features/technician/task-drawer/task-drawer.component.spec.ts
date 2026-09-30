@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { of, throwError } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Subject, of, throwError } from 'rxjs';
 
 import { TaskDrawerComponent } from './task-drawer.component';
 import { InfradocService } from '../../../core/services/infradoc.service';
@@ -839,6 +840,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       deviationsError?: boolean;
       signals?: any[];
       updateStatusSpy?: jasmine.Spy;
+      snackBarSpy?: jasmine.Spy;
     } = {}): TaskDrawerComponent {
       const getByTaskIdSpy = jasmine.createSpy('getByTaskId').and.returnValue(
         overrides.deviationsError
@@ -855,6 +857,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
         undefined,
         { getByTaskId: getByTaskIdSpy, updateStatus: overrides.updateStatusSpy ?? jasmine.createSpy('updateStatus') } as any,
         { getAvailableSignals: () => of(overrides.signals ?? []) } as any,
+        { open: overrides.snackBarSpy ?? jasmine.createSpy('open') } as any,
       );
       c.task = makeTask();
       c.ngOnChanges({ task: {} as any });
@@ -899,9 +902,9 @@ describe('TaskDrawerComponent — pure unit tests', () => {
     });
 
     it('confirmDeviation llama a updateStatus con CONFIRMED y sacar la fila de pendingDeviations', () => {
-      const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(of({}));
+      const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(of({ odooTicketId: 123 }));
       const c = makeDeviationComponent({
-        deviations: [{ id: 'd1', status: 'PENDING' }],
+        deviations: [{ id: 'd1', status: 'PENDING', taskType: 'VEEAM_BACKUP', signalKey: 'anyVmWithoutBackup' }],
         updateStatusSpy,
       });
 
@@ -909,6 +912,45 @@ describe('TaskDrawerComponent — pure unit tests', () => {
 
       expect(updateStatusSpy).toHaveBeenCalledWith('d1', 'CONFIRMED');
       expect(c.pendingDeviations).toEqual([]);
+    });
+
+    it('confirmDeviation muestra un toast con el número de ticket y la señal al confirmar', () => {
+      const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(of({ odooTicketId: 123 }));
+      const snackBarSpy = jasmine.createSpy('open');
+      const c = makeDeviationComponent({
+        deviations: [{ id: 'd1', status: 'PENDING', taskType: 'VEEAM_BACKUP', signalKey: 'anyVmWithoutBackup' }],
+        signals: [{ taskType: 'VEEAM_BACKUP', key: 'anyVmWithoutBackup', label: 'Alguna VM sin backup', valueType: 'boolean' }],
+        updateStatusSpy,
+        snackBarSpy,
+      });
+
+      c.confirmDeviation(c.pendingDeviations[0]);
+
+      expect(snackBarSpy).toHaveBeenCalledWith(
+        jasmine.stringMatching(/#123/), '', jasmine.objectContaining({ duration: 4000 }),
+      );
+      expect(snackBarSpy).toHaveBeenCalledWith(
+        jasmine.stringMatching(/Alguna VM sin backup/), '', jasmine.anything(),
+      );
+    });
+
+    it('isProcessingDeviation es true mientras la llamada está en curso y false al resolver', () => {
+      const pending$ = new Subject<any>();
+      const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(pending$);
+      const c = makeDeviationComponent({
+        deviations: [{ id: 'd1', status: 'PENDING' }],
+        updateStatusSpy,
+      });
+      const deviation = c.pendingDeviations[0];
+
+      expect(c.isProcessingDeviation(deviation)).toBe(false);
+      c.confirmDeviation(deviation);
+      expect(c.isProcessingDeviation(deviation)).toBe(true);
+
+      pending$.next({ odooTicketId: 1 });
+      pending$.complete();
+
+      expect(c.isProcessingDeviation(deviation)).toBe(false);
     });
 
     it('dismissDeviation llama a updateStatus con DISMISSED y sacar la fila de pendingDeviations', () => {
@@ -924,17 +966,23 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(c.pendingDeviations).toEqual([]);
     });
 
-    it('si updateStatus falla, no sacar la fila y setear deviationActionError', () => {
+    it('si updateStatus falla, no sacar la fila, limpiar isProcessingDeviation y mostrar un toast de error', () => {
       const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(throwError(() => ({ status: 500 })));
+      const snackBarSpy = jasmine.createSpy('open');
       const c = makeDeviationComponent({
         deviations: [{ id: 'd1', status: 'PENDING' }],
         updateStatusSpy,
+        snackBarSpy,
       });
+      const deviation = c.pendingDeviations[0];
 
-      c.confirmDeviation(c.pendingDeviations[0]);
+      c.confirmDeviation(deviation);
 
       expect(c.pendingDeviations.length).toBe(1);
-      expect(c.deviationActionError).toBeTruthy();
+      expect(c.isProcessingDeviation(deviation)).toBe(false);
+      expect(snackBarSpy).toHaveBeenCalledWith(
+        jasmine.any(String), '', jasmine.objectContaining({ panelClass: 'snack-error' }),
+      );
     });
   });
 });
@@ -959,6 +1007,7 @@ describe('TaskDrawerComponent — template tests', () => {
         { provide: NotificationsService, useValue: { getExpirationByTaskId: () => of(null) } },
         { provide: MaintenanceDeviationsService, useValue: { getByTaskId: () => of([]), updateStatus: () => of({}) } },
         { provide: DeviationRulesService, useValue: { getAvailableSignals: () => of([]) } },
+        { provide: MatSnackBar, useValue: { open: () => ({}) } },
       ],
     }).compileComponents();
 

@@ -70,11 +70,13 @@
       (valor: {{ deviationValueDisplay(deviation) }})
     </div>
     <div class="d-deviation-banner__actions">
-      <button mat-flat-button color="warn" (click)="confirmDeviation(deviation)">Confirmar y crear ticket</button>
-      <button mat-stroked-button (click)="dismissDeviation(deviation)">Descartar</button>
+      <button mat-flat-button color="warn" (click)="confirmDeviation(deviation)" [disabled]="isProcessingDeviation(deviation)">
+        <mat-spinner *ngIf="isProcessingDeviation(deviation)" [diameter]="16"></mat-spinner>
+        <span *ngIf="!isProcessingDeviation(deviation)">Confirmar y crear ticket</span>
+      </button>
+      <button mat-stroked-button (click)="dismissDeviation(deviation)" [disabled]="isProcessingDeviation(deviation)">Descartar</button>
     </div>
   </div>
-  <p *ngIf="deviationActionError" class="d-footer__err">{{ deviationActionError }}</p>
 
   <!-- Detalle del vencimiento -->
   <div *ngIf="task.type === 'EXPIRATION_CONTROL'" class="d-expiration-detail">

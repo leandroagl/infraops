@@ -10,6 +10,7 @@ import {
 import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, map, of, switchMap, tap, throwError } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Task, TaskStatus, TaskType } from '../../../core/models/task.models';
 import { UserRole } from '../../../core/models/auth.models';
 import { ClientInfrastructure } from '../../../core/models/infradoc.models';
@@ -79,12 +80,12 @@ export class TaskDrawerComponent implements OnChanges {
   confirmError = '';
   saveProgressMsg = '';
   saveProgressError = '';
-  deviationActionError = '';
   completing = false;
   taskConfig: TaskTypeConfigDto | null = null;
   expirationDetail: ExpirationDetail | null = null;
   loadingExpirationDetail = false;
   pendingDeviations: MaintenanceDeviationDto[] = [];
+  processingDeviationIds = new Set<string>();
   private deviationSignals: AvailableDeviationSignal[] = [];
 
   private pendingPayload: MaintenancePayload | null = null;
@@ -101,6 +102,7 @@ export class TaskDrawerComponent implements OnChanges {
     private notificationsService?: NotificationsService,
     private maintenanceDeviationsService?: MaintenanceDeviationsService,
     private deviationRulesService?: DeviationRulesService,
+    private snackBar?: MatSnackBar,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -235,22 +237,45 @@ export class TaskDrawerComponent implements OnChanges {
     return deviation.detectedValueNumber !== null ? String(deviation.detectedValueNumber) : '—';
   }
 
+  isProcessingDeviation(deviation: MaintenanceDeviationDto): boolean {
+    return this.processingDeviationIds.has(deviation.id);
+  }
+
   confirmDeviation(deviation: MaintenanceDeviationDto): void {
-    this.updateDeviationStatus(deviation, 'CONFIRMED');
+    this.runDeviationAction(
+      deviation,
+      'CONFIRMED',
+      updated => {
+        this.snackBar?.open(
+          `Ticket #${updated.odooTicketId} creado — ${this.deviationSignalLabel(deviation)}`,
+          '',
+          { duration: 4000 },
+        );
+      },
+      'No se pudo crear el ticket. Intentá de nuevo.',
+    );
   }
 
   dismissDeviation(deviation: MaintenanceDeviationDto): void {
-    this.updateDeviationStatus(deviation, 'DISMISSED');
+    this.runDeviationAction(deviation, 'DISMISSED', () => {}, 'No se pudo descartar el desvío. Intentá de nuevo.');
   }
 
-  private updateDeviationStatus(deviation: MaintenanceDeviationDto, status: MaintenanceDeviationStatus): void {
-    this.deviationActionError = '';
+  private runDeviationAction(
+    deviation: MaintenanceDeviationDto,
+    status: MaintenanceDeviationStatus,
+    onSuccess: (updated: MaintenanceDeviationDto) => void,
+    errorMessage: string,
+  ): void {
+    this.processingDeviationIds.add(deviation.id);
     this.maintenanceDeviationsService?.updateStatus(deviation.id, status).subscribe({
-      next: () => {
+      next: updated => {
+        this.processingDeviationIds.delete(deviation.id);
         this.pendingDeviations = this.pendingDeviations.filter(d => d.id !== deviation.id);
+        onSuccess(updated);
       },
-      error: () => {
-        this.deviationActionError = 'No se pudo actualizar el desvío. Intentá de nuevo.';
+      error: (err: HttpErrorResponse) => {
+        this.processingDeviationIds.delete(deviation.id);
+        this.snackBar?.open(err.error?.message ?? errorMessage, '', { duration: 4000, panelClass: 'snack-error' });
       },
     });
   }
