@@ -63,6 +63,19 @@
   <!-- Banner de configuración faltante -->
   <div *ngIf="isActiveTask && !isUnassigned && isConfigMissing" class="d-config-warn">⚠ {{ configWarningMessage }}</div>
 
+  <!-- Desvíos detectados, pendientes de confirmación -->
+  <div *ngFor="let deviation of pendingDeviations" class="d-deviation-banner">
+    <div class="d-deviation-banner__text">
+      ⚠ Desvío detectado: <strong>{{ deviationSignalLabel(deviation) }}</strong>
+      (valor: {{ deviationValueDisplay(deviation) }})
+    </div>
+    <div class="d-deviation-banner__actions">
+      <button mat-flat-button color="warn" (click)="confirmDeviation(deviation)">Confirmar y crear ticket</button>
+      <button mat-stroked-button (click)="dismissDeviation(deviation)">Descartar</button>
+    </div>
+  </div>
+  <p *ngIf="deviationActionError" class="d-footer__err">{{ deviationActionError }}</p>
+
   <!-- Detalle del vencimiento -->
   <div *ngIf="task.type === 'EXPIRATION_CONTROL'" class="d-expiration-detail">
     <div *ngIf="loadingExpirationDetail" class="skeleton" style="height:48px;border-radius:var(--radius-sm)"></div>
