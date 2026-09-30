@@ -86,7 +86,11 @@ export class MaintenanceLogsService {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await this.logRepository.update(log.id, updateData as any);
-    return this.loadLog(log.id);
+    const loaded = await this.loadLog(log.id);
+    if (dto.payload !== undefined) {
+      await this.deviationEvaluator.evaluate(loaded, task);
+    }
+    return loaded;
   }
 
   private async loadLog(id: string): Promise<MaintenanceLog> {
