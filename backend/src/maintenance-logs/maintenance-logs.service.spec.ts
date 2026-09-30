@@ -258,6 +258,19 @@ describe('MaintenanceLogsService', () => {
         (result.payload as WindowsDomainPayload).windows.servers[0]
           .restartScript,
       ).toBe('error');
+      expect(deviationEvaluator.evaluate).toHaveBeenCalledWith(updatedLog, mockTask);
+    });
+
+    it('no evalúa desvíos si el update no incluye payload (ej. solo notes)', async () => {
+      taskRepository.findOne.mockResolvedValue(mockTask);
+      logRepository.findOne
+        .mockResolvedValueOnce(mockLog)
+        .mockResolvedValueOnce(mockLog);
+      logRepository.update.mockResolvedValue({ affected: 1 });
+
+      await service.update('task-1', { notes: 'solo una nota' });
+
+      expect(deviationEvaluator.evaluate).not.toHaveBeenCalled();
     });
 
     it('lanza BadRequestException si el body está vacío', async () => {
