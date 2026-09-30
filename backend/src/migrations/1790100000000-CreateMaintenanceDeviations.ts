@@ -22,6 +22,8 @@ export class CreateMaintenanceDeviations1790100000000 implements MigrationInterf
         "threshold_boolean"     boolean,
         "detected_value_number" numeric,
         "detected_value_boolean" boolean,
+        "helpdesk_team_id"      integer,
+        "tag_ids"               integer[]   NOT NULL DEFAULT '{}',
         "status"                "public"."maintenance_deviations_status_enum" NOT NULL DEFAULT 'PENDING',
         "detected_at"           TIMESTAMPTZ NOT NULL DEFAULT now(),
         "resolved_at"           TIMESTAMPTZ,

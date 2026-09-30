@@ -117,6 +117,8 @@ describe('MaintenanceDeviationEvaluatorService', () => {
     expect(result[0].taskId).toBe('task-1');
     expect(result[0].logId).toBe('log-1');
     expect(result[0].ruleId).toBe('rule-1');
+    expect(result[0].helpdeskTeamId).toBe(7);
+    expect(result[0].tagIds).toEqual([3]);
     expect(deviationRepo.save).toHaveBeenCalled();
   });
 

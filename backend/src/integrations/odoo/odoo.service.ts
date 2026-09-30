@@ -631,6 +631,53 @@ export class OdooService {
     return ticketId;
   }
 
+  async createDeviationTicket(
+    clientId: string,
+    helpdeskTeamId: number,
+    tagIds: number[],
+    name: string,
+    description: string,
+  ): Promise<number> {
+    if (!helpdeskTeamId) {
+      throw new BadRequestException('La regla de desvío no tiene equipo de Odoo configurado');
+    }
+
+    const partnerId = await this.resolvePartnerId(clientId);
+    if (partnerId === null) {
+      throw new BadRequestException(`Cliente ${clientId} no tiene ID de Odoo`);
+    }
+
+    const saleLineId = await this.resolveSaleLineId(clientId);
+
+    const payload: Record<string, unknown> = {
+      team_id: helpdeskTeamId,
+      partner_id: partnerId,
+      name,
+      description,
+    };
+    if (saleLineId !== null) {
+      payload['sale_line_id'] = saleLineId;
+    }
+    if (tagIds.length > 0) {
+      payload['tag_ids'] = [[6, 0, tagIds]];
+    }
+
+    const ticketId = await this.systemRpc.callKw<number>(
+      'helpdesk.ticket',
+      'create',
+      [payload],
+      {},
+    );
+
+    if (!ticketId) {
+      throw new ServiceUnavailableException(
+        'Odoo devolvió false al crear ticket de desvío',
+      );
+    }
+
+    return ticketId;
+  }
+
   async closeTicket(
     odooTicketId: number,
     employeeId: number,

@@ -62,6 +62,12 @@ export class MaintenanceDeviation {
   @Column({ name: 'detected_value_boolean', type: 'boolean', nullable: true, default: null })
   detectedValueBoolean: boolean | null;
 
+  @Column({ name: 'helpdesk_team_id', type: 'int', nullable: true, default: null })
+  helpdeskTeamId: number | null;
+
+  @Column({ name: 'tag_ids', type: 'int', array: true, default: [] })
+  tagIds: number[];
+
   @Column({
     type: 'enum',
     enum: MaintenanceDeviationStatus,

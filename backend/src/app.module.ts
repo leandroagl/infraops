@@ -18,6 +18,7 @@ import { SchedulesModule } from './schedules/schedules.module';
 import { TaskConfigModule } from './task-config/task-config.module';
 import { IntegrationConfigModule } from './integration-config/integration-config.module';
 import { DeviationRulesModule } from './deviation-rules/deviation-rules.module';
+import { MaintenanceDeviationsModule } from './maintenance-deviations/maintenance-deviations.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { DeviationRulesModule } from './deviation-rules/deviation-rules.module';
     TaskConfigModule,
     IntegrationConfigModule,
     DeviationRulesModule,
+    MaintenanceDeviationsModule,
   ],
 })
 export class AppModule {}
