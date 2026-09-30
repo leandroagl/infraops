@@ -1,0 +1,50 @@
+<h2 mat-dialog-title>{{ data.mode === 'create' ? 'Nueva regla de desvío' : 'Editar regla de desvío' }}</h2>
+
+<mat-dialog-content [formGroup]="form" class="drd-form">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Tipo de tarea</mat-label>
+    <mat-select formControlName="taskType" (selectionChange)="onTaskTypeChange()">
+      <mat-option *ngFor="let t of availableTaskTypes" [value]="t">{{ t }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Señal</mat-label>
+    <mat-select formControlName="signalKey" (selectionChange)="onSignalKeyChange()">
+      <mat-option *ngFor="let s of availableSignalsForTaskType" [value]="s.key">{{ s.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Operador</mat-label>
+    <mat-select formControlName="operator">
+      <mat-option *ngFor="let o of operatorOptions" [value]="o.value">{{ o.label }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field *ngIf="selectedSignal?.valueType === 'number'" appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Umbral</mat-label>
+    <input matInput type="number" formControlName="thresholdNumber" />
+  </mat-form-field>
+
+  <mat-checkbox formControlName="enabled">Habilitada</mat-checkbox>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Equipo Odoo</mat-label>
+    <mat-select formControlName="helpdeskTeamId">
+      <mat-option *ngFor="let team of teams" [value]="team.id">{{ team.name }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Tags</mat-label>
+    <mat-select formControlName="tagIds" multiple>
+      <mat-option *ngFor="let tag of tags" [value]="tag.id">{{ tag.name }}</mat-option>
+    </mat-select>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">Cancelar</button>
+  <button mat-flat-button color="primary" [disabled]="!isValid || saving" (click)="save()">Guardar</button>
+</mat-dialog-actions>

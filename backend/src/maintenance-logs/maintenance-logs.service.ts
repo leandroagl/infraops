@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Task } from '../tasks/task.entity';
 import { User } from '../users/user.entity';
+import { MaintenanceDeviationEvaluatorService } from '../maintenance-deviations/maintenance-deviation-evaluator.service';
 import { CreateLogDto } from './dto/create-log.dto';
 import { UpdateLogDto } from './dto/update-log.dto';
 import { MaintenanceLog } from './maintenance-log.entity';
@@ -22,6 +23,7 @@ export class MaintenanceLogsService {
     private readonly taskRepository: Repository<Task>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly deviationEvaluator: MaintenanceDeviationEvaluatorService,
   ) {}
 
   async create(
@@ -48,7 +50,9 @@ export class MaintenanceLogsService {
       notes: dto.notes ?? null,
     });
     const saved = await this.logRepository.save(log);
-    return this.loadLog(saved.id);
+    const loaded = await this.loadLog(saved.id);
+    await this.deviationEvaluator.evaluate(loaded, task);
+    return loaded;
   }
 
   async findByTaskId(taskId: string): Promise<MaintenanceLog> {

@@ -17,6 +17,7 @@ import { UpdateLogDto } from './dto/update-log.dto';
 import { MaintenanceLog } from './maintenance-log.entity';
 import { WindowsDomainPayload } from './log-item.interface';
 import { MaintenanceLogsService } from './maintenance-logs.service';
+import { MaintenanceDeviationEvaluatorService } from '../maintenance-deviations/maintenance-deviation-evaluator.service';
 
 describe('MaintenanceLogsService', () => {
   let service: MaintenanceLogsService;
@@ -28,6 +29,7 @@ describe('MaintenanceLogsService', () => {
   };
   let taskRepository: { findOne: jest.Mock };
   let userRepository: { findOne: jest.Mock };
+  let deviationEvaluator: { evaluate: jest.Mock };
 
   const mockTechnician: Technician = {
     id: 'tech-1',
@@ -97,6 +99,7 @@ describe('MaintenanceLogsService', () => {
     };
     taskRepository = { findOne: jest.fn() };
     userRepository = { findOne: jest.fn() };
+    deviationEvaluator = { evaluate: jest.fn().mockResolvedValue([]) };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -107,6 +110,7 @@ describe('MaintenanceLogsService', () => {
         },
         { provide: getRepositoryToken(Task), useValue: taskRepository },
         { provide: getRepositoryToken(User), useValue: userRepository },
+        { provide: MaintenanceDeviationEvaluatorService, useValue: deviationEvaluator },
       ],
     }).compile();
 
@@ -135,6 +139,7 @@ describe('MaintenanceLogsService', () => {
       expect(userRepository.findOne).toHaveBeenCalledWith({
         where: { id: 'user-1' },
       });
+      expect(deviationEvaluator.evaluate).toHaveBeenCalledWith(mockLog, mockTask);
       expect(logRepository.create).toHaveBeenCalledWith({
         taskId: 'task-1',
         technicianId: 'tech-1',

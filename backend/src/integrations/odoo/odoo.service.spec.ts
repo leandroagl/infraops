@@ -1756,6 +1756,67 @@ describe('OdooService', () => {
     });
   });
 
+  describe('createDeviationTicket', () => {
+    beforeEach(() => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ id: 'client-uuid-1', odooPartnerId: 101 }),
+      );
+      odooRpc.callKw.mockResolvedValue(999);
+    });
+
+    it('crea el ticket con team_id, partner_id, name y description', async () => {
+      const ticketId = await service.createDeviationTicket(
+        'client-uuid-1', 9, [], 'Desvío QNAP', '<p>Espacio en disco al 95%</p>',
+      );
+      expect(ticketId).toBe(999);
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket', 'create',
+        [expect.objectContaining({
+          team_id: 9,
+          partner_id: 101,
+          name: 'Desvío QNAP',
+          description: '<p>Espacio en disco al 95%</p>',
+        })],
+        {},
+      );
+    });
+
+    it('incluye tag_ids si se pasan tags', async () => {
+      await service.createDeviationTicket('client-uuid-1', 9, [3, 5], 'Desvío', 'desc');
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket', 'create',
+        [expect.objectContaining({ tag_ids: [[6, 0, [3, 5]]] })],
+        {},
+      );
+    });
+
+    it('omite tag_ids si el array está vacío', async () => {
+      await service.createDeviationTicket('client-uuid-1', 9, [], 'Desvío', 'desc');
+      const callArg = odooRpc.callKw.mock.calls[0][2][0] as Record<string, unknown>;
+      expect(callArg['tag_ids']).toBeUndefined();
+    });
+
+    it('lanza BadRequestException si no hay helpdeskTeamId configurado en la regla', async () => {
+      await expect(
+        service.createDeviationTicket('client-uuid-1', 0, [], 'Desvío', 'desc'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('lanza BadRequestException si el cliente no tiene partnerId de Odoo', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: null, taxIdNumber: null }));
+      await expect(
+        service.createDeviationTicket('client-uuid-1', 9, [], 'Desvío', 'desc'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('lanza ServiceUnavailableException si Odoo devuelve false', async () => {
+      odooRpc.callKw.mockResolvedValue(false);
+      await expect(
+        service.createDeviationTicket('client-uuid-1', 9, [], 'Desvío', 'desc'),
+      ).rejects.toThrow(ServiceUnavailableException);
+    });
+  });
+
   describe('getClientActiveServices', () => {
     it('retorna [] cuando no hay clientes activos con odooPartnerId', async () => {
       clientRepo.find.mockResolvedValue([]);

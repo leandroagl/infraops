@@ -1,0 +1,67 @@
+<div class="section-header">
+  <h2 class="section-title">Reglas de desvío</h2>
+  <p class="section-subtitle">Umbrales que disparan un ticket sugerido cuando un control detecta un desvío</p>
+  <button mat-stroked-button (click)="openCreate()">
+    <mat-icon>add</mat-icon>
+    Nueva regla
+  </button>
+</div>
+
+<mat-table [dataSource]="rules" class="deviation-rules-table">
+
+  <ng-container matColumnDef="taskType">
+    <mat-header-cell *matHeaderCellDef>Tipo de tarea</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ taskTypeLabel(row.taskType) }}</mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="signal">
+    <mat-header-cell *matHeaderCellDef>Señal</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ signalLabel(row) }}</mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="operator">
+    <mat-header-cell *matHeaderCellDef>Operador</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ operatorLabel(row.operator) }}</mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="threshold">
+    <mat-header-cell *matHeaderCellDef>Umbral</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ thresholdDisplay(row) }}</mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="enabled">
+    <mat-header-cell *matHeaderCellDef>Habilitada</mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <span *ngIf="row.enabled" class="badge badge--ok">Sí</span>
+      <span *ngIf="!row.enabled" class="badge badge--neutral">No</span>
+    </mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="team">
+    <mat-header-cell *matHeaderCellDef>Equipo Odoo</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ row.helpdeskTeamId ?? '—' }}</mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="tags">
+    <mat-header-cell *matHeaderCellDef>Tags</mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <span *ngFor="let id of row.tagIds" class="tag-badge">{{ id }}</span>
+      <span *ngIf="row.tagIds.length === 0" class="time-unset">—</span>
+    </mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="actions">
+    <mat-header-cell *matHeaderCellDef></mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <button mat-icon-button (click)="openEdit(row)" aria-label="Editar regla">
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button mat-icon-button (click)="deleteRule(row)" aria-label="Eliminar regla">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </mat-cell>
+  </ng-container>
+
+  <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+  <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+</mat-table>

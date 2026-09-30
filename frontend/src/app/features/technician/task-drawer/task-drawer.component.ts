@@ -28,6 +28,10 @@ import {
   MaintenanceLogsService,
 } from '../../../core/services/maintenance-logs.service';
 import { TasksService } from '../../../core/services/tasks.service';
+import { MaintenanceDeviationsService } from '../../../core/services/maintenance-deviations.service';
+import { DeviationRulesService } from '../../../core/services/deviation-rules.service';
+import { AvailableDeviationSignal } from '../../../core/models/deviation-rule.models';
+import { MaintenanceDeviationDto, MaintenanceDeviationStatus } from '../../../core/models/maintenance-deviation.models';
 import { MaintenanceFormComponent } from './maintenance-form/maintenance-form.component';
 import { QnapFormComponent } from './qnap-form/qnap-form.component';
 import { VeeamFormComponent } from './veeam-form/veeam-form.component';
@@ -75,10 +79,13 @@ export class TaskDrawerComponent implements OnChanges {
   confirmError = '';
   saveProgressMsg = '';
   saveProgressError = '';
+  deviationActionError = '';
   completing = false;
   taskConfig: TaskTypeConfigDto | null = null;
   expirationDetail: ExpirationDetail | null = null;
   loadingExpirationDetail = false;
+  pendingDeviations: MaintenanceDeviationDto[] = [];
+  private deviationSignals: AvailableDeviationSignal[] = [];
 
   private pendingPayload: MaintenancePayload | null = null;
   private _currentStatus = '';
@@ -92,6 +99,8 @@ export class TaskDrawerComponent implements OnChanges {
     private taskConfigService: TaskConfigService,
     private odooUrl: OdooUrlService,
     private notificationsService?: NotificationsService,
+    private maintenanceDeviationsService?: MaintenanceDeviationsService,
+    private deviationRulesService?: DeviationRulesService,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -99,6 +108,7 @@ export class TaskDrawerComponent implements OnChanges {
       this._currentStatus = this.task.status;
       this._technicianOverride = null;
       this.loadInfrastructure();
+      this.loadDeviations();
 
       if (this.task.type === 'EXPIRATION_CONTROL') {
         // El tiempo predefinido de esta tarea viene por tipo de vencimiento
@@ -191,6 +201,56 @@ export class TaskDrawerComponent implements OnChanges {
       error: () => {
         this.infraError = 'No se pudo cargar la infraestructura del cliente.';
         this.loadingInfra = false;
+      },
+    });
+  }
+
+  // ── Desvíos detectados ───────────────────────────────────────────────────────
+
+  private loadDeviations(): void {
+    this.pendingDeviations = [];
+    this.maintenanceDeviationsService?.getByTaskId(this.task.id).subscribe({
+      next: deviations => {
+        this.pendingDeviations = deviations.filter(d => d.status === 'PENDING');
+      },
+      error: () => { this.pendingDeviations = []; },
+    });
+
+    if (this.deviationSignals.length === 0) {
+      this.deviationRulesService?.getAvailableSignals().subscribe({
+        next: signals => { this.deviationSignals = signals; },
+      });
+    }
+  }
+
+  deviationSignalLabel(deviation: MaintenanceDeviationDto): string {
+    const signal = this.deviationSignals.find(
+      s => s.taskType === deviation.taskType && s.key === deviation.signalKey,
+    );
+    return signal?.label ?? deviation.signalKey;
+  }
+
+  deviationValueDisplay(deviation: MaintenanceDeviationDto): string {
+    if (deviation.detectedValueBoolean !== null) return deviation.detectedValueBoolean ? 'Sí' : 'No';
+    return deviation.detectedValueNumber !== null ? String(deviation.detectedValueNumber) : '—';
+  }
+
+  confirmDeviation(deviation: MaintenanceDeviationDto): void {
+    this.updateDeviationStatus(deviation, 'CONFIRMED');
+  }
+
+  dismissDeviation(deviation: MaintenanceDeviationDto): void {
+    this.updateDeviationStatus(deviation, 'DISMISSED');
+  }
+
+  private updateDeviationStatus(deviation: MaintenanceDeviationDto, status: MaintenanceDeviationStatus): void {
+    this.deviationActionError = '';
+    this.maintenanceDeviationsService?.updateStatus(deviation.id, status).subscribe({
+      next: () => {
+        this.pendingDeviations = this.pendingDeviations.filter(d => d.id !== deviation.id);
+      },
+      error: () => {
+        this.deviationActionError = 'No se pudo actualizar el desvío. Intentá de nuevo.';
       },
     });
   }
@@ -333,6 +393,7 @@ export class TaskDrawerComponent implements OnChanges {
       next: () => {
         this.saveProgressMsg = 'Progreso guardado.';
         if (wasInPending) this.taskStatusChanged.emit('IN_PROGRESS');
+        this.loadDeviations();
       },
       error: () => { this.saveProgressError = 'No se pudo guardar el progreso. Intentá de nuevo.'; },
     });
@@ -367,7 +428,7 @@ export class TaskDrawerComponent implements OnChanges {
       tap(() => { logSaved = true; }),
       switchMap(() => this.transitionToDone(timeSpentMinutes))
     ).subscribe({
-      next: () => { this.completing = false; this.taskCompleted.emit(); },
+      next: () => { this.completing = false; this.taskCompleted.emit(); this.loadDeviations(); },
       error: () => {
         this.completing = false;
         this.confirmError = logSaved
