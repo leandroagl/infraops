@@ -109,9 +109,19 @@ server de pruebas) — no había Docker levantado cuando se escribió. Correr
 pasan en total, 38 errores preexistentes de `tsc --noEmit` sin cambios (no
 relacionados a este módulo, confirmado comparando contra el baseline de `develop`).
 
-## Lo que falta implementar
+## Estado: implementado completo (Pasos A–D)
 
-### Paso A — Evaluador (backend)
+Todo lo de abajo ya está construido, con TDD, y mergeado a `develop` (pusheado a
+origin). `main` sigue sin sincronizar — nadie lo pidió todavía. **Pendiente real:
+correr la migración `1790000000000-CreateDeviationRules` y
+`1790100000000-CreateMaintenanceDeviations` en la DB del server de pruebas** — no
+hay Docker levantado desde que se escribió el código, así que nada de esto se
+probó todavía end-to-end contra una base real.
+
+Quedan documentados los 4 pasos tal como se planearon, con los ajustes reales que
+se hicieron durante la implementación (marcados donde difieren de lo planeado).
+
+### Paso A — Evaluador (backend) ✅
 
 Nuevo módulo `backend/src/maintenance-deviations/` (separado de `deviation-rules`:
 ese módulo es config pura; este es runtime + estado).
@@ -136,6 +146,13 @@ resolvedAt          timestamptz NULL
 resolvedByUserId    uuid NULL FK → users(id)
 odooTicketId        integer NULL
 ```
+**Ajuste real:** se agregaron también `helpdeskTeamId` (int, nullable) y `tagIds`
+(int[], default `[]`) como snapshot — no estaban en el diseño original de esta
+tabla, pero el Paso B los necesita para crear el ticket con el equipo/tags de la
+regla *al momento de la detección*, no la regla viva (que el admin puede haber
+editado o borrado después). Sin esto, confirmar un desvío antiguo hubiera usado
+la config actual de la regla en vez de la que estaba vigente cuando se detectó.
+
 Unique constraint `(logId, signalKey)` — un log solo puede generar una detección
 por señal (evita duplicar si se re-evalúa en un update).
 
@@ -164,63 +181,71 @@ tal cual era en el momento de la detección.
 `MaintenanceLogsModule → MaintenanceDeviationsModule → DeviationRulesModule`, sin
 ciclos).
 
-TDD: escribir el spec del evaluador primero (casos: matchea y crea PENDING; no
-matchea y no crea nada; señal devuelve `null` y no evalúa; ya existe detección para
-esa combinación y no duplica; regla deshabilitada se ignora).
+TDD hecho: 7 specs (matchea y crea PENDING; no matchea; señal `null` no evalúa; no
+duplica; regla deshabilitada se ignora; regla de otro taskType se ignora; señal
+booleana matchea con `thresholdBoolean`).
 
-### Paso B — Confirmar / Descartar (backend)
+**Nota:** solo se llama desde `MaintenanceLogsService.create()`. `update()` sigue
+sin evaluar — ver "Pendiente de definir".
+
+### Paso B — Confirmar / Descartar (backend) ✅
 
 En el mismo módulo `maintenance-deviations/`:
-- `GET /maintenance-deviations/by-task/:taskId` — devuelve las detecciones de esa
-  tarea (para el drawer). Decidir si filtrar solo `PENDING` o devolver todas
-  (con status) para mostrar histórico — ver "Pendiente de definir".
-- `POST /maintenance-deviations/:id/confirm` — roles: los mismos que pueden escribir
-  el `MaintenanceLog` (`ADMIN`, `TL`, `TECHNICIAN`, a confirmar). Crea el ticket en
-  Odoo usando `rule.helpdeskTeamId`/`tagIds` (snapshot en la fila, no la regla viva)
-  y pasa a `CONFIRMED` con `odooTicketId`, `resolvedAt`, `resolvedByUserId`. Si Odoo
-  falla, no cambiar el estado — dejar `PENDING` y propagar el error (mismo criterio
-  que `ExpirationTicketsService` ante fallas de Odoo).
-- `POST /maintenance-deviations/:id/dismiss` — pasa a `DISMISSED` con `resolvedAt`,
-  `resolvedByUserId`. No crea ticket. No se borra la fila — queda de auditoría.
+- `GET /maintenance-deviations/by-task/:taskId` — devuelve **todas** las
+  detecciones de la tarea (con `status`), cualquier autenticado. El frontend
+  filtra a `PENDING` para el banner del drawer; el resto queda disponible para
+  mostrar histórico si se quiere en el futuro.
+- **Ajuste real:** en vez de `POST /:id/confirm` + `POST /:id/dismiss`, quedó
+  `PATCH /maintenance-deviations/:id/status` con body `{ status: 'CONFIRMED' |
+  'DISMISSED' }` — mismo patrón que ya usa `tasks.controller.ts` para
+  transiciones de `TaskStatus` (`PATCH /tasks/:id/status`), en vez de inventar
+  un verbo por acción. Roles: `ADMIN`, `TL`, `TECHNICIAN` (confirmado con el
+  usuario — los mismos que escriben el `MaintenanceLog`).
+  - `CONFIRMED`: crea el ticket en Odoo usando el snapshot de la fila
+    (`helpdeskTeamId`/`tagIds`, no la regla viva) y pasa a `CONFIRMED` con
+    `odooTicketId`, `resolvedAt`, `resolvedByUserId`. Si Odoo falla, no cambia
+    el estado — queda `PENDING` y propaga el error.
+  - `DISMISSED`: pasa a `DISMISSED` con `resolvedAt`/`resolvedByUserId`, sin
+    ticket. No se borra la fila — queda de auditoría.
+  - Ambas rechazan (`ConflictException`) si el desvío ya estaba resuelto.
 
-**Falta un método nuevo en `OdooService`** (`backend/src/integrations/odoo/odoo.service.ts`)
-para crear el ticket con team/tags explícitos por parámetro — el más parecido que
-ya existe es `createExpirationTicket(item, infraopsClientId, helpdeskTeamId, tagIds,
-taskName?, ticketDescription?)` (línea ~579), que sí acepta `helpdeskTeamId`/`tagIds`
-explícitos por llamada (a diferencia de `createTicket()`, que usa el equipo default
-de la config de Odoo). Conviene modelar el método nuevo sobre ese, no sobre
-`createTicket()`.
+`OdooService.createDeviationTicket(clientId, helpdeskTeamId, tagIds, name,
+description)` — método nuevo, modelado sobre `createExpirationTicket` (team/tags
+explícitos por llamada, no el equipo default de `createTicket()`).
 
-### Paso C — Admin UI: tabla "Reglas de desvío" (frontend)
+### Paso C — Admin UI: tabla "Reglas de desvío" (frontend) ✅
 
-En el módulo de admin, tab **Mantenimientos** (donde ya vive la tabla de
-`TaskTypeConfig` — buscar el componente en
-`frontend/src/app/features/admin/task-config/`), agregar una tabla nueva **debajo**
-de la existente, mismo tab. `mat-table` (no Ag-Grid — no se pidió explícitamente
-para esta vista y el dataset va a ser chico).
+`DeviationRulesComponent` (`frontend/src/app/features/admin/deviation-rules/`),
+embebido con `<app-deviation-rules>` debajo de la tabla de `TaskTypeConfig` en
+`task-config.component.html` (mismo tab, Admin → Mantenimientos). `mat-table`,
+como estaba planeado.
 
 Por fila: `TaskType | Señal | Operador | Umbral | Habilitado | Equipo Odoo | Tags`.
-Diálogo de alta/edición: selector de `TaskType` → al elegir, pedir
-`GET /deviation-rules/signals` y filtrar por ese `taskType` para poblar el selector
-de señal → según el `valueType` de la señal elegida, mostrar el input de umbral
-correcto (numérico, o un toggle/checkbox si es `boolean`) y limitar el selector de
-operador a `eq` si es booleana. Revisar si ya existe un componente compartido para
-elegir tags/equipo de Odoo (el patrón ya se usa en `task-config` y en
-`notifications-config` — no duplicar si ya hay uno en `shared/`).
+`DeviationRuleEditDialogComponent`: selector de `TaskType` → señal (filtrada por
+`GET /deviation-rules/signals`) → operador (limitado a `eq` si la señal es
+booleana) → umbral → equipo/tags de Odoo, reusando `IntegrationConfigService`
+(mismo patrón que ya usa el diálogo de Vencimientos — no se duplicó nada). Borrado
+reusa `ConfirmDialogComponent` de `shared/`.
 
-Seguir las reglas obligatorias de Angular Material del proyecto (`appearance="outline"`,
-sin elementos nativos, etc. — ver CLAUDE.md).
+33 tests. Suite completo del frontend corrido antes/después: mismos 77 fallos
+preexistentes en `NotificationsComponent`, no relacionados.
 
-### Paso D — Banner en el task drawer (frontend)
+### Paso D — Banner en el task drawer (frontend) ✅
 
-En el drawer de tarea (`frontend/src/app/features/technician/task-drawer/`), después
-de guardar el log (o al abrir un log ya guardado), pedir
-`GET /maintenance-deviations/by-task/:taskId` y si hay alguna `PENDING`, mostrar un
-banner con la descripción del desvío y dos botones: **"Confirmar y crear ticket"** /
-**"Descartar"**. Al confirmar/descartar, seguir la regla de reactividad de estado
-del proyecto: mutar el array local con la fila actualizada, no recargar con `load()`.
-El componente hijo debe emitir la entidad actualizada (`EventEmitter<MaintenanceDeviation>`),
-no `EventEmitter<void>`.
+Banner en `TaskDrawerComponent` (`frontend/src/app/features/technician/task-drawer/`)
+por cada desvío `PENDING` de la tarea, con **"Confirmar y crear ticket"** /
+**"Descartar"**. Se recarga al abrir la tarea (`ngOnChanges`) y después de cada
+guardado exitoso del log — ahí es donde el evaluador puede haber creado una
+detección nueva. Confirmar/descartar mutan `pendingDeviations` localmente al
+éxito, sin recargar (regla de reactividad del proyecto).
+
+**Ajuste real:** `MaintenanceDeviationsService` y `DeviationRulesService` quedaron
+como parámetros **opcionales** del constructor (mismo patrón que ya usaba
+`notificationsService?`) — el spec de este componente tiene 14 sitios que
+instancian la clase a mano (`new TaskDrawerComponent(...)`) sin pasar por Angular
+DI; hacerlos obligatorios rompía esos tests.
+
+12 tests nuevos.
 
 ## Decisiones de diseño tomadas
 
@@ -248,35 +273,31 @@ no `EventEmitter<void>`.
   `VeeamJobEntry` (código muerto en el frontend) y del `describe('ServerMaintenancePayload', ...)`
   en `maintenance-log.models.spec.ts` — queda anotado, no es parte de este módulo.
 
-## Pendiente de definir antes de implementar
+## Lo que quedó pendiente de verdad
 
-- **¿Evaluar solo en `create()` del log, o también en `update()`?** Si un técnico
-  edita un log ya guardado y el valor cambia, ¿se re-evalúa? Probablemente sí para
-  detectar señales nuevas, pero sin tocar detecciones que ya estén `CONFIRMED`/
-  `DISMISSED` para esa combinación `(logId, signalKey)`.
-- **Roles que pueden confirmar/descartar** — asumido `ADMIN`, `TL`, `TECHNICIAN`
-  (los mismos que escriben el log), a confirmar con el usuario.
-- **`GET /maintenance-deviations/by-task/:taskId`: ¿solo `PENDING` o todo el
-  histórico con status?** Afecta si el drawer muestra también lo ya resuelto.
-- **Nombre exacto del endpoint/acción de confirmar** — ¿`POST /:id/confirm` o
-  `PATCH /:id` con `{ action: 'confirm' }`? Mantener consistencia con el resto de
-  la API (la mayoría de las acciones de transición de estado en este proyecto usan
-  verbos en la URL, ej. revisar cómo lo hace `tasks.controller.ts` para transiciones
-  de `TaskStatus`).
-- Correr la migración `1790000000000-CreateDeviationRules` en la DB del server de
-  pruebas (y en dev) antes de poder probar cualquier cosa de este spec end-to-end.
+- **Evaluar en `update()` del log** — sigue sin implementarse. Si un técnico edita
+  un log ya guardado y el valor cambia (ej. corrige el % de disco), no se
+  re-evalúa. Solo dispara en el primer guardado (`create()`). Queda como mejora
+  futura si se necesita.
+- **Correr las migraciones en una DB real** — `1790000000000-CreateDeviationRules`
+  y `1790100000000-CreateMaintenanceDeviations` existen como archivos pero nunca
+  se corrieron (no había Docker levantado durante esta sesión). Nada de este
+  spec se probó end-to-end contra una base real todavía.
+- Decisiones que estaban abiertas y ya se resolvieron durante la implementación
+  (roles de confirmar/descartar, filtro PENDING vs histórico en el `GET`, nombre
+  del endpoint) — ver el detalle en cada paso arriba.
 
-## Estado de git al momento de escribir este spec
+## Estado de git
 
-Todo mergeado a `develop` y pusheado a `origin/develop`. Rama actual: `develop`.
-`main` no se actualizó con los últimos dos merges (nadie lo pidió) — antes de tocar
-`main` de nuevo, confirmar con el usuario como se hizo las veces anteriores.
+Todo (Pasos A–D) mergeado a `develop` con un solo branch por paso
+(`feature/maintenance-deviations-evaluator` para A+B+C+D, además de
+`feature/maintenance-deviation-signals` y `feature/deviation-rules-admin` de
+sesiones previas), `--no-ff`, pusheado a `origin/develop`. `main` sigue sin
+sincronizar — nadie lo pidió todavía; confirmar con el usuario antes de tocarlo.
 
-Convención del repo para este trabajo: un branch nuevo por paso
-(`feature/maintenance-deviation-signals`, `feature/deviation-rules-admin`, etc.),
-mergeado con `--no-ff` a `develop`, commits y merge messages en español, con:
+Commits y merge messages en español, con:
 ```
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 ```
-Nunca commitear/pushear sin que el usuario lo pida explícitamente — en esta sesión
-cada commit/merge/push fue un paso separado, confirmado uno por uno.
+Nunca se commiteó/mergeó/pusheó sin que el usuario lo pidiera explícitamente —
+cada paso fue confirmado uno por uno.
