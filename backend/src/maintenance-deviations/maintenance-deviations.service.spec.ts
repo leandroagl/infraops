@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { In } from 'typeorm';
 import { TaskStatus } from '../tasks/task-status.enum';
 import { TaskType } from '../tasks/task-type.enum';
 import { Task } from '../tasks/task.entity';
@@ -88,6 +89,25 @@ describe('MaintenanceDeviationsService', () => {
         where: { taskId: 'task-1' },
         order: { detectedAt: 'DESC' },
       });
+    });
+  });
+
+  describe('findByTaskIds', () => {
+    it('devuelve las detecciones de todas las tareas pedidas', async () => {
+      deviationRepo.find.mockResolvedValue([deviation(), deviation({ id: 'dev-2', taskId: 'task-2' })]);
+
+      const result = await service.findByTaskIds(['task-1', 'task-2']);
+
+      expect(result).toHaveLength(2);
+      expect(deviationRepo.find).toHaveBeenCalledWith({
+        where: { taskId: In(['task-1', 'task-2']) },
+      });
+    });
+
+    it('devuelve [] sin consultar el repo si no se pasan taskIds', async () => {
+      const result = await service.findByTaskIds([]);
+      expect(result).toEqual([]);
+      expect(deviationRepo.find).not.toHaveBeenCalled();
     });
   });
 

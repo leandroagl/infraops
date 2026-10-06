@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -13,6 +13,13 @@ import { MaintenanceDeviationsService } from './maintenance-deviations.service';
 @UseGuards(JwtAuthGuard)
 export class MaintenanceDeviationsController {
   constructor(private readonly maintenanceDeviationsService: MaintenanceDeviationsService) {}
+
+  @Get()
+  async findByTaskIds(@Query('taskIds') taskIds?: string): Promise<MaintenanceDeviation[]> {
+    if (!taskIds) throw new BadRequestException('taskIds es requerido');
+    const ids = taskIds.split(',').map(id => id.trim()).filter(Boolean);
+    return this.maintenanceDeviationsService.findByTaskIds(ids);
+  }
 
   @Get('by-task/:taskId')
   findByTaskId(

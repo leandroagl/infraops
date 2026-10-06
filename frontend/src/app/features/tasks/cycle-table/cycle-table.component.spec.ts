@@ -231,4 +231,43 @@ describe('CycleTableComponent', () => {
       expect(trigger.textContent).toContain('Valen');
     });
   });
+
+  describe('deviationBadge', () => {
+    const task = makeTask('t1', 'c1', 'tech1');
+
+    it('devuelve null si no hay badge para esa tarea', () => {
+      component.deviationBadges = {};
+      expect(component.deviationBadge(task)).toBeNull();
+    });
+
+    it('devuelve el badge de la tarea si existe', () => {
+      component.deviationBadges = { t1: { status: 'PENDING', count: 1, ticketIds: [] } };
+      expect(component.deviationBadge(task)?.status).toBe('PENDING');
+    });
+
+    it('deviationBadgeClass es badge--warn para PENDING', () => {
+      component.deviationBadges = { t1: { status: 'PENDING', count: 1, ticketIds: [] } };
+      expect(component.deviationBadgeClass(task)).toBe('badge--warn');
+    });
+
+    it('deviationBadgeClass es badge--accent para CONFIRMED', () => {
+      component.deviationBadges = { t1: { status: 'CONFIRMED', count: 1, ticketIds: [1] } };
+      expect(component.deviationBadgeClass(task)).toBe('badge--accent');
+    });
+
+    it('deviationBadgeTooltip describe la cantidad de pendientes', () => {
+      component.deviationBadges = { t1: { status: 'PENDING', count: 2, ticketIds: [] } };
+      expect(component.deviationBadgeTooltip(task)).toBe('2 desvíos pendientes de confirmación');
+    });
+
+    it('deviationBadgeTooltip lista los tickets confirmados', () => {
+      component.deviationBadges = { t1: { status: 'CONFIRMED', count: 2, ticketIds: [10, 20] } };
+      expect(component.deviationBadgeTooltip(task)).toBe('Tickets #10, #20');
+    });
+
+    it('deviationBadgeTooltip es "" si no hay badge', () => {
+      component.deviationBadges = {};
+      expect(component.deviationBadgeTooltip(task)).toBe('');
+    });
+  });
 });

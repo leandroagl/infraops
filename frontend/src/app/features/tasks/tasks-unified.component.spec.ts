@@ -14,6 +14,8 @@ import { ClientsService } from '../../core/services/clients.service';
 import { TechniciansService } from '../../core/services/technicians.service';
 import { Task } from '../../core/models/task.models';
 import { environment } from '../../../environments/environment';
+import { MaintenanceDeviationsService } from '../../core/services/maintenance-deviations.service';
+import { MaintenanceDeviationDto } from '../../core/models/maintenance-deviation.models';
 
 function makeTask(id: string, clientId: string, clientName: string, status: Task['status'] = 'PENDING'): Task {
   return {
@@ -26,6 +28,17 @@ function makeTask(id: string, clientId: string, clientName: string, status: Task
   };
 }
 
+function makeDeviation(taskId: string, overrides: Partial<MaintenanceDeviationDto> = {}): MaintenanceDeviationDto {
+  return {
+    id: 'dev-1', logId: 'log-1', taskId, ruleId: 'rule-1',
+    taskType: 'QNAP_MAINTENANCE', signalKey: 'maxUsedSpacePct', operator: 'gt',
+    thresholdNumber: 90, thresholdBoolean: null, detectedValueNumber: 95, detectedValueBoolean: null,
+    helpdeskTeamId: 7, tagIds: [], status: 'PENDING',
+    detectedAt: '2026-08-01T00:00:00Z', resolvedAt: null, resolvedByUserId: null, odooTicketId: null,
+    ...overrides,
+  };
+}
+
 describe('TasksUnifiedComponent', () => {
   let component: TasksUnifiedComponent;
   let fixture: ComponentFixture<TasksUnifiedComponent>;
@@ -33,6 +46,7 @@ describe('TasksUnifiedComponent', () => {
   let authServiceSpy: jasmine.SpyObj<AuthService>;
   let clientsServiceSpy: jasmine.SpyObj<ClientsService>;
   let techniciansServiceSpy: jasmine.SpyObj<TechniciansService>;
+  let maintenanceDeviationsServiceSpy: jasmine.SpyObj<MaintenanceDeviationsService>;
   const now = new Date();
 
   beforeEach(async () => {
@@ -40,6 +54,8 @@ describe('TasksUnifiedComponent', () => {
     authServiceSpy       = jasmine.createSpyObj('AuthService', ['getCurrentUser']);
     clientsServiceSpy    = jasmine.createSpyObj('ClientsService', ['getAll']);
     techniciansServiceSpy = jasmine.createSpyObj('TechniciansService', ['getAll']);
+    maintenanceDeviationsServiceSpy = jasmine.createSpyObj('MaintenanceDeviationsService', ['getByTaskIds']);
+    maintenanceDeviationsServiceSpy.getByTaskIds.and.returnValue(of([]));
 
     tasksServiceSpy.getAll.and.returnValue(of([
       makeTask('t1', 'c1', 'ACME S.A.', 'DONE'),
@@ -60,6 +76,7 @@ describe('TasksUnifiedComponent', () => {
         { provide: AuthService,        useValue: authServiceSpy        },
         { provide: ClientsService,     useValue: clientsServiceSpy     },
         { provide: TechniciansService, useValue: techniciansServiceSpy },
+        { provide: MaintenanceDeviationsService, useValue: maintenanceDeviationsServiceSpy },
         { provide: MatDialog,      useValue: jasmine.createSpyObj('MatDialog', ['open']) },
         { provide: MatSnackBar,    useValue: jasmine.createSpyObj('MatSnackBar', ['open']) },
       ],
@@ -265,5 +282,56 @@ describe('TasksUnifiedComponent', () => {
     environment.allowManualTaskCreation = false;
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('button[color="primary"]')).toBeNull();
+  });
+
+  describe('deviationBadges', () => {
+    it('pide los desvíos de todas las tareas cargadas', () => {
+      expect(maintenanceDeviationsServiceSpy.getByTaskIds).toHaveBeenCalledWith(['t1', 't2', 't3']);
+    });
+
+    it('calcula un badge por tarea a partir de las detecciones devueltas', () => {
+      maintenanceDeviationsServiceSpy.getByTaskIds.and.returnValue(of([
+        makeDeviation('t1', { status: 'PENDING' }),
+        makeDeviation('t2', { status: 'CONFIRMED', odooTicketId: 55 }),
+      ]));
+      component.load();
+
+      expect(component.deviationBadges['t1']?.status).toBe('PENDING');
+      expect(component.deviationBadges['t2']).toEqual({ status: 'CONFIRMED', count: 1, ticketIds: [55] });
+      expect(component.deviationBadges['t3']).toBeNull();
+    });
+
+    it('deja deviationBadges en {} si falla la carga', () => {
+      maintenanceDeviationsServiceSpy.getByTaskIds.and.returnValue(throwError(() => new Error('fail')));
+      component.load();
+      expect(component.deviationBadges).toEqual({});
+    });
+
+    it('onTaskDeviationsChanged actualiza el badge de la tarea seleccionada sin recargar', () => {
+      component.selectedTask = { ...component.tasks[0] };
+      component.deviationBadges = { t1: null };
+
+      component.onTaskDeviationsChanged([makeDeviation('t1', { status: 'PENDING' })]);
+
+      expect(component.deviationBadges['t1']?.status).toBe('PENDING');
+      expect(tasksServiceSpy.getAll).toHaveBeenCalledTimes(1);
+    });
+
+    it('onTaskDeviationsChanged no hace nada si no hay tarea seleccionada', () => {
+      component.selectedTask = null;
+      component.deviationBadges = { t1: null };
+
+      component.onTaskDeviationsChanged([makeDeviation('t1', { status: 'PENDING' })]);
+
+      expect(component.deviationBadges).toEqual({ t1: null });
+    });
+
+    it('no llama al service si no hay tareas cargadas', () => {
+      tasksServiceSpy.getAll.and.returnValue(of([]));
+      maintenanceDeviationsServiceSpy.getByTaskIds.calls.reset();
+      component.load();
+      expect(maintenanceDeviationsServiceSpy.getByTaskIds).not.toHaveBeenCalled();
+      expect(component.deviationBadges).toEqual({});
+    });
   });
 });
