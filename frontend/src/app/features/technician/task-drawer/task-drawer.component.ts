@@ -65,6 +65,7 @@ export class TaskDrawerComponent implements OnChanges {
   @Output() taskStatusChanged = new EventEmitter<TaskStatus>();
   @Output() drawerClosed = new EventEmitter<void>();
   @Output() technicianAssigned = new EventEmitter<Task>();
+  @Output() deviationsChanged = new EventEmitter<MaintenanceDeviationDto[]>();
 
   @ViewChild(MaintenanceFormComponent) maintenanceForm?: MaintenanceFormComponent;
   @ViewChild(QnapFormComponent) qnapForm?: QnapFormComponent;
@@ -85,6 +86,7 @@ export class TaskDrawerComponent implements OnChanges {
   expirationDetail: ExpirationDetail | null = null;
   loadingExpirationDetail = false;
   pendingDeviations: MaintenanceDeviationDto[] = [];
+  resolvedDeviations: MaintenanceDeviationDto[] = [];
   processingDeviationIds = new Set<string>();
   private deviationSignals: AvailableDeviationSignal[] = [];
 
@@ -211,11 +213,14 @@ export class TaskDrawerComponent implements OnChanges {
 
   private loadDeviations(): void {
     this.pendingDeviations = [];
+    this.resolvedDeviations = [];
     this.maintenanceDeviationsService?.getByTaskId(this.task.id).subscribe({
       next: deviations => {
         this.pendingDeviations = deviations.filter(d => d.status === 'PENDING');
+        this.resolvedDeviations = deviations.filter(d => d.status !== 'PENDING');
+        this.deviationsChanged.emit(deviations);
       },
-      error: () => { this.pendingDeviations = []; },
+      error: () => { this.pendingDeviations = []; this.resolvedDeviations = []; },
     });
 
     if (this.deviationSignals.length === 0) {
@@ -223,6 +228,12 @@ export class TaskDrawerComponent implements OnChanges {
         next: signals => { this.deviationSignals = signals; },
       });
     }
+  }
+
+  deviationStatusLabel(deviation: MaintenanceDeviationDto): string {
+    return deviation.status === 'CONFIRMED'
+      ? `Ticket #${deviation.odooTicketId} creado`
+      : 'Descartado';
   }
 
   deviationSignalLabel(deviation: MaintenanceDeviationDto): string {
@@ -271,6 +282,8 @@ export class TaskDrawerComponent implements OnChanges {
       next: updated => {
         this.processingDeviationIds.delete(deviation.id);
         this.pendingDeviations = this.pendingDeviations.filter(d => d.id !== deviation.id);
+        this.resolvedDeviations = [updated, ...this.resolvedDeviations];
+        this.deviationsChanged.emit([...this.pendingDeviations, ...this.resolvedDeviations]);
         onSuccess(updated);
       },
       error: (err: HttpErrorResponse) => {

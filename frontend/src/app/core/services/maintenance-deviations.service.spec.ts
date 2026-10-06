@@ -25,6 +25,16 @@ describe('MaintenanceDeviationsService', () => {
     http.expectOne(`${base}/by-task/task-1`).flush(mock);
   });
 
+  it('getByTaskIds hace GET a /maintenance-deviations?taskIds=... con la lista separada por comas', () => {
+    const mock: MaintenanceDeviationDto[] = [];
+    service.getByTaskIds(['task-1', 'task-2']).subscribe(r => expect(r).toEqual(mock));
+    http.expectOne(`${base}?taskIds=task-1,task-2`).flush(mock);
+  });
+
+  it('getByTaskIds no hace ningún request si la lista está vacía', () => {
+    service.getByTaskIds([]).subscribe(r => expect(r).toEqual([]));
+  });
+
   it('updateStatus hace PATCH a /maintenance-deviations/:id/status', () => {
     service.updateStatus('dev-1', 'CONFIRMED').subscribe();
     const req = http.expectOne(`${base}/dev-1/status`);

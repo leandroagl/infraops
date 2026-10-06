@@ -78,6 +78,17 @@
     </div>
   </div>
 
+  <!-- Historial de desvíos ya resueltos en esta tarea -->
+  <div *ngIf="resolvedDeviations.length" class="d-deviation-history">
+    <div class="d-deviation-history__lbl">Desvíos resueltos</div>
+    <div *ngFor="let deviation of resolvedDeviations" class="d-deviation-history__row">
+      <span>{{ deviationSignalLabel(deviation) }}</span>
+      <span class="badge" [ngClass]="deviation.status === 'CONFIRMED' ? 'badge--accent' : 'badge--neutral'">
+        {{ deviationStatusLabel(deviation) }}
+      </span>
+    </div>
+  </div>
+
   <!-- Detalle del vencimiento -->
   <div *ngIf="task.type === 'EXPIRATION_CONTROL'" class="d-expiration-detail">
     <div *ngIf="loadingExpirationDetail" class="skeleton" style="height:48px;border-radius:var(--radius-sm)"></div>

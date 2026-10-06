@@ -102,6 +102,30 @@
   gap: 8px;
 }
 
+.d-deviation-history {
+  font-size: 11px;
+  background: var(--elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+.d-deviation-history__lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--tx-lo);
+  margin-bottom: 6px;
+}
+.d-deviation-history__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  color: var(--tx-md);
+}
+
 .infra-empty {
   font-size: 11px;
   color: var(--tx-lo);

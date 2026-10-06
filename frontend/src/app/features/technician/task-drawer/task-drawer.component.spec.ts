@@ -879,6 +879,37 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(c.pendingDeviations).toEqual([]);
     });
 
+    it('agrupa las detecciones no-PENDING en resolvedDeviations', () => {
+      const c = makeDeviationComponent({
+        deviations: [
+          { id: 'd1', status: 'PENDING' },
+          { id: 'd2', status: 'CONFIRMED' },
+          { id: 'd3', status: 'DISMISSED' },
+        ],
+      });
+      expect(c.resolvedDeviations.map(d => d.id)).toEqual(['d2', 'd3']);
+    });
+
+    it('emite deviationsChanged con todas las detecciones al cargar', () => {
+      const emitted: any[] = [];
+      const c = makeDeviationComponent({
+        deviations: [{ id: 'd1', status: 'PENDING' }, { id: 'd2', status: 'CONFIRMED' }],
+      });
+      c.deviationsChanged.subscribe(v => emitted.push(v));
+      c.ngOnChanges({ task: {} as any });
+      expect(emitted[0].map((d: any) => d.id)).toEqual(['d1', 'd2']);
+    });
+
+    it('deviationStatusLabel muestra el ticket si está CONFIRMED', () => {
+      const c = makeDeviationComponent();
+      expect(c.deviationStatusLabel({ status: 'CONFIRMED', odooTicketId: 123 } as any)).toBe('Ticket #123 creado');
+    });
+
+    it('deviationStatusLabel muestra "Descartado" si está DISMISSED', () => {
+      const c = makeDeviationComponent();
+      expect(c.deviationStatusLabel({ status: 'DISMISSED', odooTicketId: null } as any)).toBe('Descartado');
+    });
+
     it('deviationSignalLabel devuelve el label de la señal registrada', () => {
       const c = makeDeviationComponent({
         signals: [{ taskType: 'WINDOWS_DOMAIN_MAINTENANCE', key: 'sig1', label: 'Mi señal', valueType: 'number' }],
@@ -912,6 +943,7 @@ describe('TaskDrawerComponent — pure unit tests', () => {
 
       expect(updateStatusSpy).toHaveBeenCalledWith('d1', 'CONFIRMED');
       expect(c.pendingDeviations).toEqual([]);
+      expect(c.resolvedDeviations[0].odooTicketId).toBe(123);
     });
 
     it('confirmDeviation muestra un toast con el número de ticket y la señal al confirmar', () => {
@@ -964,6 +996,18 @@ describe('TaskDrawerComponent — pure unit tests', () => {
 
       expect(updateStatusSpy).toHaveBeenCalledWith('d1', 'DISMISSED');
       expect(c.pendingDeviations).toEqual([]);
+      expect(c.resolvedDeviations.length).toBe(1);
+    });
+
+    it('emite deviationsChanged al confirmar', () => {
+      const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(of({ odooTicketId: 1, id: 'd1', status: 'CONFIRMED' }));
+      const c = makeDeviationComponent({ deviations: [{ id: 'd1', status: 'PENDING' }], updateStatusSpy });
+      const emitted: any[] = [];
+      c.deviationsChanged.subscribe(v => emitted.push(v));
+
+      c.confirmDeviation(c.pendingDeviations[0]);
+
+      expect(emitted[emitted.length - 1].length).toBe(1);
     });
 
     it('si updateStatus falla, no sacar la fila, limpiar isProcessingDeviation y mostrar un toast de error', () => {

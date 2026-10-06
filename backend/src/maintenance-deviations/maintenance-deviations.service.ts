@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { getDeviationSignals } from '../maintenance-logs/deviation-signals/deviation-signals.registry';
 import { Task } from '../tasks/task.entity';
 import { OdooService } from '../integrations/odoo/odoo.service';
@@ -24,6 +24,11 @@ export class MaintenanceDeviationsService {
 
   findByTaskId(taskId: string): Promise<MaintenanceDeviation[]> {
     return this.repo.find({ where: { taskId }, order: { detectedAt: 'DESC' } });
+  }
+
+  findByTaskIds(taskIds: string[]): Promise<MaintenanceDeviation[]> {
+    if (taskIds.length === 0) return Promise.resolve([]);
+    return this.repo.find({ where: { taskId: In(taskIds) } });
   }
 
   async updateStatus(

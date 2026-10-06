@@ -63,6 +63,7 @@
         </mat-form-field>
       </th>
       <th>Ticket Odoo</th>
+      <th>Desvío</th>
       <th>Notas</th>
     </tr>
   </thead>
@@ -110,6 +111,13 @@
           <span class="col-ticket" [class.col-ticket--none]="!task.odooTicketId">
             {{ ticketLabel(task) }}
           </span>
+        </td>
+        <td>
+          <span *ngIf="deviationBadge(task)" class="badge" [ngClass]="deviationBadgeClass(task)"
+                [matTooltip]="deviationBadgeTooltip(task)">
+            ⚠<ng-container *ngIf="deviationBadge(task)!.count > 1">&nbsp;{{ deviationBadge(task)!.count }}</ng-container>
+          </span>
+          <span *ngIf="!deviationBadge(task)" class="col-ticket--none">—</span>
         </td>
         <td>
           <span class="col-notes"
