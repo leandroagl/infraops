@@ -53,7 +53,7 @@ describe('BackupsService', () => {
   });
 
   it('debería cifrar password al crear config', async () => {
-    mockConfigRepo.create.mockReturnValue({});
+    mockConfigRepo.create.mockImplementation((d: any) => ({ ...d }));
     mockConfigRepo.save.mockResolvedValue({ id: 'uuid', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, username: 'u', encryptedPassword: 'enc', isEnabled: true, lastConnectedAt: null, createdAt: new Date(), updatedAt: new Date() });
     await svc.createConfig({ clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, username: 'u', password: 'plain', isEnabled: true });
     const saveArg = mockConfigRepo.save.mock.calls[0][0];

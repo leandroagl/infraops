@@ -35,8 +35,8 @@ export class BackupsService {
     return 'ok';
   }
 
-  async getClientStatus(configId: string): Promise<ClientBackupStatusDto> {
-    const config = await this.configRepo.findOne({ where: { id: configId } });
+  async getClientStatus(clientId: string): Promise<ClientBackupStatusDto> {
+    const config = await this.configRepo.findOne({ where: { clientId } });
     if (!config) throw new NotFoundException('Config not found');
     const password = decrypt(config.encryptedPassword, this.encryptKey);
     const jobs = await this.veeamService.getJobStatuses(config.host, config.port, config.username, password);
@@ -58,7 +58,7 @@ export class BackupsService {
   async getAllClientStatuses(): Promise<ClientBackupStatusDto[]> {
     const configs = await this.configRepo.find({ where: { isEnabled: true } });
     const results = await Promise.allSettled(
-      configs.map(c => this.getClientStatus(c.id)),
+      configs.map(c => this.getClientStatus(c.clientId)),
     );
     return results
       .filter((r): r is PromiseFulfilledResult<ClientBackupStatusDto> => r.status === 'fulfilled')
@@ -106,7 +106,6 @@ export class BackupsService {
       isEnabled: dto.isEnabled,
     };
     const entity = this.configRepo.create(data);
-    Object.assign(entity, data);
     const saved = await this.configRepo.save(entity);
     return {
       id: saved.id,
