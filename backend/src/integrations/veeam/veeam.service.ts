@@ -2,12 +2,14 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import * as https from 'https';
 import type { VeeamJob, VeeamSession, VeeamApiResponse, BackupJobStatus } from './dto/veeam-api.dto';
 
 @Injectable()
 export class VeeamService {
   private readonly API_VERSION = '1.1-rev2';
   private readonly STALE_HOURS = 30;
+  private readonly httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
   constructor(private readonly httpService: HttpService) {}
 
@@ -32,7 +34,7 @@ export class VeeamService {
           'Content-Type': 'application/x-www-form-urlencoded',
           'x-api-version': this.API_VERSION,
         },
-        httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
+        httpsAgent: this.httpsAgent,
         timeout: 15000,
       }),
     );
@@ -44,7 +46,7 @@ export class VeeamService {
     const res = await firstValueFrom(
       this.httpService.get<VeeamApiResponse<VeeamJob>>(`${baseUrl}/api/v1/jobs`, {
         headers: this.apiHeaders(token),
-        httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
+        httpsAgent: this.httpsAgent,
         timeout: 30000,
       }),
     );
@@ -56,7 +58,7 @@ export class VeeamService {
       this.httpService.get<VeeamApiResponse<VeeamSession>>(`${baseUrl}/api/v1/sessions`, {
         headers: this.apiHeaders(token),
         params: { limit: 500, orderColumn: 'CreationTime', orderAsc: false },
-        httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false }),
+        httpsAgent: this.httpsAgent,
         timeout: 30000,
       }),
     );

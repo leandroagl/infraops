@@ -2,7 +2,8 @@
 
 <mat-dialog-content [formGroup]="form">
 
-  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic"
+    [matTooltip]="isEdit ? 'No se puede cambiar el cliente de una configuración existente' : ''">
     <mat-label>ID de cliente (UUID)</mat-label>
     <input matInput formControlName="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
     <mat-error *ngIf="form.controls.clientId.invalid">Campo requerido</mat-error>

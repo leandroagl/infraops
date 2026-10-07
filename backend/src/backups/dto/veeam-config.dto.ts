@@ -20,6 +20,7 @@ export class CreateVeeamConfigDto {
 }
 
 export class UpdateVeeamConfigDto {
+  clientName?: string;
   host?: string;
   port?: number;
   username?: string;

@@ -22,7 +22,7 @@ export interface VeeamSession {
   creationTime: string;
   endTime: string | null;
   progressPercent: number;
-  result: VeeamSessionResult;
+  result: VeeamSessionResult | null;
 }
 
 export interface VeeamApiResponse<T> {

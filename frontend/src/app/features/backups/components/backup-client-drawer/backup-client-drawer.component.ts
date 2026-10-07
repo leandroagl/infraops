@@ -27,9 +27,10 @@ export class BackupClientDrawerComponent {
   }
 
   rowClass(job: BackupJobStatus): string {
+    if (job.isRunning)                return 'j-running';
     if (job.lastResult === 'Failed')  return 'j-crit';
     if (job.lastResult === 'Warning') return 'j-warn';
-    if (job.isRunning)                return 'j-replica';
+    if (job.lastResult === null)      return 'j-neutral';
     return 'j-ok';
   }
 

@@ -138,6 +138,8 @@
     &.j-ok      td.mat-cell:first-child { border-left: 3px solid var(--ok); }
     &.j-warn    td.mat-cell:first-child { border-left: 3px solid var(--warn); }
     &.j-crit    td.mat-cell:first-child { border-left: 3px solid var(--crit); }
+    &.j-running td.mat-cell:first-child { border-left: 3px solid var(--accent); }
+    &.j-neutral td.mat-cell:first-child { border-left: 3px solid var(--neutral); }
     &.j-replica td.mat-cell:first-child { border-left: 3px solid var(--accent); }
   }
 

@@ -47,6 +47,7 @@ export class BackupsConfigDialogComponent implements OnInit {
       this.form.controls.password.updateValueAndValidity();
       this.form.controls.clientId.setValidators([]);
       this.form.controls.clientId.updateValueAndValidity();
+      this.form.get('clientId')?.disable();
     } else {
       this.form.controls.password.setValidators([Validators.required]);
       this.form.controls.password.updateValueAndValidity();

@@ -25,7 +25,9 @@ export class BackupsService {
   ) {}
 
   private get encryptKey(): string {
-    return this.configService.get<string>('INTEGRATIONS_ENCRYPT_KEY', '');
+    const key = this.configService.get<string>('INTEGRATIONS_ENCRYPT_KEY', '');
+    if (!key) throw new Error('INTEGRATIONS_ENCRYPT_KEY is not configured');
+    return key;
   }
 
   private deriveClientStatus(jobs: BackupJobStatus[]): ClientStatus {
@@ -122,6 +124,7 @@ export class BackupsService {
   async updateConfig(id: string, dto: UpdateVeeamConfigDto): Promise<VeeamClientConfigResponseDto> {
     const config = await this.configRepo.findOne({ where: { id } });
     if (!config) throw new NotFoundException();
+    if (dto.clientName !== undefined) config.clientName = dto.clientName;
     if (dto.host !== undefined) config.host = dto.host;
     if (dto.port !== undefined) config.port = dto.port;
     if (dto.username !== undefined) config.username = dto.username;
