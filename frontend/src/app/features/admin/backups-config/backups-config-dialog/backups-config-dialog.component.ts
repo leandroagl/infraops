@@ -2,7 +2,7 @@ import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { BackupsService } from '../../../../features/backups/services/backups.service';
-import type { VeeamClientConfig } from '../../../../features/backups/models/backup.models';
+import type { CreateVeeamConfigRequest, UpdateVeeamConfigRequest, VeeamClientConfig } from '../../../../features/backups/models/backup.models';
 
 @Component({
   selector: 'app-backups-config-dialog',
@@ -13,6 +13,7 @@ export class BackupsConfigDialogComponent implements OnInit {
   isEdit = false;
 
   form = new FormGroup({
+    clientId:   new FormControl('', [Validators.required]),
     clientName: new FormControl('', [Validators.required]),
     host:       new FormControl('', [Validators.required]),
     port:       new FormControl<number>(9419, [Validators.required, Validators.min(1), Validators.max(65535)]),
@@ -31,6 +32,7 @@ export class BackupsConfigDialogComponent implements OnInit {
     if (this.data) {
       this.isEdit = true;
       this.form.patchValue({
+        clientId:   this.data.clientId,
         clientName: this.data.clientName,
         host:       this.data.host,
         port:       this.data.port,
@@ -43,6 +45,8 @@ export class BackupsConfigDialogComponent implements OnInit {
     if (this.isEdit) {
       this.form.controls.password.setValidators([]);
       this.form.controls.password.updateValueAndValidity();
+      this.form.controls.clientId.setValidators([]);
+      this.form.controls.clientId.updateValueAndValidity();
     } else {
       this.form.controls.password.setValidators([Validators.required]);
       this.form.controls.password.updateValueAndValidity();
@@ -59,22 +63,23 @@ export class BackupsConfigDialogComponent implements OnInit {
     const v = this.form.value;
 
     if (this.isEdit && this.data) {
-      const dto: any = {
-        clientName: v.clientName,
-        host:       v.host,
+      const dto: UpdateVeeamConfigRequest = {
+        clientName: v.clientName ?? undefined,
+        host:       v.host ?? undefined,
         port:       v.port ?? 9419,
-        username:   v.username,
+        username:   v.username ?? undefined,
         isEnabled:  v.isEnabled ?? true,
       };
-      if (v.password) dto['password'] = v.password;
+      if (v.password) dto.password = v.password;
 
       this.svc.updateConfig(this.data.id, dto).subscribe({
         next: updated => { this.saving = false; this.dialogRef.close(updated); },
         error: () => { this.saving = false; },
       });
     } else {
-      const dto: any = {
-        clientName: v.clientName,
+      const dto: CreateVeeamConfigRequest = {
+        clientId:   v.clientId!,
+        clientName: v.clientName!,
         host:       v.host!,
         port:       v.port ?? 9419,
         username:   v.username!,

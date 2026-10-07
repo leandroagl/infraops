@@ -41,8 +41,9 @@ export class BackupsConfigComponent implements OnInit {
   }
 
   testConnection(config: VeeamClientConfig): void {
-    this.svc.testConnection(config.id).subscribe(result => {
-      this.snackBar.open(result.message, 'Cerrar', { duration: 5000 });
+    this.svc.testConnection(config.id).subscribe({
+      next:  result => this.snackBar.open(result.message, 'Cerrar', { duration: 5000 }),
+      error: ()     => this.snackBar.open('Error al conectar', 'Cerrar', { duration: 4000 }),
     });
   }
 

@@ -39,6 +39,7 @@ export interface VeeamClientConfig {
 
 export interface CreateVeeamConfigRequest {
   clientId: string;
+  clientName: string;
   host: string;
   port: number;
   username: string;
@@ -47,6 +48,7 @@ export interface CreateVeeamConfigRequest {
 }
 
 export interface UpdateVeeamConfigRequest {
+  clientName?: string;
   host?: string;
   port?: number;
   username?: string;

@@ -47,6 +47,7 @@ describe('BackupsConfigDialogComponent', () => {
     mockSvc.createConfig.mockReturnValue(of({ id: 'new', clientName: 'ACME', host: '10.0.0.1', port: 9419, username: 'admin', isEnabled: true, clientId: 'c1', lastConnectedAt: null }));
 
     comp.form.patchValue({
+      clientId:   'c1',
       clientName: 'ACME',
       host:       '10.0.0.1',
       port:       9419,
@@ -58,6 +59,7 @@ describe('BackupsConfigDialogComponent', () => {
     comp.save();
 
     expect(mockSvc.createConfig).toHaveBeenCalledWith(expect.objectContaining({
+      clientId:   'c1',
       clientName: 'ACME',
       host:       '10.0.0.1',
       port:       9419,
