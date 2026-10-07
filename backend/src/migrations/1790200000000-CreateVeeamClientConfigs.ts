@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class CreateVeeamClientConfigs1790000000000 implements MigrationInterface {
+export class CreateVeeamClientConfigs1790200000000 implements MigrationInterface {
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       CREATE TABLE veeam_client_configs (
