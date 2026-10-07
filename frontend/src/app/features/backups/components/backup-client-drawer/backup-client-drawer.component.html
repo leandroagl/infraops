@@ -1,0 +1,67 @@
+<div class="drawer" [class.open]="open">
+
+  <!-- Header -->
+  <div class="d-hdr" *ngIf="client">
+    <div class="d-ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <div class="d-title-block">
+      <div class="d-title">{{ client.clientName }}</div>
+      <div class="d-sub">{{ client.totalJobs }} jobs</div>
+    </div>
+    <button mat-icon-button class="d-close" (click)="closed.emit()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Summary pills -->
+  <div class="d-summary" *ngIf="client">
+    <span *ngIf="okCount > 0"   class="d-sum-pill ok">{{ okCount }} Success</span>
+    <span *ngIf="warnCount > 0" class="d-sum-pill warn">{{ warnCount }} Warning</span>
+    <span *ngIf="critCount > 0" class="d-sum-pill crit">{{ critCount }} Failed</span>
+    <span class="d-sum-sep"></span>
+    <span class="d-sync">lectura en vivo · {{ client.lastReadAt | date:'HH:mm' }}</span>
+  </div>
+
+  <!-- Body: job table -->
+  <div class="d-body" *ngIf="client">
+
+    <div class="job-table">
+      <!-- Header row -->
+      <div class="job-hdr">
+        <div class="job-hdr-cell">Job</div>
+        <div class="job-hdr-cell">Estado</div>
+        <div class="job-hdr-cell">Resultado</div>
+        <div class="job-hdr-cell right">Hace</div>
+      </div>
+
+      <!-- Job rows -->
+      <ng-container *ngFor="let job of jobs">
+        <div class="job-row" [ngClass]="rowClass(job)">
+          <div class="job-cell job-cell--name">
+            <span class="job-name">{{ job.jobName }}</span>
+            <span class="job-type">{{ job.jobType }}</span>
+          </div>
+          <div class="job-cell">
+            <span class="result-chip" [ngClass]="stateClass(job)">{{ stateLabel(job) }}</span>
+          </div>
+          <div class="job-cell">
+            <span class="result-chip" [ngClass]="resultClass(job.lastResult)">{{ job.lastResult ?? '—' }}</span>
+          </div>
+          <div class="job-cell right">
+            <span class="job-hours" [ngClass]="hoursClass(job)">{{ hoursLabel(job) }}</span>
+          </div>
+          <div class="job-msg" [class.visible]="!!job.lastMessage">
+            <span>⚠</span> {{ job.lastMessage }}
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+  </div><!-- /d-body -->
+
+</div>
