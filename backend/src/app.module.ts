@@ -17,6 +17,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { TaskConfigModule } from './task-config/task-config.module';
 import { IntegrationConfigModule } from './integration-config/integration-config.module';
+import { BackupsModule } from './backups/backups.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { IntegrationConfigModule } from './integration-config/integration-config
     SchedulesModule,
     TaskConfigModule,
     IntegrationConfigModule,
+    BackupsModule,
   ],
 })
 export class AppModule {}
