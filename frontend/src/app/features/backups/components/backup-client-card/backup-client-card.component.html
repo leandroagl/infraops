@@ -1,12 +1,12 @@
 <div
   class="client-card"
-  [class]="statusClass"
+  [ngClass]="statusClass"
   [class.selected]="selected"
   (click)="cardClick.emit(client)"
 >
   <div class="card-top">
     <div class="card-name">{{ client.clientName }}</div>
-    <div class="status-dot" [class]="statusDotClass"></div>
+    <div class="status-dot" [ngClass]="statusDotClass"></div>
   </div>
 
   <div class="card-mid">

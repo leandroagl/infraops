@@ -11,7 +11,7 @@ export class BackupClientDrawerComponent {
   @Input() open = false;
   @Output() closed = new EventEmitter<void>();
 
-  readonly displayedColumns = ['name', 'state', 'result', 'hours'];
+  readonly displayedColumns = ['name', 'jobType', 'lastResult', 'hoursAgo'];
 
   get jobs(): BackupJobStatus[] { return this.client?.jobs ?? []; }
 

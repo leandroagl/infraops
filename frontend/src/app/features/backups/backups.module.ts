@@ -5,6 +5,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatTableModule } from '@angular/material/table';
 import { BackupsRoutingModule } from './backups-routing.module';
 import { BackupsComponent } from './backups.component';
 import { BackupClientCardComponent } from './components/backup-client-card/backup-client-card.component';
@@ -24,6 +25,7 @@ import { BackupClientDrawerComponent } from './components/backup-client-drawer/b
     MatButtonModule,
     MatIconModule,
     MatTooltipModule,
+    MatTableModule,
   ],
 })
 export class BackupsModule {}
