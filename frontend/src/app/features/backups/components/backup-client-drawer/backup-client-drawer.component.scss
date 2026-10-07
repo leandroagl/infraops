@@ -1,0 +1,186 @@
+// ── Drawer container ──────────────────────────────────────────────────────────
+.drawer {
+  position: fixed;
+  top: 50px;
+  right: 0;
+  width: 460px;
+  bottom: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border-lo);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.2s;
+  z-index: 100;
+
+  &.open { transform: translateX(0); }
+}
+
+// ── Drawer header ─────────────────────────────────────────────────────────────
+.d-hdr {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-lo);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.d-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--bkp-bg);
+  border: 1px solid var(--bkp-bd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 15px;
+    height: 15px;
+    stroke: var(--bkp);
+  }
+}
+
+.d-title-block { flex: 1; }
+
+.d-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tx-hi);
+}
+
+.d-sub {
+  font-size: 10px;
+  color: var(--tx-lo);
+  font-family: var(--font-mono);
+  margin-top: 1px;
+}
+
+.d-close {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--tx-md) !important;
+}
+
+// ── Summary pills ─────────────────────────────────────────────────────────────
+.d-summary {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-lo);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  flex-shrink: 0;
+}
+
+.d-sum-pill {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-weight: 500;
+
+  &.ok   { background: var(--ok-bg);   border-color: var(--ok-bd);   color: var(--ok); }
+  &.warn { background: var(--warn-bg); border-color: var(--warn-bd); color: var(--warn); }
+  &.crit { background: var(--crit-bg); border-color: var(--crit-bd); color: var(--crit); }
+}
+
+.d-sum-sep { flex: 1; }
+
+.d-sync {
+  font-size: 9px;
+  color: var(--tx-lo);
+  font-family: var(--font-mono);
+}
+
+// ── Drawer body ───────────────────────────────────────────────────────────────
+.d-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// ── Job mat-table ─────────────────────────────────────────────────────────────
+.job-mat-table {
+  width: 100%;
+  background: transparent;
+
+  th.mat-header-cell {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tx-lo);
+    font-family: var(--font-mono);
+    border-bottom: 1px solid var(--border-lo);
+    padding: 0 10px 6px;
+  }
+
+  td.mat-cell {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border-lo);
+    vertical-align: middle;
+  }
+
+  tr.mat-row {
+    background: var(--card);
+    transition: border-color 0.1s;
+
+    &:hover td.mat-cell { background: var(--card-hover, var(--surface)); }
+
+    &.j-ok      td.mat-cell:first-child { border-left: 3px solid var(--ok); }
+    &.j-warn    td.mat-cell:first-child { border-left: 3px solid var(--warn); }
+    &.j-crit    td.mat-cell:first-child { border-left: 3px solid var(--crit); }
+    &.j-running td.mat-cell:first-child { border-left: 3px solid var(--accent); }
+    &.j-neutral td.mat-cell:first-child { border-left: 3px solid var(--neutral); }
+    &.j-replica td.mat-cell:first-child { border-left: 3px solid var(--accent); }
+  }
+
+  .col-right {
+    text-align: right;
+  }
+}
+
+.job-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tx-hi);
+  font-family: var(--font-mono);
+}
+
+.job-type {
+  font-size: 9px;
+  color: var(--tx-lo);
+  margin-top: 1px;
+}
+
+.result-chip {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  padding: 2px 7px;
+  border-radius: 20px;
+  border: 1px solid;
+  white-space: nowrap;
+
+  &.chip--ok      { background: var(--ok-bg);      border-color: var(--ok-bd);      color: var(--ok); }
+  &.chip--warn    { background: var(--warn-bg);     border-color: var(--warn-bd);    color: var(--warn); }
+  &.chip--crit    { background: var(--crit-bg);     border-color: var(--crit-bd);    color: var(--crit); }
+  &.chip--running { background: var(--accent-bg);   border-color: var(--accent-bd);  color: var(--accent); }
+  &.chip--neutral { background: var(--neutral-bg);  border-color: var(--neutral-bd); color: var(--neutral); }
+}
+
+.job-hours {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--tx-md);
+  text-align: right;
+
+  &.hours--stale { color: var(--warn); }
+}

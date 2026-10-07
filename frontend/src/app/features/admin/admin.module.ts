@@ -37,6 +37,8 @@ import { NotificationsTypeEditDialogComponent } from './notifications-config/typ
 import { UrgentTicketsDialogComponent } from './notifications-config/urgent-tickets-dialog/urgent-tickets-dialog.component';
 import { DeviationRulesComponent } from './deviation-rules/deviation-rules.component';
 import { DeviationRuleEditDialogComponent } from './deviation-rules/deviation-rule-edit-dialog/deviation-rule-edit-dialog.component';
+import { BackupsConfigComponent } from './backups-config/backups-config.component';
+import { BackupsConfigDialogComponent } from './backups-config/backups-config-dialog/backups-config-dialog.component';
 
 @NgModule({
   declarations: [
@@ -55,6 +57,8 @@ import { DeviationRuleEditDialogComponent } from './deviation-rules/deviation-ru
     UrgentTicketsDialogComponent,
     DeviationRulesComponent,
     DeviationRuleEditDialogComponent,
+    BackupsConfigComponent,
+    BackupsConfigDialogComponent,
   ],
   imports: [
     CommonModule,

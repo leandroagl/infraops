@@ -1,0 +1,70 @@
+<div class="page" [class.drawer-open]="drawerOpen">
+
+  <!-- Header -->
+  <div class="page-hdr">
+    <div class="page-hdr__left">
+      <span class="page-title">Backups</span>
+      <span class="page-sub">{{ clients.length }} clientes</span>
+    </div>
+    <div class="page-hdr__right">
+      <button mat-stroked-button (click)="load()" [disabled]="loading">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+        Actualizar
+      </button>
+      <button *ngIf="isAdmin" mat-icon-button (click)="openConfig()" matTooltip="Configuración Veeam">
+        <mat-icon>settings</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading bar -->
+  <mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
+
+  <!-- KPI strip -->
+  <div class="kpi-strip">
+    <div class="kpi-block">
+      <div class="kpi-label">Total</div>
+      <div class="kpi-val kpi-val--total">{{ kpi.total }}</div>
+    </div>
+    <div class="kpi-block">
+      <div class="kpi-label">OK</div>
+      <div class="kpi-val kpi-val--ok">{{ kpi.ok }}</div>
+    </div>
+    <div class="kpi-block">
+      <div class="kpi-label">Advertencias</div>
+      <div class="kpi-val kpi-val--warn">{{ kpi.warn }}</div>
+    </div>
+    <div class="kpi-block">
+      <div class="kpi-label">Fallas</div>
+      <div class="kpi-val kpi-val--crit">{{ kpi.crit }}</div>
+    </div>
+    <div class="kpi-block">
+      <div class="kpi-label">Sin datos</div>
+      <div class="kpi-val kpi-val--nd">{{ kpi.noData }}</div>
+    </div>
+  </div>
+
+  <!-- Section label -->
+  <div class="section-label">Clientes con Veeam</div>
+
+  <!-- Client grid -->
+  <div class="client-grid">
+    <app-backup-client-card
+      *ngFor="let client of clients"
+      [client]="client"
+      [selected]="selectedClient?.clientId === client.clientId"
+      (cardClick)="selectClient($event)"
+    ></app-backup-client-card>
+  </div>
+
+</div>
+
+<!-- Drawer -->
+<app-backup-client-drawer
+  [client]="selectedClient"
+  [open]="drawerOpen"
+  (closed)="closeDrawer()"
+></app-backup-client-drawer>

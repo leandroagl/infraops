@@ -1,0 +1,26 @@
+<div
+  class="client-card"
+  [ngClass]="statusClass"
+  [class.selected]="selected"
+  (click)="cardClick.emit(client)"
+>
+  <div class="card-top">
+    <div class="card-name">{{ client.clientName }}</div>
+    <div class="status-dot" [ngClass]="statusDotClass"></div>
+  </div>
+
+  <div class="card-mid">
+    <span *ngIf="client.okCount > 0" class="count-chip ok">{{ client.okCount }} ok</span>
+    <span *ngIf="client.warnCount > 0" class="count-chip warn">{{ client.warnCount }} warn</span>
+    <span *ngIf="client.critCount > 0" class="count-chip crit">{{ client.critCount }} fail</span>
+    <span *ngIf="client.status === 'no_data'" class="no-data-note">sin datos</span>
+  </div>
+
+  <div class="card-bot">
+    <span class="card-meta">{{ client.totalJobs }} jobs<ng-container *ngIf="hoursAgo"> · {{ hoursAgo }}</ng-container></span>
+    <span *ngIf="client.hasRunningJob" class="running-badge">
+      <span class="running-dot"></span>
+      1 activo
+    </span>
+  </div>
+</div>

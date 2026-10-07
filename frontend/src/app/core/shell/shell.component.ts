@@ -9,7 +9,7 @@ import { SidenavContextService, ClientSidenavContext } from '../services/sidenav
 interface NavItem {
   route: string;
   label: string;
-  icon: 'dashboard' | 'clients' | 'tasks' | 'notifications' | 'admin' | 'schedules' | 'docs';
+  icon: 'dashboard' | 'clients' | 'tasks' | 'notifications' | 'backups' | 'admin' | 'schedules' | 'docs';
 }
 
 @Component({
@@ -23,6 +23,7 @@ export class ShellComponent implements OnInit {
     { route: '/clients',        label: 'Clientes',     icon: 'clients'       },
     { route: '/tasks',          label: 'Mis tareas',   icon: 'tasks'         },
     { route: '/notifications',  label: 'Vencimientos', icon: 'notifications' },
+    { route: '/backups',        label: 'Backups',      icon: 'backups'       },
     { route: '/admin',          label: 'Admin',        icon: 'admin'         },
     { route: '/schedules',      label: 'Schedules',    icon: 'schedules'     },
     { route: '/docs',           label: 'Documentación', icon: 'docs'         },

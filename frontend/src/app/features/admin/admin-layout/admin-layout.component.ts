@@ -18,6 +18,7 @@ export class AdminLayoutComponent {
     { path: '/admin/integraciones',  label: 'Integraciones'  },
     { path: '/admin/mantenimientos', label: 'Mantenimientos' },
     { path: '/admin/vencimientos',   label: 'Vencimientos'   },
+    { path: '/admin/backups',        label: 'Backups'        },
   ];
 
   constructor(private router: Router) {}

@@ -1,0 +1,74 @@
+<div class="drawer" [class.open]="open">
+
+  <!-- Header -->
+  <div class="d-hdr" *ngIf="client">
+    <div class="d-ico">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <div class="d-title-block">
+      <div class="d-title">{{ client.clientName }}</div>
+      <div class="d-sub">{{ client.totalJobs }} jobs</div>
+    </div>
+    <button mat-icon-button class="d-close" (click)="closed.emit()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Summary pills -->
+  <div class="d-summary" *ngIf="client">
+    <span *ngIf="okCount > 0"   class="d-sum-pill ok">{{ okCount }} Success</span>
+    <span *ngIf="warnCount > 0" class="d-sum-pill warn">{{ warnCount }} Warning</span>
+    <span *ngIf="critCount > 0" class="d-sum-pill crit">{{ critCount }} Failed</span>
+    <span class="d-sum-sep"></span>
+    <span class="d-sync">lectura en vivo · {{ client.lastReadAt | date:'HH:mm' }}</span>
+  </div>
+
+  <!-- Body: job table -->
+  <div class="d-body" *ngIf="client">
+
+    <table mat-table [dataSource]="jobs" class="job-mat-table">
+
+      <!-- name column -->
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Job</th>
+        <td mat-cell *matCellDef="let job" [ngClass]="rowClass(job)">
+          <div class="job-name">{{ job.jobName }}</div>
+          <div class="job-type">{{ job.jobType }}</div>
+        </td>
+      </ng-container>
+
+      <!-- jobType column -->
+      <ng-container matColumnDef="jobType">
+        <th mat-header-cell *matHeaderCellDef>Tipo</th>
+        <td mat-cell *matCellDef="let job">
+          <span class="result-chip" [ngClass]="stateClass(job)">{{ stateLabel(job) }}</span>
+        </td>
+      </ng-container>
+
+      <!-- lastResult column -->
+      <ng-container matColumnDef="lastResult">
+        <th mat-header-cell *matHeaderCellDef>Estado</th>
+        <td mat-cell *matCellDef="let job">
+          <span class="result-chip" [ngClass]="resultClass(job.lastResult)">{{ job.lastResult ?? '—' }}</span>
+        </td>
+      </ng-container>
+
+      <!-- hoursAgo column -->
+      <ng-container matColumnDef="hoursAgo">
+        <th mat-header-cell *matHeaderCellDef class="col-right">Hace</th>
+        <td mat-cell *matCellDef="let job" class="col-right">
+          <span class="job-hours" [ngClass]="hoursClass(job)">{{ hoursLabel(job) }}</span>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let job; columns: displayedColumns;" [ngClass]="rowClass(job)"></tr>
+    </table>
+
+  </div><!-- /d-body -->
+
+</div>

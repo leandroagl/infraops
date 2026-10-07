@@ -1,0 +1,76 @@
+<div class="section-header">
+  <div class="section-header-row">
+    <div>
+      <h2 class="section-title">Configuración de Backups</h2>
+      <p class="section-subtitle">Conexiones Veeam por cliente: host, puerto y credenciales</p>
+    </div>
+    <button mat-flat-button color="primary" (click)="openDialog()">
+      <mat-icon>add</mat-icon>
+      Agregar cliente
+    </button>
+  </div>
+</div>
+
+<div *ngIf="loading" class="bc-loading">
+  <mat-spinner [diameter]="32"></mat-spinner>
+</div>
+
+<mat-table *ngIf="!loading" [dataSource]="configs" class="bc-config-table">
+
+  <ng-container matColumnDef="clientName">
+    <mat-header-cell *matHeaderCellDef>Cliente</mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <span class="client-name">{{ row.clientName }}</span>
+    </mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="host">
+    <mat-header-cell *matHeaderCellDef>Host</mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <span class="host-mono">{{ row.host }}</span>
+    </mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="port">
+    <mat-header-cell *matHeaderCellDef>Puerto</mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <span class="port-mono">{{ row.port }}</span>
+    </mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="username">
+    <mat-header-cell *matHeaderCellDef>Usuario</mat-header-cell>
+    <mat-cell *matCellDef="let row">{{ row.username }}</mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="isEnabled">
+    <mat-header-cell *matHeaderCellDef>Habilitado</mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <mat-icon *ngIf="row.isEnabled" class="icon-ok">check_circle</mat-icon>
+      <mat-icon *ngIf="!row.isEnabled" class="icon-off">cancel</mat-icon>
+    </mat-cell>
+  </ng-container>
+
+  <ng-container matColumnDef="actions">
+    <mat-header-cell *matHeaderCellDef></mat-header-cell>
+    <mat-cell *matCellDef="let row">
+      <button mat-icon-button (click)="testConnection(row)" matTooltip="Probar conexión" aria-label="Probar conexión">
+        <mat-icon>wifi</mat-icon>
+      </button>
+      <button mat-icon-button (click)="openDialog(row)" matTooltip="Editar" aria-label="Editar configuración">
+        <mat-icon>edit</mat-icon>
+      </button>
+      <button mat-icon-button color="warn" (click)="delete(row)" matTooltip="Eliminar" aria-label="Eliminar configuración">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </mat-cell>
+  </ng-container>
+
+  <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+  <mat-row *matRowDef="let row; columns: displayedColumns;"></mat-row>
+
+</mat-table>
+
+<div *ngIf="!loading && configs.length === 0" class="bc-empty">
+  <span>No hay configuraciones de Veeam. Agregá un cliente para comenzar.</span>
+</div>

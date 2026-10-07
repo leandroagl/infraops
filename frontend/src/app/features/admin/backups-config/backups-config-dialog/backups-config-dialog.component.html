@@ -1,0 +1,53 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Editar configuración Veeam' : 'Nueva configuración Veeam' }}</h2>
+
+<mat-dialog-content [formGroup]="form">
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic"
+    [matTooltip]="isEdit ? 'No se puede cambiar el cliente de una configuración existente' : ''">
+    <mat-label>ID de cliente (UUID)</mat-label>
+    <input matInput formControlName="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+    <mat-error *ngIf="form.controls.clientId.invalid">Campo requerido</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Nombre del cliente</mat-label>
+    <input matInput formControlName="clientName" placeholder="Ej: Empresa XYZ" />
+    <mat-error *ngIf="form.controls.clientName.invalid">Campo requerido</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Host / IP del servidor Veeam</mat-label>
+    <input matInput formControlName="host" placeholder="192.168.1.100" />
+    <mat-error *ngIf="form.controls.host.invalid">Campo requerido</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Puerto</mat-label>
+    <input matInput type="number" formControlName="port" min="1" max="65535" />
+    <mat-error *ngIf="form.controls.port.invalid">Puerto inválido (1–65535)</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>Usuario</mat-label>
+    <input matInput formControlName="username" placeholder="administrator" />
+    <mat-error *ngIf="form.controls.username.invalid">Campo requerido</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+    <mat-label>{{ isEdit ? 'Contraseña (vacío = no cambiar)' : 'Contraseña' }}</mat-label>
+    <input matInput type="password" formControlName="password" autocomplete="new-password" />
+    <mat-error *ngIf="form.controls.password.invalid">Campo requerido</mat-error>
+  </mat-form-field>
+
+  <div style="margin-top: 16px;">
+    <mat-checkbox formControlName="isEnabled">Habilitado</mat-checkbox>
+  </div>
+
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()" [disabled]="saving">Cancelar</button>
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="!isValid || saving">
+    {{ saving ? 'Guardando…' : 'Guardar' }}
+  </button>
+</mat-dialog-actions>
