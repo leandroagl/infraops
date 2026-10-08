@@ -49,6 +49,7 @@ export class BackupsService {
       username: c.username,
       isEnabled: c.isEnabled,
       lastConnectedAt: c.lastConnectedAt?.toISOString() ?? null,
+      credentialVaultEntryId: c.credentialVaultEntryId,
     };
   }
 

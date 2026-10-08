@@ -35,6 +35,7 @@ export interface VeeamClientConfig {
   username: string;
   isEnabled: boolean;
   lastConnectedAt: string | null;
+  credentialVaultEntryId: string | null;
 }
 
 export interface CreateVeeamConfigRequest {

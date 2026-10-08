@@ -104,6 +104,20 @@ describe('BackupsService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it('createConfig retorna credentialVaultEntryId en el DTO de respuesta', async () => {
+    mockConfigRepo.create.mockImplementation((d: any) => ({ ...d }));
+    mockConfigRepo.save.mockResolvedValue({
+      id: 'uuid', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419,
+      username: 'u', encryptedPassword: '', credentialVaultEntryId: 'v1',
+      isEnabled: true, lastConnectedAt: null, createdAt: new Date(), updatedAt: new Date(),
+    });
+    const result = await svc.createConfig({
+      clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419,
+      username: 'u', credentialVaultId: 'v1', isEnabled: true,
+    });
+    expect((result as any).credentialVaultEntryId).toBe('v1');
+  });
+
   it('updateConfig con credentialVaultId actualiza la FK', async () => {
     const existing = {
       id: 'cfg1', clientId: 'c1', clientName: 'C', host: 'h', port: 9419,

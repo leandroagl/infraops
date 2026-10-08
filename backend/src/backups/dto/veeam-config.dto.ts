@@ -9,6 +9,7 @@ export class VeeamClientConfigResponseDto {
   username: string;
   isEnabled: boolean;
   lastConnectedAt: string | null;
+  credentialVaultEntryId: string | null;
 }
 
 export class CreateVeeamConfigDto {
