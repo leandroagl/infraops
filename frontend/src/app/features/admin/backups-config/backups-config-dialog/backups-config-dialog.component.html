@@ -4,20 +4,18 @@
 
   <mat-form-field appearance="outline" subscriptSizing="dynamic"
     [matTooltip]="isEdit ? 'No se puede cambiar el cliente de una configuración existente' : ''">
-    <mat-label>ID de cliente (UUID)</mat-label>
-    <input matInput formControlName="clientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+    <mat-label>Cliente</mat-label>
+    <mat-select formControlName="clientId" (selectionChange)="onClientChange($event.value)">
+      <mat-option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</mat-option>
+    </mat-select>
     <mat-error *ngIf="form.controls.clientId.invalid">Campo requerido</mat-error>
   </mat-form-field>
 
   <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
-    <mat-label>Nombre del cliente</mat-label>
-    <input matInput formControlName="clientName" placeholder="Ej: Empresa XYZ" />
-    <mat-error *ngIf="form.controls.clientName.invalid">Campo requerido</mat-error>
-  </mat-form-field>
-
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
-    <mat-label>Host / IP del servidor Veeam</mat-label>
-    <input matInput formControlName="host" placeholder="192.168.1.100" />
+    <mat-label>Host del servidor Veeam</mat-label>
+    <input matInput formControlName="host" placeholder="cliente.ondravirtual.com.ar" />
+    <span matSuffix *ngIf="loadingHost"><mat-spinner [diameter]="16"></mat-spinner></span>
+    <mat-hint *ngIf="!loadingHost && !isEdit">Se auto-completa con el DNS del cliente desde InfraDoc</mat-hint>
     <mat-error *ngIf="form.controls.host.invalid">Campo requerido</mat-error>
   </mat-form-field>
 
@@ -34,9 +32,12 @@
   </mat-form-field>
 
   <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
-    <mat-label>{{ isEdit ? 'Contraseña (vacío = no cambiar)' : 'Contraseña' }}</mat-label>
-    <input matInput type="password" formControlName="password" autocomplete="new-password" />
-    <mat-error *ngIf="form.controls.password.invalid">Campo requerido</mat-error>
+    <mat-label>{{ isEdit ? 'Credencial (sin cambios si vacío)' : 'Credencial' }}</mat-label>
+    <mat-select formControlName="credentialVaultId">
+      <mat-option [value]="null">— Sin credencial —</mat-option>
+      <mat-option *ngFor="let e of vaultEntries" [value]="e.id">{{ e.name }}</mat-option>
+    </mat-select>
+    <mat-error *ngIf="form.controls.credentialVaultId.invalid">Campo requerido</mat-error>
   </mat-form-field>
 
   <div style="margin-top: 16px;">

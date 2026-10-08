@@ -13,6 +13,17 @@ describe('deviation signals registry', () => {
     expect(keys).toEqual(['anyVmWithoutBackup']);
   });
 
+  it('devuelve las señales de Windows Domain con sus keys esperadas', () => {
+    const keys = getDeviationSignals(TaskType.WINDOWS_DOMAIN_MAINTENANCE).map((s) => s.key);
+    expect(keys).toEqual([
+      'anyServerWithPendingUpdates',
+      'anyServerWithRestartScriptError',
+      'anyDcWithReplIssue',
+      'anyDcWithDnsIssue',
+      'anyDcWithSysvolIssue',
+    ]);
+  });
+
   it('devuelve array vacío para un TaskType sin señales configuradas todavía', () => {
     expect(getDeviationSignals(TaskType.TERMINAL_MAINTENANCE)).toEqual([]);
   });
