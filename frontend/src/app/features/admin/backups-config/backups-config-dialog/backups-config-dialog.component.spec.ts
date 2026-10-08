@@ -78,7 +78,7 @@ describe('BackupsConfigDialogComponent', () => {
     const { comp } = await setup(null);
     mockInfradocSvc.getClientInfrastructure.mockReturnValue(of({
       ...mockEmptyInfra,
-      esxiHosts: [{ assetId: 1, name: 'hpGL360.covema.local', ip: null, bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: 'acme.ondravirtual.com.ar:344', uri2: null }],
+      esxiHosts: [{ assetId: 1, name: 'hpGL360.covema.local', ip: null, bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: 'https://acme.ondravirtual.com.ar:344', uri2: null }],
     }));
     comp.onClientChange('c1');
     expect(mockInfradocSvc.getClientInfrastructure).toHaveBeenCalledWith('c1');
@@ -89,7 +89,7 @@ describe('BackupsConfigDialogComponent', () => {
     const { comp } = await setup(null);
     mockInfradocSvc.getClientInfrastructure.mockReturnValue(of({
       ...mockEmptyInfra,
-      esxiHosts: [{ assetId: 1, name: 'server.local', ip: null, bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: null, uri2: 'beta.ondravirtual.com.ar:344' }],
+      esxiHosts: [{ assetId: 1, name: 'server.local', ip: null, bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: null, uri2: 'https://beta.ondravirtual.com.ar:344' }],
     }));
     comp.onClientChange('c1');
     expect(comp.form.controls.host.value).toBe('beta.ondravirtual.com.ar');

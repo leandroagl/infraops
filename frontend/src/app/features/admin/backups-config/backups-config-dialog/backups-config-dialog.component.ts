@@ -75,8 +75,9 @@ export class BackupsConfigDialogComponent implements OnInit {
         if (esxi) {
           const uri = esxi.uri1 ?? esxi.uri2;
           if (uri) {
-            const colonIdx = uri.lastIndexOf(':');
-            const host = colonIdx >= 0 ? uri.slice(0, colonIdx) : uri;
+            const noProto = uri.replace(/^https?:\/\//, '');
+            const colonIdx = noProto.lastIndexOf(':');
+            const host = colonIdx >= 0 ? noProto.slice(0, colonIdx) : noProto;
             this.form.controls.host.setValue(host);
           }
         }
