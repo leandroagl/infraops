@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { VeeamClientConfig } from './entities/veeam-client-config.entity';
 import { VeeamDailySnapshot } from './entities/veeam-daily-snapshot.entity';
 import { VeeamService } from '../integrations/veeam/veeam.service';
+import { CredentialVaultService } from './credential-vault.service';
 import { encrypt, decrypt } from '../integration-config/crypto.util';
 import type { BackupJobStatus } from '../integrations/veeam/dto/veeam-api.dto';
 import type {
@@ -22,12 +23,33 @@ export class BackupsService {
     @InjectRepository(VeeamDailySnapshot) private readonly snapshotRepo: Repository<VeeamDailySnapshot>,
     private readonly veeamService: VeeamService,
     private readonly configService: ConfigService,
+    private readonly vaultService: CredentialVaultService,
   ) {}
 
   private get encryptKey(): string {
     const key = this.configService.get<string>('INTEGRATIONS_ENCRYPT_KEY', '');
     if (!key) throw new Error('INTEGRATIONS_ENCRYPT_KEY is not configured');
     return key;
+  }
+
+  private async resolvePassword(config: VeeamClientConfig): Promise<string> {
+    if (config.credentialVaultEntryId) {
+      return this.vaultService.getDecryptedPassword(config.credentialVaultEntryId);
+    }
+    return decrypt(config.encryptedPassword, this.encryptKey);
+  }
+
+  private toResponseDto(c: VeeamClientConfig): VeeamClientConfigResponseDto {
+    return {
+      id: c.id,
+      clientId: c.clientId,
+      clientName: c.clientName,
+      host: c.host,
+      port: c.port,
+      username: c.username,
+      isEnabled: c.isEnabled,
+      lastConnectedAt: c.lastConnectedAt?.toISOString() ?? null,
+    };
   }
 
   private deriveClientStatus(jobs: BackupJobStatus[]): ClientStatus {
@@ -40,7 +62,7 @@ export class BackupsService {
   async getClientStatus(clientId: string): Promise<ClientBackupStatusDto> {
     const config = await this.configRepo.findOne({ where: { clientId } });
     if (!config) throw new NotFoundException('Config not found');
-    const password = decrypt(config.encryptedPassword, this.encryptKey);
+    const password = await this.resolvePassword(config);
     const jobs = await this.veeamService.getJobStatuses(config.host, config.port, config.username, password);
     const status = this.deriveClientStatus(jobs);
     return {
@@ -85,40 +107,31 @@ export class BackupsService {
 
   async listConfigs(): Promise<VeeamClientConfigResponseDto[]> {
     const configs = await this.configRepo.find();
-    return configs.map(c => ({
-      id: c.id,
-      clientId: c.clientId,
-      clientName: c.clientName,
-      host: c.host,
-      port: c.port,
-      username: c.username,
-      isEnabled: c.isEnabled,
-      lastConnectedAt: c.lastConnectedAt?.toISOString() ?? null,
-    }));
+    return configs.map(c => this.toResponseDto(c));
   }
 
   async createConfig(dto: CreateVeeamConfigDto): Promise<VeeamClientConfigResponseDto> {
-    const data = {
+    if (!dto.credentialVaultId && !dto.password) {
+      throw new BadRequestException('Se requiere credentialVaultId o password');
+    }
+    const data: Partial<VeeamClientConfig> = {
       clientId: dto.clientId,
       clientName: dto.clientName,
       host: dto.host,
       port: dto.port,
       username: dto.username,
-      encryptedPassword: encrypt(dto.password, this.encryptKey),
       isEnabled: dto.isEnabled,
+      encryptedPassword: '',
+      credentialVaultEntryId: null,
     };
+    if (dto.credentialVaultId) {
+      data.credentialVaultEntryId = dto.credentialVaultId;
+    } else if (dto.password) {
+      data.encryptedPassword = encrypt(dto.password, this.encryptKey);
+    }
     const entity = this.configRepo.create(data);
     const saved = await this.configRepo.save(entity);
-    return {
-      id: saved.id,
-      clientId: saved.clientId,
-      clientName: saved.clientName,
-      host: saved.host,
-      port: saved.port,
-      username: saved.username,
-      isEnabled: saved.isEnabled,
-      lastConnectedAt: null,
-    };
+    return this.toResponseDto(saved);
   }
 
   async updateConfig(id: string, dto: UpdateVeeamConfigDto): Promise<VeeamClientConfigResponseDto> {
@@ -128,20 +141,15 @@ export class BackupsService {
     if (dto.host !== undefined) config.host = dto.host;
     if (dto.port !== undefined) config.port = dto.port;
     if (dto.username !== undefined) config.username = dto.username;
-    if (dto.password !== undefined) config.encryptedPassword = encrypt(dto.password, this.encryptKey);
+    if (dto.password !== undefined) {
+      config.encryptedPassword = encrypt(dto.password, this.encryptKey);
+      config.credentialVaultEntryId = null;
+    }
+    if (dto.credentialVaultId !== undefined) config.credentialVaultEntryId = dto.credentialVaultId;
     if (dto.isEnabled !== undefined) config.isEnabled = dto.isEnabled;
     config.updatedAt = new Date();
     const saved = await this.configRepo.save(config);
-    return {
-      id: saved.id,
-      clientId: saved.clientId,
-      clientName: saved.clientName,
-      host: saved.host,
-      port: saved.port,
-      username: saved.username,
-      isEnabled: saved.isEnabled,
-      lastConnectedAt: saved.lastConnectedAt?.toISOString() ?? null,
-    };
+    return this.toResponseDto(saved);
   }
 
   async deleteConfig(id: string): Promise<void> {
@@ -151,7 +159,7 @@ export class BackupsService {
   async testConnection(id: string): Promise<TestConnectionResultDto> {
     const config = await this.configRepo.findOne({ where: { id } });
     if (!config) throw new NotFoundException();
-    const password = decrypt(config.encryptedPassword, this.encryptKey);
+    const password = await this.resolvePassword(config);
     return this.veeamService.testConnection(config.host, config.port, config.username, password);
   }
 }
