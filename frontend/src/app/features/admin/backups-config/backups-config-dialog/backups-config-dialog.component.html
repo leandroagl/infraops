@@ -14,7 +14,7 @@
   <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
     <mat-label>Host del servidor Veeam</mat-label>
     <input matInput formControlName="host" placeholder="cliente.ondravirtual.com.ar" />
-    <mat-suffix *ngIf="loadingHost"><mat-spinner [diameter]="16"></mat-spinner></mat-suffix>
+    <span matSuffix *ngIf="loadingHost"><mat-spinner [diameter]="16"></mat-spinner></span>
     <mat-hint *ngIf="!loadingHost && !isEdit">Se auto-completa con el DNS del cliente desde InfraDoc</mat-hint>
     <mat-error *ngIf="form.controls.host.invalid">Campo requerido</mat-error>
   </mat-form-field>

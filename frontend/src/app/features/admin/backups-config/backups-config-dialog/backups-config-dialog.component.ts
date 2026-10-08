@@ -71,8 +71,14 @@ export class BackupsConfigDialogComponent implements OnInit {
     this.loadingHost = true;
     this.infradocSvc.getClientInfrastructure(clientId).subscribe({
       next: infra => {
-        if (infra.esxiHosts.length > 0) {
-          this.form.controls.host.setValue(infra.esxiHosts[0].name);
+        const esxi = infra.esxiHosts[0];
+        if (esxi) {
+          const uri = esxi.uri1 ?? esxi.uri2;
+          if (uri) {
+            const colonIdx = uri.lastIndexOf(':');
+            const host = colonIdx >= 0 ? uri.slice(0, colonIdx) : uri;
+            this.form.controls.host.setValue(host);
+          }
         }
         this.loadingHost = false;
       },

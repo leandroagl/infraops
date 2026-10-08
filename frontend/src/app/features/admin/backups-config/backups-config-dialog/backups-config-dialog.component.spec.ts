@@ -74,15 +74,25 @@ describe('BackupsConfigDialogComponent', () => {
 
   beforeEach(() => { jest.clearAllMocks(); });
 
-  it('auto-popula el host con esxiHosts[0].name al seleccionar cliente', async () => {
+  it('auto-popula el host con el hostname de uri1 (sin puerto) al seleccionar cliente', async () => {
     const { comp } = await setup(null);
     mockInfradocSvc.getClientInfrastructure.mockReturnValue(of({
       ...mockEmptyInfra,
-      esxiHosts: [{ assetId: 1, name: 'acme.ondravirtual.com.ar', ip: null, bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: null, uri2: null }],
+      esxiHosts: [{ assetId: 1, name: 'hpGL360.covema.local', ip: null, bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: 'acme.ondravirtual.com.ar:344', uri2: null }],
     }));
     comp.onClientChange('c1');
     expect(mockInfradocSvc.getClientInfrastructure).toHaveBeenCalledWith('c1');
     expect(comp.form.controls.host.value).toBe('acme.ondravirtual.com.ar');
+  });
+
+  it('usa uri2 si uri1 es null', async () => {
+    const { comp } = await setup(null);
+    mockInfradocSvc.getClientInfrastructure.mockReturnValue(of({
+      ...mockEmptyInfra,
+      esxiHosts: [{ assetId: 1, name: 'server.local', ip: null, bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: null, uri2: 'beta.ondravirtual.com.ar:344' }],
+    }));
+    comp.onClientChange('c1');
+    expect(comp.form.controls.host.value).toBe('beta.ondravirtual.com.ar');
   });
 
   it('no modifica el host si esxiHosts está vacío', async () => {
