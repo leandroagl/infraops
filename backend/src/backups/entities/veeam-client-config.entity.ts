@@ -23,6 +23,9 @@ export class VeeamClientConfig {
   @Column({ type: 'varchar', name: 'encrypted_password' })
   encryptedPassword: string;
 
+  @Column({ type: 'uuid', name: 'credential_vault_entry_id', nullable: true })
+  credentialVaultEntryId: string | null;
+
   @Column({ type: 'boolean', name: 'is_enabled', default: true })
   isEnabled: boolean;
 
