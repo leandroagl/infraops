@@ -140,6 +140,17 @@ describe('BackupsConfigDialogComponent', () => {
     expect(mockSvc.updateConfig).toHaveBeenCalledWith('abc', expect.objectContaining({ credentialVaultId: 'v2' }));
   });
 
+  it('onClientChange no llama a InfraDoc en modo edición', async () => {
+    const existing = {
+      id: 'abc', clientName: 'Empresa A', host: '192.168.1.1',
+      port: 9419, username: 'svc_veeam', isEnabled: true, clientId: 'c1',
+      credentialVaultEntryId: 'v1', lastConnectedAt: null,
+    };
+    const { comp } = await setup(existing);
+    comp.onClientChange('c1');
+    expect(mockInfradocSvc.getClientInfrastructure).not.toHaveBeenCalled();
+  });
+
   it('carga solo clientes activos en el selector', async () => {
     mockClientsSvc.getAll.mockReturnValue(of([
       ...mockClients,

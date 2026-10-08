@@ -67,6 +67,7 @@ export class BackupsConfigDialogComponent implements OnInit {
   }
 
   onClientChange(clientId: string): void {
+    if (this.isEdit) return;
     this.loadingHost = true;
     this.infradocSvc.getClientInfrastructure(clientId).subscribe({
       next: infra => {

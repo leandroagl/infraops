@@ -145,8 +145,10 @@ export class BackupsService {
     if (dto.password !== undefined) {
       config.encryptedPassword = encrypt(dto.password, this.encryptKey);
       config.credentialVaultEntryId = null;
+    } else if (dto.credentialVaultId !== undefined) {
+      config.credentialVaultEntryId = dto.credentialVaultId;
+      config.encryptedPassword = '';
     }
-    if (dto.credentialVaultId !== undefined) config.credentialVaultEntryId = dto.credentialVaultId;
     if (dto.isEnabled !== undefined) config.isEnabled = dto.isEnabled;
     config.updatedAt = new Date();
     const saved = await this.configRepo.save(config);

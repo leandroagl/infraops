@@ -118,6 +118,20 @@ describe('BackupsService', () => {
     expect((result as any).credentialVaultEntryId).toBe('v1');
   });
 
+  it('updateConfig con password y credentialVaultId simultáneos da prioridad a password y limpia vault FK', async () => {
+    const existing = {
+      id: 'cfg1', clientId: 'c1', clientName: 'C', host: 'h', port: 9419,
+      username: 'u', encryptedPassword: 'enc', credentialVaultEntryId: 'v1',
+      isEnabled: true, lastConnectedAt: null, updatedAt: new Date(),
+    };
+    mockConfigRepo.findOne.mockResolvedValue({ ...existing });
+    mockConfigRepo.save.mockImplementation((d: any) => Promise.resolve({ ...d, lastConnectedAt: null }));
+    await svc.updateConfig('cfg1', { password: 'newpass', credentialVaultId: 'v2' });
+    const saveArg = mockConfigRepo.save.mock.calls[0][0];
+    expect(saveArg.credentialVaultEntryId).toBeNull();
+    expect(saveArg.encryptedPassword).not.toBe('enc');
+  });
+
   it('updateConfig con credentialVaultId actualiza la FK', async () => {
     const existing = {
       id: 'cfg1', clientId: 'c1', clientName: 'C', host: 'h', port: 9419,

@@ -78,6 +78,11 @@ describe('CredentialVaultService', () => {
     expect(result).toBe(plain);
   });
 
+  it('create lanza error si INTEGRATIONS_ENCRYPT_KEY no está configurada', async () => {
+    mockConfigService.get.mockReturnValue('');
+    await expect(svc.create({ name: 'Test', password: 'plain' })).rejects.toThrow('INTEGRATIONS_ENCRYPT_KEY');
+  });
+
   it('getDecryptedPassword lanza NotFoundException si la entrada no existe', async () => {
     mockVaultRepo.findOne.mockResolvedValue(null);
     await expect(svc.getDecryptedPassword('no-existe')).rejects.toThrow(NotFoundException);

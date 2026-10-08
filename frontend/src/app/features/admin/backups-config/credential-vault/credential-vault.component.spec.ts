@@ -1,13 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ReactiveFormsModule } from '@angular/forms';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CredentialVaultComponent } from './credential-vault.component';
 import { CredentialVaultService } from '../../../../core/services/credential-vault.service';
 
@@ -26,7 +27,7 @@ describe('CredentialVaultComponent', () => {
       declarations: [CredentialVaultComponent],
       imports: [
         NoopAnimationsModule, ReactiveFormsModule,
-        MatTableModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, MatTooltipModule,
+        MatTableModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, MatTooltipModule, MatSnackBarModule,
       ],
       providers: [{ provide: CredentialVaultService, useValue: mockSvc }],
     }).compileComponents();
@@ -58,6 +59,16 @@ describe('CredentialVaultComponent', () => {
     comp.passwordCtrl.setValue('');
     comp.add();
     expect(mockSvc.create).not.toHaveBeenCalled();
+  });
+
+  it('delete muestra snackbar de error si el servidor rechaza la eliminación (credencial en uso)', () => {
+    const mockSnackBar = TestBed.inject(MatSnackBar);
+    const snackSpy = jest.spyOn(mockSnackBar, 'open');
+    mockSvc.delete.mockReturnValue(throwError(() => ({ status: 409, error: { message: 'en uso' } })));
+    jest.spyOn(window, 'confirm').mockReturnValue(true);
+    comp.delete('u1');
+    expect(snackSpy).toHaveBeenCalledWith(expect.stringContaining('uso'), 'Cerrar', expect.any(Object));
+    expect(comp.entries.length).toBe(2);
   });
 
   it('delete llama delete y elimina del array local', () => {
