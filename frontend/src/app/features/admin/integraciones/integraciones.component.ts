@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
-  IntegrationConfigService, OdooConfigDto, InfraDocConfigDto, VmwareConfigDto,
+  IntegrationConfigService, OdooConfigDto, InfraDocConfigDto, VmwareConfigDto, VeeamIntegrationConfigDto,
 } from '../../../core/services/integration-config.service';
 
 const MASK = '••••••••';
@@ -31,18 +31,22 @@ export class IntegracionesComponent implements OnInit {
   odooForm: FormGroup;
   infradocForm: FormGroup;
   vmwareForm: FormGroup;
+  veeamForm: FormGroup;
 
   odoo     = initCard();
   infradoc = initCard();
   vmware   = initCard();
+  veeam    = initCard();
 
   showOdooApiKey     = false;
   showInfradocApiKey = false;
   showVmwarePassword = false;
+  showVeeamPassword  = false;
 
   toggleOdooApiKey(): void     { this.showOdooApiKey     = !this.showOdooApiKey; }
   toggleInfradocApiKey(): void { this.showInfradocApiKey = !this.showInfradocApiKey; }
   toggleVmwarePassword(): void { this.showVmwarePassword = !this.showVmwarePassword; }
+  toggleVeeamPassword(): void  { this.showVeeamPassword  = !this.showVeeamPassword; }
 
   constructor(
     private readonly fb: FormBuilder,
@@ -54,6 +58,7 @@ export class IntegracionesComponent implements OnInit {
     });
     this.infradocForm = this.fb.group({ url: [''], apiKey: [MASK] });
     this.vmwareForm   = this.fb.group({ username: [''], password: [MASK] });
+    this.veeamForm    = this.fb.group({ username: [''], password: [MASK] });
   }
 
   ngOnInit(): void {
@@ -79,6 +84,14 @@ export class IntegracionesComponent implements OnInit {
         this.vmware.loading           = false;
         this.vmware.updatedAt         = d.updatedAt;
         this.vmware.updatedBy         = d.updatedBy;
+      },
+    });
+    this.svc.getVeeam().subscribe({
+      next: (d) => {
+        this.veeamForm.patchValue(d);
+        this.veeam.loading   = false;
+        this.veeam.updatedAt = d.updatedAt;
+        this.veeam.updatedBy = d.updatedBy;
       },
     });
   }
@@ -204,6 +217,47 @@ export class IntegracionesComponent implements OnInit {
         this.vmware.testing          = false;
         this.vmware.connectionStatus = 'error';
         this.snackBar.open('Error al probar VMware', '', { duration: 5000 });
+      },
+    });
+  }
+
+  buildVeeamPatchDto(): Partial<VeeamIntegrationConfigDto> {
+    const v = this.veeamForm.value as { username: string; password: string };
+    const dto: Partial<VeeamIntegrationConfigDto> = { username: v.username };
+    if (v.password && v.password !== MASK) dto.password = v.password;
+    return dto;
+  }
+
+  saveVeeam(): void {
+    this.veeam.saving = true;
+    this.svc.patchVeeam(this.buildVeeamPatchDto()).subscribe({
+      next: (d) => {
+        this.veeamForm.patchValue(d);
+        this.veeam.saving    = false;
+        this.veeam.updatedAt = d.updatedAt;
+        this.veeam.updatedBy = d.updatedBy;
+        this.snackBar.open('Configuración de Veeam guardada', '', { duration: 3000 });
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.veeam.saving = false;
+        this.snackBar.open(e?.error?.message ?? 'Error al guardar configuración de Veeam', '', { duration: 4000 });
+      },
+    });
+  }
+
+  testVeeam(): void {
+    this.veeam.testing = true;
+    this.svc.testVeeam().subscribe({
+      next: (r) => {
+        this.veeam.testing           = false;
+        this.veeam.connectionStatus  = r.ok ? 'ok' : 'error';
+        this.veeam.connectionMessage = r.message;
+        this.snackBar.open(r.message, '', { duration: r.ok ? 3000 : 5000 });
+      },
+      error: () => {
+        this.veeam.testing          = false;
+        this.veeam.connectionStatus = 'error';
+        this.snackBar.open('Error al probar Veeam', '', { duration: 5000 });
       },
     });
   }
