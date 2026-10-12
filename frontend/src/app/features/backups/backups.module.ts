@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -26,6 +27,7 @@ import { BackupClientDrawerComponent } from './components/backup-client-drawer/b
     MatIconModule,
     MatTooltipModule,
     MatTableModule,
+    MatProgressSpinnerModule,
   ],
 })
 export class BackupsModule {}

@@ -9,7 +9,9 @@ import type { ClientBackup, BackupJobStatus } from '../../models/backup.models';
 export class BackupClientDrawerComponent {
   @Input() client: ClientBackup | null = null;
   @Input() open = false;
+  @Input() refreshing = false;
   @Output() closed = new EventEmitter<void>();
+  @Output() refreshRequest = new EventEmitter<string>();
 
   readonly displayedColumns = ['name', 'jobType', 'lastResult', 'hoursAgo'];
 

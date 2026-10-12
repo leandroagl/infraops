@@ -39,7 +39,6 @@ import { DeviationRulesComponent } from './deviation-rules/deviation-rules.compo
 import { DeviationRuleEditDialogComponent } from './deviation-rules/deviation-rule-edit-dialog/deviation-rule-edit-dialog.component';
 import { BackupsConfigComponent } from './backups-config/backups-config.component';
 import { BackupsConfigDialogComponent } from './backups-config/backups-config-dialog/backups-config-dialog.component';
-import { CredentialVaultComponent } from './backups-config/credential-vault/credential-vault.component';
 
 @NgModule({
   declarations: [
@@ -60,7 +59,6 @@ import { CredentialVaultComponent } from './backups-config/credential-vault/cred
     DeviationRuleEditDialogComponent,
     BackupsConfigComponent,
     BackupsConfigDialogComponent,
-    CredentialVaultComponent,
   ],
   imports: [
     CommonModule,

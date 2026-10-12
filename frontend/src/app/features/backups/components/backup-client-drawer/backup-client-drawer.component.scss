@@ -59,10 +59,18 @@
   margin-top: 1px;
 }
 
-.d-close {
-  margin-left: auto;
+.d-refresh {
   flex-shrink: 0;
   color: var(--tx-md) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.d-close {
+  flex-shrink: 0;
+  color: var(--tx-md) !important;
+  margin-left: 2px;
 }
 
 // ── Summary pills ─────────────────────────────────────────────────────────────
@@ -95,6 +103,8 @@
   font-size: 9px;
   color: var(--tx-lo);
   font-family: var(--font-mono);
+
+  &--snapshot { color: var(--warn); }
 }
 
 // ── Drawer body ───────────────────────────────────────────────────────────────
@@ -159,6 +169,17 @@
   font-size: 9px;
   color: var(--tx-lo);
   margin-top: 1px;
+}
+
+.job-msg {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--tx-md);
+  margin-top: 3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .result-chip {
