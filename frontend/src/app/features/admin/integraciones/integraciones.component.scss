@@ -61,6 +61,12 @@
   display: flex; flex-direction: column; gap: 4px;
   &.full { grid-column: 1 / -1; }
   mat-form-field { width: 100%; }
+
+  // Alinea el mat-icon-button suffix con la altura global de 32px del campo
+  mat-form-field button[matSuffix] {
+    --mdc-icon-button-state-layer-size: 28px;
+    width: 28px; height: 28px; padding: 0;
+  }
 }
 
 .field-label {
