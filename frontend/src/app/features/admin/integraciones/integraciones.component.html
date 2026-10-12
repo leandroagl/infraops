@@ -159,4 +159,52 @@
       <span class="last-updated" *ngIf="vmware.updatedAt">{{ vmware.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ vmware.updatedBy ? ' · ' + vmware.updatedBy : '' }}</span>
     </div>
   </div>
+
+  <!-- VEEAM -->
+  <div class="integration-card">
+    <div class="card-header">
+      <div class="card-icon vmware">VB</div>
+      <div class="card-title-group">
+        <div class="card-title">Veeam Backup &amp; Replication</div>
+        <div class="card-desc">Credenciales globales para conectar con los servidores Veeam de clientes</div>
+      </div>
+      <div class="status-badge" [ngClass]="{ ok: veeam.connectionStatus === 'ok', err: veeam.connectionStatus === 'error', unk: veeam.connectionStatus === 'unknown' }">
+        <span class="status-dot"></span>
+        {{ veeam.connectionStatus === 'ok' ? 'Guardado' : veeam.connectionStatus === 'error' ? 'Error' : 'Sin probar' }}
+      </div>
+    </div>
+    <div class="card-body" [formGroup]="veeamForm">
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Usuario <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="username" placeholder="ondra-veeam" />
+          </mat-form-field>
+          <span class="field-hint">Usuario administrador de Veeam B&amp;R. Debe existir en todos los servidores monitoreados.</span>
+        </div>
+        <div class="field">
+          <label class="field-label">Contraseña <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="password" [type]="showVeeamPassword ? 'text' : 'password'" />
+            <button matSuffix mat-icon-button type="button" (mousedown)="$event.preventDefault()" (click)="toggleVeeamPassword()">
+              <svg *ngIf="!showVeeamPassword" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg *ngIf="showVeeamPassword"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </mat-form-field>
+          <span class="field-hint">Contraseña del usuario Veeam. Dejar vacío para no modificar.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-actions">
+      <button mat-stroked-button [disabled]="veeam.testing || veeam.saving" (click)="testVeeam()">
+        <mat-spinner *ngIf="veeam.testing" diameter="14"></mat-spinner>
+        <span *ngIf="!veeam.testing">Probar conexión</span>
+      </button>
+      <button mat-flat-button color="primary" [disabled]="veeam.saving || veeam.testing" (click)="saveVeeam()">
+        <mat-spinner *ngIf="veeam.saving" diameter="14"></mat-spinner>
+        <span *ngIf="!veeam.saving">Guardar</span>
+      </button>
+      <span class="last-updated" *ngIf="veeam.updatedAt">{{ veeam.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ veeam.updatedBy ? ' · ' + veeam.updatedBy : '' }}</span>
+    </div>
+  </div>
 </div>

@@ -9,6 +9,7 @@ import { IntegrationConfigService } from './integration-config.service';
 import { PatchOdooConfigDto, OdooConfigResponseDto } from './dto/odoo-config.dto';
 import { PatchInfraDocConfigDto, InfraDocConfigResponseDto } from './dto/infradoc-config.dto';
 import { PatchVmwareConfigDto, VmwareConfigResponseDto } from './dto/vmware-config.dto';
+import { PatchVeeamIntegrationConfigDto, VeeamIntegrationConfigResponseDto } from './dto/veeam-integration-config.dto';
 
 @Controller('integration-config')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -55,4 +56,16 @@ export class IntegrationConfigController {
   @Post('vmware/test')
   @HttpCode(200)
   testVmware(): Promise<{ ok: boolean; message: string }> { return this.svc.testVmware(); }
+
+  @Get('veeam')
+  getVeeam(): Promise<VeeamIntegrationConfigResponseDto> { return this.svc.getVeeam(); }
+
+  @Patch('veeam')
+  patchVeeam(@Body() dto: PatchVeeamIntegrationConfigDto, @CurrentUser() u: JwtPayload): Promise<VeeamIntegrationConfigResponseDto> {
+    return this.svc.patchVeeam(dto, u.email);
+  }
+
+  @Post('veeam/test')
+  @HttpCode(200)
+  testVeeam(): Promise<{ ok: boolean; message: string }> { return this.svc.testVeeam(); }
 }

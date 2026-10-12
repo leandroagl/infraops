@@ -25,21 +25,6 @@
     <mat-error *ngIf="form.controls.port.invalid">Puerto inválido (1–65535)</mat-error>
   </mat-form-field>
 
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
-    <mat-label>Usuario</mat-label>
-    <input matInput formControlName="username" placeholder="administrator" />
-    <mat-error *ngIf="form.controls.username.invalid">Campo requerido</mat-error>
-  </mat-form-field>
-
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
-    <mat-label>{{ isEdit ? 'Credencial (sin cambios si vacío)' : 'Credencial' }}</mat-label>
-    <mat-select formControlName="credentialVaultId">
-      <mat-option [value]="null">— Sin credencial —</mat-option>
-      <mat-option *ngFor="let e of vaultEntries" [value]="e.id">{{ e.name }}</mat-option>
-    </mat-select>
-    <mat-error *ngIf="form.controls.credentialVaultId.invalid">Campo requerido</mat-error>
-  </mat-form-field>
-
   <div style="margin-top: 16px;">
     <mat-checkbox formControlName="isEnabled">Habilitado</mat-checkbox>
   </div>

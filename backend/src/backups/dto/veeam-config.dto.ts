@@ -6,10 +6,8 @@ export class VeeamClientConfigResponseDto {
   clientName: string;
   host: string;
   port: number;
-  username: string;
   isEnabled: boolean;
   lastConnectedAt: string | null;
-  credentialVaultEntryId: string | null;
 }
 
 export class CreateVeeamConfigDto {
@@ -28,19 +26,6 @@ export class CreateVeeamConfigDto {
   @Min(1)
   @Max(65535)
   port: number;
-
-  @IsString()
-  @IsNotEmpty()
-  username: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsOptional()
-  password?: string;
-
-  @IsUUID()
-  @IsOptional()
-  credentialVaultId?: string;
 
   @IsBoolean()
   isEnabled: boolean;
@@ -62,20 +47,6 @@ export class UpdateVeeamConfigDto {
   @Max(65535)
   @IsOptional()
   port?: number;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsOptional()
-  username?: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @IsOptional()
-  password?: string;
-
-  @IsUUID()
-  @IsOptional()
-  credentialVaultId?: string;
 
   @IsBoolean()
   @IsOptional()

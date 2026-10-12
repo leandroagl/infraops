@@ -14,6 +14,7 @@ import { OdooConfigResponseDto } from '../integration-config/dto/odoo-config.dto
 import { Client } from '../clients/client.entity';
 import { TasksService } from '../tasks/tasks.service';
 import { TaskType } from '../tasks/task-type.enum';
+import { AppNotificationsService } from '../app-notifications/app-notifications.service';
 
 type TypeConfigEntry = {
   enabled: boolean;
@@ -40,6 +41,7 @@ export class ExpirationTicketsService {
     @InjectRepository(Client)
     private readonly clientRepo: Repository<Client>,
     private readonly tasksService: TasksService,
+    private readonly appNotificationsService: AppNotificationsService,
   ) {}
 
   async getExpirationsWithTickets(days?: number): Promise<ExpirationItemDto[]> {
@@ -184,6 +186,20 @@ export class ExpirationTicketsService {
     const odooTicketId = await this.odooService.createExpirationTicket(
       item, clientId, cfg.helpdeskTeamId!, cfg.tagIds, cfg.taskName, cfg.ticketDescription,
     );
+
+    try {
+      await this.appNotificationsService.create('EXPIRATION_TICKET_CREATED', {
+        clientName: item.clientName,
+        expirationType: item.type,
+        itemName: item.itemName,
+        daysUntil: item.daysUntil,
+        odooTicketId,
+      });
+    } catch (err: unknown) {
+      this.logger.error(
+        `Notificación fallida para ticket ${odooTicketId}: ${(err as Error).message}`,
+      );
+    }
 
     let ticketRowId: string;
     if (existingRowId) {

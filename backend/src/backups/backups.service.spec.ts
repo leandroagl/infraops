@@ -1,20 +1,19 @@
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { ConfigService } from '@nestjs/config';
-import { BadRequestException } from '@nestjs/common';
 import { BackupsService } from './backups.service';
 import { VeeamClientConfig } from './entities/veeam-client-config.entity';
 import { VeeamDailySnapshot } from './entities/veeam-daily-snapshot.entity';
 import { VeeamService } from '../integrations/veeam/veeam.service';
-import { CredentialVaultService } from './credential-vault.service';
-import { encrypt } from '../integration-config/crypto.util';
+import { IntegrationConfigService } from '../integration-config/integration-config.service';
 
-const TEST_KEY = 'a'.repeat(64);
 const mockConfigRepo = { find: jest.fn(), findOne: jest.fn(), save: jest.fn(), delete: jest.fn(), create: jest.fn() };
-const mockSnapshotRepo = { upsert: jest.fn() };
+const mockSnapshotRepo = {
+  upsert: jest.fn().mockResolvedValue(undefined),
+  findOne: jest.fn(),
+  find: jest.fn(),
+};
 const mockVeeamService = { getJobStatuses: jest.fn(), testConnection: jest.fn() };
-const mockConfigService = { get: jest.fn().mockReturnValue(TEST_KEY) };
-const mockVaultSvc = { getDecryptedPassword: jest.fn() };
+const mockIntegrationConfigSvc = { getVeeamConfigDecrypted: jest.fn() };
 
 describe('BackupsService', () => {
   let svc: BackupsService;
@@ -26,8 +25,7 @@ describe('BackupsService', () => {
         { provide: getRepositoryToken(VeeamClientConfig), useValue: mockConfigRepo },
         { provide: getRepositoryToken(VeeamDailySnapshot), useValue: mockSnapshotRepo },
         { provide: VeeamService, useValue: mockVeeamService },
-        { provide: ConfigService, useValue: mockConfigService },
-        { provide: CredentialVaultService, useValue: mockVaultSvc },
+        { provide: IntegrationConfigService, useValue: mockIntegrationConfigSvc },
       ],
     }).compile();
     svc = module.get(BackupsService);
@@ -39,15 +37,13 @@ describe('BackupsService', () => {
       { lastResult: 'Success', isRunning: false, isStale: false } as any,
       { lastResult: 'Warning', isRunning: false, isStale: false } as any,
     ];
-    const status = (svc as any).deriveClientStatus(jobs);
-    expect(status).toBe('warn');
+    expect((svc as any).deriveClientStatus(jobs)).toBe('warn');
   });
 
   it('debería devolver crit si hay al menos un job Failed', () => {
     const jobs = [
       { lastResult: 'Success', isRunning: false, isStale: false } as any,
       { lastResult: 'Failed', isRunning: false, isStale: false } as any,
-      { lastResult: 'Warning', isRunning: false, isStale: false } as any,
     ];
     expect((svc as any).deriveClientStatus(jobs)).toBe('crit');
   });
@@ -56,92 +52,106 @@ describe('BackupsService', () => {
     expect((svc as any).deriveClientStatus([])).toBe('no_data');
   });
 
-  it('debería cifrar password al crear config', async () => {
+  it('crea config sin campos de credencial', async () => {
     mockConfigRepo.create.mockImplementation((d: any) => ({ ...d }));
     mockConfigRepo.save.mockResolvedValue({
       id: 'uuid', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419,
-      username: 'u', encryptedPassword: 'enc', credentialVaultEntryId: null,
       isEnabled: true, lastConnectedAt: null, createdAt: new Date(), updatedAt: new Date(),
     });
-    await svc.createConfig({ clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, username: 'u', password: 'plain', isEnabled: true });
-    const saveArg = mockConfigRepo.save.mock.calls[0][0];
-    expect(saveArg.encryptedPassword).not.toBe('plain');
-    expect(saveArg.encryptedPassword).toBeDefined();
+    await svc.createConfig({ clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, isEnabled: true });
+    expect(mockConfigRepo.save).toHaveBeenCalled();
   });
 
-  it('testConnection debería devolver success false sin lanzar error', async () => {
-    const encryptedPassword = encrypt('plain', TEST_KEY);
+  it('testConnection usa credenciales globales de IntegrationConfigService', async () => {
     mockConfigRepo.findOne.mockResolvedValue({
-      host: 'h', port: 9419, username: 'u', encryptedPassword,
-      credentialVaultEntryId: null, isEnabled: true,
+      id: 'cfg1', clientId: 'c1', clientName: 'Client 1',
+      host: '10.0.0.1', port: 9419, isEnabled: true, lastConnectedAt: null,
     });
-    mockVeeamService.testConnection.mockResolvedValue({ success: false, message: 'Authentication failed' });
-    const result = await svc.testConnection('config-id');
-    expect(result.success).toBe(false);
-    expect(result.message).toBe('Authentication failed');
+    mockIntegrationConfigSvc.getVeeamConfigDecrypted.mockResolvedValue({ username: 'admin', password: 'secret' });
+    mockVeeamService.testConnection.mockResolvedValue({ success: true, message: 'OK', jobCount: 3 });
+    await svc.testConnection('cfg1');
+    expect(mockIntegrationConfigSvc.getVeeamConfigDecrypted).toHaveBeenCalled();
+    expect(mockVeeamService.testConnection).toHaveBeenCalledWith('10.0.0.1', 9419, 'admin', 'secret');
   });
 
-  it('createConfig con credentialVaultId guarda la FK y no llama encrypt', async () => {
-    mockConfigRepo.create.mockImplementation((d: any) => ({ ...d }));
-    mockConfigRepo.save.mockResolvedValue({
-      id: 'uuid', clientId: 'c1', clientName: 'Client 1',
-      host: 'h', port: 9419, username: 'u',
-      encryptedPassword: '', credentialVaultEntryId: 'vault-id',
-      isEnabled: true, lastConnectedAt: null, createdAt: new Date(), updatedAt: new Date(),
+  it('getClientStatus usa credenciales globales para llamar a VeeamService', async () => {
+    mockConfigRepo.findOne.mockResolvedValue({
+      id: '1', clientId: 'c1', clientName: 'Client 1',
+      host: 'h', port: 9419, isEnabled: true, lastConnectedAt: null,
     });
-    await svc.createConfig({
-      clientId: 'c1', clientName: 'Client 1', host: 'h',
-      port: 9419, username: 'u', credentialVaultId: 'vault-id', isEnabled: true,
-    });
-    const saveArg = mockConfigRepo.save.mock.calls[0][0];
-    expect(saveArg.credentialVaultEntryId).toBe('vault-id');
-    expect(saveArg.encryptedPassword).toBe('');
+    mockIntegrationConfigSvc.getVeeamConfigDecrypted.mockResolvedValue({ username: 'veeamadmin', password: 'pass' });
+    mockVeeamService.getJobStatuses.mockResolvedValue([]);
+    await svc.getClientStatus('c1');
+    expect(mockVeeamService.getJobStatuses).toHaveBeenCalledWith('h', 9419, 'veeamadmin', 'pass');
   });
 
-  it('createConfig sin password ni credentialVaultId lanza BadRequestException', async () => {
-    await expect(
-      svc.createConfig({ clientId: 'c1', clientName: 'C', host: 'h', port: 9419, username: 'u', isEnabled: true }),
-    ).rejects.toThrow(BadRequestException);
+  it('getAllClientStatuses incluye configs deshabilitadas con status disconnected', async () => {
+    mockConfigRepo.find.mockResolvedValue([
+      { id: '1', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, isEnabled: false, lastConnectedAt: null },
+    ]);
+    const result = await svc.getAllClientStatuses();
+    expect(result).toHaveLength(1);
+    expect(result[0].status).toBe('disconnected');
+    expect(mockVeeamService.getJobStatuses).not.toHaveBeenCalled();
   });
 
-  it('createConfig retorna credentialVaultEntryId en el DTO de respuesta', async () => {
-    mockConfigRepo.create.mockImplementation((d: any) => ({ ...d }));
-    mockConfigRepo.save.mockResolvedValue({
-      id: 'uuid', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419,
-      username: 'u', encryptedPassword: '', credentialVaultEntryId: 'v1',
-      isEnabled: true, lastConnectedAt: null, createdAt: new Date(), updatedAt: new Date(),
+  it('getAllClientStatuses retorna disconnected cuando la conexión falla en un config habilitado', async () => {
+    mockConfigRepo.find.mockResolvedValue([
+      { id: '1', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, isEnabled: true, lastConnectedAt: null },
+    ]);
+    mockConfigRepo.findOne.mockResolvedValue({
+      id: '1', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, isEnabled: true, lastConnectedAt: null,
     });
-    const result = await svc.createConfig({
-      clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419,
-      username: 'u', credentialVaultId: 'v1', isEnabled: true,
+    mockIntegrationConfigSvc.getVeeamConfigDecrypted.mockResolvedValue({ username: 'u', password: 'p' });
+    mockVeeamService.getJobStatuses.mockRejectedValue(new Error('Connection refused'));
+    const result = await svc.getAllClientStatuses();
+    expect(result[0].status).toBe('disconnected');
+  });
+
+  it('getClientStatus llama saveSnapshot tras conexión exitosa', async () => {
+    mockConfigRepo.findOne.mockResolvedValue({
+      id: '1', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, isEnabled: true, lastConnectedAt: null,
     });
-    expect((result as any).credentialVaultEntryId).toBe('v1');
+    mockIntegrationConfigSvc.getVeeamConfigDecrypted.mockResolvedValue({ username: 'u', password: 'p' });
+    mockVeeamService.getJobStatuses.mockResolvedValue([
+      { jobId: 'j1', jobName: 'Job1', jobType: 'Backup', isRunning: false,
+        lastResult: 'Success', lastMessage: null, lastRunAt: new Date().toISOString(), hoursAgo: 2, isStale: false },
+    ]);
+    await svc.getClientStatus('c1');
+    await Promise.resolve();
+    expect(mockSnapshotRepo.upsert).toHaveBeenCalledTimes(1);
   });
 
-  it('updateConfig con password y credentialVaultId simultáneos da prioridad a password y limpia vault FK', async () => {
-    const existing = {
-      id: 'cfg1', clientId: 'c1', clientName: 'C', host: 'h', port: 9419,
-      username: 'u', encryptedPassword: 'enc', credentialVaultEntryId: 'v1',
-      isEnabled: true, lastConnectedAt: null, updatedAt: new Date(),
-    };
-    mockConfigRepo.findOne.mockResolvedValue({ ...existing });
-    mockConfigRepo.save.mockImplementation((d: any) => Promise.resolve({ ...d, lastConnectedAt: null }));
-    await svc.updateConfig('cfg1', { password: 'newpass', credentialVaultId: 'v2' });
-    const saveArg = mockConfigRepo.save.mock.calls[0][0];
-    expect(saveArg.credentialVaultEntryId).toBeNull();
-    expect(saveArg.encryptedPassword).not.toBe('enc');
+  it('getLastSnapshot retorna disconnectedDto cuando no hay snapshots para un cliente', async () => {
+    mockConfigRepo.find.mockResolvedValue([
+      { id: '1', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, isEnabled: true, lastConnectedAt: null },
+    ]);
+    mockSnapshotRepo.findOne.mockResolvedValue(null);
+    const result = await svc.getLastSnapshot();
+    expect(result[0].status).toBe('disconnected');
   });
 
-  it('updateConfig con credentialVaultId actualiza la FK', async () => {
-    const existing = {
-      id: 'cfg1', clientId: 'c1', clientName: 'C', host: 'h', port: 9419,
-      username: 'u', encryptedPassword: 'enc', credentialVaultEntryId: null,
-      isEnabled: true, lastConnectedAt: null, updatedAt: new Date(),
-    };
-    mockConfigRepo.findOne.mockResolvedValue({ ...existing });
-    mockConfigRepo.save.mockImplementation((d: any) => Promise.resolve({ ...d, lastConnectedAt: null }));
-    await svc.updateConfig('cfg1', { credentialVaultId: 'new-vault-id' });
-    const saveArg = mockConfigRepo.save.mock.calls[0][0];
-    expect(saveArg.credentialVaultEntryId).toBe('new-vault-id');
+  it('getLastSnapshot reconstruye status desde filas de snapshot', async () => {
+    const lastRunAt = new Date(Date.now() - 2 * 3600000);
+    mockConfigRepo.find.mockResolvedValue([
+      { id: '1', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, isEnabled: true, lastConnectedAt: null },
+    ]);
+    mockSnapshotRepo.findOne.mockResolvedValue({ clientId: 'c1', jobId: 'j1', snapshotDate: '2026-10-12' });
+    mockSnapshotRepo.find.mockResolvedValue([
+      { clientId: 'c1', jobId: 'j1', jobName: 'Job1', jobType: 'Backup',
+        result: 'Success', message: null, lastRunAt, hoursAgo: 2, snapshotDate: '2026-10-12' },
+    ]);
+    const result = await svc.getLastSnapshot();
+    expect(result[0].status).toBe('ok');
+    expect(result[0].isSnapshot).toBe(true);
+  });
+
+  it('getLastSnapshot retorna disconnectedDto para clientes deshabilitados', async () => {
+    mockConfigRepo.find.mockResolvedValue([
+      { id: '1', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, isEnabled: false, lastConnectedAt: null },
+    ]);
+    const result = await svc.getLastSnapshot();
+    expect(result[0].status).toBe('disconnected');
+    expect(mockSnapshotRepo.findOne).not.toHaveBeenCalled();
   });
 });

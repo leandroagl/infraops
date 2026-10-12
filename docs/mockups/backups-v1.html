@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backups · InfraOps</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --base:#0f1117;--surface:#161b22;--card:#1e2530;--elevated:#252e3f;--hover:#2a3447;
+  --border:#2d3748;--border-lo:#1e2737;--border-md:#3a4a62;
+  --tx-hi:#f0f4f8;--tx-md:#8b95a6;--tx-lo:#4a5568;
+  --crit:#f87171;--crit-bg:rgba(248,113,113,.10);--crit-bd:rgba(248,113,113,.30);
+  --warn:#fb923c;--warn-bg:rgba(251,146,60,.10);--warn-bd:rgba(251,146,60,.30);
+  --ok:#4ade80;--ok-bg:rgba(74,222,128,.10);--ok-bd:rgba(74,222,128,.30);
+  --accent:#22d3ee;--accent-bg:rgba(34,211,238,.08);--accent-bd:rgba(34,211,238,.25);
+  --bkp:#a3e635;--bkp-bg:rgba(163,230,53,.10);--bkp-bd:rgba(163,230,53,.25);
+  --neutral:#64748b;--neutral-bg:rgba(100,116,139,.10);--neutral-bd:rgba(100,116,139,.25);
+  --font-mono:'IBM Plex Mono',monospace;
+  --font-ui:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --radius:10px;--radius-sm:7px;--radius-xs:5px;
+  --shadow-card:0 1px 3px rgba(0,0,0,.4);
+}
+body{font-family:var(--font-ui);background:var(--base);color:var(--tx-hi);font-size:13px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column}
+
+/* ── Shell ─────────────────────────────────────── */
+.topbar{height:50px;background:var(--surface);border-bottom:1px solid var(--border-lo);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.topbar__logo{font-size:13px;font-weight:700;font-family:var(--font-mono);color:var(--tx-hi);letter-spacing:-.5px}
+.topbar__sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.topbar__page{font-size:12px;color:var(--tx-lo)}
+
+.shell{display:flex;flex:1;overflow:hidden}
+.sidebar{width:52px;background:var(--surface);border-right:1px solid var(--border-lo);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:4px;flex-shrink:0}
+.nav-item{width:34px;height:34px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx-lo);border:1px solid transparent}
+.nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.nav-item:hover{background:var(--hover);color:var(--tx-md)}
+.nav-item.active{background:var(--bkp-bg);border-color:var(--bkp-bd);color:var(--bkp)}
+
+/* ── Page ───────────────────────────────────────── */
+.page{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px;transition:margin-right .2s}
+.page.drawer-open{margin-right:460px}
+
+.page-hdr{display:flex;align-items:center;justify-content:space-between}
+.page-hdr__left{display:flex;align-items:baseline;gap:10px}
+.page-title{font-size:16px;font-weight:600;color:var(--tx-hi)}
+.page-sub{font-size:11px;color:var(--tx-lo);font-family:var(--font-mono)}
+.page-hdr__right{display:flex;align-items:center;gap:8px}
+.sync-info{font-size:10px;color:var(--tx-lo);font-family:var(--font-mono)}
+.btn-sm{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:var(--radius-sm);background:var(--card);border:1px solid var(--border);color:var(--tx-md);font-size:11px;cursor:pointer;font-family:var(--font-ui)}
+.btn-sm svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.btn-sm:hover{background:var(--elevated);color:var(--tx-hi)}
+.btn-icon{width:30px;height:30px;border-radius:var(--radius-sm);background:var(--card);border:1px solid var(--border);color:var(--tx-lo);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .12s,color .12s}
+.btn-icon svg{width:14px;height:14px}
+.btn-icon:hover{background:var(--elevated);color:var(--tx-hi)}
+
+/* ── KPI strip ──────────────────────────────────── */
+.kpi-strip{display:flex;align-items:center;background:var(--card);border-bottom:1px solid var(--border-lo);flex-shrink:0;height:62px;padding:0 24px}
+.kpi-block{display:flex;flex-direction:column;justify-content:center;padding:0 20px;border-right:1px solid var(--border-lo)}
+.kpi-block:first-child{padding-left:0}
+.kpi-block:last-child{border-right:none}
+.kpi-label{font-size:9px;color:var(--tx-lo);text-transform:uppercase;letter-spacing:.6px;font-family:var(--font-mono);margin-bottom:3px}
+.kpi-val{font-family:var(--font-mono);font-size:22px;font-weight:500;line-height:1}
+.kpi-val--total{color:var(--tx-hi)}
+.kpi-val--ok{color:var(--ok)}
+.kpi-val--warn{color:var(--warn)}
+.kpi-val--crit{color:var(--crit)}
+.kpi-val--nd{color:var(--tx-lo)}
+
+/* ── Grid de clientes ───────────────────────────── */
+.section-label{font-size:9px;font-weight:600;color:var(--tx-lo);letter-spacing:.6px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border-lo)}
+
+.client-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+
+.client-card{background:var(--surface);border:1px solid var(--border-lo);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:border-color .12s,box-shadow .12s;box-shadow:var(--shadow-card);display:flex;flex-direction:column}
+.client-card:hover{border-color:var(--border-md);box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.client-card.selected{border-color:var(--bkp-bd);box-shadow:0 0 0 1px var(--bkp-bd)}
+.client-card.st-ok{border-left:3px solid var(--ok)}
+.client-card.st-warn{border-left:3px solid var(--warn)}
+.client-card.st-crit{border-left:3px solid var(--crit)}
+.client-card.st-nd{border-left:3px solid var(--border-md)}
+
+.card-top{padding:10px 12px 8px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.card-name{font-size:12px;font-weight:600;color:var(--tx-hi);line-height:1.3}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.status-dot.ok{background:var(--ok);box-shadow:0 0 5px var(--ok)}
+.status-dot.warn{background:var(--warn);box-shadow:0 0 5px var(--warn)}
+.status-dot.crit{background:var(--crit);box-shadow:0 0 5px var(--crit)}
+.status-dot.nd{background:var(--border-md)}
+
+.card-mid{padding:0 12px 8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.count-chip{font-size:9px;font-family:var(--font-mono);padding:2px 7px;border-radius:20px;border:1px solid;font-weight:500}
+.count-chip.ok{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)}
+.count-chip.warn{background:var(--warn-bg);border-color:var(--warn-bd);color:var(--warn)}
+.count-chip.crit{background:var(--crit-bg);border-color:var(--crit-bd);color:var(--crit)}
+
+.card-bot{padding:6px 12px 9px;border-top:1px solid var(--border-lo);display:flex;align-items:center;justify-content:space-between}
+.card-meta{font-size:9px;color:var(--tx-lo);font-family:var(--font-mono)}
+.running-badge{font-size:8px;font-family:var(--font-mono);padding:2px 6px;border-radius:20px;background:var(--accent-bg);border:1px solid var(--accent-bd);color:var(--accent);display:flex;align-items:center;gap:3px}
+.running-dot{width:4px;height:4px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── Drawer ─────────────────────────────────────── */
+.drawer{position:fixed;top:50px;right:0;width:460px;bottom:0;background:var(--surface);border-left:1px solid var(--border-lo);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .2s;z-index:100}
+.drawer.open{transform:translateX(0)}
+
+.d-hdr{padding:14px 16px;border-bottom:1px solid var(--border-lo);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.d-ico{width:34px;height:34px;border-radius:8px;background:var(--bkp-bg);border:1px solid var(--bkp-bd);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.d-ico svg{width:15px;height:15px;stroke:var(--bkp);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.d-title{font-size:13px;font-weight:600;color:var(--tx-hi)}
+.d-sub{font-size:10px;color:var(--tx-lo);font-family:var(--font-mono);margin-top:1px}
+.d-close{margin-left:auto;width:26px;height:26px;border-radius:6px;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--tx-md);flex-shrink:0}
+.d-close svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+.d-close:hover{background:var(--elevated);color:var(--tx-hi)}
+
+.d-summary{padding:10px 16px;border-bottom:1px solid var(--border-lo);display:flex;align-items:center;gap:8px;background:var(--card)}
+.d-sum-pill{font-size:9px;font-family:var(--font-mono);padding:3px 9px;border-radius:20px;border:1px solid;font-weight:500}
+.d-sum-pill.ok{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)}
+.d-sum-pill.warn{background:var(--warn-bg);border-color:var(--warn-bd);color:var(--warn)}
+.d-sum-pill.crit{background:var(--crit-bg);border-color:var(--crit-bd);color:var(--crit)}
+.d-sum-sep{flex:1}
+.d-sync{font-size:9px;color:var(--tx-lo);font-family:var(--font-mono)}
+
+.d-body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:4px}
+
+/* ── Job table en drawer ────────────────────────── */
+.job-table{display:flex;flex-direction:column;gap:3px}
+
+.job-hdr{display:grid;grid-template-columns:1fr 64px 72px 52px;gap:0;padding:0 10px 6px;border-bottom:1px solid var(--border-lo);margin-bottom:2px}
+.job-hdr-cell{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--tx-lo);font-family:var(--font-mono)}
+.job-hdr-cell.right{text-align:right}
+
+.job-row{display:grid;grid-template-columns:1fr 64px 72px 52px;gap:0;background:var(--card);border:1px solid var(--border-lo);border-radius:var(--radius-sm);overflow:hidden;transition:border-color .1s}
+.job-row:hover{border-color:var(--border-md)}
+.job-row.j-ok{border-left:3px solid var(--ok)}
+.job-row.j-warn{border-left:3px solid var(--warn)}
+.job-row.j-crit{border-left:3px solid var(--crit)}
+.job-row.j-replica{border-left:3px solid var(--accent)}
+
+.job-cell{padding:7px 10px;display:flex;align-items:center}
+.job-cell.right{justify-content:flex-end}
+.job-name{font-size:11px;font-weight:600;color:var(--tx-hi);font-family:var(--font-mono)}
+.job-type{font-size:9px;color:var(--tx-lo);margin-top:1px}
+
+.result-chip{font-size:9px;font-family:var(--font-mono);padding:2px 7px;border-radius:20px;border:1px solid;white-space:nowrap}
+.result-chip.ok{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok)}
+.result-chip.warn{background:var(--warn-bg);border-color:var(--warn-bd);color:var(--warn)}
+.result-chip.crit{background:var(--crit-bg);border-color:var(--crit-bd);color:var(--crit)}
+.result-chip.running{background:var(--accent-bg);border-color:var(--accent-bd);color:var(--accent)}
+.result-chip.replica{background:var(--neutral-bg);border-color:var(--neutral-bd);color:var(--neutral)}
+
+.job-hours{font-size:10px;font-family:var(--font-mono);color:var(--tx-md);text-align:right}
+.job-hours.stale{color:var(--warn)}
+
+.job-msg{padding:4px 10px 6px 13px;grid-column:1/-1;font-size:10px;color:var(--tx-lo);font-family:var(--font-mono);border-top:1px solid var(--border-lo);display:none}
+.job-msg.visible{display:block}
+.job-msg span{color:var(--warn)}
+
+.d-footer{padding:10px 16px;border-top:1px solid var(--border-lo);background:var(--surface);flex-shrink:0}
+.d-footer-meta{font-size:10px;color:var(--tx-lo);font-family:var(--font-mono)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar__logo">InfraOps</span>
+  <div class="topbar__sep"></div>
+  <span class="topbar__page">Backups</span>
+</div>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="nav-item" title="Tareas">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    </div>
+    <div class="nav-item" title="Vencimientos">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    </div>
+    <div class="nav-item active" title="Backups">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <div class="nav-item" title="Clientes">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    </div>
+    <div class="nav-item" title="Admin">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+    </div>
+  </div>
+
+  <!-- Page -->
+  <div class="page drawer-open" id="page">
+
+    <!-- Header -->
+    <div class="page-hdr">
+      <div class="page-hdr__left">
+        <span class="page-title">Backups</span>
+        <span class="page-sub">27 clientes</span>
+      </div>
+      <div class="page-hdr__right">
+        <span class="sync-info">Última lectura: hoy 07:02</span>
+        <button class="btn-sm">
+          <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          Actualizar
+        </button>
+        <button class="btn-icon" title="Configuración de clientes Veeam">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="kpi-strip">
+      <div class="kpi-block">
+        <div class="kpi-label">Total</div>
+        <div class="kpi-val kpi-val--total">27</div>
+      </div>
+      <div class="kpi-block">
+        <div class="kpi-label">OK</div>
+        <div class="kpi-val kpi-val--ok">21</div>
+      </div>
+      <div class="kpi-block">
+        <div class="kpi-label">Advertencias</div>
+        <div class="kpi-val kpi-val--warn">4</div>
+      </div>
+      <div class="kpi-block">
+        <div class="kpi-label">Fallas</div>
+        <div class="kpi-val kpi-val--crit">1</div>
+      </div>
+      <div class="kpi-block">
+        <div class="kpi-label">Sin datos</div>
+        <div class="kpi-val kpi-val--nd">1</div>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="section-label">Clientes con Veeam</div>
+    <div class="client-grid">
+
+      <!-- Atalaya — WARN — SELECTED -->
+      <div class="client-card st-warn selected" onclick="openDrawer()">
+        <div class="card-top">
+          <div class="card-name">Atalaya</div>
+          <div class="status-dot warn"></div>
+        </div>
+        <div class="card-mid">
+          <span class="count-chip ok">10 ok</span>
+          <span class="count-chip warn">2 warn</span>
+        </div>
+        <div class="card-bot">
+          <span class="card-meta">12 jobs · hace 16h</span>
+          <span class="running-badge"><span class="running-dot"></span>1 activo</span>
+        </div>
+      </div>
+
+      <!-- PSQ DC — OK -->
+      <div class="client-card st-ok" onclick="">
+        <div class="card-top">
+          <div class="card-name">PSQ DC</div>
+          <div class="status-dot ok"></div>
+        </div>
+        <div class="card-mid">
+          <span class="count-chip ok">6 ok</span>
+        </div>
+        <div class="card-bot">
+          <span class="card-meta">6 jobs · hace 14h</span>
+        </div>
+      </div>
+
+      <!-- Mecanotécnica — CRIT -->
+      <div class="client-card st-crit" onclick="">
+        <div class="card-top">
+          <div class="card-name">Mecanotécnica</div>
+          <div class="status-dot crit"></div>
+        </div>
+        <div class="card-mid">
+          <span class="count-chip ok">3 ok</span>
+          <span class="count-chip crit">1 fail</span>
+        </div>
+        <div class="card-bot">
+          <span class="card-meta">4 jobs · hace 15h</span>
+        </div>
+      </div>
+
+      <!-- Electromedik — OK -->
+      <div class="client-card st-ok" onclick="">
+        <div class="card-top">
+          <div class="card-name">Electromedik</div>
+          <div class="status-dot ok"></div>
+        </div>
+        <div class="card-mid">
+          <span class="count-chip ok">8 ok</span>
+        </div>
+        <div class="card-bot">
+          <span class="card-meta">8 jobs · hace 16h</span>
+        </div>
+      </div>
+
+      <!-- Hotel Algodón — WARN -->
+      <div class="client-card st-warn" onclick="">
+        <div class="card-top">
+          <div class="card-name">Hotel Algodón</div>
+          <div class="status-dot warn"></div>
+        </div>
+        <div class="card-mid">
+          <span class="count-chip ok">4 ok</span>
+          <span class="count-chip warn">1 warn</span>
+        </div>
+        <div class="card-bot">
+          <span class="card-meta">5 jobs · hace 15h</span>
+        </div>
+      </div>
+
+      <!-- Pampamed — OK -->
+      <div class="client-card st-ok" onclick="">
+        <div class="card-top">
+          <div class="card-name">Pampamed</div>
+          <div class="status-dot ok"></div>
+        </div>
+        <div class="card-mid">
+          <span class="count-chip ok">5 ok</span>
+        </div>
+        <div class="card-bot">
+          <span class="card-meta">5 jobs · hace 14h</span>
+        </div>
+      </div>
+
+      <!-- Vision Médica — OK -->
+      <div class="client-card st-ok" onclick="">
+        <div class="card-top">
+          <div class="card-name">Vision Médica</div>
+          <div class="status-dot ok"></div>
+        </div>
+        <div class="card-mid">
+          <span class="count-chip ok">3 ok</span>
+        </div>
+        <div class="card-bot">
+          <span class="card-meta">3 jobs · hace 16h</span>
+        </div>
+      </div>
+
+      <!-- Cryobank — WARN -->
+      <div class="client-card st-warn" onclick="">
+        <div class="card-top">
+          <div class="card-name">Cryobank</div>
+          <div class="status-dot warn"></div>
+        </div>
+        <div class="card-mid">
+          <span class="count-chip ok">2 ok</span>
+          <span class="count-chip warn">1 warn</span>
+        </div>
+        <div class="card-bot">
+          <span class="card-meta">3 jobs · hace 16h</span>
+        </div>
+      </div>
+
+      <!-- Jose Morda — OK -->
+      <div class="client-card st-ok" onclick="">
+        <div class="card-top">
+          <div class="card-name">Jose Morda Asoc.</div>
+          <div class="status-dot ok"></div>
+        </div>
+        <div class="card-mid">
+          <span class="count-chip ok">4 ok</span>
+        </div>
+        <div class="card-bot">
+          <span class="card-meta">4 jobs · hace 15h</span>
+        </div>
+      </div>
+
+      <!-- SD Distribuciones — sin datos -->
+      <div class="client-card st-nd" onclick="">
+        <div class="card-top">
+          <div class="card-name">SD Distribuciones</div>
+          <div class="status-dot nd"></div>
+        </div>
+        <div class="card-mid">
+          <span style="font-size:9px;color:var(--tx-lo);font-family:var(--font-mono)">v9 — sin API REST</span>
+        </div>
+        <div class="card-bot">
+          <span class="card-meta">pendiente migración</span>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /page -->
+
+  <!-- Drawer -->
+  <div class="drawer open" id="drawer">
+    <div class="d-hdr">
+      <div class="d-ico">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <div>
+        <div class="d-title">Atalaya</div>
+        <div class="d-sub">12 jobs · Veeam B&R 12.1</div>
+      </div>
+      <div class="d-close" onclick="closeDrawer()">
+        <svg viewBox="0 0 14 14"><path d="M1 1l12 12M13 1L1 13"/></svg>
+      </div>
+    </div>
+
+    <div class="d-summary">
+      <span class="d-sum-pill ok">10 Success</span>
+      <span class="d-sum-pill warn">2 Warning</span>
+      <div class="d-sum-sep"></div>
+      <span class="d-sync">lectura en vivo · 07:02</span>
+    </div>
+
+    <div class="d-body">
+      <div class="job-table">
+
+        <div class="job-hdr">
+          <div class="job-hdr-cell">Job</div>
+          <div class="job-hdr-cell">Estado</div>
+          <div class="job-hdr-cell">Resultado</div>
+          <div class="job-hdr-cell right">Hace</div>
+        </div>
+
+        <!-- DC -->
+        <div class="job-row j-ok">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">DC</span>
+            <span class="job-type">Backup</span>
+          </div>
+          <div class="job-cell"><span class="result-chip replica">Inactivo</span></div>
+          <div class="job-cell"><span class="result-chip ok">Success</span></div>
+          <div class="job-cell right"><span class="job-hours">16.1h</span></div>
+        </div>
+
+        <!-- DC2 -->
+        <div class="job-row j-ok">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">DC2</span>
+            <span class="job-type">Backup</span>
+          </div>
+          <div class="job-cell"><span class="result-chip replica">Inactivo</span></div>
+          <div class="job-cell"><span class="result-chip ok">Success</span></div>
+          <div class="job-cell right"><span class="job-hours">15.7h</span></div>
+        </div>
+
+        <!-- FS -->
+        <div class="job-row j-ok">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">FS</span>
+            <span class="job-type">Backup</span>
+          </div>
+          <div class="job-cell"><span class="result-chip replica">Inactivo</span></div>
+          <div class="job-cell"><span class="result-chip ok">Success</span></div>
+          <div class="job-cell right"><span class="job-hours">16.1h</span></div>
+        </div>
+
+        <!-- PRTG_Monitor -->
+        <div class="job-row j-ok">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">PRTG_Monitor</span>
+            <span class="job-type">Backup</span>
+          </div>
+          <div class="job-cell"><span class="result-chip replica">Inactivo</span></div>
+          <div class="job-cell"><span class="result-chip ok">Success</span></div>
+          <div class="job-cell right"><span class="job-hours">16.0h</span></div>
+        </div>
+
+        <!-- Replicas — running -->
+        <div class="job-row j-replica">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">Replicas</span>
+            <span class="job-type">Réplica vSphere</span>
+          </div>
+          <div class="job-cell"><span class="result-chip running">En curso</span></div>
+          <div class="job-cell"><span class="result-chip ok">Success</span></div>
+          <div class="job-cell right"><span class="job-hours">1.0h</span></div>
+        </div>
+
+        <!-- TS -->
+        <div class="job-row j-ok">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">TS</span>
+            <span class="job-type">Backup</span>
+          </div>
+          <div class="job-cell"><span class="result-chip replica">Inactivo</span></div>
+          <div class="job-cell"><span class="result-chip ok">Success</span></div>
+          <div class="job-cell right"><span class="job-hours">16.0h</span></div>
+        </div>
+
+        <!-- TS2 — WARN -->
+        <div class="job-row j-warn">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">TS2</span>
+            <span class="job-type">Backup</span>
+          </div>
+          <div class="job-cell"><span class="result-chip replica">Inactivo</span></div>
+          <div class="job-cell"><span class="result-chip warn">Warning</span></div>
+          <div class="job-cell right"><span class="job-hours">15.7h</span></div>
+          <div class="job-msg visible"><span>⚠</span> Guest processing skipped (check VMware Tools status)</div>
+        </div>
+
+        <!-- VM001 -->
+        <div class="job-row j-ok">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">VM001</span>
+            <span class="job-type">Backup</span>
+          </div>
+          <div class="job-cell"><span class="result-chip replica">Inactivo</span></div>
+          <div class="job-cell"><span class="result-chip ok">Success</span></div>
+          <div class="job-cell right"><span class="job-hours">15.9h</span></div>
+        </div>
+
+        <!-- VM001_COPY — 120h, stale -->
+        <div class="job-row j-ok">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">VM001_COPY</span>
+            <span class="job-type">Backup</span>
+          </div>
+          <div class="job-cell"><span class="result-chip replica">Inactivo</span></div>
+          <div class="job-cell"><span class="result-chip ok">Success</span></div>
+          <div class="job-cell right"><span class="job-hours stale" title=">30h sin ejecutar">120h</span></div>
+        </div>
+
+        <!-- VM002 — WARN -->
+        <div class="job-row j-warn">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">VM002</span>
+            <span class="job-type">Backup</span>
+          </div>
+          <div class="job-cell"><span class="result-chip replica">Inactivo</span></div>
+          <div class="job-cell"><span class="result-chip warn">Warning</span></div>
+          <div class="job-cell right"><span class="job-hours">15.8h</span></div>
+          <div class="job-msg visible"><span>⚠</span> Unable to truncate Microsoft SQL Server transaction logs. Details: Failed to call RPC function 'Vss.</div>
+        </div>
+
+        <!-- VM004 -->
+        <div class="job-row j-ok">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">VM004</span>
+            <span class="job-type">Backup</span>
+          </div>
+          <div class="job-cell"><span class="result-chip replica">Inactivo</span></div>
+          <div class="job-cell"><span class="result-chip ok">Success</span></div>
+          <div class="job-cell right"><span class="job-hours">15.8h</span></div>
+        </div>
+
+        <!-- VM005 -->
+        <div class="job-row j-ok">
+          <div class="job-cell" style="flex-direction:column;align-items:flex-start">
+            <span class="job-name">VM005</span>
+            <span class="job-type">Backup</span>
+          </div>
+          <div class="job-cell"><span class="result-chip replica">Inactivo</span></div>
+          <div class="job-cell"><span class="result-chip ok">Success</span></div>
+          <div class="job-cell right"><span class="job-hours">15.7h</span></div>
+        </div>
+
+      </div><!-- /job-table -->
+    </div><!-- /d-body -->
+
+  </div><!-- /drawer -->
+
+</div><!-- /shell -->
+
+<script>
+function openDrawer(){
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('page').classList.add('drawer-open');
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('page').classList.remove('drawer-open');
+}
+</script>
+</body>
+</html>

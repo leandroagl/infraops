@@ -19,6 +19,10 @@ export class BackupsService {
     return this.http.get<ClientBackup[]>(this.base);
   }
 
+  getSnapshot(): Observable<ClientBackup[]> {
+    return this.http.get<ClientBackup[]>(`${this.base}/snapshot`);
+  }
+
   getOne(clientId: string): Observable<ClientBackup> {
     return this.http.get<ClientBackup>(`${this.base}/${clientId}`);
   }

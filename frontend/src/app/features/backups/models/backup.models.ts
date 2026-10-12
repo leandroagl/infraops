@@ -1,5 +1,5 @@
 export type BackupJobResult = 'Success' | 'Warning' | 'Failed';
-export type ClientBackupStatus = 'ok' | 'warn' | 'crit' | 'no_data';
+export type ClientBackupStatus = 'ok' | 'warn' | 'crit' | 'no_data' | 'disconnected';
 
 export interface BackupJobStatus {
   jobId: string;
@@ -24,6 +24,7 @@ export interface ClientBackup {
   hasRunningJob: boolean;
   lastReadAt: string;
   jobs: BackupJobStatus[];
+  isSnapshot?: boolean;
 }
 
 export interface VeeamClientConfig {
@@ -32,10 +33,8 @@ export interface VeeamClientConfig {
   clientName: string;
   host: string;
   port: number;
-  username: string;
   isEnabled: boolean;
   lastConnectedAt: string | null;
-  credentialVaultEntryId: string | null;
 }
 
 export interface CreateVeeamConfigRequest {
@@ -43,9 +42,6 @@ export interface CreateVeeamConfigRequest {
   clientName: string;
   host: string;
   port: number;
-  username: string;
-  password?: string;
-  credentialVaultId?: string;
   isEnabled: boolean;
 }
 
@@ -53,9 +49,6 @@ export interface UpdateVeeamConfigRequest {
   clientName?: string;
   host?: string;
   port?: number;
-  username?: string;
-  password?: string;
-  credentialVaultId?: string;
   isEnabled?: boolean;
 }
 

@@ -17,15 +17,6 @@ export class VeeamClientConfig {
   @Column({ type: 'int', default: 9419 })
   port: number;
 
-  @Column({ type: 'varchar' })
-  username: string;
-
-  @Column({ type: 'varchar', name: 'encrypted_password' })
-  encryptedPassword: string;
-
-  @Column({ type: 'uuid', name: 'credential_vault_entry_id', nullable: true })
-  credentialVaultEntryId: string | null;
-
   @Column({ type: 'boolean', name: 'is_enabled', default: true })
   isEnabled: boolean;
 

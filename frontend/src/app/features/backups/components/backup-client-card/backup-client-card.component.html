@@ -10,10 +10,11 @@
   </div>
 
   <div class="card-mid">
-    <span *ngIf="client.okCount > 0" class="count-chip ok">{{ client.okCount }} ok</span>
+    <span *ngIf="client.status === 'ok' || client.okCount > 0" class="count-chip ok">{{ client.okCount || client.totalJobs }} ok</span>
     <span *ngIf="client.warnCount > 0" class="count-chip warn">{{ client.warnCount }} warn</span>
     <span *ngIf="client.critCount > 0" class="count-chip crit">{{ client.critCount }} fail</span>
     <span *ngIf="client.status === 'no_data'" class="no-data-note">sin datos</span>
+    <span *ngIf="client.status === 'disconnected'" class="no-data-note">sin conexión</span>
   </div>
 
   <div class="card-bot">

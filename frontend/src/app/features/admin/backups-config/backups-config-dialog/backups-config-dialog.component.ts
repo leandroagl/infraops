@@ -4,9 +4,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { BackupsService } from '../../../../features/backups/services/backups.service';
 import { ClientsService } from '../../../../core/services/clients.service';
 import { InfradocService } from '../../../../core/services/infradoc.service';
-import { CredentialVaultService } from '../../../../core/services/credential-vault.service';
 import { Client } from '../../../../core/models/client.models';
-import type { CredentialVaultEntry } from '../../../../core/models/credential-vault.models';
 import type { CreateVeeamConfigRequest, UpdateVeeamConfigRequest, VeeamClientConfig } from '../../../../features/backups/models/backup.models';
 
 @Component({
@@ -17,25 +15,21 @@ export class BackupsConfigDialogComponent implements OnInit {
   saving      = false;
   loadingHost = false;
   isEdit      = false;
-  clients:      Client[]               = [];
-  vaultEntries: CredentialVaultEntry[] = [];
+  clients: Client[] = [];
 
   form = new FormGroup({
-    clientId:          new FormControl('',   [Validators.required]),
-    host:              new FormControl('',   [Validators.required]),
-    port:              new FormControl<number>(9419, [Validators.required, Validators.min(1), Validators.max(65535)]),
-    username:          new FormControl('',   [Validators.required]),
-    credentialVaultId: new FormControl<string | null>(null),
-    isEnabled:         new FormControl(true),
+    clientId:  new FormControl('',   [Validators.required]),
+    host:      new FormControl('',   [Validators.required]),
+    port:      new FormControl<number>(9419, [Validators.required, Validators.min(1), Validators.max(65535)]),
+    isEnabled: new FormControl(true),
   });
 
   constructor(
-    private readonly dialogRef:    MatDialogRef<BackupsConfigDialogComponent>,
+    private readonly dialogRef:   MatDialogRef<BackupsConfigDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: VeeamClientConfig | null,
-    private readonly svc:          BackupsService,
-    private readonly clientsSvc:   ClientsService,
-    private readonly infradocSvc:  InfradocService,
-    private readonly vaultSvc:     CredentialVaultService,
+    private readonly svc:         BackupsService,
+    private readonly clientsSvc:  ClientsService,
+    private readonly infradocSvc: InfradocService,
   ) {}
 
   ngOnInit(): void {
@@ -43,26 +37,17 @@ export class BackupsConfigDialogComponent implements OnInit {
       this.clients = all.filter(c => c.isActive);
     });
 
-    this.vaultSvc.list().subscribe(entries => {
-      this.vaultEntries = entries;
-    });
-
     if (this.data) {
       this.isEdit = true;
       this.form.patchValue({
-        clientId:          this.data.clientId,
-        host:              this.data.host,
-        port:              this.data.port,
-        username:          this.data.username,
-        isEnabled:         this.data.isEnabled,
-        credentialVaultId: this.data.credentialVaultEntryId ?? null,
+        clientId:  this.data.clientId,
+        host:      this.data.host,
+        port:      this.data.port,
+        isEnabled: this.data.isEnabled,
       });
       this.form.controls.clientId.setValidators([]);
       this.form.controls.clientId.updateValueAndValidity();
       this.form.get('clientId')?.disable();
-    } else {
-      this.form.controls.credentialVaultId.setValidators([Validators.required]);
-      this.form.controls.credentialVaultId.updateValueAndValidity();
     }
   }
 
@@ -100,11 +85,8 @@ export class BackupsConfigDialogComponent implements OnInit {
       const dto: UpdateVeeamConfigRequest = {
         host:      v.host      ?? undefined,
         port:      v.port      ?? 9419,
-        username:  v.username  ?? undefined,
         isEnabled: v.isEnabled ?? true,
       };
-      if (v.credentialVaultId) dto.credentialVaultId = v.credentialVaultId;
-
       this.svc.updateConfig(this.data.id, dto).subscribe({
         next: updated => { this.saving = false; this.dialogRef.close(updated); },
         error: ()      => { this.saving = false; },
@@ -112,15 +94,12 @@ export class BackupsConfigDialogComponent implements OnInit {
     } else {
       const clientName = this.clients.find(c => c.id === v.clientId)?.name ?? '';
       const dto: CreateVeeamConfigRequest = {
-        clientId:          v.clientId!,
+        clientId:  v.clientId!,
         clientName,
-        host:              v.host!,
-        port:              v.port ?? 9419,
-        username:          v.username!,
-        credentialVaultId: v.credentialVaultId!,
-        isEnabled:         v.isEnabled ?? true,
+        host:      v.host!,
+        port:      v.port ?? 9419,
+        isEnabled: v.isEnabled ?? true,
       };
-
       this.svc.createConfig(dto).subscribe({
         next: created => { this.saving = false; this.dialogRef.close(created); },
         error: ()      => { this.saving = false; },

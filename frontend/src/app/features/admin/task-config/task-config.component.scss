@@ -1,8 +1,26 @@
-.section-header {
-  padding: 20px 0 16px;
+.tc-page {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
-.section-title    { font-size: 15px; font-weight: 600; color: var(--tx-hi); margin-bottom: 4px; }
-.section-subtitle { font-size: 12px; color: var(--tx-md); }
+
+.tc-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.tc-card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-lo);
+  background: var(--elevated);
+}
+
+.tc-card-title    { font-size: 15px; font-weight: 600; color: var(--tx-hi); margin: 0 0 4px; }
+.tc-card-subtitle { font-size: 12px; color: var(--tx-md); margin: 0; }
 
 .task-config-table { width: 100%; }
 

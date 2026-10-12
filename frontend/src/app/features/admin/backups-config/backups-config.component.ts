@@ -13,7 +13,7 @@ import type { VeeamClientConfig } from '../../../features/backups/models/backup.
 export class BackupsConfigComponent implements OnInit {
   configs: VeeamClientConfig[] = [];
   loading = false;
-  readonly displayedColumns = ['clientName', 'host', 'port', 'username', 'isEnabled', 'actions'];
+  readonly displayedColumns = ['clientName', 'host', 'port', 'isEnabled', 'actions'];
 
   constructor(
     private readonly svc: BackupsService,

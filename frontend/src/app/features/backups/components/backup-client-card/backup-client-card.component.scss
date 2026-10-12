@@ -22,7 +22,8 @@
   &.st-ok   { border-left: 3px solid var(--ok); }
   &.st-warn { border-left: 3px solid var(--warn); }
   &.st-crit { border-left: 3px solid var(--crit); }
-  &.st-no-data { border-left: 3px solid var(--border-md); }
+  &.st-no-data      { border-left: 3px solid var(--border-md); }
+  &.st-disconnected { border-left: 3px solid var(--border-lo); opacity: 0.5; }
 }
 
 // ── Card sections ─────────────────────────────────────────────
@@ -56,6 +57,7 @@
 
 .card-mid {
   padding: 0 12px 8px;
+  min-height: 22px;
   display: flex;
   align-items: center;
   gap: 6px;

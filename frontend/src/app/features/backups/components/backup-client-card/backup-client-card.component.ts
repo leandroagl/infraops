@@ -21,6 +21,7 @@ export class BackupClientCardComponent {
       warn: 'warn',
       crit: 'crit',
       no_data: 'nd',
+      disconnected: 'nd',
     };
     return map[this.client.status] ?? 'nd';
   }
