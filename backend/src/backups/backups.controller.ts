@@ -4,7 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user-role.enum';
-import type { CreateVeeamConfigDto, UpdateVeeamConfigDto } from './dto/veeam-config.dto';
+import { CreateVeeamConfigDto, UpdateVeeamConfigDto } from './dto/veeam-config.dto';
 
 @Controller('backups')
 @UseGuards(JwtAuthGuard)
@@ -16,8 +16,12 @@ export class BackupsController {
     return this.svc.getAllClientStatuses();
   }
 
-  // IMPORTANT: @Get('configs') must be registered BEFORE @Get(':clientId')
-  // to prevent NestJS from matching the literal "configs" as a :clientId param.
+  // IMPORTANT: literal-path routes must be registered BEFORE @Get(':clientId')
+  @Get('snapshot')
+  getSnapshot() {
+    return this.svc.getLastSnapshot();
+  }
+
   @Get('configs')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)

@@ -1,5 +1,5 @@
 export type JobResult = 'Success' | 'Warning' | 'Failed';
-export type ClientStatus = 'ok' | 'warn' | 'crit' | 'no_data';
+export type ClientStatus = 'ok' | 'warn' | 'crit' | 'no_data' | 'disconnected';
 
 export class BackupJobStatusDto {
   jobId: string;
@@ -24,4 +24,5 @@ export class ClientBackupStatusDto {
   hasRunningJob: boolean;
   lastReadAt: string;
   jobs: BackupJobStatusDto[];
+  isSnapshot?: boolean;
 }
