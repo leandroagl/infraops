@@ -9,6 +9,7 @@ import { IntegrationConfigService } from '../integration-config/integration-conf
 import { Client } from '../clients/client.entity';
 import { TasksService } from '../tasks/tasks.service';
 import { TaskType } from '../tasks/task-type.enum';
+import { AppNotificationsService } from '../app-notifications/app-notifications.service';
 
 describe('ExpirationTicketsService', () => {
   let service: ExpirationTicketsService;
@@ -18,6 +19,7 @@ describe('ExpirationTicketsService', () => {
   let integrationConfigService: { getOdooConfigDecrypted: jest.Mock; getOdoo: jest.Mock; patchOdoo: jest.Mock };
   let clientRepo: { findOne: jest.Mock; find: jest.Mock };
   let tasksService: { createFromExistingTicket: jest.Mock };
+  let appNotificationsService: { create: jest.Mock };
 
   const makeItem = (overrides: Partial<ExpirationItemDto> = {}): ExpirationItemDto => ({
     sourceId: 'd1', type: 'domain', clientId: 1, clientName: 'Acme',
@@ -52,16 +54,18 @@ describe('ExpirationTicketsService', () => {
     };
     clientRepo = { findOne: jest.fn(), find: jest.fn().mockResolvedValue([]) };
     tasksService = { createFromExistingTicket: jest.fn().mockResolvedValue({ id: 'task-1' }) };
+    appNotificationsService = { create: jest.fn().mockResolvedValue({ id: 'notif-1' }) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExpirationTicketsService,
-        { provide: NotificationsService,      useValue: notificationsService },
+        { provide: NotificationsService,        useValue: notificationsService },
         { provide: getRepositoryToken(ExpirationTicket), useValue: ticketRepo },
-        { provide: OdooService,               useValue: odooService },
-        { provide: IntegrationConfigService,  useValue: integrationConfigService },
-        { provide: getRepositoryToken(Client), useValue: clientRepo },
-        { provide: TasksService,              useValue: tasksService },
+        { provide: OdooService,                 useValue: odooService },
+        { provide: IntegrationConfigService,    useValue: integrationConfigService },
+        { provide: getRepositoryToken(Client),  useValue: clientRepo },
+        { provide: TasksService,                useValue: tasksService },
+        { provide: AppNotificationsService,     useValue: appNotificationsService },
       ],
     }).compile();
 
@@ -745,6 +749,42 @@ describe('ExpirationTicketsService', () => {
       await service.saveTypeConfig('domain', entry, 'admin@test.com');
 
       expect(ticketRepo.insert).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('integración con AppNotificationsService', () => {
+    it('llama appNotificationsService.create con los datos del ticket creado', async () => {
+      const item = makeItem({ type: 'domain', clientId: 1 });
+      notificationsService.getExpirations.mockResolvedValue([item]);
+      clientRepo.findOne.mockResolvedValue({ id: 'client-uuid-1', infradocId: 1 });
+      odooService.createExpirationTicket.mockResolvedValue(999);
+      ticketRepo.save.mockResolvedValue({ id: 'ticket-row-1' });
+      tasksService.createFromExistingTicket.mockResolvedValue({ id: 'task-1' });
+
+      await service.createPendingExpirationTickets();
+
+      expect(appNotificationsService.create).toHaveBeenCalledWith(
+        'EXPIRATION_TICKET_CREATED',
+        expect.objectContaining({
+          clientName: item.clientName,
+          expirationType: item.type,
+          itemName: item.itemName,
+          daysUntil: item.daysUntil,
+          odooTicketId: 999,
+        }),
+      );
+    });
+
+    it('no propaga la excepción si appNotificationsService.create falla', async () => {
+      const item = makeItem({ type: 'domain', clientId: 1 });
+      notificationsService.getExpirations.mockResolvedValue([item]);
+      clientRepo.findOne.mockResolvedValue({ id: 'client-uuid-1', infradocId: 1 });
+      odooService.createExpirationTicket.mockResolvedValue(999);
+      ticketRepo.save.mockResolvedValue({ id: 'ticket-row-1' });
+      tasksService.createFromExistingTicket.mockResolvedValue({ id: 'task-1' });
+      appNotificationsService.create.mockRejectedValue(new Error('DB error'));
+
+      await expect(service.createPendingExpirationTickets()).resolves.not.toThrow();
     });
   });
 });
