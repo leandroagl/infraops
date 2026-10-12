@@ -5,6 +5,7 @@ import { MatSidenavContainer } from '@angular/material/sidenav';
 import { AuthService } from '../services/auth.service';
 import { AuthUser } from '../models/auth.models';
 import { SidenavContextService, ClientSidenavContext } from '../services/sidenav-context.service';
+import { AppNotificationsService } from '../services/app-notifications.service';
 
 interface NavItem {
   route: string;
@@ -40,6 +41,7 @@ export class ShellComponent implements OnInit {
     private readonly router: Router,
     private readonly auth: AuthService,
     private readonly sidenavCtx: SidenavContextService,
+    private readonly appNotifications: AppNotificationsService,
   ) {
     this.currentUser = this.auth.getCurrentUser();
   }
@@ -57,6 +59,9 @@ export class ShellComponent implements OnInit {
         // el cambio automáticamente en v17, forzamos el recálculo del margen.
         setTimeout(() => this.sidenavContainer?.updateContentMargins());
       });
+
+    this.appNotifications.startPolling();
+    this.destroyRef.onDestroy(() => this.appNotifications.stopPolling());
   }
 
   isActive(route: string): boolean {
