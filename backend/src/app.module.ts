@@ -20,6 +20,7 @@ import { IntegrationConfigModule } from './integration-config/integration-config
 import { DeviationRulesModule } from './deviation-rules/deviation-rules.module';
 import { MaintenanceDeviationsModule } from './maintenance-deviations/maintenance-deviations.module';
 import { BackupsModule } from './backups/backups.module';
+import { AppNotificationsModule } from './app-notifications/app-notifications.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { BackupsModule } from './backups/backups.module';
     DeviationRulesModule,
     MaintenanceDeviationsModule,
     BackupsModule,
+    AppNotificationsModule,
   ],
 })
 export class AppModule {}
