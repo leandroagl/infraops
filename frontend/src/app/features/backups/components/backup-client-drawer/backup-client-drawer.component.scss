@@ -173,11 +173,14 @@
   font-family: var(--font-mono);
   padding: 2px 7px;
   border-radius: 20px;
-  border: 1px solid var(--bkp-bd);
-  background: var(--bkp-bg);
-  color: var(--bkp);
+  border: 1px solid;
   font-weight: 500;
   white-space: nowrap;
+
+  // Mismos colores que los badges de Admin → Backups.
+  &--veeam     { background: var(--srv-bg);    border-color: var(--srv-bd);    color: var(--srv); }
+  &--jetbackup { background: var(--purple-bg); border-color: var(--purple-bd); color: var(--purple); }
+  &--acronis   { background: var(--accent-bg); border-color: var(--accent-bd); color: var(--accent); }
 }
 
 .job-msg {

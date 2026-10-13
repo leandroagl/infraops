@@ -88,6 +88,15 @@ describe('BackupClientDrawerComponent', () => {
       expect(chips).toEqual(['Veeam', 'Acronis', 'JetBackup']);
     });
 
+    it('cada proveedor lleva su modificador de color', () => {
+      comp.client = { ...baseClient, jobs: [mkJob('VEEAM'), mkJob('ACRONIS'), mkJob('JETBACKUP')] };
+      comp.open = true;
+      fixture.detectChanges();
+      const classes = Array.from(fixture.nativeElement.querySelectorAll('.provider-chip') as NodeListOf<HTMLElement>)
+        .map(e => Array.from(e.classList).find(c => c.startsWith('provider-chip--')));
+      expect(classes).toEqual(['provider-chip--veeam', 'provider-chip--acronis', 'provider-chip--jetbackup']);
+    });
+
     it('no repite el jobType debajo del nombre del job', () => {
       comp.client = { ...baseClient, jobs: [mkJob('VEEAM')] };
       comp.open = true;
