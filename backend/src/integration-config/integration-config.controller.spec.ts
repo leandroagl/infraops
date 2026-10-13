@@ -13,6 +13,7 @@ const mockService = {
   getInfraDoc: jest.fn(), patchInfraDoc: jest.fn(), testInfraDoc: jest.fn(),
   getVmware: jest.fn(), patchVmware: jest.fn(), testVmware: jest.fn(),
   getJetbackup: jest.fn(), patchJetbackup: jest.fn(), testJetbackup: jest.fn(),
+  getAcronis: jest.fn(), patchAcronis: jest.fn(), testAcronis: jest.fn(),
 };
 
 describe('IntegrationConfigController', () => {
@@ -67,5 +68,22 @@ describe('IntegrationConfigController', () => {
   it('POST /jetbackup/test delega en service.testJetbackup', async () => {
     mockService.testJetbackup.mockResolvedValue({ ok: true, message: 'Conexión exitosa' });
     expect(await controller.testJetbackup()).toEqual({ ok: true, message: 'Conexión exitosa' });
+  });
+
+  it('GET /acronis delega en service.getAcronis', async () => {
+    const resp = { baseUrl: 'https://eu2-cloud.acronis.com', clientId: MASK, clientSecret: MASK, updatedAt: null, updatedBy: null };
+    mockService.getAcronis.mockResolvedValue(resp);
+    expect(await controller.getAcronis()).toEqual(resp);
+  });
+
+  it('PATCH /acronis pasa email del JWT como updatedBy', async () => {
+    mockService.patchAcronis.mockResolvedValue({});
+    await controller.patchAcronis({ baseUrl: 'https://eu2-cloud.acronis.com' }, mockUser as any);
+    expect(mockService.patchAcronis).toHaveBeenCalledWith({ baseUrl: 'https://eu2-cloud.acronis.com' }, 'admin@ondra.com.ar');
+  });
+
+  it('POST /acronis/test delega en service.testAcronis', async () => {
+    mockService.testAcronis.mockResolvedValue({ ok: true, message: 'Conexión exitosa' });
+    expect(await controller.testAcronis()).toEqual({ ok: true, message: 'Conexión exitosa' });
   });
 });

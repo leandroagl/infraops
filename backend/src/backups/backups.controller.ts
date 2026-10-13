@@ -6,6 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user-role.enum';
 import { CreateVeeamConfigDto, UpdateVeeamConfigDto } from './dto/veeam-config.dto';
 import { CreateJetbackupConfigsDto, UpdateJetbackupConfigDto } from './dto/jetbackup-config.dto';
+import { CreateAcronisConfigsDto, UpdateAcronisConfigDto } from './dto/acronis-config.dto';
 
 @Controller('backups')
 @UseGuards(JwtAuthGuard)
@@ -56,6 +57,34 @@ export class BackupsController {
   @Roles(UserRole.ADMIN)
   deleteJetbackupConfig(@Param('id') id: string) {
     return this.svc.deleteJetbackupConfig(id);
+  }
+
+  @Get('acronis/plans')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  listAcronisPlans() {
+    return this.svc.listAcronisPlans();
+  }
+
+  @Post('configs/acronis')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  createAcronisConfigs(@Body() dto: CreateAcronisConfigsDto) {
+    return this.svc.createAcronisConfigs(dto);
+  }
+
+  @Patch('configs/acronis/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  updateAcronisConfig(@Param('id') id: string, @Body() dto: UpdateAcronisConfigDto) {
+    return this.svc.updateAcronisConfig(id, dto);
+  }
+
+  @Delete('configs/acronis/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  deleteAcronisConfig(@Param('id') id: string) {
+    return this.svc.deleteAcronisConfig(id);
   }
 
   @Get(':clientId')

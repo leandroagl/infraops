@@ -6,8 +6,8 @@ import { ClientsService } from '../../../../core/services/clients.service';
 import { InfradocService } from '../../../../core/services/infradoc.service';
 import { Client } from '../../../../core/models/client.models';
 import type {
-  AvailableJetbackupJob, BackupConfig, BackupProvider, CreateJetbackupConfigsRequest,
-  CreateVeeamConfigRequest, UpdateVeeamConfigRequest,
+  AvailableAcronisPlan, AvailableJetbackupJob, BackupConfig, BackupProvider, CreateAcronisConfigsRequest,
+  CreateJetbackupConfigsRequest, CreateVeeamConfigRequest, UpdateVeeamConfigRequest,
 } from '../../../../features/backups/models/backup.models';
 
 type ApiError = { error?: { message?: string } };
@@ -29,6 +29,12 @@ export class BackupsConfigDialogComponent implements OnInit {
   errorMessage = '';
   private jobsLoaded = false;
 
+  plans: AvailableAcronisPlan[] = [];
+  loadingPlans = false;
+  plansError   = '';
+  plansPartial = false;
+  private plansLoaded = false;
+
   form = new FormGroup({
     provider:  new FormControl<BackupProvider>('VEEAM'),
     clientId:  new FormControl('',   [Validators.required]),
@@ -36,6 +42,7 @@ export class BackupsConfigDialogComponent implements OnInit {
     port:      new FormControl<number>(9419, [Validators.required, Validators.min(1), Validators.max(65535)]),
     isEnabled: new FormControl(true),
     jobIds:    new FormControl<string[]>([]),
+    planIds:   new FormControl<string[]>([]),
   });
 
   constructor(
@@ -61,6 +68,8 @@ export class BackupsConfigDialogComponent implements OnInit {
       });
       this.applyProviderValidators(this.data.provider);
       this.form.controls.jobIds.clearValidators();
+      this.form.controls.planIds.clearValidators();
+      this.form.controls.planIds.updateValueAndValidity();
       this.form.controls.clientId.setValidators([]);
       this.form.controls.clientId.updateValueAndValidity();
       this.form.controls.clientId.disable();
@@ -77,28 +86,54 @@ export class BackupsConfigDialogComponent implements OnInit {
     return this.data?.provider === 'JETBACKUP' ? this.data.jobName : '';
   }
 
+  /** Nombre del plan de una config de Acronis en edición (el plan no se puede cambiar). */
+  get editPlanName(): string {
+    return this.data?.provider === 'ACRONIS' ? this.data.policyName : '';
+  }
+
   onProviderChange(provider: BackupProvider): void {
     this.form.controls.provider.setValue(provider);
     this.errorMessage = '';
     this.applyProviderValidators(provider);
     if (provider === 'JETBACKUP') this.loadJobs();
+    if (provider === 'ACRONIS') this.loadPlans();
   }
 
-  // Veeam necesita host y puerto; JetBackup necesita al menos un job (el servidor es global).
+  // Veeam necesita host y puerto; JetBackup al menos un job y Acronis al menos un plan
+  // (el servidor y las credenciales de ambos son globales).
   private applyProviderValidators(provider: BackupProvider): void {
-    const { host, port, jobIds } = this.form.controls;
+    const { host, port, jobIds, planIds } = this.form.controls;
     if (provider === 'VEEAM') {
       host.setValidators([Validators.required]);
       port.setValidators([Validators.required, Validators.min(1), Validators.max(65535)]);
-      jobIds.clearValidators();
     } else {
       host.clearValidators();
       port.clearValidators();
-      jobIds.setValidators([Validators.required]);
     }
+    if (provider === 'JETBACKUP') jobIds.setValidators([Validators.required]); else jobIds.clearValidators();
+    if (provider === 'ACRONIS') planIds.setValidators([Validators.required]); else planIds.clearValidators();
     host.updateValueAndValidity();
     port.updateValueAndValidity();
     jobIds.updateValueAndValidity();
+    planIds.updateValueAndValidity();
+  }
+
+  private loadPlans(): void {
+    if (this.plansLoaded || this.loadingPlans) return;
+    this.loadingPlans = true;
+    this.plansError = '';
+    this.svc.listAcronisPlans().subscribe({
+      next: res => {
+        this.plans = res.plans;
+        this.plansPartial = res.partial;
+        this.plansLoaded = true;
+        this.loadingPlans = false;
+      },
+      error: (e: ApiError) => {
+        this.plansError = e?.error?.message ?? 'No se pudieron cargar los planes de Acronis';
+        this.loadingPlans = false;
+      },
+    });
   }
 
   private loadJobs(): void {
@@ -144,6 +179,7 @@ export class BackupsConfigDialogComponent implements OnInit {
     this.saving = true;
     this.errorMessage = '';
     if (this.provider === 'JETBACKUP') this.saveJetbackup();
+    else if (this.provider === 'ACRONIS') this.saveAcronis();
     else this.saveVeeam();
   }
 
@@ -200,6 +236,37 @@ export class BackupsConfigDialogComponent implements OnInit {
       jobs: this.jobs.filter(j => selected.has(j.jobId)).map(j => ({ jobId: j.jobId, jobName: j.name })),
     };
     this.svc.createJetbackupConfigs(dto).subscribe({
+      next: created => { this.saving = false; this.dialogRef.close(created); },
+      error: onError,
+    });
+  }
+
+  private saveAcronis(): void {
+    const v = this.form.value;
+    const isEnabled = v.isEnabled ?? true;
+    const onError = (e: ApiError) => {
+      this.saving = false;
+      this.errorMessage = e?.error?.message ?? 'No se pudo guardar la configuración';
+    };
+
+    if (this.isEdit && this.data) {
+      this.svc.updateAcronisConfig(this.data.id, { isEnabled }).subscribe({
+        next: updated => { this.saving = false; this.dialogRef.close(updated); },
+        error: onError,
+      });
+      return;
+    }
+
+    const selected = new Set(v.planIds ?? []);
+    const dto: CreateAcronisConfigsRequest = {
+      clientId:   v.clientId!,
+      clientName: this.clients.find(c => c.id === v.clientId)?.name ?? '',
+      isEnabled,
+      plans: this.plans
+        .filter(p => selected.has(p.policyId))
+        .map(p => ({ policyId: p.policyId, policyName: p.policyName, tenantName: p.tenantName })),
+    };
+    this.svc.createAcronisConfigs(dto).subscribe({
       next: created => { this.saving = false; this.dialogRef.close(created); },
       error: onError,
     });

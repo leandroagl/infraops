@@ -30,6 +30,26 @@ export interface VeeamApiResponse<T> {
   data: T[];
 }
 
+// Detalle por recurso dentro de un job (hoy solo lo usa Acronis: un plan cubre varias VMs/buzones).
+export interface BackupItemStatus {
+  itemId: string;
+  name: string;
+  type: string;
+  result: 'Success' | 'Warning' | 'Failed';
+  hoursSinceOk: number;
+  lastCode: string;
+  lastRunAt: string | null;
+}
+
+// Recursos agrupados (M365: cientos de buzones) en conteos + nombres de los peores.
+export interface BackupAggregate {
+  total: number;
+  okCount: number;
+  warnCount: number;
+  critCount: number;
+  worst: string[];
+}
+
 export interface BackupJobStatus {
   jobId: string;
   jobName: string;
@@ -40,4 +60,6 @@ export interface BackupJobStatus {
   lastRunAt: string | null;
   hoursAgo: number | null;
   isStale: boolean;
+  items?: BackupItemStatus[];
+  aggregate?: BackupAggregate | null;
 }

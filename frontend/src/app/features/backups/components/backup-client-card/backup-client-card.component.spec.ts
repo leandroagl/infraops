@@ -75,3 +75,32 @@ describe('BackupClientCardComponent', () => {
     expect(el.querySelectorAll('.provider-chip').length).toBe(1);
   });
 });
+
+describe('BackupClientCardComponent · Acronis', () => {
+  let fixture: ComponentFixture<BackupClientCardComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({ declarations: [BackupClientCardComponent] }).compileComponents();
+    fixture = TestBed.createComponent(BackupClientCardComponent);
+  });
+
+  const render = (c: ClientBackup): HTMLElement => {
+    fixture.componentInstance.client = c;
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  };
+
+  it('muestra el chip Acronis si algún job es de Acronis', () => {
+    const el = render(client({ jobs: [job({ provider: 'ACRONIS' })] }));
+    expect(el.querySelector('.provider-chip')?.textContent).toContain('Acronis');
+  });
+
+  it('muestra un chip por cada proveedor distinto, sin repetir', () => {
+    const el = render(client({
+      totalJobs: 3, okCount: 3,
+      jobs: [job({ provider: 'JETBACKUP', jobId: 'a' }), job({ provider: 'ACRONIS', jobId: 'b' }), job({ provider: 'ACRONIS', jobId: 'c' })],
+    }));
+    const chips = Array.from(el.querySelectorAll('.provider-chip')).map(c => c.textContent?.trim());
+    expect(chips).toEqual(['JetBackup', 'Acronis']);
+  });
+});

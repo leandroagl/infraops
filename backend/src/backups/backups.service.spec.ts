@@ -5,12 +5,21 @@ import { BackupsService } from './backups.service';
 import { VeeamClientConfig } from './entities/veeam-client-config.entity';
 import { VeeamDailySnapshot } from './entities/veeam-daily-snapshot.entity';
 import { JetbackupJobConfig } from './entities/jetbackup-job-config.entity';
+import { AcronisPlanConfig } from './entities/acronis-plan-config.entity';
 import { VeeamService } from '../integrations/veeam/veeam.service';
 import { JetbackupService } from '../integrations/jetbackup/jetbackup.service';
+import { AcronisService } from '../integrations/acronis/acronis.service';
 import { IntegrationConfigService } from '../integration-config/integration-config.service';
 
 const mockConfigRepo = { find: jest.fn(), findOne: jest.fn(), save: jest.fn(), delete: jest.fn(), create: jest.fn() };
 const mockJetRepo = {
+  find: jest.fn().mockResolvedValue([]),
+  findOne: jest.fn(),
+  save: jest.fn(),
+  delete: jest.fn(),
+  create: jest.fn((d: unknown) => d),
+};
+const mockAcrRepo = {
   find: jest.fn().mockResolvedValue([]),
   findOne: jest.fn(),
   save: jest.fn(),
@@ -24,7 +33,18 @@ const mockSnapshotRepo = {
 };
 const mockVeeamService = { getJobStatuses: jest.fn(), testConnection: jest.fn() };
 const mockJetbackupService = { getJobStatuses: jest.fn(), listJobs: jest.fn() };
-const mockIntegrationConfigSvc = { getVeeamConfigDecrypted: jest.fn(), getJetbackupConfigDecrypted: jest.fn() };
+const mockAcronisService = { getJobStatuses: jest.fn(), listPlans: jest.fn() };
+const mockIntegrationConfigSvc = {
+  getVeeamConfigDecrypted: jest.fn(), getJetbackupConfigDecrypted: jest.fn(), getAcronisConfigDecrypted: jest.fn(),
+};
+const ACR_CONN = { baseUrl: 'https://eu2-cloud.acronis.com', clientId: 'cid', clientSecret: 'sec' };
+const acrCfg = (over: Partial<AcronisPlanConfig> = {}) => ({
+  id: 'ac1', clientId: 'c1', clientName: 'Client 1', policyId: 'pol-1', policyName: 'Plan 1', tenantName: 'Tenant 1', isEnabled: true, ...over,
+});
+const acrJob = (over: Record<string, unknown> = {}) => ({
+  jobId: 'pol-1', jobName: 'Plan 1', jobType: 'Acronis', isRunning: false, lastResult: 'Success', lastMessage: null,
+  lastRunAt: new Date().toISOString(), hoursAgo: 2, isStale: false, items: [], aggregate: null, ...over,
+});
 
 const JET_CONN = { url: 'https://whm:2087', username: 'root', apiKey: 'tok' };
 const jetCfg = (over: Partial<JetbackupJobConfig> = {}) => ({
@@ -45,15 +65,19 @@ describe('BackupsService', () => {
         { provide: getRepositoryToken(VeeamClientConfig), useValue: mockConfigRepo },
         { provide: getRepositoryToken(VeeamDailySnapshot), useValue: mockSnapshotRepo },
         { provide: getRepositoryToken(JetbackupJobConfig), useValue: mockJetRepo },
+        { provide: getRepositoryToken(AcronisPlanConfig), useValue: mockAcrRepo },
         { provide: VeeamService, useValue: mockVeeamService },
         { provide: JetbackupService, useValue: mockJetbackupService },
+        { provide: AcronisService, useValue: mockAcronisService },
         { provide: IntegrationConfigService, useValue: mockIntegrationConfigSvc },
       ],
     }).compile();
     svc = module.get(BackupsService);
     jest.clearAllMocks();
     mockJetRepo.find.mockResolvedValue([]);
+    mockAcrRepo.find.mockResolvedValue([]);
     mockIntegrationConfigSvc.getJetbackupConfigDecrypted.mockResolvedValue(JET_CONN);
+    mockIntegrationConfigSvc.getAcronisConfigDecrypted.mockResolvedValue(ACR_CONN);
   });
 
   it('debería calcular estado del cliente como el peor estado de sus jobs', () => {
@@ -365,6 +389,168 @@ describe('BackupsService', () => {
       mockJetbackupService.listJobs.mockRejectedValue(new Error('Invalid token'));
       await expect(svc.listJetbackupJobs()).rejects.toBeInstanceOf(BadGatewayException);
       await expect(svc.listJetbackupJobs()).rejects.toThrow('Invalid token');
+    });
+  });
+
+  describe('estado con Acronis', () => {
+    it('getClientStatus de un cliente solo con Acronis consulta únicamente los planes habilitados', async () => {
+      mockConfigRepo.findOne.mockResolvedValue(null);
+      mockAcrRepo.find.mockResolvedValue([acrCfg(), acrCfg({ id: 'ac2', policyId: 'pol-2', policyName: 'Off', isEnabled: false })]);
+      mockAcronisService.getJobStatuses.mockResolvedValue([acrJob()]);
+
+      const result = await svc.getClientStatus('c1');
+
+      expect(mockAcronisService.getJobStatuses).toHaveBeenCalledWith(ACR_CONN, [{ policyId: 'pol-1', policyName: 'Plan 1' }]);
+      expect(result.status).toBe('ok');
+      expect(result.jobs[0].provider).toBe('ACRONIS');
+    });
+
+    it('conserva items y aggregate del job al armar el estado del cliente', async () => {
+      mockConfigRepo.findOne.mockResolvedValue(null);
+      mockAcrRepo.find.mockResolvedValue([acrCfg()]);
+      const aggregate = { total: 3, okCount: 2, warnCount: 0, critCount: 1, worst: ['Buzón 3'] };
+      mockAcronisService.getJobStatuses.mockResolvedValue([acrJob({ lastResult: 'Failed', aggregate })]);
+      const result = await svc.getClientStatus('c1');
+      expect(result.status).toBe('crit');
+      expect(result.jobs[0].aggregate).toEqual(aggregate);
+    });
+
+    it('guarda el snapshot de Acronis con su proveedor y el desglose en details', async () => {
+      mockConfigRepo.findOne.mockResolvedValue(null);
+      mockAcrRepo.find.mockResolvedValue([acrCfg()]);
+      const items = [{ itemId: 'r1', name: 'VM1', type: 'machine', result: 'Success', hoursSinceOk: 2, lastCode: 'ok', lastRunAt: null }];
+      mockAcronisService.getJobStatuses.mockResolvedValue([acrJob({ items })]);
+      await svc.getClientStatus('c1');
+      await Promise.resolve();
+      const [rows] = mockSnapshotRepo.upsert.mock.calls[0];
+      expect(rows[0]).toMatchObject({ provider: 'ACRONIS', jobId: 'pol-1', clientId: 'c1' });
+      expect(rows[0].details).toEqual({ items, aggregate: null });
+    });
+
+    it('los snapshots de Veeam y JetBackup no llevan details', async () => {
+      await svc.saveSnapshot('c1', 'VEEAM', [{
+        jobId: 'j', jobName: 'J', jobType: 'Backup', isRunning: false, lastResult: 'Success', lastMessage: null,
+        lastRunAt: null, hoursAgo: 1, isStale: false,
+      }]);
+      expect(mockSnapshotRepo.upsert.mock.calls[0][0][0].details).toBeNull();
+    });
+
+    it('un cliente con Veeam y Acronis junta los jobs de ambos', async () => {
+      mockConfigRepo.findOne.mockResolvedValue({ id: 'v1', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, isEnabled: true, lastConnectedAt: null });
+      mockIntegrationConfigSvc.getVeeamConfigDecrypted.mockResolvedValue({ username: 'u', password: 'p' });
+      mockVeeamService.getJobStatuses.mockResolvedValue([
+        { jobId: 'vj', jobName: 'VJ', jobType: 'Backup', isRunning: false, lastResult: 'Success', lastMessage: null, lastRunAt: null, hoursAgo: 1, isStale: false },
+      ]);
+      mockAcrRepo.find.mockResolvedValue([acrCfg()]);
+      mockAcronisService.getJobStatuses.mockResolvedValue([acrJob({ lastResult: 'Warning' })]);
+      const result = await svc.getClientStatus('c1');
+      expect(result.jobs.map(j => j.provider).sort()).toEqual(['ACRONIS', 'VEEAM']);
+      expect(result.status).toBe('warn');
+    });
+
+    it('getAllClientStatuses incluye clientes que solo tienen Acronis', async () => {
+      mockConfigRepo.find.mockResolvedValue([]);
+      mockAcrRepo.find.mockResolvedValue([acrCfg()]);
+      mockAcronisService.getJobStatuses.mockResolvedValue([acrJob()]);
+      const result = await svc.getAllClientStatuses();
+      expect(result).toHaveLength(1);
+      expect(result[0].jobs[0].provider).toBe('ACRONIS');
+    });
+
+    it('getAllClientStatuses devuelve disconnected si falla Acronis', async () => {
+      mockConfigRepo.find.mockResolvedValue([]);
+      mockAcrRepo.find.mockResolvedValue([acrCfg()]);
+      mockAcronisService.getJobStatuses.mockRejectedValue(new Error('Acronis respondió HTTP 503'));
+      const result = await svc.getAllClientStatuses();
+      expect(result[0].status).toBe('disconnected');
+    });
+
+    it('getLastSnapshot reconstruye Acronis con su desglose e ignora planes ya no configurados', async () => {
+      const lastRunAt = new Date(Date.now() - 2 * 3600000);
+      const details = { items: [], aggregate: { total: 2, okCount: 2, warnCount: 0, critCount: 0, worst: [] } };
+      mockConfigRepo.find.mockResolvedValue([]);
+      mockAcrRepo.find.mockResolvedValue([acrCfg()]);
+      mockSnapshotRepo.findOne.mockResolvedValue({ clientId: 'c1', snapshotDate: '2026-10-12' });
+      mockSnapshotRepo.find.mockResolvedValue([
+        { clientId: 'c1', provider: 'ACRONIS', jobId: 'pol-1', jobName: 'Plan 1', jobType: 'Acronis', result: 'Success', message: null, lastRunAt, hoursAgo: 2, details, snapshotDate: '2026-10-12' },
+        { clientId: 'c1', provider: 'ACRONIS', jobId: 'pol-borrado', jobName: 'Viejo', jobType: 'Acronis', result: 'Failed', message: null, lastRunAt, hoursAgo: 2, details: null, snapshotDate: '2026-10-12' },
+      ]);
+      const result = await svc.getLastSnapshot();
+      expect(result[0].jobs.map(j => j.jobId)).toEqual(['pol-1']);
+      expect(result[0].jobs[0].provider).toBe('ACRONIS');
+      expect(result[0].jobs[0].aggregate).toEqual(details.aggregate);
+    });
+  });
+
+  describe('configs de Acronis', () => {
+    it('listConfigs incluye los planes de Acronis con su proveedor', async () => {
+      mockConfigRepo.find.mockResolvedValue([]);
+      mockAcrRepo.find.mockResolvedValue([acrCfg()]);
+      const list = await svc.listConfigs();
+      expect(list.find(c => c.provider === 'ACRONIS')).toMatchObject({ id: 'ac1', policyId: 'pol-1', tenantName: 'Tenant 1' });
+    });
+
+    it('createAcronisConfigs guarda una fila por plan', async () => {
+      mockAcrRepo.find.mockResolvedValue([]);
+      mockAcrRepo.save.mockImplementation((rows: unknown[]) => Promise.resolve(rows.map((r, i) => ({ id: `n${i}`, ...(r as object) }))));
+      const result = await svc.createAcronisConfigs({
+        clientId: 'c1', clientName: 'Client 1', isEnabled: true,
+        plans: [{ policyId: 'pol-1', policyName: 'Plan 1', tenantName: 'T' }, { policyId: 'pol-2', policyName: 'Plan 2' }],
+      });
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({ provider: 'ACRONIS', clientId: 'c1', policyId: 'pol-1', tenantName: 'T' });
+      expect(result[1].tenantName).toBe('');
+    });
+
+    it('createAcronisConfigs rechaza planes que ya están asignados', async () => {
+      mockAcrRepo.find.mockResolvedValue([acrCfg({ clientName: 'Otro cliente' })]);
+      await expect(svc.createAcronisConfigs({
+        clientId: 'c2', clientName: 'Client 2', isEnabled: true, plans: [{ policyId: 'pol-1', policyName: 'Plan 1' }],
+      })).rejects.toBeInstanceOf(ConflictException);
+      expect(mockAcrRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('updateAcronisConfig cambia isEnabled y lanza NotFound si no existe', async () => {
+      mockAcrRepo.findOne.mockResolvedValue(acrCfg());
+      mockAcrRepo.save.mockImplementation((r: unknown) => Promise.resolve(r));
+      expect((await svc.updateAcronisConfig('ac1', { isEnabled: false })).isEnabled).toBe(false);
+      mockAcrRepo.findOne.mockResolvedValue(null);
+      await expect(svc.updateAcronisConfig('x', { isEnabled: false })).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('deleteAcronisConfig borra la fila', async () => {
+      await svc.deleteAcronisConfig('ac1');
+      expect(mockAcrRepo.delete).toHaveBeenCalledWith('ac1');
+    });
+  });
+
+  describe('listAcronisPlans', () => {
+    const plan = (policyId: string) => ({
+      policyId, policyName: `Plan ${policyId}`, tenantId: 't', tenantName: 'Tenant', resourceTypes: ['machine'], resourceCount: 2,
+    });
+
+    it('marca los planes ya configurados, indica a qué cliente y propaga partial', async () => {
+      mockAcronisService.listPlans.mockResolvedValue({ plans: [plan('pol-1'), plan('pol-2')], partial: true });
+      mockAcrRepo.find.mockResolvedValue([acrCfg({ clientName: 'PSQ Hosting' })]);
+      const res = await svc.listAcronisPlans();
+      expect(mockAcronisService.listPlans).toHaveBeenCalledWith(ACR_CONN);
+      expect(res.partial).toBe(true);
+      expect(res.plans).toEqual([
+        { policyId: 'pol-1', policyName: 'Plan pol-1', tenantName: 'Tenant', resourceTypes: ['machine'], resourceCount: 2, configured: true, configuredClientName: 'PSQ Hosting' },
+        { policyId: 'pol-2', policyName: 'Plan pol-2', tenantName: 'Tenant', resourceTypes: ['machine'], resourceCount: 2, configured: false, configuredClientName: null },
+      ]);
+    });
+
+    it('lanza BadRequest si Acronis no está configurado en Integraciones', async () => {
+      mockIntegrationConfigSvc.getAcronisConfigDecrypted.mockResolvedValue({ baseUrl: '', clientId: '', clientSecret: '' });
+      await expect(svc.listAcronisPlans()).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockAcronisService.listPlans).not.toHaveBeenCalled();
+    });
+
+    it('lanza BadGateway con el mensaje de Acronis cuando falla la consulta', async () => {
+      mockAcronisService.listPlans.mockRejectedValue(new Error('Acronis rechazó la autenticación (HTTP 401)'));
+      await expect(svc.listAcronisPlans()).rejects.toBeInstanceOf(BadGatewayException);
+      await expect(svc.listAcronisPlans()).rejects.toThrow('HTTP 401');
     });
   });
 });

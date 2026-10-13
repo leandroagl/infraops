@@ -26,6 +26,12 @@ const mockJobs = [
   { jobId: 'j3', name: 'ATALAYACOMAR', disabled: false, configured: true, configuredClientName: 'Atalaya' },
 ];
 
+const mockPlans = [
+  { policyId: 'p1', policyName: 'Atalaya - 365 Mails', tenantName: 'Tenant A', resourceTypes: ['MAILBOX'], resourceCount: 96, configured: false, configuredClientName: null },
+  { policyId: 'p2', policyName: 'Servidores', tenantName: 'Tenant B', resourceTypes: ['machine'], resourceCount: 3, configured: false, configuredClientName: null },
+  { policyId: 'p3', policyName: 'Ya usado', tenantName: 'Tenant C', resourceTypes: ['machine'], resourceCount: 1, configured: true, configuredClientName: 'Otro' },
+];
+
 const mockEmptyInfra = {
   esxiHosts: [], windowsVMs: [], domainControllers: [], linuxVMs: [], nas: [], routers: [],
 };
@@ -39,7 +45,9 @@ describe('BackupsConfigDialogComponent', () => {
   async function setup(data: any = null) {
     mockSvc        = jasmine.createSpyObj('BackupsService',  [
       'createConfig', 'updateConfig', 'listJetbackupJobs', 'createJetbackupConfigs', 'updateJetbackupConfig',
+      'listAcronisPlans', 'createAcronisConfigs', 'updateAcronisConfig',
     ]);
+    mockSvc.listAcronisPlans.and.returnValue(of({ plans: mockPlans, partial: false }));
     mockSvc.listJetbackupJobs.and.returnValue(of(mockJobs));
     mockClientsSvc = jasmine.createSpyObj('ClientsService',  ['getAll']);
     mockInfradocSvc = jasmine.createSpyObj('InfradocService', ['getClientInfrastructure']);
@@ -245,5 +253,116 @@ describe('BackupsConfigDialogComponent', () => {
       expect(mockSvc.updateJetbackupConfig).toHaveBeenCalledWith('jc1', { isEnabled: false });
       expect(mockDialogRef.close).toHaveBeenCalledWith(jasmine.objectContaining({ id: 'jc1' }));
     });
+  });
+});
+
+describe('BackupsConfigDialogComponent · tipo Acronis', () => {
+  // Reusa el mismo armado de módulo que el describe principal.
+  let mockSvc: jasmine.SpyObj<BackupsService>;
+  let mockDialogRef: jasmine.SpyObj<MatDialogRef<BackupsConfigDialogComponent>>;
+
+  async function setup(data: any = null) {
+    mockSvc = jasmine.createSpyObj('BackupsService', [
+      'createConfig', 'updateConfig', 'listJetbackupJobs', 'createJetbackupConfigs', 'updateJetbackupConfig',
+      'listAcronisPlans', 'createAcronisConfigs', 'updateAcronisConfig',
+    ]);
+    mockSvc.listAcronisPlans.and.returnValue(of({ plans: mockPlans, partial: false }));
+    const clientsSvc = jasmine.createSpyObj('ClientsService', ['getAll']);
+    clientsSvc.getAll.and.returnValue(of(mockClients));
+    mockDialogRef = jasmine.createSpyObj('MatDialogRef', ['close']);
+    await TestBed.configureTestingModule({
+      declarations: [BackupsConfigDialogComponent],
+      imports: [NoopAnimationsModule, ReactiveFormsModule, MatDialogModule, MatFormFieldModule, MatInputModule,
+        MatSelectModule, MatCheckboxModule, MatButtonModule, MatTooltipModule, MatProgressSpinnerModule],
+      providers: [
+        { provide: BackupsService, useValue: mockSvc },
+        { provide: ClientsService, useValue: clientsSvc },
+        { provide: MatDialogRef, useValue: mockDialogRef },
+        { provide: MAT_DIALOG_DATA, useValue: data },
+        { provide: InfradocService, useValue: jasmine.createSpyObj('InfradocService', ['getClientInfrastructure']) },
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(BackupsConfigDialogComponent);
+    fixture.detectChanges();
+    return { fixture, comp: fixture.componentInstance };
+  }
+
+  it('al elegir Acronis carga los planes disponibles una sola vez', async () => {
+    const { comp } = await setup(null);
+    expect(mockSvc.listAcronisPlans).not.toHaveBeenCalled();
+    comp.onProviderChange('ACRONIS');
+    comp.onProviderChange('VEEAM');
+    comp.onProviderChange('ACRONIS');
+    expect(mockSvc.listAcronisPlans).toHaveBeenCalledTimes(1);
+    expect(comp.plans.length).toBe(3);
+  });
+
+  it('indica cuando el listado de planes es parcial', async () => {
+    const { comp } = await setup(null);
+    mockSvc.listAcronisPlans.and.returnValue(of({ plans: mockPlans, partial: true }));
+    comp.onProviderChange('ACRONIS');
+    expect(comp.plansPartial).toBe(true);
+  });
+
+  it('con Acronis no pide host ni puerto, pero sí al menos un plan', async () => {
+    const { comp } = await setup(null);
+    comp.onProviderChange('ACRONIS');
+    comp.form.patchValue({ clientId: 'c1', host: '', planIds: [] });
+    expect(comp.isValid).toBe(false);
+    comp.form.patchValue({ planIds: ['p1'] });
+    expect(comp.isValid).toBe(true);
+  });
+
+  it('muestra el error cuando falla la carga de planes (ej. Acronis sin configurar)', async () => {
+    const { comp } = await setup(null);
+    mockSvc.listAcronisPlans.and.returnValue(throwError(() => ({ error: { message: 'Acronis no está configurado' } })));
+    comp.onProviderChange('ACRONIS');
+    expect(comp.plansError).toBe('Acronis no está configurado');
+    expect(comp.loadingPlans).toBe(false);
+  });
+
+  it('crea una config por cada plan elegido con su tenant', async () => {
+    const { comp } = await setup(null);
+    mockSvc.createAcronisConfigs.and.returnValue(of([]));
+    comp.onProviderChange('ACRONIS');
+    comp.form.patchValue({ clientId: 'c1', planIds: ['p1', 'p2'], isEnabled: true });
+    comp.save();
+    expect(mockSvc.createAcronisConfigs).toHaveBeenCalledWith({
+      clientId: 'c1', clientName: 'ACME', isEnabled: true,
+      plans: [
+        { policyId: 'p1', policyName: 'Atalaya - 365 Mails', tenantName: 'Tenant A' },
+        { policyId: 'p2', policyName: 'Servidores', tenantName: 'Tenant B' },
+      ],
+    });
+    expect(mockSvc.createConfig).not.toHaveBeenCalled();
+    expect(mockDialogRef.close).toHaveBeenCalledWith(jasmine.anything());
+  });
+
+  it('muestra el mensaje del backend si algún plan ya estaba asignado y no cierra el dialog', async () => {
+    const { comp } = await setup(null);
+    mockSvc.createAcronisConfigs.and.returnValue(throwError(() => ({ error: { message: 'Ya configurado: Ya usado (Otro)' } })));
+    comp.onProviderChange('ACRONIS');
+    comp.form.patchValue({ clientId: 'c1', planIds: ['p1'] });
+    comp.save();
+    expect(comp.errorMessage).toBe('Ya configurado: Ya usado (Otro)');
+    expect(comp.saving).toBe(false);
+    expect(mockDialogRef.close).not.toHaveBeenCalled();
+  });
+
+  it('en edición de un plan de Acronis solo permite cambiar si está habilitado', async () => {
+    const existing = {
+      provider: 'ACRONIS' as const, id: 'ac1', clientId: 'c1', clientName: 'ACME',
+      policyId: 'p1', policyName: 'Atalaya - 365 Mails', tenantName: 'Tenant A', isEnabled: true,
+    };
+    const { comp } = await setup(existing);
+    mockSvc.updateAcronisConfig.and.returnValue(of({ ...existing, isEnabled: false }));
+    expect(comp.form.controls.provider.disabled).toBe(true);
+    expect(comp.editPlanName).toBe('Atalaya - 365 Mails');
+    expect(mockSvc.listAcronisPlans).not.toHaveBeenCalled();
+    comp.form.patchValue({ isEnabled: false });
+    expect(comp.isValid).toBe(true);
+    comp.save();
+    expect(mockSvc.updateAcronisConfig).toHaveBeenCalledWith('ac1', { isEnabled: false });
+    expect(mockDialogRef.close).toHaveBeenCalledWith(jasmine.objectContaining({ id: 'ac1' }));
   });
 });

@@ -19,13 +19,18 @@ const jetRow: BackupConfig = {
   jobId: 'job-1', jobName: 'PSQ', isEnabled: true,
 };
 
+const acronisRow: BackupConfig = {
+  provider: 'ACRONIS', id: 'ac1', clientId: 'c3', clientName: 'Atalaya',
+  policyId: 'pol-1', policyName: 'Atalaya - 365 Mails', tenantName: 'Tenant 1', isEnabled: true,
+};
+
 describe('BackupsConfigComponent', () => {
   let fixture: ComponentFixture<BackupsConfigComponent>;
   let mockSvc: jasmine.SpyObj<BackupsService>;
 
   beforeEach(async () => {
     mockSvc = jasmine.createSpyObj('BackupsService', [
-      'listConfigs', 'deleteConfig', 'testConnection', 'deleteJetbackupConfig',
+      'listConfigs', 'deleteConfig', 'testConnection', 'deleteJetbackupConfig', 'deleteAcronisConfig',
     ]);
 
     await TestBed.configureTestingModule({
@@ -107,5 +112,47 @@ describe('BackupsConfigComponent', () => {
       fixture.componentInstance.delete(jetRow);
       expect(mockSvc.deleteJetbackupConfig).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('BackupsConfigComponent · Acronis', () => {
+  let fixture: ComponentFixture<BackupsConfigComponent>;
+  let mockSvc: jasmine.SpyObj<BackupsService>;
+
+  beforeEach(async () => {
+    mockSvc = jasmine.createSpyObj('BackupsService', ['listConfigs', 'deleteAcronisConfig', 'deleteConfig', 'deleteJetbackupConfig']);
+    mockSvc.listConfigs.and.returnValue(of([veeamRow, acronisRow]));
+    mockSvc.deleteAcronisConfig.and.returnValue(of(undefined));
+    await TestBed.configureTestingModule({
+      declarations: [BackupsConfigComponent],
+      imports: [NoopAnimationsModule, MatDialogModule, MatIconModule, MatSnackBarModule, MatTableModule, MatProgressSpinnerModule],
+      providers: [{ provide: BackupsService, useValue: mockSvc }],
+    }).compileComponents();
+    fixture = TestBed.createComponent(BackupsConfigComponent);
+    fixture.detectChanges();
+  });
+
+  it('identifica las filas de Acronis con su etiqueta y clase propias', () => {
+    const badges = Array.from<HTMLElement>(fixture.nativeElement.querySelectorAll('.provider-badge'));
+    expect(badges.map(b => b.textContent?.trim())).toEqual(['Veeam', 'Acronis']);
+    expect(badges[1].classList).toContain('provider-badge--acronis');
+  });
+
+  it('muestra el plan y el tenant en lugar del host, y no muestra puerto', () => {
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('Atalaya - 365 Mails');
+    expect(text).toContain('Tenant 1');
+  });
+
+  it('solo las filas de Veeam tienen botón de probar conexión', () => {
+    expect(fixture.nativeElement.querySelectorAll('button[aria-label="Probar conexión"]').length).toBe(1);
+  });
+
+  it('elimina una config de Acronis con deleteAcronisConfig', () => {
+    spyOn(window, 'confirm').and.returnValue(true);
+    fixture.componentInstance.delete(acronisRow);
+    expect(mockSvc.deleteAcronisConfig).toHaveBeenCalledWith('ac1');
+    expect(mockSvc.deleteConfig).not.toHaveBeenCalled();
+    expect(mockSvc.deleteJetbackupConfig).not.toHaveBeenCalled();
   });
 });
