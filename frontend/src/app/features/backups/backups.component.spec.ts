@@ -15,6 +15,15 @@ const makeClient = (clientId: string, status: ClientBackup['status']): ClientBac
   okCount: 0, warnCount: 0, critCount: 0, hasRunningJob: false, lastReadAt: '', jobs: [],
 });
 
+// Snapshot guardado hace `daysAgo` días; lastReadAt es solo fecha (YYYY-MM-DD, UTC) como en el backend.
+const makeSnapshotClient = (
+  clientId: string, status: ClientBackup['status'], daysAgo: number,
+): ClientBackup => ({
+  ...makeClient(clientId, status),
+  isSnapshot: true,
+  lastReadAt: new Date(Date.now() - daysAgo * 86400000).toISOString().split('T')[0],
+});
+
 describe('BackupsComponent', () => {
   let fixture: ComponentFixture<BackupsComponent>;
   let comp: BackupsComponent;
@@ -40,13 +49,21 @@ describe('BackupsComponent', () => {
     comp    = fixture.componentInstance;
   });
 
-  it('muestra snapshot inmediatamente y luego carga datos en vivo', () => {
-    const snapshot = [makeClient('1', 'ok')];
-    const live     = [makeClient('1', 'crit')];
+  it('al abrir usa el snapshot y NO consulta datos en vivo', () => {
+    const snapshot = [makeSnapshotClient('1', 'ok', 0)];
     mockSvc.getSnapshot.and.returnValue(of(snapshot));
+    fixture.detectChanges();
+    expect(comp.clients).toEqual(snapshot);
+    expect(mockSvc.getAll).not.toHaveBeenCalled();
+    expect(comp.loading).toBe(false);
+  });
+
+  it('si no hay snapshot guardado, carga datos en vivo', () => {
+    const live = [makeClient('1', 'ok')];
+    mockSvc.getSnapshot.and.returnValue(of([]));
     mockSvc.getAll.and.returnValue(of(live));
     fixture.detectChanges();
-    expect(comp.clients[0].status).toBe('crit');
+    expect(comp.clients).toEqual(live);
     expect(comp.loading).toBe(false);
   });
 
@@ -57,6 +74,64 @@ describe('BackupsComponent', () => {
     fixture.detectChanges();
     expect(comp.clients).toEqual(live);
     expect(comp.loading).toBe(false);
+  });
+
+  it('refresh() consulta datos en vivo y reemplaza el snapshot', () => {
+    mockSvc.getSnapshot.and.returnValue(of([makeSnapshotClient('1', 'ok', 0)]));
+    mockSvc.getAll.and.returnValue(of([makeClient('1', 'crit')]));
+    fixture.detectChanges();
+    comp.refresh();
+    expect(mockSvc.getAll).toHaveBeenCalledTimes(1);
+    expect(comp.clients[0].status).toBe('crit');
+    expect(comp.loading).toBe(false);
+  });
+
+  describe('aviso de datos desactualizados', () => {
+    it('no avisa si el snapshot es de hoy', () => {
+      mockSvc.getSnapshot.and.returnValue(of([makeSnapshotClient('1', 'ok', 0)]));
+      fixture.detectChanges();
+      expect(comp.staleSince).toBeNull();
+    });
+
+    it('no avisa si el snapshot es de ayer (el cron de las 7am todavía no corrió)', () => {
+      mockSvc.getSnapshot.and.returnValue(of([makeSnapshotClient('1', 'ok', 1)]));
+      fixture.detectChanges();
+      expect(comp.staleSince).toBeNull();
+    });
+
+    it('avisa si el snapshot tiene 2 o más días', () => {
+      const old = makeSnapshotClient('1', 'ok', 2);
+      mockSvc.getSnapshot.and.returnValue(of([old]));
+      fixture.detectChanges();
+      expect(comp.staleSince).toBe(old.lastReadAt);
+    });
+
+    it('usa el snapshot más reciente entre los clientes', () => {
+      mockSvc.getSnapshot.and.returnValue(of([
+        makeSnapshotClient('1', 'ok', 5),
+        makeSnapshotClient('2', 'ok', 0),
+      ]));
+      fixture.detectChanges();
+      expect(comp.staleSince).toBeNull();
+    });
+
+    it('ignora clientes sin snapshot (disconnected) al calcular la antigüedad', () => {
+      mockSvc.getSnapshot.and.returnValue(of([
+        makeClient('1', 'disconnected'),
+        makeSnapshotClient('2', 'ok', 3),
+      ]));
+      fixture.detectChanges();
+      expect(comp.staleSince).not.toBeNull();
+    });
+
+    it('se limpia al refrescar con datos en vivo', () => {
+      mockSvc.getSnapshot.and.returnValue(of([makeSnapshotClient('1', 'ok', 4)]));
+      mockSvc.getAll.and.returnValue(of([makeClient('1', 'ok')]));
+      fixture.detectChanges();
+      expect(comp.staleSince).not.toBeNull();
+      comp.refresh();
+      expect(comp.staleSince).toBeNull();
+    });
   });
 
   it('debería calcular KPI totales correctamente', () => {
