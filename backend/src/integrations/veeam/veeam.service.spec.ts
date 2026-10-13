@@ -1,4 +1,5 @@
 // backend/src/integrations/veeam/veeam.service.spec.ts
+import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
@@ -70,15 +71,96 @@ describe('VeeamService', () => {
     });
   });
 
-  it('debería filtrar sesiones BackupJob y no incluir ReplicaJob', async () => {
-    const sessions = [
-      { sessionType: 'BackupJob', jobId: 'j1', state: 'Stopped', endTime: new Date(Date.now() - 3600000).toISOString(), result: { result: 'Success', message: 'Success' } },
-      { sessionType: 'ReplicaJob', jobId: 'j2', state: 'Stopped', endTime: new Date().toISOString(), result: { result: 'Success', message: '' } },
-    ];
-    mockHttpService.get.mockReturnValue(of(mockAxios({ data: sessions })));
-    const result = await (svc as any).getBackupSessions('https://host:9419', 'tok', '1.1-rev2');
-    expect(result).toHaveLength(1);
-    expect(result[0].sessionType).toBe('BackupJob');
+  describe('getJobStatuses', () => {
+    const job = (id: string, name: string) => ({ id, name, type: 'Backup', isDisabled: false });
+    const session = (jobId: string, sessionType: string, hoursAgo = 1) => {
+      const t = new Date(Date.now() - hoursAgo * 3600000).toISOString();
+      return { sessionType, jobId, state: 'Stopped', creationTime: t, endTime: t, result: { result: 'Success', message: 'ok' } };
+    };
+
+    const mockVeeam = (jobs: unknown[], sessions: unknown[]) => {
+      mockHttpService.post.mockReturnValue(of(mockAxios({ access_token: 'tok' })));
+      mockHttpService.get.mockImplementation((url: string) =>
+        of(mockAxios({ data: url.endsWith('/jobs') ? jobs : sessions })));
+    };
+
+    it('toma la sesión de un job aunque el sessionType no sea BackupJob (API 1.0 usa "Job")', async () => {
+      mockVeeam([job('j1', 'DC')], [session('j1', 'Job')]);
+      const [status] = await svc.getJobStatuses('host', 9419, 'u', 'p');
+      expect(status.lastResult).toBe('Success');
+      expect(status.hoursAgo).not.toBeNull();
+    });
+
+    it('API 1.0: la sesión trae jobId null → se asocia por nombre del job', async () => {
+      const t = new Date(Date.now() - 5 * 3600000).toISOString();
+      const sinJobId = (name: string) => ({
+        sessionType: 'Job', jobId: null, name, state: 'Stopped', creationTime: t, endTime: t,
+        result: { result: 'Success', message: 'ok' },
+      });
+      mockVeeam([job('j1', '1.- DC'), job('j2', '2.- DC2')], [sinJobId('2.- DC2'), sinJobId('1.- DC')]);
+      const result = await svc.getJobStatuses('host', 9419, 'u', 'p');
+      expect(result.map(r => r.lastResult)).toEqual(['Success', 'Success']);
+      expect(result[0].hoursAgo).toBeGreaterThan(4);
+    });
+
+    it('con jobId null toma la sesión más reciente del nombre', async () => {
+      const mk = (hoursAgo: number, result: string) => {
+        const t = new Date(Date.now() - hoursAgo * 3600000).toISOString();
+        return { sessionType: 'Job', jobId: null, name: '1.- DC', state: 'Stopped', creationTime: t, endTime: t, result: { result, message: '' } };
+      };
+      mockVeeam([job('j1', '1.- DC')], [mk(2, 'Failed'), mk(26, 'Success')]);
+      const [status] = await svc.getJobStatuses('host', 9419, 'u', 'p');
+      expect(status.lastResult).toBe('Failed');
+    });
+
+    it('con jobId null ignora sesiones cuyo nombre no es de ningún job', async () => {
+      const t = new Date().toISOString();
+      mockVeeam([job('j1', '1.- DC')], [
+        { sessionType: 'Infrastructure', jobId: null, name: 'Rescan', state: 'Stopped', creationTime: t, endTime: t, result: { result: 'Success', message: '' } },
+      ]);
+      const [status] = await svc.getJobStatuses('host', 9419, 'u', 'p');
+      expect(status.lastResult).toBeNull();
+    });
+
+    it('ignora sesiones que no pertenecen a ningún job (infraestructura, retención)', async () => {
+      mockVeeam(
+        [job('j1', 'DC')],
+        [session('infra-1', 'Infrastructure', 0.1), session('j1', 'BackupJob', 5)],
+      );
+      const result = await svc.getJobStatuses('host', 9419, 'u', 'p');
+      expect(result).toHaveLength(1);
+      expect(result[0].jobId).toBe('j1');
+      expect(result[0].hoursAgo).toBeGreaterThan(4);
+    });
+
+    it('usa la sesión más reciente de cada job', async () => {
+      const newest = session('j1', 'BackupJob', 1);
+      const older = { ...session('j1', 'BackupJob', 30), result: { result: 'Failed', message: 'x' } };
+      mockVeeam([job('j1', 'DC')], [newest, older]);
+      const [status] = await svc.getJobStatuses('host', 9419, 'u', 'p');
+      expect(status.lastResult).toBe('Success');
+    });
+
+    it('loguea un warn con los sessionType vistos cuando un job queda sin sesión', async () => {
+      const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+      mockVeeam([job('j1', 'DC'), job('j2', 'DC2')], [session('j1', 'Job')]);
+      const result = await svc.getJobStatuses('host', 9419, 'u', 'p');
+      expect(result[1].lastResult).toBeNull();
+      expect(warn).toHaveBeenCalledTimes(1);
+      const msg = String(warn.mock.calls[0][0]);
+      expect(msg).toContain('host:9419');
+      expect(msg).toContain('DC2');
+      expect(msg).toContain('Job');
+      warn.mockRestore();
+    });
+
+    it('no loguea warn si todos los jobs tienen sesión', async () => {
+      const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+      mockVeeam([job('j1', 'DC')], [session('j1', 'BackupJob')]);
+      await svc.getJobStatuses('host', 9419, 'u', 'p');
+      expect(warn).not.toHaveBeenCalled();
+      warn.mockRestore();
+    });
   });
 
   it('debería marcar isStale cuando hoursAgo > 30', () => {
