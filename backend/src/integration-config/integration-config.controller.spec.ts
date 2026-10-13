@@ -12,6 +12,7 @@ const mockService = {
   getOdooPublic: jest.fn(), getOdoo: jest.fn(), patchOdoo: jest.fn(), testOdoo: jest.fn(),
   getInfraDoc: jest.fn(), patchInfraDoc: jest.fn(), testInfraDoc: jest.fn(),
   getVmware: jest.fn(), patchVmware: jest.fn(), testVmware: jest.fn(),
+  getJetbackup: jest.fn(), patchJetbackup: jest.fn(), testJetbackup: jest.fn(),
 };
 
 describe('IntegrationConfigController', () => {
@@ -49,5 +50,22 @@ describe('IntegrationConfigController', () => {
   it('POST /odoo/test delega en service.testOdoo', async () => {
     mockService.testOdoo.mockResolvedValue({ ok: true, message: 'OK' });
     expect(await controller.testOdoo()).toEqual({ ok: true, message: 'OK' });
+  });
+
+  it('GET /jetbackup delega en service.getJetbackup', async () => {
+    const resp = { url: 'https://whm:2087', username: 'root', apiKey: MASK, updatedAt: null, updatedBy: null };
+    mockService.getJetbackup.mockResolvedValue(resp);
+    expect(await controller.getJetbackup()).toEqual(resp);
+  });
+
+  it('PATCH /jetbackup pasa email del JWT como updatedBy', async () => {
+    mockService.patchJetbackup.mockResolvedValue({});
+    await controller.patchJetbackup({ url: 'https://whm:2087' }, mockUser as any);
+    expect(mockService.patchJetbackup).toHaveBeenCalledWith({ url: 'https://whm:2087' }, 'admin@ondra.com.ar');
+  });
+
+  it('POST /jetbackup/test delega en service.testJetbackup', async () => {
+    mockService.testJetbackup.mockResolvedValue({ ok: true, message: 'Conexión exitosa' });
+    expect(await controller.testJetbackup()).toEqual({ ok: true, message: 'Conexión exitosa' });
   });
 });

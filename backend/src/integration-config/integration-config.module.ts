@@ -6,12 +6,13 @@ import { OdooConfig } from './entities/odoo-config.entity';
 import { InfraDocConfig } from './entities/infradoc-config.entity';
 import { VmwareConfig } from './entities/vmware-config.entity';
 import { VeeamConfig } from './entities/veeam-config.entity';
+import { JetbackupConfig } from './entities/jetbackup-config.entity';
 import { IntegrationConfigService } from './integration-config.service';
 import { IntegrationConfigController } from './integration-config.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OdooConfig, InfraDocConfig, VmwareConfig, VeeamConfig]),
+    TypeOrmModule.forFeature([OdooConfig, InfraDocConfig, VmwareConfig, VeeamConfig, JetbackupConfig]),
     HttpModule.register({ httpsAgent: new https.Agent({ rejectUnauthorized: false }) }),
   ],
   providers: [IntegrationConfigService],

@@ -1,19 +1,39 @@
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { BadGatewayException, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { BackupsService } from './backups.service';
 import { VeeamClientConfig } from './entities/veeam-client-config.entity';
 import { VeeamDailySnapshot } from './entities/veeam-daily-snapshot.entity';
+import { JetbackupJobConfig } from './entities/jetbackup-job-config.entity';
 import { VeeamService } from '../integrations/veeam/veeam.service';
+import { JetbackupService } from '../integrations/jetbackup/jetbackup.service';
 import { IntegrationConfigService } from '../integration-config/integration-config.service';
 
 const mockConfigRepo = { find: jest.fn(), findOne: jest.fn(), save: jest.fn(), delete: jest.fn(), create: jest.fn() };
+const mockJetRepo = {
+  find: jest.fn().mockResolvedValue([]),
+  findOne: jest.fn(),
+  save: jest.fn(),
+  delete: jest.fn(),
+  create: jest.fn((d: unknown) => d),
+};
 const mockSnapshotRepo = {
   upsert: jest.fn().mockResolvedValue(undefined),
   findOne: jest.fn(),
   find: jest.fn(),
 };
 const mockVeeamService = { getJobStatuses: jest.fn(), testConnection: jest.fn() };
-const mockIntegrationConfigSvc = { getVeeamConfigDecrypted: jest.fn() };
+const mockJetbackupService = { getJobStatuses: jest.fn(), listJobs: jest.fn() };
+const mockIntegrationConfigSvc = { getVeeamConfigDecrypted: jest.fn(), getJetbackupConfigDecrypted: jest.fn() };
+
+const JET_CONN = { url: 'https://whm:2087', username: 'root', apiKey: 'tok' };
+const jetCfg = (over: Partial<JetbackupJobConfig> = {}) => ({
+  id: 'jc1', clientId: 'c1', clientName: 'Client 1', jobId: 'job-1', jobName: 'PSQ', isEnabled: true, ...over,
+});
+const jetJob = (over: Record<string, unknown> = {}) => ({
+  jobId: 'job-1', jobName: 'PSQ', jobType: 'JetBackup', isRunning: false,
+  lastResult: 'Success', lastMessage: 'ok', lastRunAt: new Date().toISOString(), hoursAgo: 2, isStale: false, ...over,
+});
 
 describe('BackupsService', () => {
   let svc: BackupsService;
@@ -24,12 +44,16 @@ describe('BackupsService', () => {
         BackupsService,
         { provide: getRepositoryToken(VeeamClientConfig), useValue: mockConfigRepo },
         { provide: getRepositoryToken(VeeamDailySnapshot), useValue: mockSnapshotRepo },
+        { provide: getRepositoryToken(JetbackupJobConfig), useValue: mockJetRepo },
         { provide: VeeamService, useValue: mockVeeamService },
+        { provide: JetbackupService, useValue: mockJetbackupService },
         { provide: IntegrationConfigService, useValue: mockIntegrationConfigSvc },
       ],
     }).compile();
     svc = module.get(BackupsService);
     jest.clearAllMocks();
+    mockJetRepo.find.mockResolvedValue([]);
+    mockIntegrationConfigSvc.getJetbackupConfigDecrypted.mockResolvedValue(JET_CONN);
   });
 
   it('debería calcular estado del cliente como el peor estado de sus jobs', () => {
@@ -120,6 +144,9 @@ describe('BackupsService', () => {
     await svc.getClientStatus('c1');
     await Promise.resolve();
     expect(mockSnapshotRepo.upsert).toHaveBeenCalledTimes(1);
+    const [rows, conflict] = mockSnapshotRepo.upsert.mock.calls[0];
+    expect(rows[0]).toMatchObject({ provider: 'VEEAM', jobId: 'j1' });
+    expect(conflict).toEqual(['clientId', 'provider', 'jobId', 'snapshotDate']);
   });
 
   it('getLastSnapshot retorna disconnectedDto cuando no hay snapshots para un cliente', async () => {
@@ -138,12 +165,13 @@ describe('BackupsService', () => {
     ]);
     mockSnapshotRepo.findOne.mockResolvedValue({ clientId: 'c1', jobId: 'j1', snapshotDate: '2026-10-12' });
     mockSnapshotRepo.find.mockResolvedValue([
-      { clientId: 'c1', jobId: 'j1', jobName: 'Job1', jobType: 'Backup',
+      { clientId: 'c1', provider: 'VEEAM', jobId: 'j1', jobName: 'Job1', jobType: 'Backup',
         result: 'Success', message: null, lastRunAt, hoursAgo: 2, snapshotDate: '2026-10-12' },
     ]);
     const result = await svc.getLastSnapshot();
     expect(result[0].status).toBe('ok');
     expect(result[0].isSnapshot).toBe(true);
+    expect(result[0].jobs[0].provider).toBe('VEEAM');
   });
 
   it('getLastSnapshot retorna disconnectedDto para clientes deshabilitados', async () => {
@@ -153,5 +181,177 @@ describe('BackupsService', () => {
     const result = await svc.getLastSnapshot();
     expect(result[0].status).toBe('disconnected');
     expect(mockSnapshotRepo.findOne).not.toHaveBeenCalled();
+  });
+
+  describe('estado con JetBackup', () => {
+    const veeamCfg = { id: 'v1', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, isEnabled: true, lastConnectedAt: null };
+
+    it('getClientStatus de un cliente solo con JetBackup consulta únicamente los jobs habilitados', async () => {
+      mockConfigRepo.findOne.mockResolvedValue(null);
+      mockJetRepo.find.mockResolvedValue([jetCfg(), jetCfg({ id: 'jc2', jobId: 'job-2', jobName: 'Off', isEnabled: false })]);
+      mockJetbackupService.getJobStatuses.mockResolvedValue([jetJob()]);
+
+      const result = await svc.getClientStatus('c1');
+
+      expect(mockJetbackupService.getJobStatuses).toHaveBeenCalledWith(JET_CONN, [{ jobId: 'job-1', jobName: 'PSQ' }]);
+      expect(mockVeeamService.getJobStatuses).not.toHaveBeenCalled();
+      expect(result.clientName).toBe('Client 1');
+      expect(result.status).toBe('ok');
+      expect(result.jobs).toHaveLength(1);
+      expect(result.jobs[0].provider).toBe('JETBACKUP');
+    });
+
+    it('getClientStatus guarda el snapshot de JetBackup con su proveedor', async () => {
+      mockConfigRepo.findOne.mockResolvedValue(null);
+      mockJetRepo.find.mockResolvedValue([jetCfg()]);
+      mockJetbackupService.getJobStatuses.mockResolvedValue([jetJob()]);
+      await svc.getClientStatus('c1');
+      await Promise.resolve();
+      const [rows] = mockSnapshotRepo.upsert.mock.calls[0];
+      expect(rows[0]).toMatchObject({ provider: 'JETBACKUP', jobId: 'job-1', clientId: 'c1' });
+    });
+
+    it('un cliente con Veeam y JetBackup junta los jobs de ambos y toma el peor estado', async () => {
+      mockConfigRepo.findOne.mockResolvedValue(veeamCfg);
+      mockIntegrationConfigSvc.getVeeamConfigDecrypted.mockResolvedValue({ username: 'u', password: 'p' });
+      mockVeeamService.getJobStatuses.mockResolvedValue([
+        { jobId: 'vj', jobName: 'VJ', jobType: 'Backup', isRunning: false, lastResult: 'Success', lastMessage: null, lastRunAt: null, hoursAgo: 1, isStale: false },
+      ]);
+      mockJetRepo.find.mockResolvedValue([jetCfg()]);
+      mockJetbackupService.getJobStatuses.mockResolvedValue([jetJob({ lastResult: 'Failed' })]);
+
+      const result = await svc.getClientStatus('c1');
+
+      expect(result.totalJobs).toBe(2);
+      expect(result.jobs.map(j => j.provider).sort()).toEqual(['JETBACKUP', 'VEEAM']);
+      expect(result.status).toBe('crit');
+      expect(result.critCount).toBe(1);
+    });
+
+    it('getClientStatus lanza NotFound si el cliente no tiene ninguna config', async () => {
+      mockConfigRepo.findOne.mockResolvedValue(null);
+      mockJetRepo.find.mockResolvedValue([]);
+      await expect(svc.getClientStatus('c9')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('getAllClientStatuses incluye clientes que solo tienen JetBackup', async () => {
+      mockConfigRepo.find.mockResolvedValue([]);
+      mockJetRepo.find.mockResolvedValue([jetCfg(), jetCfg({ id: 'jc2', jobId: 'job-2', jobName: 'Otro' })]);
+      mockJetbackupService.getJobStatuses.mockResolvedValue([jetJob(), jetJob({ jobId: 'job-2', jobName: 'Otro' })]);
+      const result = await svc.getAllClientStatuses();
+      expect(result).toHaveLength(1);
+      expect(result[0].totalJobs).toBe(2);
+    });
+
+    it('getAllClientStatuses con Veeam deshabilitado y JetBackup habilitado muestra solo los jobs de JetBackup', async () => {
+      mockConfigRepo.find.mockResolvedValue([{ ...veeamCfg, isEnabled: false }]);
+      mockJetRepo.find.mockResolvedValue([jetCfg()]);
+      mockJetbackupService.getJobStatuses.mockResolvedValue([jetJob()]);
+      const result = await svc.getAllClientStatuses();
+      expect(result[0].status).toBe('ok');
+      expect(mockVeeamService.getJobStatuses).not.toHaveBeenCalled();
+    });
+
+    it('getAllClientStatuses devuelve disconnected si falla JetBackup', async () => {
+      mockConfigRepo.find.mockResolvedValue([]);
+      mockJetRepo.find.mockResolvedValue([jetCfg()]);
+      mockJetbackupService.getJobStatuses.mockRejectedValue(new Error('ECONNREFUSED'));
+      const result = await svc.getAllClientStatuses();
+      expect(result[0].status).toBe('disconnected');
+    });
+
+    it('getLastSnapshot arma el estado desde snapshots de JetBackup e ignora los de jobs ya no configurados', async () => {
+      const lastRunAt = new Date(Date.now() - 2 * 3600000);
+      mockConfigRepo.find.mockResolvedValue([]);
+      mockJetRepo.find.mockResolvedValue([jetCfg()]);
+      mockSnapshotRepo.findOne.mockResolvedValue({ clientId: 'c1', snapshotDate: '2026-10-12' });
+      mockSnapshotRepo.find.mockResolvedValue([
+        { clientId: 'c1', provider: 'JETBACKUP', jobId: 'job-1', jobName: 'PSQ', jobType: 'JetBackup', result: 'Success', message: 'ok', lastRunAt, hoursAgo: 2, snapshotDate: '2026-10-12' },
+        { clientId: 'c1', provider: 'JETBACKUP', jobId: 'job-borrado', jobName: 'Viejo', jobType: 'JetBackup', result: 'Failed', message: null, lastRunAt, hoursAgo: 2, snapshotDate: '2026-10-12' },
+      ]);
+      const result = await svc.getLastSnapshot();
+      expect(result).toHaveLength(1);
+      expect(result[0].status).toBe('ok');
+      expect(result[0].jobs.map(j => j.jobId)).toEqual(['job-1']);
+      expect(result[0].jobs[0].provider).toBe('JETBACKUP');
+    });
+  });
+
+  describe('configs de JetBackup', () => {
+    it('listConfigs junta Veeam y JetBackup con su proveedor', async () => {
+      mockConfigRepo.find.mockResolvedValue([
+        { id: 'v1', clientId: 'c1', clientName: 'Client 1', host: 'h', port: 9419, isEnabled: true, lastConnectedAt: null },
+      ]);
+      mockJetRepo.find.mockResolvedValue([jetCfg()]);
+      const list = await svc.listConfigs();
+      expect(list).toHaveLength(2);
+      expect(list.find(c => c.provider === 'VEEAM')).toMatchObject({ id: 'v1', host: 'h', port: 9419 });
+      expect(list.find(c => c.provider === 'JETBACKUP')).toMatchObject({ id: 'jc1', jobId: 'job-1', jobName: 'PSQ' });
+    });
+
+    it('createJetbackupConfigs guarda una fila por job', async () => {
+      mockJetRepo.find.mockResolvedValue([]);
+      mockJetRepo.save.mockImplementation((rows: unknown[]) => Promise.resolve(rows.map((r, i) => ({ id: `n${i}`, ...(r as object) }))));
+      const result = await svc.createJetbackupConfigs({
+        clientId: 'c1', clientName: 'Client 1', isEnabled: true,
+        jobs: [{ jobId: 'job-1', jobName: 'PSQ' }, { jobId: 'job-2', jobName: 'PARADOR' }],
+      });
+      expect(mockJetRepo.save).toHaveBeenCalledTimes(1);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({ provider: 'JETBACKUP', clientId: 'c1', jobId: 'job-1' });
+    });
+
+    it('createJetbackupConfigs rechaza jobs que ya están asignados', async () => {
+      mockJetRepo.find.mockResolvedValue([jetCfg({ clientName: 'Otro cliente' })]);
+      await expect(svc.createJetbackupConfigs({
+        clientId: 'c2', clientName: 'Client 2', isEnabled: true, jobs: [{ jobId: 'job-1', jobName: 'PSQ' }],
+      })).rejects.toBeInstanceOf(ConflictException);
+      expect(mockJetRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('updateJetbackupConfig cambia isEnabled', async () => {
+      mockJetRepo.findOne.mockResolvedValue(jetCfg());
+      mockJetRepo.save.mockImplementation((r: unknown) => Promise.resolve(r));
+      const updated = await svc.updateJetbackupConfig('jc1', { isEnabled: false });
+      expect(updated.isEnabled).toBe(false);
+    });
+
+    it('updateJetbackupConfig lanza NotFound si no existe', async () => {
+      mockJetRepo.findOne.mockResolvedValue(null);
+      await expect(svc.updateJetbackupConfig('x', { isEnabled: false })).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('deleteJetbackupConfig borra la fila', async () => {
+      await svc.deleteJetbackupConfig('jc1');
+      expect(mockJetRepo.delete).toHaveBeenCalledWith('jc1');
+    });
+  });
+
+  describe('listJetbackupJobs', () => {
+    it('marca los jobs ya configurados e indica a qué cliente pertenecen', async () => {
+      mockJetbackupService.listJobs.mockResolvedValue([
+        { jobId: 'job-1', name: 'PSQ', disabled: false },
+        { jobId: 'job-2', name: 'PARADORATALAYA', disabled: false },
+      ]);
+      mockJetRepo.find.mockResolvedValue([jetCfg({ clientName: 'PSQ Hosting' })]);
+      const jobs = await svc.listJetbackupJobs();
+      expect(mockJetbackupService.listJobs).toHaveBeenCalledWith(JET_CONN);
+      expect(jobs).toEqual([
+        { jobId: 'job-1', name: 'PSQ', disabled: false, configured: true, configuredClientName: 'PSQ Hosting' },
+        { jobId: 'job-2', name: 'PARADORATALAYA', disabled: false, configured: false, configuredClientName: null },
+      ]);
+    });
+
+    it('lanza BadRequest si JetBackup no está configurado en Integraciones', async () => {
+      mockIntegrationConfigSvc.getJetbackupConfigDecrypted.mockResolvedValue({ url: '', username: 'root', apiKey: '' });
+      await expect(svc.listJetbackupJobs()).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockJetbackupService.listJobs).not.toHaveBeenCalled();
+    });
+
+    it('lanza BadGateway con el mensaje de JetBackup cuando falla la consulta', async () => {
+      mockJetbackupService.listJobs.mockRejectedValue(new Error('Invalid token'));
+      await expect(svc.listJetbackupJobs()).rejects.toBeInstanceOf(BadGatewayException);
+      await expect(svc.listJetbackupJobs()).rejects.toThrow('Invalid token');
+    });
   });
 });

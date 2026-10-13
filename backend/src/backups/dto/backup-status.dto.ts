@@ -1,7 +1,10 @@
+import type { BackupProvider } from '../backup-provider';
+
 export type JobResult = 'Success' | 'Warning' | 'Failed';
 export type ClientStatus = 'ok' | 'warn' | 'crit' | 'no_data' | 'disconnected';
 
 export class BackupJobStatusDto {
+  provider: BackupProvider;
   jobId: string;
   jobName: string;
   jobType: string;

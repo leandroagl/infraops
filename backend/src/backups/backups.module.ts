@@ -5,13 +5,16 @@ import { BackupsService } from './backups.service';
 import { BackupsCron } from './backups.cron';
 import { VeeamClientConfig } from './entities/veeam-client-config.entity';
 import { VeeamDailySnapshot } from './entities/veeam-daily-snapshot.entity';
+import { JetbackupJobConfig } from './entities/jetbackup-job-config.entity';
 import { VeeamModule } from '../integrations/veeam/veeam.module';
+import { JetbackupModule } from '../integrations/jetbackup/jetbackup.module';
 import { IntegrationConfigModule } from '../integration-config/integration-config.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([VeeamClientConfig, VeeamDailySnapshot]),
+    TypeOrmModule.forFeature([VeeamClientConfig, VeeamDailySnapshot, JetbackupJobConfig]),
     VeeamModule,
+    JetbackupModule,
     IntegrationConfigModule,
   ],
   controllers: [BackupsController],

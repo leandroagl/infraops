@@ -10,6 +10,7 @@ import { PatchOdooConfigDto, OdooConfigResponseDto } from './dto/odoo-config.dto
 import { PatchInfraDocConfigDto, InfraDocConfigResponseDto } from './dto/infradoc-config.dto';
 import { PatchVmwareConfigDto, VmwareConfigResponseDto } from './dto/vmware-config.dto';
 import { PatchVeeamIntegrationConfigDto, VeeamIntegrationConfigResponseDto } from './dto/veeam-integration-config.dto';
+import { PatchJetbackupIntegrationConfigDto, JetbackupIntegrationConfigResponseDto } from './dto/jetbackup-integration-config.dto';
 
 @Controller('integration-config')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -68,4 +69,16 @@ export class IntegrationConfigController {
   @Post('veeam/test')
   @HttpCode(200)
   testVeeam(): Promise<{ ok: boolean; message: string }> { return this.svc.testVeeam(); }
+
+  @Get('jetbackup')
+  getJetbackup(): Promise<JetbackupIntegrationConfigResponseDto> { return this.svc.getJetbackup(); }
+
+  @Patch('jetbackup')
+  patchJetbackup(@Body() dto: PatchJetbackupIntegrationConfigDto, @CurrentUser() u: JwtPayload): Promise<JetbackupIntegrationConfigResponseDto> {
+    return this.svc.patchJetbackup(dto, u.email);
+  }
+
+  @Post('jetbackup/test')
+  @HttpCode(200)
+  testJetbackup(): Promise<{ ok: boolean; message: string }> { return this.svc.testJetbackup(); }
 }

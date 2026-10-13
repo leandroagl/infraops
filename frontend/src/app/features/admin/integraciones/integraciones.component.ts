@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   IntegrationConfigService, OdooConfigDto, InfraDocConfigDto, VmwareConfigDto, VeeamIntegrationConfigDto,
+  JetbackupIntegrationConfigDto,
 } from '../../../core/services/integration-config.service';
 
 const MASK = '••••••••';
@@ -32,21 +33,25 @@ export class IntegracionesComponent implements OnInit {
   infradocForm: FormGroup;
   vmwareForm: FormGroup;
   veeamForm: FormGroup;
+  jetbackupForm: FormGroup;
 
-  odoo     = initCard();
-  infradoc = initCard();
-  vmware   = initCard();
-  veeam    = initCard();
+  odoo      = initCard();
+  infradoc  = initCard();
+  vmware    = initCard();
+  veeam     = initCard();
+  jetbackup = initCard();
 
-  showOdooApiKey     = false;
-  showInfradocApiKey = false;
-  showVmwarePassword = false;
-  showVeeamPassword  = false;
+  showOdooApiKey      = false;
+  showInfradocApiKey  = false;
+  showVmwarePassword  = false;
+  showVeeamPassword   = false;
+  showJetbackupApiKey = false;
 
   toggleOdooApiKey(): void     { this.showOdooApiKey     = !this.showOdooApiKey; }
   toggleInfradocApiKey(): void { this.showInfradocApiKey = !this.showInfradocApiKey; }
   toggleVmwarePassword(): void { this.showVmwarePassword = !this.showVmwarePassword; }
   toggleVeeamPassword(): void  { this.showVeeamPassword  = !this.showVeeamPassword; }
+  toggleJetbackupApiKey(): void { this.showJetbackupApiKey = !this.showJetbackupApiKey; }
 
   constructor(
     private readonly fb: FormBuilder,
@@ -59,6 +64,7 @@ export class IntegracionesComponent implements OnInit {
     this.infradocForm = this.fb.group({ url: [''], apiKey: [MASK] });
     this.vmwareForm   = this.fb.group({ username: [''], password: [MASK] });
     this.veeamForm    = this.fb.group({ username: [''], password: [MASK] });
+    this.jetbackupForm = this.fb.group({ url: [''], username: ['root'], apiKey: [MASK] });
   }
 
   ngOnInit(): void {
@@ -92,6 +98,14 @@ export class IntegracionesComponent implements OnInit {
         this.veeam.loading   = false;
         this.veeam.updatedAt = d.updatedAt;
         this.veeam.updatedBy = d.updatedBy;
+      },
+    });
+    this.svc.getJetbackup().subscribe({
+      next: (d) => {
+        this.jetbackupForm.patchValue(d);
+        this.jetbackup.loading   = false;
+        this.jetbackup.updatedAt = d.updatedAt;
+        this.jetbackup.updatedBy = d.updatedBy;
       },
     });
   }
@@ -258,6 +272,48 @@ export class IntegracionesComponent implements OnInit {
         this.veeam.testing          = false;
         this.veeam.connectionStatus = 'error';
         this.snackBar.open('Error al probar Veeam', '', { duration: 5000 });
+      },
+    });
+  }
+
+  buildJetbackupPatchDto(): Partial<JetbackupIntegrationConfigDto> {
+    const v = this.jetbackupForm.value as { url: string; username: string; apiKey: string };
+    const dto: Partial<JetbackupIntegrationConfigDto> = { url: v.url, username: v.username };
+    if (v.apiKey && v.apiKey !== MASK) dto.apiKey = v.apiKey;
+    return dto;
+  }
+
+  saveJetbackup(): void {
+    this.jetbackup.saving = true;
+    this.svc.patchJetbackup(this.buildJetbackupPatchDto()).subscribe({
+      next: (d) => {
+        this.jetbackupForm.patchValue(d);
+        this.jetbackup.saving    = false;
+        this.jetbackup.updatedAt = d.updatedAt;
+        this.jetbackup.updatedBy = d.updatedBy;
+        this.snackBar.open('Configuración de JetBackup guardada', '', { duration: 3000 });
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.jetbackup.saving = false;
+        this.snackBar.open(e?.error?.message ?? 'Error al guardar configuración de JetBackup', '', { duration: 4000 });
+      },
+    });
+  }
+
+  testJetbackup(): void {
+    this.jetbackup.testing = true;
+    this.svc.testJetbackup().subscribe({
+      next: (r) => {
+        this.jetbackup.testing           = false;
+        this.jetbackup.connectionStatus  = r.ok ? 'ok' : 'error';
+        this.jetbackup.connectionMessage = r.message;
+        this.snackBar.open(r.message, '', { duration: r.ok ? 3000 : 5000 });
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.jetbackup.testing           = false;
+        this.jetbackup.connectionStatus  = 'error';
+        this.jetbackup.connectionMessage = e?.error?.message ?? 'Error de conexión';
+        this.snackBar.open(this.jetbackup.connectionMessage, '', { duration: 5000 });
       },
     });
   }

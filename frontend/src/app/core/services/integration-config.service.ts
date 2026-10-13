@@ -27,6 +27,9 @@ export interface VmwareConfigDto {
 export interface VeeamIntegrationConfigDto {
   username: string; password: string; updatedAt: Date | null; updatedBy: string | null;
 }
+export interface JetbackupIntegrationConfigDto {
+  url: string; username: string; apiKey: string; updatedAt: Date | null; updatedBy: string | null;
+}
 export interface TestConnectionResult { ok: boolean; message: string; }
 export interface HelpdeskTeamDto { id: number; name: string; }
 export interface HelpdeskTagDto { id: number; name: string; }
@@ -56,4 +59,8 @@ export class IntegrationConfigService {
   getVeeam(): Observable<VeeamIntegrationConfigDto>                                    { return this.http.get<VeeamIntegrationConfigDto>(`${this.base}/veeam`); }
   patchVeeam(dto: Partial<VeeamIntegrationConfigDto>): Observable<VeeamIntegrationConfigDto> { return this.http.patch<VeeamIntegrationConfigDto>(`${this.base}/veeam`, dto); }
   testVeeam(): Observable<TestConnectionResult>                                          { return this.http.post<TestConnectionResult>(`${this.base}/veeam/test`, {}); }
+
+  getJetbackup(): Observable<JetbackupIntegrationConfigDto>                                          { return this.http.get<JetbackupIntegrationConfigDto>(`${this.base}/jetbackup`); }
+  patchJetbackup(dto: Partial<JetbackupIntegrationConfigDto>): Observable<JetbackupIntegrationConfigDto> { return this.http.patch<JetbackupIntegrationConfigDto>(`${this.base}/jetbackup`, dto); }
+  testJetbackup(): Observable<TestConnectionResult>                                                  { return this.http.post<TestConnectionResult>(`${this.base}/jetbackup/test`, {}); }
 }

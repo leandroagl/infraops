@@ -73,6 +73,8 @@ backend/src/
 ├── integrations/
 │   ├── infradoc/      # Lectura de inventario de infraestructura
 │   ├── odoo/          # Apertura/cierre de tickets, timesheet, tags por TaskType
+│   ├── veeam/         # Estado de jobs de backup de los servidores Veeam de clientes
+│   ├── jetbackup/     # Jobs y estado de ejecución de JetBackup 5 (WHM de ONDRA)
 │   └── vmware/        # Health check de hosts ESXi
 └── common/            # Guards, decorators, DTOs compartidos, interceptors
 ```
@@ -194,6 +196,8 @@ InfraOps genera tarea → TL asigna → Laura coordina fecha con cliente
 |---|---|---|
 | InfraDoc | Lectura (API) | Inventario de infraestructura por cliente |
 | Odoo | Lectura + escritura (API) | Tickets, métricas de técnicos y clientes |
+| Veeam | Lectura (API) | Estado de jobs de backup; un servidor por cliente (host/puerto en Admin → Backups, credenciales globales en Integraciones) |
+| JetBackup | Lectura (API) | Estado de jobs de backup de hosting; un único WHM global (URL/usuario/token en Integraciones), los jobs se asignan a cada cliente en Admin → Backups. Ver `docs/jetbackup/api.md` |
 
 ---
 
@@ -347,14 +351,17 @@ Cuando un componente nuevo duplique lógica existente, **refactorizar primero** 
 - `/tasks` — Vista unificada de tareas por ciclo (todos los roles, comportamiento varía por rol)
 - `/notifications` — Vencimientos: licencias, garantías, dominios y certificados próximos a
   vencer, con indicador de ticket automático ya creado en Odoo
-- `/backups` — Monitoreo de backups Veeam por cliente: grid de cards con semáforo + drawer de
-  detalle por cliente con tabla de jobs. Ver mockup `docs/mockups/backups-v1.html`.
+- `/backups` — Monitoreo de backups (Veeam y JetBackup) por cliente: grid de cards con semáforo +
+  drawer de detalle por cliente con tabla de jobs (un cliente puede tener ambos tipos; el peor
+  estado manda). Ver mockup `docs/mockups/backups-v1.html`.
   **Patrón de diseño obligatorio:** KPI strip, tablas, chips de estado y estructura visual
   deben seguir exactamente el mismo patrón que `/tasks` y `/notifications`. Ante cualquier
   duda de estilo, referirse a esos módulos primero.
 - `/admin` — Panel Admin: Usuarios, Sync, Integraciones, Mantenimientos (config. por tipo de
   tarea), Vencimientos (config. de creación automática de tickets por tipo),
-  Backups (config. de conexión Veeam por cliente: host, puerto, credenciales cifradas, habilitado)
+  Backups (config. por cliente con columna Tipo: Veeam = host + puerto + habilitado; JetBackup =
+  uno o más jobs elegidos del WHM, los ya asignados se muestran como "ya configurado").
+  Las credenciales de ambos son globales y cifradas, en Integraciones
 - `/clients` — Lista de clientes con horas de suscripción y detalle por cliente
 - `/docs` — Módulo de documentación integrada, contenido filtrado por rol
 - `/profile` — Perfil del usuario, cambio de contraseña, avatar upload
@@ -371,6 +378,7 @@ docs/
 │   ├── server-maintenance.md
 │   └── terminal-visits.md
 |── infradoc/ api.md
+|── jetbackup/ api.md       # API de JetBackup 5 usada por InfraOps (verificada contra el WHM de ONDRA)
 ├── mockups/                
 # HTML mockups de referencia visual
 └── REVIEW_RULES.md         # Criterios de revisión de código
