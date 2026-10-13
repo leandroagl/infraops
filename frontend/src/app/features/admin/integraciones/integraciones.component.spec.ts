@@ -63,6 +63,10 @@ describe('IntegracionesComponent', () => {
     fixture.detectChanges();
   });
 
+  it('tiene mecanismo de cleanup de subscripciones (DestroyRef)', () => {
+    expect((comp as any).destroyRef).toBeDefined();
+  });
+
   it('carga config de las cuatro integraciones al iniciar', () => {
     expect(mockSvc.getOdoo).toHaveBeenCalled();
     expect(mockSvc.getInfraDoc).toHaveBeenCalled();

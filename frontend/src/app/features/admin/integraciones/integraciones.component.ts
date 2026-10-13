@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
@@ -27,6 +28,7 @@ const initCard = (): CardState => ({
   styleUrl: './integraciones.component.scss',
 })
 export class IntegracionesComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   readonly MASK = MASK;
 
   odooForm: FormGroup;
@@ -75,7 +77,7 @@ export class IntegracionesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.svc.getOdoo().subscribe({
+    this.svc.getOdoo().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.odooForm.patchValue(d);
         this.odoo.loading           = false;
@@ -83,7 +85,7 @@ export class IntegracionesComponent implements OnInit {
         this.odoo.updatedBy         = d.updatedBy;
       },
     });
-    this.svc.getInfraDoc().subscribe({
+    this.svc.getInfraDoc().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.infradocForm.patchValue(d);
         this.infradoc.loading           = false;
@@ -91,7 +93,7 @@ export class IntegracionesComponent implements OnInit {
         this.infradoc.updatedBy         = d.updatedBy;
       },
     });
-    this.svc.getVmware().subscribe({
+    this.svc.getVmware().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.vmwareForm.patchValue(d);
         this.vmware.loading           = false;
@@ -99,7 +101,7 @@ export class IntegracionesComponent implements OnInit {
         this.vmware.updatedBy         = d.updatedBy;
       },
     });
-    this.svc.getVeeam().subscribe({
+    this.svc.getVeeam().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.veeamForm.patchValue(d);
         this.veeam.loading   = false;
@@ -107,7 +109,7 @@ export class IntegracionesComponent implements OnInit {
         this.veeam.updatedBy = d.updatedBy;
       },
     });
-    this.svc.getJetbackup().subscribe({
+    this.svc.getJetbackup().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.jetbackupForm.patchValue(d);
         this.jetbackup.loading   = false;
@@ -115,7 +117,7 @@ export class IntegracionesComponent implements OnInit {
         this.jetbackup.updatedBy = d.updatedBy;
       },
     });
-    this.svc.getAcronis().subscribe({
+    this.svc.getAcronis().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.acronisForm.patchValue(d);
         this.acronis.loading   = false;
@@ -148,7 +150,7 @@ export class IntegracionesComponent implements OnInit {
 
   saveOdoo(): void {
     this.odoo.saving = true;
-    this.svc.patchOdoo(this.buildOdooPatchDto()).subscribe({
+    this.svc.patchOdoo(this.buildOdooPatchDto()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.odooForm.patchValue(d);
         this.odoo.saving            = false;
@@ -165,7 +167,7 @@ export class IntegracionesComponent implements OnInit {
 
   testOdoo(): void {
     this.odoo.testing = true;
-    this.svc.testOdoo().subscribe({
+    this.svc.testOdoo().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.odoo.testing           = false;
         this.odoo.connectionStatus  = r.ok ? 'ok' : 'error';
@@ -183,7 +185,7 @@ export class IntegracionesComponent implements OnInit {
 
   saveInfraDoc(): void {
     this.infradoc.saving = true;
-    this.svc.patchInfraDoc(this.buildInfraDocPatchDto()).subscribe({
+    this.svc.patchInfraDoc(this.buildInfraDocPatchDto()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.infradocForm.patchValue(d);
         this.infradoc.saving            = false;
@@ -200,7 +202,7 @@ export class IntegracionesComponent implements OnInit {
 
   testInfraDoc(): void {
     this.infradoc.testing = true;
-    this.svc.testInfraDoc().subscribe({
+    this.svc.testInfraDoc().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.infradoc.testing           = false;
         this.infradoc.connectionStatus  = r.ok ? 'ok' : 'error';
@@ -218,7 +220,7 @@ export class IntegracionesComponent implements OnInit {
 
   saveVmware(): void {
     this.vmware.saving = true;
-    this.svc.patchVmware(this.buildVmwarePatchDto()).subscribe({
+    this.svc.patchVmware(this.buildVmwarePatchDto()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.vmwareForm.patchValue(d);
         this.vmware.saving            = false;
@@ -235,7 +237,7 @@ export class IntegracionesComponent implements OnInit {
 
   testVmware(): void {
     this.vmware.testing = true;
-    this.svc.testVmware().subscribe({
+    this.svc.testVmware().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.vmware.testing           = false;
         this.vmware.connectionStatus  = r.ok ? 'ok' : 'error';
@@ -259,7 +261,7 @@ export class IntegracionesComponent implements OnInit {
 
   saveVeeam(): void {
     this.veeam.saving = true;
-    this.svc.patchVeeam(this.buildVeeamPatchDto()).subscribe({
+    this.svc.patchVeeam(this.buildVeeamPatchDto()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.veeamForm.patchValue(d);
         this.veeam.saving    = false;
@@ -276,7 +278,7 @@ export class IntegracionesComponent implements OnInit {
 
   testVeeam(): void {
     this.veeam.testing = true;
-    this.svc.testVeeam().subscribe({
+    this.svc.testVeeam().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.veeam.testing           = false;
         this.veeam.connectionStatus  = r.ok ? 'ok' : 'error';
@@ -300,7 +302,7 @@ export class IntegracionesComponent implements OnInit {
 
   saveJetbackup(): void {
     this.jetbackup.saving = true;
-    this.svc.patchJetbackup(this.buildJetbackupPatchDto()).subscribe({
+    this.svc.patchJetbackup(this.buildJetbackupPatchDto()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.jetbackupForm.patchValue(d);
         this.jetbackup.saving    = false;
@@ -317,7 +319,7 @@ export class IntegracionesComponent implements OnInit {
 
   testJetbackup(): void {
     this.jetbackup.testing = true;
-    this.svc.testJetbackup().subscribe({
+    this.svc.testJetbackup().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.jetbackup.testing           = false;
         this.jetbackup.connectionStatus  = r.ok ? 'ok' : 'error';
@@ -343,7 +345,7 @@ export class IntegracionesComponent implements OnInit {
 
   saveAcronis(): void {
     this.acronis.saving = true;
-    this.svc.patchAcronis(this.buildAcronisPatchDto()).subscribe({
+    this.svc.patchAcronis(this.buildAcronisPatchDto()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.acronisForm.patchValue(d);
         this.acronis.saving    = false;
@@ -360,7 +362,7 @@ export class IntegracionesComponent implements OnInit {
 
   testAcronis(): void {
     this.acronis.testing = true;
-    this.svc.testAcronis().subscribe({
+    this.svc.testAcronis().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (r) => {
         this.acronis.testing           = false;
         this.acronis.connectionStatus  = r.ok ? 'ok' : 'error';
