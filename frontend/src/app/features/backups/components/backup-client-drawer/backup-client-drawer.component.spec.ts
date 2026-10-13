@@ -75,7 +75,7 @@ describe('BackupClientDrawerComponent', () => {
 
   describe('expandir error de job', () => {
     const mkJob = (jobId: string, lastResult: BackupJobResult | null, lastMessage: string | null): BackupJobStatus => ({
-      jobId, jobName: `job-${jobId}`, jobType: 'Backup', isRunning: false,
+      provider: 'VEEAM', jobId, jobName: `job-${jobId}`, jobType: 'Backup', isRunning: false,
       lastResult, lastMessage, lastRunAt: null, hoursAgo: 1, isStale: false,
     });
     const longMsg = 'Error: línea 1\nlínea 2\nlínea 3\nlínea 4';
