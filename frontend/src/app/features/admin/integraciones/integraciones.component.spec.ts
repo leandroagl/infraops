@@ -13,44 +13,35 @@ import { IntegrationConfigService } from '../../../core/services/integration-con
 
 const MASK = '••••••••';
 
-const odooBase = { url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 30, expirationsTagIds: [], expirationsTypeConfigs: null, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null };
+const odooBase     = { url: 'https://odoo.test', db: 'db', username: 'bot@test.com', apiKey: MASK, helpdeskTeamId: 7, expirationsHelpdeskTeamId: 9, expirationsTicketDaysAhead: 30, expirationsTagIds: [], expirationsTypeConfigs: null, stageInProgressName: 'En curso', stageNotDoneName: 'No realizadas', stageDoneName: 'Hecho', updatedAt: null, updatedBy: null };
 const infradocBase = { url: 'https://id.test', apiKey: MASK, updatedAt: null, updatedBy: null };
 const vmwareBase   = { username: 'ondra-read', password: MASK, updatedAt: null, updatedBy: null };
 const veeamBase    = { username: 'ondra-veeam', password: MASK, updatedAt: null, updatedBy: null };
 
-const mockSvc = {
-  getOdoo:     jest.fn(),
-  patchOdoo:   jest.fn(),
-  testOdoo:    jest.fn(),
-  getInfraDoc: jest.fn(),
-  patchInfraDoc: jest.fn(),
-  testInfraDoc: jest.fn(),
-  getVmware:   jest.fn(),
-  patchVmware: jest.fn(),
-  testVmware:  jest.fn(),
-  getVeeam:    jest.fn(),
-  patchVeeam:  jest.fn(),
-  testVeeam:   jest.fn(),
-};
-
 describe('IntegracionesComponent', () => {
   let fixture: ComponentFixture<IntegracionesComponent>;
   let comp: IntegracionesComponent;
+  let mockSvc: jasmine.SpyObj<IntegrationConfigService>;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
-    mockSvc.getOdoo.mockReturnValue(of(odooBase));
-    mockSvc.patchOdoo.mockReturnValue(of(odooBase));
-    mockSvc.testOdoo.mockReturnValue(of({ ok: true, message: 'OK' }));
-    mockSvc.getInfraDoc.mockReturnValue(of(infradocBase));
-    mockSvc.patchInfraDoc.mockReturnValue(of(infradocBase));
-    mockSvc.testInfraDoc.mockReturnValue(of({ ok: true, message: 'OK' }));
-    mockSvc.getVmware.mockReturnValue(of(vmwareBase));
-    mockSvc.patchVmware.mockReturnValue(of(vmwareBase));
-    mockSvc.testVmware.mockReturnValue(of({ ok: true, message: 'OK' }));
-    mockSvc.getVeeam.mockReturnValue(of(veeamBase));
-    mockSvc.patchVeeam.mockReturnValue(of(veeamBase));
-    mockSvc.testVeeam.mockReturnValue(of({ ok: true, message: 'OK' }));
+    mockSvc = jasmine.createSpyObj('IntegrationConfigService', [
+      'getOdoo', 'patchOdoo', 'testOdoo',
+      'getInfraDoc', 'patchInfraDoc', 'testInfraDoc',
+      'getVmware', 'patchVmware', 'testVmware',
+      'getVeeam', 'patchVeeam', 'testVeeam',
+    ]);
+    mockSvc.getOdoo.and.returnValue(of(odooBase));
+    mockSvc.patchOdoo.and.returnValue(of(odooBase));
+    mockSvc.testOdoo.and.returnValue(of({ ok: true, message: 'OK' }));
+    mockSvc.getInfraDoc.and.returnValue(of(infradocBase));
+    mockSvc.patchInfraDoc.and.returnValue(of(infradocBase));
+    mockSvc.testInfraDoc.and.returnValue(of({ ok: true, message: 'OK' }));
+    mockSvc.getVmware.and.returnValue(of(vmwareBase));
+    mockSvc.patchVmware.and.returnValue(of(vmwareBase));
+    mockSvc.testVmware.and.returnValue(of({ ok: true, message: 'OK' }));
+    mockSvc.getVeeam.and.returnValue(of(veeamBase));
+    mockSvc.patchVeeam.and.returnValue(of(veeamBase));
+    mockSvc.testVeeam.and.returnValue(of({ ok: true, message: 'OK' }));
 
     await TestBed.configureTestingModule({
       declarations: [IntegracionesComponent],
@@ -85,10 +76,10 @@ describe('IntegracionesComponent', () => {
   });
 
   it('no marca connectionStatus como "ok" solo porque la config tiene updatedAt', () => {
-    mockSvc.getOdoo.mockReturnValue(of({ ...odooBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
-    mockSvc.getInfraDoc.mockReturnValue(of({ ...infradocBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
-    mockSvc.getVmware.mockReturnValue(of({ ...vmwareBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
-    mockSvc.getVeeam.mockReturnValue(of({ ...veeamBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
+    mockSvc.getOdoo.and.returnValue(of({ ...odooBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
+    mockSvc.getInfraDoc.and.returnValue(of({ ...infradocBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
+    mockSvc.getVmware.and.returnValue(of({ ...vmwareBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
+    mockSvc.getVeeam.and.returnValue(of({ ...veeamBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
 
     const freshFixture = TestBed.createComponent(IntegracionesComponent);
     const freshComp = freshFixture.componentInstance;
@@ -106,20 +97,20 @@ describe('IntegracionesComponent', () => {
   });
 
   it('probar la conexión de Odoo sí marca connectionStatus según el resultado', () => {
-    mockSvc.testOdoo.mockReturnValue(of({ ok: true, message: 'Conexión exitosa' }));
+    mockSvc.testOdoo.and.returnValue(of({ ok: true, message: 'Conexión exitosa' }));
     comp.testOdoo();
     expect(comp.odoo.connectionStatus).toBe('ok');
   });
 
   it('muestra el mensaje de error del backend al fallar el guardado de Odoo', () => {
     const snackBar = TestBed.inject(MatSnackBar);
-    const openSpy = jest.spyOn(snackBar, 'open');
-    mockSvc.patchOdoo.mockReturnValue(throwError(() => ({ error: { message: 'INTEGRATIONS_ENCRYPT_KEY no está configurada' } })));
+    const openSpy = spyOn(snackBar, 'open');
+    mockSvc.patchOdoo.and.returnValue(throwError(() => ({ error: { message: 'INTEGRATIONS_ENCRYPT_KEY no está configurada' } })));
 
     comp.saveOdoo();
 
     expect(comp.odoo.saving).toBe(false);
-    expect(openSpy).toHaveBeenCalledWith('INTEGRATIONS_ENCRYPT_KEY no está configurada', '', expect.any(Object));
+    expect(openSpy).toHaveBeenCalledWith('INTEGRATIONS_ENCRYPT_KEY no está configurada', '', jasmine.any(Object));
   });
 
   it('buildVeeamPatchDto omite password cuando es MASK', () => {

@@ -24,14 +24,19 @@ const mockEmptyInfra = {
   esxiHosts: [], windowsVMs: [], domainControllers: [], linuxVMs: [], nas: [], routers: [],
 };
 
-const mockSvc        = { createConfig: jest.fn(), updateConfig: jest.fn() };
-const mockDialogRef  = { close: jest.fn() };
-const mockClientsSvc = { getAll: jest.fn() };
-const mockInfradocSvc = { getClientInfrastructure: jest.fn() };
-
 describe('BackupsConfigDialogComponent', () => {
+  let mockSvc: jasmine.SpyObj<BackupsService>;
+  let mockClientsSvc: jasmine.SpyObj<ClientsService>;
+  let mockInfradocSvc: jasmine.SpyObj<InfradocService>;
+  let mockDialogRef: jasmine.SpyObj<MatDialogRef<BackupsConfigDialogComponent>>;
+
   async function setup(data: any = null) {
-    mockClientsSvc.getAll.mockReturnValue(of(mockClients));
+    mockSvc        = jasmine.createSpyObj('BackupsService',  ['createConfig', 'updateConfig']);
+    mockClientsSvc = jasmine.createSpyObj('ClientsService',  ['getAll']);
+    mockInfradocSvc = jasmine.createSpyObj('InfradocService', ['getClientInfrastructure']);
+    mockDialogRef  = jasmine.createSpyObj('MatDialogRef',    ['close']);
+
+    mockClientsSvc.getAll.and.returnValue(of(mockClients));
 
     await TestBed.configureTestingModule({
       declarations: [BackupsConfigDialogComponent],
@@ -61,11 +66,9 @@ describe('BackupsConfigDialogComponent', () => {
     return { fixture, comp: fixture.componentInstance };
   }
 
-  beforeEach(() => { jest.clearAllMocks(); });
-
   it('auto-popula el host con el hostname de uri1 (sin puerto) al seleccionar cliente', async () => {
     const { comp } = await setup(null);
-    mockInfradocSvc.getClientInfrastructure.mockReturnValue(of({
+    mockInfradocSvc.getClientInfrastructure.and.returnValue(of({
       ...mockEmptyInfra,
       esxiHosts: [{ assetId: 1, name: 'hpGL360.covema.local', ip: null, bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: 'https://acme.ondravirtual.com.ar:344', uri2: null }],
     }));
@@ -76,7 +79,7 @@ describe('BackupsConfigDialogComponent', () => {
 
   it('usa uri2 si uri1 es null', async () => {
     const { comp } = await setup(null);
-    mockInfradocSvc.getClientInfrastructure.mockReturnValue(of({
+    mockInfradocSvc.getClientInfrastructure.and.returnValue(of({
       ...mockEmptyInfra,
       esxiHosts: [{ assetId: 1, name: 'server.local', ip: null, bmcIp: null, bmcType: null, os: null, make: null, model: null, uri1: null, uri2: 'https://beta.ondravirtual.com.ar:344' }],
     }));
@@ -86,7 +89,7 @@ describe('BackupsConfigDialogComponent', () => {
 
   it('no modifica el host si esxiHosts está vacío', async () => {
     const { comp } = await setup(null);
-    mockInfradocSvc.getClientInfrastructure.mockReturnValue(of(mockEmptyInfra));
+    mockInfradocSvc.getClientInfrastructure.and.returnValue(of(mockEmptyInfra));
     comp.form.controls.host.setValue('10.0.0.1');
     comp.onClientChange('c1');
     expect(comp.form.controls.host.value).toBe('10.0.0.1');
@@ -94,17 +97,17 @@ describe('BackupsConfigDialogComponent', () => {
 
   it('crea config con clientId, host, port, isEnabled sin credenciales', async () => {
     const { comp } = await setup(null);
-    mockSvc.createConfig.mockReturnValue(of({
+    mockSvc.createConfig.and.returnValue(of({
       id: 'new', clientId: 'c1', clientName: 'ACME',
       host: 'acme.ondravirtual.com.ar', port: 9419,
       isEnabled: true, lastConnectedAt: null,
     }));
     comp.form.patchValue({ clientId: 'c1', host: 'acme.ondravirtual.com.ar', port: 9419, isEnabled: true });
     comp.save();
-    expect(mockSvc.createConfig).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockSvc.createConfig).toHaveBeenCalledWith(jasmine.objectContaining({
       clientId: 'c1', clientName: 'ACME', host: 'acme.ondravirtual.com.ar',
     }));
-    expect(mockDialogRef.close).toHaveBeenCalledWith(expect.objectContaining({ id: 'new' }));
+    expect(mockDialogRef.close).toHaveBeenCalledWith(jasmine.objectContaining({ id: 'new' }));
   });
 
   it('formulario inválido si clientId o host están vacíos en modo creación', async () => {
@@ -120,10 +123,10 @@ describe('BackupsConfigDialogComponent', () => {
       port: 9419, isEnabled: true, clientId: 'c1', lastConnectedAt: null,
     };
     const { comp } = await setup(existing);
-    mockSvc.updateConfig.mockReturnValue(of({ ...existing, host: '10.0.0.5', port: 9420 }));
+    mockSvc.updateConfig.and.returnValue(of({ ...existing, host: '10.0.0.5', port: 9420 }));
     comp.form.patchValue({ host: '10.0.0.5', port: 9420 });
     comp.save();
-    expect(mockSvc.updateConfig).toHaveBeenCalledWith('abc', expect.objectContaining({ host: '10.0.0.5', port: 9420 }));
+    expect(mockSvc.updateConfig).toHaveBeenCalledWith('abc', jasmine.objectContaining({ host: '10.0.0.5', port: 9420 }));
   });
 
   it('onClientChange no llama a InfraDoc en modo edición', async () => {
@@ -137,7 +140,7 @@ describe('BackupsConfigDialogComponent', () => {
   });
 
   it('carga solo clientes activos en el selector', async () => {
-    mockClientsSvc.getAll.mockReturnValue(of([
+    mockClientsSvc.getAll.and.returnValue(of([
       ...mockClients,
       { id: 'c3', name: 'Inactivo', isActive: false, primaryAddress: null, createdAt: '2024-01-01' },
     ]));
