@@ -1,1 +1,1 @@
-export type BackupProvider = 'VEEAM' | 'JETBACKUP';
+export type BackupProvider = 'VEEAM' | 'JETBACKUP' | 'ACRONIS';

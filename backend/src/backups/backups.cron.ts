@@ -4,8 +4,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { VeeamClientConfig } from './entities/veeam-client-config.entity';
 import { JetbackupJobConfig } from './entities/jetbackup-job-config.entity';
+import { AcronisPlanConfig } from './entities/acronis-plan-config.entity';
 import { VeeamService } from '../integrations/veeam/veeam.service';
 import { JetbackupService } from '../integrations/jetbackup/jetbackup.service';
+import { AcronisService } from '../integrations/acronis/acronis.service';
 import { BackupsService } from './backups.service';
 import { IntegrationConfigService } from '../integration-config/integration-config.service';
 
@@ -16,8 +18,10 @@ export class BackupsCron {
   constructor(
     @InjectRepository(VeeamClientConfig) private readonly configRepo: Repository<VeeamClientConfig>,
     @InjectRepository(JetbackupJobConfig) private readonly jetbackupRepo: Repository<JetbackupJobConfig>,
+    @InjectRepository(AcronisPlanConfig) private readonly acronisRepo: Repository<AcronisPlanConfig>,
     private readonly veeamService: VeeamService,
     private readonly jetbackupService: JetbackupService,
+    private readonly acronisService: AcronisService,
     private readonly backupsService: BackupsService,
     private readonly integrationConfigSvc: IntegrationConfigService,
   ) {}
@@ -26,6 +30,7 @@ export class BackupsCron {
   async runDailySnapshot(): Promise<void> {
     await this.snapshotVeeam();
     await this.snapshotJetbackup();
+    await this.snapshotAcronis();
   }
 
   private async snapshotVeeam(): Promise<void> {
@@ -69,6 +74,32 @@ export class BackupsCron {
       }
     } catch (err) {
       this.logger.error(`Snapshot JetBackup FAIL: no se pudo leer la config — ${(err as Error).message}`);
+    }
+  }
+
+  private async snapshotAcronis(): Promise<void> {
+    const configs = await this.acronisRepo.find({ where: { isEnabled: true } });
+    this.logger.log(`Snapshot diario Acronis: ${configs.length} planes`);
+    if (!configs.length) return;
+
+    const byClient = new Map<string, AcronisPlanConfig[]>();
+    for (const c of configs) byClient.set(c.clientId, [...(byClient.get(c.clientId) ?? []), c]);
+
+    try {
+      const conn = await this.integrationConfigSvc.getAcronisConfigDecrypted();
+      for (const [clientId, plans] of byClient) {
+        try {
+          const statuses = await this.acronisService.getJobStatuses(
+            conn, plans.map(p => ({ policyId: p.policyId, policyName: p.policyName })),
+          );
+          await this.backupsService.saveSnapshot(clientId, 'ACRONIS', statuses);
+          this.logger.log(`Snapshot Acronis OK: clientId=${clientId} (${statuses.length} planes)`);
+        } catch (err) {
+          this.logger.error(`Snapshot Acronis FAIL: clientId=${clientId} — ${(err as Error).message}`);
+        }
+      }
+    } catch (err) {
+      this.logger.error(`Snapshot Acronis FAIL: no se pudo leer la config — ${(err as Error).message}`);
     }
   }
 }

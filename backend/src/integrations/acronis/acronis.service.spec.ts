@@ -182,6 +182,35 @@ describe('AcronisService', () => {
     });
   });
 
+  describe('getJobStatuses', () => {
+    it('devuelve un job genérico por plan configurado', async () => {
+      onGet = () => page(mailboxTasks);
+      const jobs = await service.getJobStatuses(CONN, [{ policyId: mailboxPolicyId, policyName: 'Mi plan' }]);
+      expect(jobs.length).toBe(1);
+      expect(jobs[0]).toMatchObject({ jobId: mailboxPolicyId, jobType: 'Acronis', lastResult: 'Success' });
+      expect(jobs[0].aggregate?.total).toBeGreaterThan(0);
+    });
+
+    it('un plan sin tasks se reporta como Failed (no como ok) con el nombre configurado', async () => {
+      onGet = () => page([]);
+      const [job] = await service.getJobStatuses(CONN, [{ policyId: 'pol-borrado', policyName: 'Plan viejo' }]);
+      expect(job).toMatchObject({
+        jobId: 'pol-borrado', jobName: 'Plan viejo', lastResult: 'Failed', lastRunAt: null, hoursAgo: null,
+      });
+      expect(job.lastMessage).toMatch(/no registra corridas/i);
+    });
+
+    it('propaga cualquier otro error (cliente desconectado en vez de estado parcial)', async () => {
+      onGet = () => page(mailboxTasks, 'SIEMPRE-HAY-MAS');
+      await expect(service.getJobStatuses(CONN, [{ policyId: mailboxPolicyId, policyName: 'x' }])).rejects.toThrow(/truncad/i);
+    });
+
+    it('devuelve [] sin llamar a la API si no hay planes', async () => {
+      expect(await service.getJobStatuses(CONN, [])).toEqual([]);
+      expect(post).not.toHaveBeenCalled();
+    });
+  });
+
   describe('listPlans', () => {
     it('agrupa por policy.id con tenant, tipos y cantidad de recursos; descarta el ruido', async () => {
       onGet = () => page(allTasks);

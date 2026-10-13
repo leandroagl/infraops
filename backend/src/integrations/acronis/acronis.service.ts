@@ -6,9 +6,11 @@ import type {
   AcronisActivity, AcronisConnection, AcronisPage, AcronisPlanDiscovery, AcronisPlanStatus,
   AcronisPlanSummary, AcronisTask, AcronisThresholds,
 } from './dto/acronis-api.dto';
+import type { BackupJobStatus } from '../veeam/dto/veeam-api.dto';
 import {
   evaluateActivityResources, evaluateResources, groupByPlan, isBackupTask, parseAcronisTimestamp,
 } from './acronis.evaluation';
+import { toBackupJobStatus } from './acronis.mapper';
 
 export const DEFAULT_THRESHOLDS: AcronisThresholds = { staleWarningHours: 26, staleErrorHours: 48 };
 
@@ -21,6 +23,11 @@ const ACTIVITIES_MAX_PAGES = 3;
 const TOKEN_MARGIN_MS = 60_000;
 const TOKEN_FALLBACK_TTL_MS = 5 * 60_000;
 const PLAN_CACHE_TTL_MS = 5 * 60_000;
+
+// Un plan configurado sin ninguna corrida de backup en Acronis (borrado, nunca corrió o sin recursos).
+export class AcronisNoTasksError extends Error {}
+
+export interface AcronisPlanRef { policyId: string; policyName: string }
 
 interface HttpError { message?: string; response?: { status?: number } }
 
@@ -126,6 +133,25 @@ export class AcronisService {
     return { plans, partial: truncated };
   }
 
+  // Un job genérico por plan configurado. Un plan sin corridas es un problema (Failed), no un "ok".
+  // Cualquier otro error se propaga: el cliente figura como desconectado en vez de mostrar un estado parcial.
+  async getJobStatuses(
+    conn: AcronisConnection, refs: AcronisPlanRef[], th: AcronisThresholds = DEFAULT_THRESHOLDS,
+  ): Promise<BackupJobStatus[]> {
+    if (!refs.length) return [];
+    return Promise.all(refs.map(async ref => {
+      try {
+        return toBackupJobStatus(await this.getPlanStatus(conn, ref.policyId, th), th);
+      } catch (err) {
+        if (!(err instanceof AcronisNoTasksError)) throw err;
+        return {
+          jobId: ref.policyId, jobName: ref.policyName, jobType: 'Acronis', isRunning: false, lastResult: 'Failed' as const,
+          lastMessage: 'Acronis no registra corridas de backup para este plan', lastRunAt: null, hoursAgo: null, isStale: false,
+        };
+      }
+    }));
+  }
+
   // Estado de UN plan. Se consulta por policyId (historial profundo): un barrido global solo
   // cubriría pocas horas y no vería backups que dejaron de correr hace semanas.
   getPlanStatus(
@@ -152,7 +178,7 @@ export class AcronisService {
       throw new Error(`La respuesta de /tasks quedó truncada tras ${TASKS_MAX_PAGES} páginas para el plan ${policyId}`);
     }
     const tasks = items.filter(isBackupTask);
-    if (!tasks.length) throw new Error(`No se encontraron tasks de backup para el plan ${policyId}`);
+    if (!tasks.length) throw new AcronisNoTasksError(`No se encontraron tasks de backup para el plan ${policyId}`);
 
     const latest = tasks[0];
     let resources;
@@ -169,7 +195,7 @@ export class AcronisService {
     } else {
       resources = evaluateResources(tasks, th);
     }
-    if (!resources.length) throw new Error(`El plan ${policyId} no tiene recursos evaluables`);
+    if (!resources.length) throw new AcronisNoTasksError(`El plan ${policyId} no tiene recursos evaluables`);
 
     const lastRunAt = resources.map(r => r.latestAt).filter((d): d is string => Boolean(d)).sort().pop() ?? null;
     return {

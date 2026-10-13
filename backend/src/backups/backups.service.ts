@@ -4,8 +4,10 @@ import { In, Repository } from 'typeorm';
 import { VeeamClientConfig } from './entities/veeam-client-config.entity';
 import { VeeamDailySnapshot } from './entities/veeam-daily-snapshot.entity';
 import { JetbackupJobConfig } from './entities/jetbackup-job-config.entity';
+import { AcronisPlanConfig } from './entities/acronis-plan-config.entity';
 import { VeeamService } from '../integrations/veeam/veeam.service';
 import { JetbackupService } from '../integrations/jetbackup/jetbackup.service';
+import { AcronisService } from '../integrations/acronis/acronis.service';
 import { IntegrationConfigService } from '../integration-config/integration-config.service';
 import type { BackupJobStatus } from '../integrations/veeam/dto/veeam-api.dto';
 import type { BackupProvider } from './backup-provider';
@@ -22,16 +24,24 @@ import type {
   JetbackupJobConfigResponseDto,
   UpdateJetbackupConfigDto,
 } from './dto/jetbackup-config.dto';
+import type {
+  AcronisPlanConfigResponseDto,
+  AvailableAcronisPlansDto,
+  CreateAcronisConfigsDto,
+  UpdateAcronisConfigDto,
+} from './dto/acronis-config.dto';
 import type { ClientBackupStatusDto, ClientStatus } from './dto/backup-status.dto';
 
-export type BackupConfigResponseDto = VeeamClientConfigResponseDto | JetbackupJobConfigResponseDto;
+export type BackupConfigResponseDto =
+  VeeamClientConfigResponseDto | JetbackupJobConfigResponseDto | AcronisPlanConfigResponseDto;
 
-// Todo lo configurado para un cliente: un servidor Veeam (opcional) y N jobs de JetBackup.
+// Todo lo configurado para un cliente: un servidor Veeam (opcional), N jobs de JetBackup y N planes de Acronis.
 interface ClientSources {
   clientId: string;
   clientName: string;
   veeam: VeeamClientConfig | null;
   jetbackup: JetbackupJobConfig[];
+  acronis: AcronisPlanConfig[];
 }
 
 @Injectable()
@@ -42,8 +52,10 @@ export class BackupsService {
     @InjectRepository(VeeamClientConfig) private readonly configRepo: Repository<VeeamClientConfig>,
     @InjectRepository(VeeamDailySnapshot) private readonly snapshotRepo: Repository<VeeamDailySnapshot>,
     @InjectRepository(JetbackupJobConfig) private readonly jetbackupRepo: Repository<JetbackupJobConfig>,
+    @InjectRepository(AcronisPlanConfig) private readonly acronisRepo: Repository<AcronisPlanConfig>,
     private readonly veeamService: VeeamService,
     private readonly jetbackupService: JetbackupService,
+    private readonly acronisService: AcronisService,
     private readonly integrationConfigSvc: IntegrationConfigService,
   ) {}
 
@@ -68,6 +80,19 @@ export class BackupsService {
       clientName: c.clientName,
       jobId: c.jobId,
       jobName: c.jobName,
+      isEnabled: c.isEnabled,
+    };
+  }
+
+  private toAcronisResponseDto(c: AcronisPlanConfig): AcronisPlanConfigResponseDto {
+    return {
+      provider: 'ACRONIS',
+      id: c.id,
+      clientId: c.clientId,
+      clientName: c.clientName,
+      policyId: c.policyId,
+      policyName: c.policyName,
+      tenantName: c.tenantName,
       isEnabled: c.isEnabled,
     };
   }
@@ -98,28 +123,33 @@ export class BackupsService {
     };
   }
 
-  private groupSources(veeams: VeeamClientConfig[], jets: JetbackupJobConfig[]): ClientSources[] {
+  private groupSources(
+    veeams: VeeamClientConfig[], jets: JetbackupJobConfig[], acronis: AcronisPlanConfig[] = [],
+  ): ClientSources[] {
     const byClient = new Map<string, ClientSources>();
     const entry = (clientId: string, clientName: string): ClientSources => {
       let s = byClient.get(clientId);
       if (!s) {
-        s = { clientId, clientName, veeam: null, jetbackup: [] };
+        s = { clientId, clientName, veeam: null, jetbackup: [], acronis: [] };
         byClient.set(clientId, s);
       }
       return s;
     };
     for (const v of veeams) entry(v.clientId, v.clientName).veeam = v;
     for (const j of jets) entry(j.clientId, j.clientName).jetbackup.push(j);
+    for (const a of acronis) entry(a.clientId, a.clientName).acronis.push(a);
     return [...byClient.values()];
   }
 
   private async loadAllSources(): Promise<ClientSources[]> {
-    const [veeams, jets] = await Promise.all([this.configRepo.find(), this.jetbackupRepo.find()]);
-    return this.groupSources(veeams, jets);
+    const [veeams, jets, acronis] = await Promise.all([
+      this.configRepo.find(), this.jetbackupRepo.find(), this.acronisRepo.find(),
+    ]);
+    return this.groupSources(veeams, jets, acronis);
   }
 
   private hasEnabledSource(s: ClientSources): boolean {
-    return Boolean(s.veeam?.isEnabled) || s.jetbackup.some(j => j.isEnabled);
+    return Boolean(s.veeam?.isEnabled) || s.jetbackup.some(j => j.isEnabled) || s.acronis.some(a => a.isEnabled);
   }
 
   private persistSnapshot(clientId: string, provider: BackupProvider, jobs: BackupJobStatus[]): void {
@@ -144,6 +174,15 @@ export class BackupsService {
     return jobs.map(j => ({ ...j, provider: 'JETBACKUP' as const }));
   }
 
+  private async fetchAcronisJobs(configs: AcronisPlanConfig[]): Promise<BackupJobStatusDto[]> {
+    const conn = await this.integrationConfigSvc.getAcronisConfigDecrypted();
+    const jobs = await this.acronisService.getJobStatuses(
+      conn, configs.map(c => ({ policyId: c.policyId, policyName: c.policyName })),
+    );
+    this.persistSnapshot(configs[0].clientId, 'ACRONIS', jobs);
+    return jobs.map(j => ({ ...j, provider: 'ACRONIS' as const }));
+  }
+
   // Si falla cualquier proveedor se propaga el error: el cliente figura como desconectado
   // en lugar de mostrar un estado "ok" parcial que oculte el ambiente caído.
   private async statusFor(s: ClientSources): Promise<ClientBackupStatusDto> {
@@ -151,6 +190,8 @@ export class BackupsService {
     if (s.veeam?.isEnabled) tasks.push(this.fetchVeeamJobs(s.veeam));
     const enabledJets = s.jetbackup.filter(j => j.isEnabled);
     if (enabledJets.length) tasks.push(this.fetchJetbackupJobs(enabledJets));
+    const enabledAcronis = s.acronis.filter(a => a.isEnabled);
+    if (enabledAcronis.length) tasks.push(this.fetchAcronisJobs(enabledAcronis));
     const jobs = (await Promise.all(tasks)).flat();
     return this.buildStatus(s.clientId, s.clientName, jobs, {
       lastReadAt: new Date().toISOString(),
@@ -159,12 +200,13 @@ export class BackupsService {
   }
 
   async getClientStatus(clientId: string): Promise<ClientBackupStatusDto> {
-    const [veeam, jets] = await Promise.all([
+    const [veeam, jets, acronis] = await Promise.all([
       this.configRepo.findOne({ where: { clientId } }),
       this.jetbackupRepo.find({ where: { clientId } }),
+      this.acronisRepo.find({ where: { clientId } }),
     ]);
-    if (!veeam && !jets.length) throw new NotFoundException('Config not found');
-    const [sources] = this.groupSources(veeam ? [veeam] : [], jets);
+    if (!veeam && !jets.length && !acronis.length) throw new NotFoundException('Config not found');
+    const [sources] = this.groupSources(veeam ? [veeam] : [], jets, acronis);
     if (!this.hasEnabledSource(sources)) return this.disconnectedDto(sources.clientId, sources.clientName);
     return this.statusFor(sources);
   }
@@ -186,6 +228,7 @@ export class BackupsService {
         lastRunAt: snap.lastRunAt?.toISOString() ?? null,
         hoursAgo,
         isStale: hoursAgo !== null && hoursAgo > 30,
+        ...(snap.details ? { items: snap.details.items, aggregate: snap.details.aggregate } : {}),
       };
     });
     return this.buildStatus(s.clientId, s.clientName, jobs, {
@@ -209,9 +252,14 @@ export class BackupsService {
         });
         // Ignora snapshots de jobs/servidores que ya se quitaron o deshabilitaron de la config.
         const activeJetJobs = new Set(s.jetbackup.filter(j => j.isEnabled).map(j => j.jobId));
-        const snaps = all.filter(snap =>
-          (snap.provider ?? 'VEEAM') === 'VEEAM' ? Boolean(s.veeam?.isEnabled) : activeJetJobs.has(snap.jobId),
-        );
+        const activePlans = new Set(s.acronis.filter(a => a.isEnabled).map(a => a.policyId));
+        const snaps = all.filter(snap => {
+          switch (snap.provider ?? 'VEEAM') {
+            case 'JETBACKUP': return activeJetJobs.has(snap.jobId);
+            case 'ACRONIS': return activePlans.has(snap.jobId);
+            default: return Boolean(s.veeam?.isEnabled);
+          }
+        });
         if (!snaps.length) return this.disconnectedDto(s.clientId, s.clientName);
         return this.snapshotToDto(s, snaps);
       }),
@@ -260,16 +308,22 @@ export class BackupsService {
       message: j.lastMessage,
       lastRunAt: j.lastRunAt ? new Date(j.lastRunAt) : null,
       hoursAgo: j.hoursAgo,
+      details: j.items !== undefined || j.aggregate !== undefined
+        ? { items: j.items ?? [], aggregate: j.aggregate ?? null }
+        : null,
       snapshotDate: date,
     }));
     await this.snapshotRepo.upsert(rows, ['clientId', 'provider', 'jobId', 'snapshotDate']);
   }
 
   async listConfigs(): Promise<BackupConfigResponseDto[]> {
-    const [veeams, jets] = await Promise.all([this.configRepo.find(), this.jetbackupRepo.find()]);
+    const [veeams, jets, acronis] = await Promise.all([
+      this.configRepo.find(), this.jetbackupRepo.find(), this.acronisRepo.find(),
+    ]);
     return [
       ...veeams.map(c => this.toResponseDto(c)),
       ...jets.map(c => this.toJetbackupResponseDto(c)),
+      ...acronis.map(c => this.toAcronisResponseDto(c)),
     ];
   }
 
@@ -359,5 +413,64 @@ export class BackupsService {
 
   async deleteJetbackupConfig(id: string): Promise<void> {
     await this.jetbackupRepo.delete(id);
+  }
+
+  // ── Acronis ──
+
+  async listAcronisPlans(): Promise<AvailableAcronisPlansDto> {
+    const conn = await this.integrationConfigSvc.getAcronisConfigDecrypted();
+    if (!conn.baseUrl || !conn.clientId || !conn.clientSecret) {
+      throw new BadRequestException('Acronis no está configurado. Completá la URL y las credenciales en Admin → Integraciones.');
+    }
+    let discovery;
+    try {
+      discovery = await this.acronisService.listPlans(conn);
+    } catch (err) {
+      throw new BadGatewayException((err as Error).message);
+    }
+    const configured = new Map((await this.acronisRepo.find()).map(c => [c.policyId, c]));
+    return {
+      partial: discovery.partial,
+      plans: discovery.plans.map(p => ({
+        policyId: p.policyId,
+        policyName: p.policyName,
+        tenantName: p.tenantName,
+        resourceTypes: p.resourceTypes,
+        resourceCount: p.resourceCount,
+        configured: configured.has(p.policyId),
+        configuredClientName: configured.get(p.policyId)?.clientName ?? null,
+      })),
+    };
+  }
+
+  async createAcronisConfigs(dto: CreateAcronisConfigsDto): Promise<AcronisPlanConfigResponseDto[]> {
+    const taken = await this.acronisRepo.find({ where: { policyId: In(dto.plans.map(p => p.policyId)) } });
+    if (taken.length) {
+      throw new ConflictException(`Ya configurado: ${taken.map(t => `${t.policyName} (${t.clientName})`).join(', ')}`);
+    }
+    const entities = dto.plans.map(p =>
+      this.acronisRepo.create({
+        clientId: dto.clientId,
+        clientName: dto.clientName,
+        policyId: p.policyId,
+        policyName: p.policyName,
+        tenantName: p.tenantName ?? '',
+        isEnabled: dto.isEnabled,
+      }),
+    );
+    const saved = await this.acronisRepo.save(entities);
+    return saved.map(c => this.toAcronisResponseDto(c));
+  }
+
+  async updateAcronisConfig(id: string, dto: UpdateAcronisConfigDto): Promise<AcronisPlanConfigResponseDto> {
+    const config = await this.acronisRepo.findOne({ where: { id } });
+    if (!config) throw new NotFoundException();
+    if (dto.isEnabled !== undefined) config.isEnabled = dto.isEnabled;
+    config.updatedAt = new Date();
+    return this.toAcronisResponseDto(await this.acronisRepo.save(config));
+  }
+
+  async deleteAcronisConfig(id: string): Promise<void> {
+    await this.acronisRepo.delete(id);
   }
 }
