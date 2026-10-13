@@ -65,6 +65,8 @@ export class DeviationRulesService {
       enabled: dto.enabled ?? true,
       helpdeskTeamId: dto.helpdeskTeamId ?? null,
       tagIds: dto.tagIds ?? [],
+      ticketTitle: dto.ticketTitle ?? null,
+      ticketDescription: dto.ticketDescription ?? null,
     });
     return this.repo.save(rule);
   }
@@ -87,6 +89,8 @@ export class DeviationRulesService {
     if (dto.enabled !== undefined) existing.enabled = dto.enabled;
     if (dto.helpdeskTeamId !== undefined) existing.helpdeskTeamId = dto.helpdeskTeamId;
     if (dto.tagIds !== undefined) existing.tagIds = dto.tagIds;
+    if (dto.ticketTitle !== undefined) existing.ticketTitle = dto.ticketTitle ?? null;
+    if (dto.ticketDescription !== undefined) existing.ticketDescription = dto.ticketDescription ?? null;
 
     return this.repo.save(existing);
   }

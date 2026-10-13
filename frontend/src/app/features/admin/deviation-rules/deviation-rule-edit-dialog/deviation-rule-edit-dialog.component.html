@@ -42,6 +42,16 @@
       <mat-option *ngFor="let tag of tags" [value]="tag.id">{{ tag.name }}</mat-option>
     </mat-select>
   </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Título del ticket en Odoo</mat-label>
+    <input matInput formControlName="ticketTitle" placeholder="Desvío detectado: (por defecto)" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Descripción del ticket en Odoo</mat-label>
+    <textarea matInput formControlName="ticketDescription" rows="4" placeholder="Desvío detectado en un control de mantenimiento. (por defecto)"></textarea>
+  </mat-form-field>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">

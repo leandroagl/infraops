@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Min,
+  MaxLength,
 } from 'class-validator';
 import { TaskType } from '../../tasks/task-type.enum';
 import { DeviationOperator } from '../deviation-operator.enum';
@@ -42,4 +43,13 @@ export class CreateDeviationRuleDto {
   @IsArray()
   @IsInt({ each: true })
   tagIds?: number[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  ticketTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  ticketDescription?: string;
 }

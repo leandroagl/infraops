@@ -23,6 +23,8 @@ function rule(overrides: Partial<DeviationRule> = {}): DeviationRule {
     enabled: true,
     helpdeskTeamId: 7,
     tagIds: [3],
+    ticketTitle: null,
+    ticketDescription: null,
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
     ...overrides,
@@ -119,7 +121,20 @@ describe('MaintenanceDeviationEvaluatorService', () => {
     expect(result[0].ruleId).toBe('rule-1');
     expect(result[0].helpdeskTeamId).toBe(7);
     expect(result[0].tagIds).toEqual([3]);
+    expect(result[0].ticketTitle).toBeNull();
+    expect(result[0].ticketDescription).toBeNull();
     expect(deviationRepo.save).toHaveBeenCalled();
+  });
+
+  it('copia ticketTitle y ticketDescription de la regla a la detección', async () => {
+    deviationRulesService.findAll.mockResolvedValue([
+      rule({ ticketTitle: 'Espacio QNAP crítico', ticketDescription: 'El NAS superó el umbral.' }),
+    ]);
+
+    const result = await service.evaluate(log(qnapPayload({ usedSpaceGB: 95 })), task());
+
+    expect(result[0].ticketTitle).toBe('Espacio QNAP crítico');
+    expect(result[0].ticketDescription).toBe('El NAS superó el umbral.');
   });
 
   it('no crea nada cuando la señal no matchea la regla', async () => {
