@@ -86,7 +86,7 @@ export class VeeamService {
   }
 
   // Sin filtrar por sessionType: la API 1.0 (VBR 11) lo devuelve como "Job" y la 1.1 como "BackupJob".
-  // Alcanza con cruzar por jobId contra la lista de jobs (ver getJobStatuses).
+  // Se cruza contra la lista de jobs por jobId, o por nombre si la sesión no lo trae (ver getJobStatuses).
   private async getSessions(baseUrl: string, token: string, version: string): Promise<VeeamSession[]> {
     const res = await firstValueFrom(
       this.httpService.get<VeeamApiResponse<VeeamSession>>(`${baseUrl}/api/v1/sessions`, {
@@ -138,9 +138,12 @@ export class VeeamService {
       this.getSessions(base, token, version),
     ]);
     const jobIds = new Set(jobs.map(j => j.id));
+    const jobIdByName = new Map(jobs.map(j => [j.name, j.id]));
     const lastByJob = new Map<string, VeeamSession>();
     for (const s of sessions) {
-      if (jobIds.has(s.jobId) && !lastByJob.has(s.jobId)) lastByJob.set(s.jobId, s);
+      // Las sesiones vienen de la más nueva a la más vieja: la primera de cada job es la última.
+      const jobId = s.jobId ?? jobIdByName.get(s.name);
+      if (jobId && jobIds.has(jobId) && !lastByJob.has(jobId)) lastByJob.set(jobId, s);
     }
     const withoutSession = jobs.filter(j => !lastByJob.has(j.id));
     if (withoutSession.length) {

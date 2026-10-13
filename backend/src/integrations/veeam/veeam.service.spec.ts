@@ -91,6 +91,37 @@ describe('VeeamService', () => {
       expect(status.hoursAgo).not.toBeNull();
     });
 
+    it('API 1.0: la sesión trae jobId null → se asocia por nombre del job', async () => {
+      const t = new Date(Date.now() - 5 * 3600000).toISOString();
+      const sinJobId = (name: string) => ({
+        sessionType: 'Job', jobId: null, name, state: 'Stopped', creationTime: t, endTime: t,
+        result: { result: 'Success', message: 'ok' },
+      });
+      mockVeeam([job('j1', '1.- DC'), job('j2', '2.- DC2')], [sinJobId('2.- DC2'), sinJobId('1.- DC')]);
+      const result = await svc.getJobStatuses('host', 9419, 'u', 'p');
+      expect(result.map(r => r.lastResult)).toEqual(['Success', 'Success']);
+      expect(result[0].hoursAgo).toBeGreaterThan(4);
+    });
+
+    it('con jobId null toma la sesión más reciente del nombre', async () => {
+      const mk = (hoursAgo: number, result: string) => {
+        const t = new Date(Date.now() - hoursAgo * 3600000).toISOString();
+        return { sessionType: 'Job', jobId: null, name: '1.- DC', state: 'Stopped', creationTime: t, endTime: t, result: { result, message: '' } };
+      };
+      mockVeeam([job('j1', '1.- DC')], [mk(2, 'Failed'), mk(26, 'Success')]);
+      const [status] = await svc.getJobStatuses('host', 9419, 'u', 'p');
+      expect(status.lastResult).toBe('Failed');
+    });
+
+    it('con jobId null ignora sesiones cuyo nombre no es de ningún job', async () => {
+      const t = new Date().toISOString();
+      mockVeeam([job('j1', '1.- DC')], [
+        { sessionType: 'Infrastructure', jobId: null, name: 'Rescan', state: 'Stopped', creationTime: t, endTime: t, result: { result: 'Success', message: '' } },
+      ]);
+      const [status] = await svc.getJobStatuses('host', 9419, 'u', 'p');
+      expect(status.lastResult).toBeNull();
+    });
+
     it('ignora sesiones que no pertenecen a ningún job (infraestructura, retención)', async () => {
       mockVeeam(
         [job('j1', 'DC')],
