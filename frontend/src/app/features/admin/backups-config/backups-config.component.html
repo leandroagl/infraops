@@ -4,7 +4,7 @@
     <div class="bc-card-header">
       <div>
         <h2 class="bc-card-title">Configuración de Backups</h2>
-        <p class="bc-card-subtitle">Servidores Veeam por cliente (host y puerto) y jobs de JetBackup. Las credenciales y el servidor de JetBackup se configuran en Integraciones.</p>
+        <p class="bc-card-subtitle">Servidores Veeam por cliente (host y puerto), jobs de JetBackup y planes de Acronis. Las credenciales de cada proveedor se configuran en Integraciones.</p>
       </div>
       <button mat-flat-button color="primary" (click)="openDialog()">
         <mat-icon>add</mat-icon>
@@ -28,21 +28,21 @@
       <ng-container matColumnDef="provider">
         <mat-header-cell *matHeaderCellDef>Tipo</mat-header-cell>
         <mat-cell *matCellDef="let row">
-          <span class="provider-badge" [ngClass]="row.provider === 'JETBACKUP' ? 'provider-badge--jetbackup' : 'provider-badge--veeam'">{{ providerLabel(row) }}</span>
+          <span class="provider-badge" [ngClass]="'provider-badge--' + row.provider.toLowerCase()">{{ providerLabel(row) }}</span>
         </mat-cell>
       </ng-container>
 
       <ng-container matColumnDef="host">
-        <mat-header-cell *matHeaderCellDef>Host / Job</mat-header-cell>
+        <mat-header-cell *matHeaderCellDef>Host / Job / Plan</mat-header-cell>
         <mat-cell *matCellDef="let row">
-          <span class="host-mono">{{ row.provider === 'JETBACKUP' ? row.jobName : row.host }}</span>
+          <span class="host-mono">{{ detailLabel(row) }}</span>
         </mat-cell>
       </ng-container>
 
       <ng-container matColumnDef="port">
         <mat-header-cell *matHeaderCellDef>Puerto</mat-header-cell>
         <mat-cell *matCellDef="let row">
-          <span class="port-mono">{{ row.provider === 'JETBACKUP' ? '—' : row.port }}</span>
+          <span class="port-mono">{{ row.provider === 'VEEAM' ? row.port : '—' }}</span>
         </mat-cell>
       </ng-container>
 
@@ -57,7 +57,7 @@
       <ng-container matColumnDef="actions">
         <mat-header-cell *matHeaderCellDef></mat-header-cell>
         <mat-cell *matCellDef="let row">
-          <button *ngIf="row.provider !== 'JETBACKUP'" mat-icon-button (click)="testConnection(row)" matTooltip="Probar conexión" aria-label="Probar conexión">
+          <button *ngIf="row.provider === 'VEEAM'" mat-icon-button (click)="testConnection(row)" matTooltip="Probar conexión" aria-label="Probar conexión">
             <mat-icon>wifi</mat-icon>
           </button>
           <button mat-icon-button (click)="openDialog(row)" matTooltip="Editar" aria-label="Editar configuración">

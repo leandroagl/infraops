@@ -7,6 +7,10 @@ import type {
   VeeamClientConfig,
   JetbackupJobConfig,
   AvailableJetbackupJob,
+  AcronisPlanConfig,
+  AvailableAcronisPlans,
+  CreateAcronisConfigsRequest,
+  UpdateAcronisConfigRequest,
   CreateVeeamConfigRequest,
   UpdateVeeamConfigRequest,
   CreateJetbackupConfigsRequest,
@@ -66,5 +70,21 @@ export class BackupsService {
 
   deleteJetbackupConfig(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/configs/jetbackup/${id}`);
+  }
+
+  listAcronisPlans(): Observable<AvailableAcronisPlans> {
+    return this.http.get<AvailableAcronisPlans>(`${this.base}/acronis/plans`);
+  }
+
+  createAcronisConfigs(dto: CreateAcronisConfigsRequest): Observable<AcronisPlanConfig[]> {
+    return this.http.post<AcronisPlanConfig[]>(`${this.base}/configs/acronis`, dto);
+  }
+
+  updateAcronisConfig(id: string, dto: UpdateAcronisConfigRequest): Observable<AcronisPlanConfig> {
+    return this.http.patch<AcronisPlanConfig>(`${this.base}/configs/acronis/${id}`, dto);
+  }
+
+  deleteAcronisConfig(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/configs/acronis/${id}`);
   }
 }

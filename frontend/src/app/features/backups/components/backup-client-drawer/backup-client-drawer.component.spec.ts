@@ -138,3 +138,70 @@ describe('BackupClientDrawerComponent', () => {
     });
   });
 });
+
+describe('BackupClientDrawerComponent · detalle por recurso (Acronis)', () => {
+  let fixture: ComponentFixture<BackupClientDrawerComponent>;
+  let comp: BackupClientDrawerComponent;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [BackupClientDrawerComponent],
+      imports: [NoopAnimationsModule, CommonModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTableModule, MatTooltipModule],
+    }).compileComponents();
+    fixture = TestBed.createComponent(BackupClientDrawerComponent);
+    comp = fixture.componentInstance;
+  });
+
+  const acronisJob = (over: Partial<BackupJobStatus> = {}): BackupJobStatus => ({
+    provider: 'ACRONIS', jobId: 'pol-1', jobName: 'Plan Demo', jobType: 'Acronis', isRunning: false,
+    lastResult: 'Success', lastMessage: null, lastRunAt: null, hoursAgo: 2, isStale: false, ...over,
+  });
+  const item = (name: string, result: BackupJobResult, lastCode: string, hoursSinceOk: number) => ({
+    itemId: name, name, type: 'machine', result, hoursSinceOk, lastCode, lastRunAt: null,
+  });
+  const render = (jobs: BackupJobStatus[]) => {
+    comp.client = { ...baseClient, jobs };
+    comp.open = true;
+    fixture.detectChanges();
+  };
+  const rows = () => fixture.nativeElement.querySelectorAll('tr.mat-mdc-row, tr.mat-row') as NodeListOf<HTMLElement>;
+  const q = (sel: string) => fixture.nativeElement.querySelectorAll(sel) as NodeListOf<HTMLElement>;
+
+  it('un plan ok con items se puede expandir y lista cada recurso', () => {
+    render([acronisJob({ items: [item('VM-01', 'Success', 'ok', 2), item('VM-02', 'Warning', 'warning', 3)] })]);
+    expect(q('.job-item').length).toBe(0);
+    rows()[0].click();
+    fixture.detectChanges();
+    expect(Array.from(q('.job-item-name')).map(e => e.textContent?.trim())).toEqual(['VM-01', 'VM-02']);
+    expect(q('.job-msg-full').length).toBe(0);
+  });
+
+  it('un recurso con fallo duro muestra el código en vez de la antigüedad centinela', () => {
+    render([acronisJob({ lastResult: 'Failed', items: [item('VM-03', 'Failed', 'error', 49), item('VM-04', 'Success', 'ok', 5.5)] })]);
+    rows()[0].click();
+    fixture.detectChanges();
+    const meta = Array.from(q('.job-item-meta')).map(e => e.textContent?.trim());
+    expect(meta).toEqual(['error', '5.5h']);
+  });
+
+  it('muestra el agregado M365 con conteos y los peores nombres', () => {
+    render([acronisJob({
+      lastResult: 'Failed', lastMessage: '1 de 3 recurso(s) con problema: Buzón 3',
+      aggregate: { total: 3, okCount: 2, warnCount: 0, critCount: 1, worst: ['Buzón 3'] },
+    })]);
+    rows()[0].click();
+    fixture.detectChanges();
+    const text = (q('.job-agg')[0].textContent ?? '').replace(/\s+/g, ' ');
+    expect(text).toContain('3 recursos');
+    expect(text).toContain('2 ok');
+    expect(text).toContain('1 fail');
+    expect(text).toContain('Buzón 3');
+  });
+
+  it('un job sin detalle ni mensaje sigue sin expandirse', () => {
+    render([acronisJob()]);
+    rows()[0].click();
+    fixture.detectChanges();
+    expect(q('.job-detail').length).toBe(0);
+  });
+});
