@@ -10,6 +10,10 @@ const mockSvc = {
   updateConfig: jest.fn(),
   deleteConfig: jest.fn(),
   testConnection: jest.fn(),
+  listJetbackupJobs: jest.fn(),
+  createJetbackupConfigs: jest.fn(),
+  updateJetbackupConfig: jest.fn(),
+  deleteJetbackupConfig: jest.fn(),
 };
 
 describe('BackupsController', () => {
@@ -34,5 +38,28 @@ describe('BackupsController', () => {
     mockSvc.testConnection.mockResolvedValue({ success: false, message: 'err' });
     const result = await ctrl.testConnection('id');
     expect(result.success).toBe(false);
+  });
+
+  it('GET /backups/jetbackup/jobs → llama listJetbackupJobs', async () => {
+    mockSvc.listJetbackupJobs.mockResolvedValue([{ jobId: 'j1' }]);
+    expect(await ctrl.listJetbackupJobs()).toEqual([{ jobId: 'j1' }]);
+  });
+
+  it('POST /backups/configs/jetbackup → llama createJetbackupConfigs con el dto', async () => {
+    const dto = { clientId: 'c1', clientName: 'C', isEnabled: true, jobs: [{ jobId: 'j1', jobName: 'PSQ' }] };
+    mockSvc.createJetbackupConfigs.mockResolvedValue([]);
+    await ctrl.createJetbackupConfigs(dto);
+    expect(mockSvc.createJetbackupConfigs).toHaveBeenCalledWith(dto);
+  });
+
+  it('PATCH /backups/configs/jetbackup/:id → llama updateJetbackupConfig', async () => {
+    mockSvc.updateJetbackupConfig.mockResolvedValue({});
+    await ctrl.updateJetbackupConfig('jc1', { isEnabled: false });
+    expect(mockSvc.updateJetbackupConfig).toHaveBeenCalledWith('jc1', { isEnabled: false });
+  });
+
+  it('DELETE /backups/configs/jetbackup/:id → llama deleteJetbackupConfig', async () => {
+    await ctrl.deleteJetbackupConfig('jc1');
+    expect(mockSvc.deleteJetbackupConfig).toHaveBeenCalledWith('jc1');
   });
 });

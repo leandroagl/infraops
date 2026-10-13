@@ -3,9 +3,14 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import type {
   ClientBackup,
+  BackupConfig,
   VeeamClientConfig,
+  JetbackupJobConfig,
+  AvailableJetbackupJob,
   CreateVeeamConfigRequest,
   UpdateVeeamConfigRequest,
+  CreateJetbackupConfigsRequest,
+  UpdateJetbackupConfigRequest,
   TestConnectionResult,
 } from '../models/backup.models';
 
@@ -27,8 +32,8 @@ export class BackupsService {
     return this.http.get<ClientBackup>(`${this.base}/${clientId}`);
   }
 
-  listConfigs(): Observable<VeeamClientConfig[]> {
-    return this.http.get<VeeamClientConfig[]>(`${this.base}/configs`);
+  listConfigs(): Observable<BackupConfig[]> {
+    return this.http.get<BackupConfig[]>(`${this.base}/configs`);
   }
 
   createConfig(dto: CreateVeeamConfigRequest): Observable<VeeamClientConfig> {
@@ -45,5 +50,21 @@ export class BackupsService {
 
   testConnection(id: string): Observable<TestConnectionResult> {
     return this.http.post<TestConnectionResult>(`${this.base}/configs/${id}/test`, {});
+  }
+
+  listJetbackupJobs(): Observable<AvailableJetbackupJob[]> {
+    return this.http.get<AvailableJetbackupJob[]>(`${this.base}/jetbackup/jobs`);
+  }
+
+  createJetbackupConfigs(dto: CreateJetbackupConfigsRequest): Observable<JetbackupJobConfig[]> {
+    return this.http.post<JetbackupJobConfig[]>(`${this.base}/configs/jetbackup`, dto);
+  }
+
+  updateJetbackupConfig(id: string, dto: UpdateJetbackupConfigRequest): Observable<JetbackupJobConfig> {
+    return this.http.patch<JetbackupJobConfig>(`${this.base}/configs/jetbackup/${id}`, dto);
+  }
+
+  deleteJetbackupConfig(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/configs/jetbackup/${id}`);
   }
 }

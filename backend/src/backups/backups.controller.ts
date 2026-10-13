@@ -5,6 +5,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user-role.enum';
 import { CreateVeeamConfigDto, UpdateVeeamConfigDto } from './dto/veeam-config.dto';
+import { CreateJetbackupConfigsDto, UpdateJetbackupConfigDto } from './dto/jetbackup-config.dto';
 
 @Controller('backups')
 @UseGuards(JwtAuthGuard)
@@ -27,6 +28,34 @@ export class BackupsController {
   @Roles(UserRole.ADMIN)
   listConfigs() {
     return this.svc.listConfigs();
+  }
+
+  @Get('jetbackup/jobs')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  listJetbackupJobs() {
+    return this.svc.listJetbackupJobs();
+  }
+
+  @Post('configs/jetbackup')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  createJetbackupConfigs(@Body() dto: CreateJetbackupConfigsDto) {
+    return this.svc.createJetbackupConfigs(dto);
+  }
+
+  @Patch('configs/jetbackup/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  updateJetbackupConfig(@Param('id') id: string, @Body() dto: UpdateJetbackupConfigDto) {
+    return this.svc.updateJetbackupConfig(id, dto);
+  }
+
+  @Delete('configs/jetbackup/:id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  deleteJetbackupConfig(@Param('id') id: string) {
+    return this.svc.deleteJetbackupConfig(id);
   }
 
   @Get(':clientId')

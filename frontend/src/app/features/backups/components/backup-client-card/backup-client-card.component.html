@@ -10,7 +10,8 @@
   </div>
 
   <div class="card-mid">
-    <span *ngIf="client.status === 'ok' || client.okCount > 0" class="count-chip ok">{{ client.okCount || client.totalJobs }} ok</span>
+    <span *ngIf="hasJetbackup" class="provider-chip">JetBackup</span>
+    <span *ngIf="client.okCount > 0" class="count-chip ok">{{ client.okCount }} ok</span>
     <span *ngIf="client.warnCount > 0" class="count-chip warn">{{ client.warnCount }} warn</span>
     <span *ngIf="client.critCount > 0" class="count-chip crit">{{ client.critCount }} fail</span>
     <span *ngIf="client.status === 'no_data'" class="no-data-note">sin datos</span>

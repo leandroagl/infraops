@@ -207,4 +207,61 @@
       <span class="last-updated" *ngIf="veeam.updatedAt">{{ veeam.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ veeam.updatedBy ? ' · ' + veeam.updatedBy : '' }}</span>
     </div>
   </div>
+
+  <!-- JETBACKUP -->
+  <div class="integration-card">
+    <div class="card-header">
+      <div class="card-icon vmware">JB</div>
+      <div class="card-title-group">
+        <div class="card-title">JetBackup</div>
+        <div class="card-desc">Conexión al WHM de ONDRA para monitorear los jobs de backup de hosting</div>
+      </div>
+      <div class="status-badge" [ngClass]="{ ok: jetbackup.connectionStatus === 'ok', err: jetbackup.connectionStatus === 'error', unk: jetbackup.connectionStatus === 'unknown' }">
+        <span class="status-dot"></span>
+        {{ jetbackup.connectionStatus === 'ok' ? 'Conectado' : jetbackup.connectionStatus === 'error' ? 'Error' : 'Sin probar' }}
+      </div>
+    </div>
+    <div class="card-body" [formGroup]="jetbackupForm">
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">URL del WHM <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="url" placeholder="https://servidor.ondra.com.ar:2087" />
+          </mat-form-field>
+          <span class="field-hint">Dirección del WHM con el puerto (2087). Sin ruta: se agrega /cgi/addons/jetbackup5/api.cgi.</span>
+        </div>
+        <div class="field">
+          <label class="field-label">Usuario <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="username" placeholder="root" />
+          </mat-form-field>
+          <span class="field-hint">Usuario dueño del API token en WHM.</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">API token <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="apiKey" [type]="showJetbackupApiKey ? 'text' : 'password'" />
+            <button matSuffix mat-icon-button type="button" (mousedown)="$event.preventDefault()" (click)="toggleJetbackupApiKey()">
+              <svg *ngIf="!showJetbackupApiKey" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg *ngIf="showJetbackupApiKey"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </mat-form-field>
+          <span class="field-hint">Token generado en WHM → Manage API Tokens. Dejar sin cambios para no modificar.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-actions">
+      <button mat-stroked-button [disabled]="jetbackup.testing || jetbackup.saving" (click)="testJetbackup()">
+        <mat-spinner *ngIf="jetbackup.testing" diameter="14"></mat-spinner>
+        <span *ngIf="!jetbackup.testing">Probar conexión</span>
+      </button>
+      <button mat-flat-button color="primary" [disabled]="jetbackup.saving || jetbackup.testing" (click)="saveJetbackup()">
+        <mat-spinner *ngIf="jetbackup.saving" diameter="14"></mat-spinner>
+        <span *ngIf="!jetbackup.saving">Guardar</span>
+      </button>
+      <span class="last-updated" *ngIf="jetbackup.updatedAt">{{ jetbackup.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ jetbackup.updatedBy ? ' · ' + jetbackup.updatedBy : '' }}</span>
+    </div>
+  </div>
 </div>

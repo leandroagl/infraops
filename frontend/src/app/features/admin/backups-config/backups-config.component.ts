@@ -3,7 +3,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { BackupsService } from '../../../features/backups/services/backups.service';
 import { BackupsConfigDialogComponent } from './backups-config-dialog/backups-config-dialog.component';
-import type { VeeamClientConfig } from '../../../features/backups/models/backup.models';
+import type { BackupConfig, VeeamClientConfig } from '../../../features/backups/models/backup.models';
 
 @Component({
   selector: 'app-backups-config',
@@ -11,9 +11,9 @@ import type { VeeamClientConfig } from '../../../features/backups/models/backup.
   styleUrl: './backups-config.component.scss',
 })
 export class BackupsConfigComponent implements OnInit {
-  configs: VeeamClientConfig[] = [];
+  configs: BackupConfig[] = [];
   loading = false;
-  readonly displayedColumns = ['clientName', 'host', 'port', 'isEnabled', 'actions'];
+  readonly displayedColumns = ['clientName', 'provider', 'host', 'port', 'isEnabled', 'actions'];
 
   constructor(
     private readonly svc: BackupsService,
@@ -33,7 +33,7 @@ export class BackupsConfigComponent implements OnInit {
     });
   }
 
-  openDialog(config?: VeeamClientConfig): void {
+  openDialog(config?: BackupConfig): void {
     this.dialog
       .open(BackupsConfigDialogComponent, { data: config ?? null, width: '520px' })
       .afterClosed()
@@ -47,8 +47,16 @@ export class BackupsConfigComponent implements OnInit {
     });
   }
 
-  delete(config: VeeamClientConfig): void {
-    if (!confirm(`¿Eliminar configuración de ${config.clientName || config.host}?`)) return;
-    this.svc.deleteConfig(config.id).subscribe(() => this.load());
+  providerLabel(config: BackupConfig): string {
+    return config.provider === 'JETBACKUP' ? 'JetBackup' : 'Veeam';
+  }
+
+  delete(config: BackupConfig): void {
+    const target = config.provider === 'JETBACKUP' ? `${config.clientName} — ${config.jobName}` : config.clientName || config.host;
+    if (!confirm(`¿Eliminar configuración de ${target}?`)) return;
+    const done$ = config.provider === 'JETBACKUP'
+      ? this.svc.deleteJetbackupConfig(config.id)
+      : this.svc.deleteConfig(config.id);
+    done$.subscribe(() => this.load());
   }
 }

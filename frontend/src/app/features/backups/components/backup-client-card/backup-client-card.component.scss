@@ -77,6 +77,17 @@
   &.crit { background: var(--crit-bg); border-color: var(--crit-bd); color: var(--crit); }
 }
 
+.provider-chip {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  padding: 2px 7px;
+  border-radius: 20px;
+  border: 1px solid var(--bkp-bd);
+  background: var(--bkp-bg);
+  color: var(--bkp);
+  font-weight: 500;
+}
+
 .no-data-note {
   font-size: 9px;
   color: var(--tx-lo);

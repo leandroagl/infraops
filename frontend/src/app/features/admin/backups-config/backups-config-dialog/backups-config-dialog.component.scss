@@ -1,0 +1,30 @@
+.job-note {
+  margin-left: 4px;
+  font-size: 11px;
+  color: var(--tx-lo);
+}
+
+.job-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--crit);
+}
+
+.job-readonly {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.job-readonly-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--tx-lo);
+}
+
+.job-readonly-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--tx-hi);
+}

@@ -155,7 +155,7 @@ Muestra los routers del cliente. Para cada router se registra:
 
 Accesible para roles **ADMIN**, **TL** y **COORDINATOR**.
 
-El Panel Admin agrupa las secciones de gestión interna en pestañas: **Usuarios**, **Sync**, **Integraciones**, **Mantenimientos** y **Vencimientos**. La gestión de tareas se hace desde la vista `/tasks` (ver sección anterior), y el listado de vencimientos desde `/notifications` (ver más abajo) — ambas accesibles desde la barra de navegación principal, no desde el Panel Admin.
+El Panel Admin agrupa las secciones de gestión interna en pestañas: **Usuarios**, **Sync**, **Integraciones**, **Mantenimientos**, **Vencimientos** y **Backups**. La gestión de tareas se hace desde la vista `/tasks` (ver sección anterior), y el listado de vencimientos desde `/notifications` (ver más abajo) — ambas accesibles desde la barra de navegación principal, no desde el Panel Admin.
 
 ### Usuarios
 
@@ -291,6 +291,53 @@ Las flechas de año permiten navegar al historial de años anteriores.
 
 ---
 
+### Configuración de Backups (Admin → pestaña **Backups**, solo ADMIN)
+
+Define qué backups monitorea la vista `/backups` para cada cliente. Hay dos tipos de backup, y un mismo cliente puede tener los dos (son ambientes distintos):
+
+| Tipo | Qué se configura por cliente | Credenciales |
+|---|---|---|
+| **Veeam** | Host y puerto del servidor Veeam del cliente | Globales, en Admin → Integraciones → Veeam |
+| **JetBackup** | Uno o más *jobs* del WHM de ONDRA | Globales, en Admin → Integraciones → JetBackup |
+
+La tabla lista todas las configuraciones. La columna **Tipo** indica si cada fila es Veeam o JetBackup. Una fila de Veeam representa el servidor del cliente; una de JetBackup representa un job (si un cliente tiene tres jobs, aparece en tres filas).
+
+#### Agregar una configuración
+
+1. Presionar **Agregar cliente** y elegir el **Tipo de backup**.
+2. Elegir el **Cliente**.
+3. Según el tipo:
+   - **Veeam:** completar host y puerto. Al elegir el cliente, el host se sugiere desde InfraDoc.
+   - **JetBackup:** el sistema consulta al WHM y lista los jobs disponibles. Se pueden elegir varios a la vez. Los jobs que ya están asignados a algún cliente aparecen deshabilitados con la leyenda *"ya configurado (cliente)"*, así no se asignan dos veces.
+4. Dejar **Habilitado** tildado y presionar **Guardar**.
+
+> Si JetBackup todavía no está configurado en Integraciones, el selector de jobs muestra el aviso correspondiente. El job "JetBackup Config" (copia de la configuración del propio JetBackup) no aparece porque no respalda datos de clientes.
+
+#### Editar y eliminar
+
+- **Editar:** el tipo y el cliente no se pueden cambiar. En Veeam se editan host, puerto y habilitado; en JetBackup solo se puede habilitar o deshabilitar el job.
+- **Probar conexión:** solo en filas de Veeam. Para JetBackup se prueba la conexión una sola vez, desde Integraciones.
+- **Eliminar:** quita la configuración; no borra nada en Veeam ni en JetBackup.
+
+#### Cómo se calcula el semáforo de JetBackup
+
+Para cada job se toma la última ejecución registrada en JetBackup:
+
+| Situación | Resultado en `/backups` |
+|---|---|
+| Terminó correctamente | Success |
+| Terminó con cualquier otro estado | Failed (se muestra el mensaje de JetBackup) |
+| El job está corriendo ahora | En ejecución |
+| Última ejecución hace más de 30 horas | Desactualizado |
+| Nunca se ejecutó | Sin resultado |
+| El job ya no existe en el WHM | Failed, con la leyenda "El job ya no existe en JetBackup" |
+
+> Por ahora JetBackup no distingue "Warning": cualquier ejecución que no termine bien se muestra como Failed. Esto se ajustará cuando haya un ejemplo real de ejecución parcial.
+
+Un cliente con Veeam y JetBackup muestra los jobs de ambos en el mismo detalle (el origen figura debajo del nombre del job) y su estado general es el peor de todos. Si alguno de los dos ambientes no responde, el cliente figura como desconectado en lugar de mostrar un estado parcial. Todos los días a las 7:00 se guarda además un snapshot del estado de cada cliente.
+
+---
+
 ### Sincronización InfraDoc
 
 Permite forzar una sincronización manual del listado de clientes desde InfraDoc.
@@ -301,7 +348,7 @@ La sincronización automática ocurre cada 4 horas. Usar este botón si se acaba
 
 ### Integraciones externas
 
-Accesible solo para **ADMIN**. Permite configurar las credenciales y endpoints de los tres sistemas externos sin tocar el servidor. Los cambios toman efecto de inmediato.
+Accesible solo para **ADMIN**. Permite configurar las credenciales y endpoints de los sistemas externos (Odoo, InfraDoc, VMware, Veeam y JetBackup) sin tocar el servidor. Los cambios toman efecto de inmediato.
 
 Cada sistema tiene su propio card con:
 - **Badge de estado:** Conectado · Error · Sin probar — se actualiza al presionar "Probar conexión"
@@ -335,6 +382,25 @@ Cada sistema tiene su propio card con:
 |---|---|
 | Usuario | Usuario de solo lectura en los hosts ESXi (debe existir en todos los hosts monitoreados) |
 | Contraseña | Contraseña del usuario de lectura. Dejar vacío para no modificar |
+
+#### Veeam Backup & Replication
+
+| Campo | Descripción |
+|---|---|
+| Usuario | Usuario administrador de Veeam B&R. Debe existir en todos los servidores Veeam monitoreados |
+| Contraseña | Contraseña del usuario Veeam. Dejar vacío para no modificar |
+
+El host y el puerto de cada servidor se cargan por cliente en Admin → Backups.
+
+#### JetBackup
+
+| Campo | Descripción |
+|---|---|
+| URL del WHM | Dirección del WHM de ONDRA con el puerto (ej: `https://servidor.ondra.com.ar:2087`). No incluir la ruta de la API |
+| Usuario | Usuario dueño del token en WHM. Por defecto `root` |
+| API token | Token generado en WHM → Manage API Tokens. Dejar vacío para no modificar |
+
+"Probar conexión" consulta la lista de jobs al WHM, así que verifica URL, usuario y token a la vez. Los jobs a monitorear se asignan a cada cliente en Admin → Backups.
 
 > Los campos de API Key y contraseñas se muestran enmascarados (`••••••••`). Usar el ícono del ojo para revelarlos temporalmente. Al guardar con el campo vacío, la credencial guardada no se modifica.
 

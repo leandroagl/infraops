@@ -9,6 +9,7 @@ import { OdooConfig } from './entities/odoo-config.entity';
 import { InfraDocConfig } from './entities/infradoc-config.entity';
 import { VmwareConfig } from './entities/vmware-config.entity';
 import { VeeamConfig } from './entities/veeam-config.entity';
+import { JetbackupConfig } from './entities/jetbackup-config.entity';
 import { MASK, decrypt, encrypt } from './crypto.util';
 
 const KEY = '8b2202fa0aa8498ca124415c67472e7b479e1eb31a24d948eedeccecc2a5a5c2';
@@ -19,22 +20,27 @@ describe('IntegrationConfigService', () => {
   let infradocRepo: { findOne: jest.Mock; save: jest.Mock };
   let vmwareRepo: { findOne: jest.Mock; save: jest.Mock };
   let veeamRepo: { findOne: jest.Mock; save: jest.Mock };
+  let jetbackupRepo: { findOne: jest.Mock; save: jest.Mock };
   let httpGet: jest.Mock;
+  let httpPost: jest.Mock;
 
   beforeEach(async () => {
-    odooRepo     = { findOne: jest.fn(), save: jest.fn() };
-    infradocRepo = { findOne: jest.fn(), save: jest.fn() };
-    vmwareRepo   = { findOne: jest.fn(), save: jest.fn() };
-    veeamRepo    = { findOne: jest.fn(), save: jest.fn() };
-    httpGet      = jest.fn();
+    odooRepo      = { findOne: jest.fn(), save: jest.fn() };
+    infradocRepo  = { findOne: jest.fn(), save: jest.fn() };
+    vmwareRepo    = { findOne: jest.fn(), save: jest.fn() };
+    veeamRepo     = { findOne: jest.fn(), save: jest.fn() };
+    jetbackupRepo = { findOne: jest.fn(), save: jest.fn() };
+    httpGet       = jest.fn();
+    httpPost      = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         IntegrationConfigService,
-        { provide: getRepositoryToken(OdooConfig),     useValue: odooRepo     },
-        { provide: getRepositoryToken(InfraDocConfig), useValue: infradocRepo },
-        { provide: getRepositoryToken(VmwareConfig),   useValue: vmwareRepo   },
-        { provide: getRepositoryToken(VeeamConfig),    useValue: veeamRepo    },
+        { provide: getRepositoryToken(OdooConfig),      useValue: odooRepo      },
+        { provide: getRepositoryToken(InfraDocConfig),  useValue: infradocRepo  },
+        { provide: getRepositoryToken(VmwareConfig),    useValue: vmwareRepo    },
+        { provide: getRepositoryToken(VeeamConfig),     useValue: veeamRepo     },
+        { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo },
         { provide: ConfigService, useValue: {
             get: (key: string, def = '') =>
               ({
@@ -47,7 +53,7 @@ describe('IntegrationConfigService', () => {
               } as Record<string, string>)[key] ?? def,
           },
         },
-        { provide: HttpService, useValue: { get: httpGet } },
+        { provide: HttpService, useValue: { get: httpGet, post: httpPost } },
       ],
     }).compile();
 
@@ -522,6 +528,7 @@ describe('IntegrationConfigService', () => {
           { provide: getRepositoryToken(InfraDocConfig), useValue: infradocRepo },
           { provide: getRepositoryToken(VmwareConfig),   useValue: vmwareRepo   },
           { provide: getRepositoryToken(VeeamConfig),    useValue: veeamRepo    },
+          { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo },
           { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } }, // INTEGRATIONS_ENCRYPT_KEY vacía
           { provide: HttpService, useValue: { get: httpGet } },
         ],
@@ -662,6 +669,129 @@ describe('IntegrationConfigService', () => {
       const cfg = await service.getVeeamConfigDecrypted();
       expect(cfg.username).toBe('env-veeam-user');
       expect(cfg).toHaveProperty('password');
+    });
+  });
+
+  describe('getJetbackup', () => {
+    it('retorna apiKey enmascarada cuando hay fila en DB', async () => {
+      jetbackupRepo.findOne.mockResolvedValue({
+        id: 1, url: 'https://whm.ondra.test:2087', username: 'root', apiKey: 'encrypted-value',
+        updatedAt: new Date('2026-10-01'), updatedBy: 'pepe@ondra.com.ar',
+      });
+      const result = await service.getJetbackup();
+      expect(result.url).toBe('https://whm.ondra.test:2087');
+      expect(result.username).toBe('root');
+      expect(result.apiKey).toBe(MASK);
+      expect(result.updatedBy).toBe('pepe@ondra.com.ar');
+    });
+
+    it('retorna username "root" por defecto y url vacía cuando no hay fila en DB', async () => {
+      jetbackupRepo.findOne.mockResolvedValue(null);
+      const result = await service.getJetbackup();
+      expect(result.url).toBe('');
+      expect(result.username).toBe('root');
+      expect(result.apiKey).toBe(MASK);
+      expect(result.updatedAt).toBeNull();
+    });
+  });
+
+  describe('patchJetbackup', () => {
+    it('encripta la apiKey nueva al guardar y usa "root" si no se envía username', async () => {
+      jetbackupRepo.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 1, url: 'https://whm', username: 'root', apiKey: 'encrypted', updatedAt: new Date(), updatedBy: 'u' });
+      jetbackupRepo.save.mockImplementation((e: JetbackupConfig) => Promise.resolve({ ...e, updatedAt: new Date() }));
+      await service.patchJetbackup({ url: ' https://whm ', apiKey: 'plaintext-token' }, 'u@test.com');
+      const saved = jetbackupRepo.save.mock.calls[0][0] as JetbackupConfig;
+      expect(saved.url).toBe('https://whm');
+      expect(saved.username).toBe('root');
+      expect(saved.apiKey).not.toBe('plaintext-token');
+      expect(decrypt(saved.apiKey as string, KEY)).toBe('plaintext-token');
+      expect(saved.updatedBy).toBe('u@test.com');
+    });
+
+    it('no modifica la apiKey si se envía el MASK', async () => {
+      const row = { id: 1, url: 'https://whm', username: 'root', apiKey: 'existing-encrypted', updatedAt: new Date(), updatedBy: 'u' };
+      jetbackupRepo.findOne.mockResolvedValueOnce({ ...row }).mockResolvedValueOnce({ ...row });
+      jetbackupRepo.save.mockImplementation((e: JetbackupConfig) => Promise.resolve({ ...e, updatedAt: new Date() }));
+      await service.patchJetbackup({ apiKey: MASK }, 'u@test.com');
+      const saved = jetbackupRepo.save.mock.calls[0][0] as JetbackupConfig;
+      expect(saved.apiKey).toBe('existing-encrypted');
+    });
+
+    it('lanza BadRequestException con mensaje claro cuando falta INTEGRATIONS_ENCRYPT_KEY', async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          IntegrationConfigService,
+          { provide: getRepositoryToken(OdooConfig),      useValue: odooRepo      },
+          { provide: getRepositoryToken(InfraDocConfig),  useValue: infradocRepo  },
+          { provide: getRepositoryToken(VmwareConfig),    useValue: vmwareRepo    },
+          { provide: getRepositoryToken(VeeamConfig),     useValue: veeamRepo     },
+          { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo },
+          { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } },
+          { provide: HttpService, useValue: { get: httpGet, post: httpPost } },
+        ],
+      }).compile();
+      const brokenService = module.get<IntegrationConfigService>(IntegrationConfigService);
+      jetbackupRepo.findOne.mockResolvedValue(null);
+      await expect(brokenService.patchJetbackup({ apiKey: 'token' }, 'u@test.com'))
+        .rejects.toThrow(/INTEGRATIONS_ENCRYPT_KEY/);
+    });
+  });
+
+  describe('getJetbackupConfigDecrypted', () => {
+    it('retorna url, username y apiKey desencriptada desde DB', async () => {
+      jetbackupRepo.findOne.mockResolvedValue({
+        id: 1, url: 'https://whm', username: 'admin', apiKey: encrypt('real-token', KEY),
+        updatedAt: new Date(), updatedBy: null,
+      });
+      const result = await service.getJetbackupConfigDecrypted();
+      expect(result).toEqual({ url: 'https://whm', username: 'admin', apiKey: 'real-token' });
+    });
+
+    it('devuelve valores vacíos y username "root" cuando no hay fila en DB', async () => {
+      jetbackupRepo.findOne.mockResolvedValue(null);
+      const result = await service.getJetbackupConfigDecrypted();
+      expect(result).toEqual({ url: '', username: 'root', apiKey: '' });
+    });
+  });
+
+  describe('testJetbackup', () => {
+    beforeEach(() => {
+      jetbackupRepo.findOne.mockResolvedValue({
+        id: 1, url: 'https://whm.test:2087', username: 'root', apiKey: encrypt('tok', KEY),
+        updatedAt: new Date(), updatedBy: null,
+      });
+    });
+
+    it('llama a listBackupJobs con el header "whm usuario:token" y devuelve ok cuando success = 1', async () => {
+      httpPost.mockReturnValue(of({ data: { success: 1, message: '', data: { jobs: [] } } }));
+      const result = await service.testJetbackup();
+      expect(result.ok).toBe(true);
+      const [url, body, opts] = httpPost.mock.calls[0];
+      expect(url).toBe('https://whm.test:2087/cgi/addons/jetbackup5/api.cgi');
+      expect(body).toEqual({ function: 'listBackupJobs' });
+      expect(opts.headers.Authorization).toBe('whm root:tok');
+    });
+
+    it('devuelve ok: false con el mensaje de JetBackup cuando success = 0', async () => {
+      httpPost.mockReturnValue(of({ data: { success: 0, message: 'Invalid token' } }));
+      const result = await service.testJetbackup();
+      expect(result).toEqual({ ok: false, message: 'Invalid token' });
+    });
+
+    it('devuelve ok: false cuando falla la conexión de red', async () => {
+      httpPost.mockReturnValue(throwError(() => new Error('ECONNREFUSED')));
+      const result = await service.testJetbackup();
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/ECONNREFUSED/);
+    });
+
+    it('devuelve ok: false sin llamar a la API cuando falta la url', async () => {
+      jetbackupRepo.findOne.mockResolvedValue(null);
+      const result = await service.testJetbackup();
+      expect(result.ok).toBe(false);
+      expect(httpPost).not.toHaveBeenCalled();
     });
   });
 });

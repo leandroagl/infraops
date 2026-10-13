@@ -8,10 +8,12 @@ import { OdooConfig } from './entities/odoo-config.entity';
 import { InfraDocConfig } from './entities/infradoc-config.entity';
 import { VmwareConfig } from './entities/vmware-config.entity';
 import { VeeamConfig } from './entities/veeam-config.entity';
+import { JetbackupConfig } from './entities/jetbackup-config.entity';
 import { PatchOdooConfigDto, OdooConfigResponseDto } from './dto/odoo-config.dto';
 import { PatchInfraDocConfigDto, InfraDocConfigResponseDto } from './dto/infradoc-config.dto';
 import { PatchVmwareConfigDto, VmwareConfigResponseDto } from './dto/vmware-config.dto';
 import { PatchVeeamIntegrationConfigDto, VeeamIntegrationConfigResponseDto } from './dto/veeam-integration-config.dto';
+import { PatchJetbackupIntegrationConfigDto, JetbackupIntegrationConfigResponseDto } from './dto/jetbackup-integration-config.dto';
 import { encrypt, decrypt, isMasked, MASK } from './crypto.util';
 import { buildOdooClient, rpcCall } from '../integrations/odoo/odoo-rpc.helpers';
 
@@ -24,6 +26,7 @@ export class IntegrationConfigService {
     @InjectRepository(InfraDocConfig) private readonly infradocRepo:      Repository<InfraDocConfig>,
     @InjectRepository(VmwareConfig)   private readonly vmwareRepo:        Repository<VmwareConfig>,
     @InjectRepository(VeeamConfig)    private readonly veeamIntegrationRepo: Repository<VeeamConfig>,
+    @InjectRepository(JetbackupConfig) private readonly jetbackupRepo:     Repository<JetbackupConfig>,
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {}
@@ -310,5 +313,54 @@ export class IntegrationConfigService {
 
   async testVeeam(): Promise<{ ok: boolean; message: string }> {
     return { ok: true, message: 'Credenciales guardadas. Se verificarán al conectar con los servidores Veeam de clientes.' };
+  }
+
+  // ── JETBACKUP ──
+
+  async getJetbackup(): Promise<JetbackupIntegrationConfigResponseDto> {
+    const row = await this.jetbackupRepo.findOne({ where: { id: 1 } });
+    if (!row) return { url: '', username: 'root', apiKey: MASK, updatedAt: null, updatedBy: null };
+    return { url: row.url ?? '', username: row.username || 'root', apiKey: MASK, updatedAt: row.updatedAt, updatedBy: row.updatedBy };
+  }
+
+  async patchJetbackup(dto: PatchJetbackupIntegrationConfigDto, updatedBy: string): Promise<JetbackupIntegrationConfigResponseDto> {
+    const existing = (await this.jetbackupRepo.findOne({ where: { id: 1 } })) ?? new JetbackupConfig();
+    existing.id = 1;
+    if (dto.url !== undefined) existing.url = dto.url.trim();
+    if (dto.username !== undefined && dto.username.trim() !== '') existing.username = dto.username.trim();
+    if (dto.apiKey !== undefined && !isMasked(dto.apiKey) && dto.apiKey.trim() !== '') {
+      existing.apiKey = this.safeEncrypt(dto.apiKey.trim());
+    }
+    existing.updatedBy = updatedBy;
+    await this.jetbackupRepo.save(existing);
+    return this.getJetbackup();
+  }
+
+  async getJetbackupConfigDecrypted(): Promise<{ url: string; username: string; apiKey: string }> {
+    const row = await this.jetbackupRepo.findOne({ where: { id: 1 } });
+    if (!row) return { url: '', username: 'root', apiKey: '' };
+    return {
+      url: row.url ?? '',
+      username: row.username || 'root',
+      apiKey: row.apiKey ? decrypt(row.apiKey, this.encryptKey) : '',
+    };
+  }
+
+  async testJetbackup(): Promise<{ ok: boolean; message: string }> {
+    try {
+      const cfg = await this.getJetbackupConfigDecrypted();
+      if (!cfg.url) return { ok: false, message: 'Falta la URL del servidor WHM' };
+      const { data } = await firstValueFrom(
+        this.httpService.post(
+          `${cfg.url.replace(/\/+$/, '')}/cgi/addons/jetbackup5/api.cgi`,
+          { function: 'listBackupJobs' },
+          { headers: { Authorization: `whm ${cfg.username}:${cfg.apiKey}` } },
+        ),
+      );
+      if (data?.success === 1) return { ok: true, message: 'Conexión exitosa' };
+      return { ok: false, message: data?.message || 'JetBackup rechazó la solicitud' };
+    } catch (err) {
+      return { ok: false, message: (err as Error).message };
+    }
   }
 }

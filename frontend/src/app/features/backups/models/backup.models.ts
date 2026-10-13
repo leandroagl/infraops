@@ -1,7 +1,10 @@
 export type BackupJobResult = 'Success' | 'Warning' | 'Failed';
 export type ClientBackupStatus = 'ok' | 'warn' | 'crit' | 'no_data' | 'disconnected';
 
+export type BackupProvider = 'VEEAM' | 'JETBACKUP';
+
 export interface BackupJobStatus {
+  provider: BackupProvider;
   jobId: string;
   jobName: string;
   jobType: string;
@@ -28,6 +31,7 @@ export interface ClientBackup {
 }
 
 export interface VeeamClientConfig {
+  provider: 'VEEAM';
   id: string;
   clientId: string;
   clientName: string;
@@ -49,6 +53,39 @@ export interface UpdateVeeamConfigRequest {
   clientName?: string;
   host?: string;
   port?: number;
+  isEnabled?: boolean;
+}
+
+// Una fila por job de JetBackup asignado a un cliente.
+export interface JetbackupJobConfig {
+  provider: 'JETBACKUP';
+  id: string;
+  clientId: string;
+  clientName: string;
+  jobId: string;
+  jobName: string;
+  isEnabled: boolean;
+}
+
+export type BackupConfig = VeeamClientConfig | JetbackupJobConfig;
+
+// Job disponible en el WHM; `configured` indica si ya está asignado a algún cliente.
+export interface AvailableJetbackupJob {
+  jobId: string;
+  name: string;
+  disabled: boolean;
+  configured: boolean;
+  configuredClientName: string | null;
+}
+
+export interface CreateJetbackupConfigsRequest {
+  clientId: string;
+  clientName: string;
+  isEnabled: boolean;
+  jobs: { jobId: string; jobName: string }[];
+}
+
+export interface UpdateJetbackupConfigRequest {
   isEnabled?: boolean;
 }
 

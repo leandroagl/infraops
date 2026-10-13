@@ -36,6 +36,7 @@
   width: 100%;
 
   .mat-column-clientName { flex: 2; }
+  .mat-column-provider   { flex: 0 0 110px; }
   .mat-column-host       { flex: 2; }
   .mat-column-port       { flex: 0 0 80px; }
   .mat-column-username   { flex: 1.5; }
@@ -54,6 +55,19 @@
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--tx-md);
+}
+
+.provider-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 4px);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+
+  &--veeam     { color: var(--srv);    border-color: var(--srv); }
+  &--jetbackup { color: var(--purple); border-color: var(--purple); }
 }
 
 .icon-ok  { color: var(--ok);   font-size: 18px; }
