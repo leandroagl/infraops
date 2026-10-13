@@ -1,13 +1,18 @@
 import { Column, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import type { BackupProvider } from '../backup-provider';
 
+// Guarda snapshots de ambos proveedores (el nombre de la tabla es histórico, de cuando solo había Veeam).
 @Entity('veeam_daily_snapshots')
-@Unique(['clientId', 'jobId', 'snapshotDate'])
+@Unique('uq_veeam_snapshot', ['clientId', 'provider', 'jobId', 'snapshotDate'])
 export class VeeamDailySnapshot {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'uuid', name: 'client_id' })
   clientId: string;
+
+  @Column({ type: 'varchar', default: 'VEEAM' })
+  provider: BackupProvider;
 
   @Column({ type: 'varchar', name: 'job_id' })
   jobId: string;

@@ -1,6 +1,7 @@
 import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export class VeeamClientConfigResponseDto {
+  provider: 'VEEAM';
   id: string;
   clientId: string;
   clientName: string;

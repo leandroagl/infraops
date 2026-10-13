@@ -8,13 +8,25 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import type { BackupConfig } from '../../../features/backups/models/backup.models';
+
+const veeamRow: BackupConfig = {
+  provider: 'VEEAM', id: 'v1', clientId: 'c1', clientName: 'ACME',
+  host: 'acme.ondravirtual.com.ar', port: 9419, isEnabled: true, lastConnectedAt: null,
+};
+const jetRow: BackupConfig = {
+  provider: 'JETBACKUP', id: 'jc1', clientId: 'c2', clientName: 'PSQ Hosting',
+  jobId: 'job-1', jobName: 'PSQ', isEnabled: true,
+};
 
 describe('BackupsConfigComponent', () => {
   let fixture: ComponentFixture<BackupsConfigComponent>;
   let mockSvc: jasmine.SpyObj<BackupsService>;
 
   beforeEach(async () => {
-    mockSvc = jasmine.createSpyObj('BackupsService', ['listConfigs', 'deleteConfig', 'testConnection']);
+    mockSvc = jasmine.createSpyObj('BackupsService', [
+      'listConfigs', 'deleteConfig', 'testConnection', 'deleteJetbackupConfig',
+    ]);
 
     await TestBed.configureTestingModule({
       declarations: [BackupsConfigComponent],
@@ -38,5 +50,62 @@ describe('BackupsConfigComponent', () => {
     const snackSpy = spyOn((comp as any).snackBar, 'open');
     comp.testConnection({ id: 'x' } as any);
     expect(snackSpy).toHaveBeenCalledWith('Conectado. 12 jobs.', 'Cerrar', jasmine.any(Object));
+  });
+
+  describe('columna Tipo', () => {
+    beforeEach(() => {
+      mockSvc.listConfigs.and.returnValue(of([veeamRow, jetRow]));
+      fixture.detectChanges();
+    });
+
+    it('incluye la columna "provider" entre las columnas mostradas', () => {
+      expect(fixture.componentInstance.displayedColumns).toContain('provider');
+    });
+
+    it('identifica cada fila como Veeam o JetBackup', () => {
+      const badges = Array.from<HTMLElement>(fixture.nativeElement.querySelectorAll('.provider-badge'))
+        .map(b => b.textContent?.trim());
+      expect(badges).toEqual(['Veeam', 'JetBackup']);
+    });
+
+    it('en las filas de JetBackup muestra el nombre del job en lugar del host', () => {
+      const text = fixture.nativeElement.textContent as string;
+      expect(text).toContain('acme.ondravirtual.com.ar');
+      expect(text).toContain('PSQ');
+    });
+
+    it('solo las filas de Veeam tienen botón de probar conexión', () => {
+      const buttons = fixture.nativeElement.querySelectorAll('button[aria-label="Probar conexión"]');
+      expect(buttons.length).toBe(1);
+    });
+  });
+
+  describe('delete', () => {
+    beforeEach(() => {
+      mockSvc.listConfigs.and.returnValue(of([veeamRow, jetRow]));
+      mockSvc.deleteConfig.and.returnValue(of(undefined));
+      mockSvc.deleteJetbackupConfig.and.returnValue(of(undefined));
+      fixture.detectChanges();
+    });
+
+    it('elimina una config de Veeam con deleteConfig', () => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      fixture.componentInstance.delete(veeamRow);
+      expect(mockSvc.deleteConfig).toHaveBeenCalledWith('v1');
+      expect(mockSvc.deleteJetbackupConfig).not.toHaveBeenCalled();
+    });
+
+    it('elimina una config de JetBackup con deleteJetbackupConfig', () => {
+      spyOn(window, 'confirm').and.returnValue(true);
+      fixture.componentInstance.delete(jetRow);
+      expect(mockSvc.deleteJetbackupConfig).toHaveBeenCalledWith('jc1');
+      expect(mockSvc.deleteConfig).not.toHaveBeenCalled();
+    });
+
+    it('no elimina si el usuario cancela', () => {
+      spyOn(window, 'confirm').and.returnValue(false);
+      fixture.componentInstance.delete(jetRow);
+      expect(mockSvc.deleteJetbackupConfig).not.toHaveBeenCalled();
+    });
   });
 });

@@ -17,6 +17,7 @@ const odooBase     = { url: 'https://odoo.test', db: 'db', username: 'bot@test.c
 const infradocBase = { url: 'https://id.test', apiKey: MASK, updatedAt: null, updatedBy: null };
 const vmwareBase   = { username: 'ondra-read', password: MASK, updatedAt: null, updatedBy: null };
 const veeamBase    = { username: 'ondra-veeam', password: MASK, updatedAt: null, updatedBy: null };
+const jetbackupBase = { url: 'https://whm.test:2087', username: 'root', apiKey: MASK, updatedAt: null, updatedBy: null };
 
 describe('IntegracionesComponent', () => {
   let fixture: ComponentFixture<IntegracionesComponent>;
@@ -29,6 +30,7 @@ describe('IntegracionesComponent', () => {
       'getInfraDoc', 'patchInfraDoc', 'testInfraDoc',
       'getVmware', 'patchVmware', 'testVmware',
       'getVeeam', 'patchVeeam', 'testVeeam',
+      'getJetbackup', 'patchJetbackup', 'testJetbackup',
     ]);
     mockSvc.getOdoo.and.returnValue(of(odooBase));
     mockSvc.patchOdoo.and.returnValue(of(odooBase));
@@ -42,6 +44,9 @@ describe('IntegracionesComponent', () => {
     mockSvc.getVeeam.and.returnValue(of(veeamBase));
     mockSvc.patchVeeam.and.returnValue(of(veeamBase));
     mockSvc.testVeeam.and.returnValue(of({ ok: true, message: 'OK' }));
+    mockSvc.getJetbackup.and.returnValue(of(jetbackupBase));
+    mockSvc.patchJetbackup.and.returnValue(of(jetbackupBase));
+    mockSvc.testJetbackup.and.returnValue(of({ ok: true, message: 'OK' }));
 
     await TestBed.configureTestingModule({
       declarations: [IntegracionesComponent],
@@ -58,6 +63,7 @@ describe('IntegracionesComponent', () => {
     expect(mockSvc.getInfraDoc).toHaveBeenCalled();
     expect(mockSvc.getVmware).toHaveBeenCalled();
     expect(mockSvc.getVeeam).toHaveBeenCalled();
+    expect(mockSvc.getJetbackup).toHaveBeenCalled();
   });
 
   it('popula el form de Odoo con los datos recibidos', () => {
@@ -80,6 +86,7 @@ describe('IntegracionesComponent', () => {
     mockSvc.getInfraDoc.and.returnValue(of({ ...infradocBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
     mockSvc.getVmware.and.returnValue(of({ ...vmwareBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
     mockSvc.getVeeam.and.returnValue(of({ ...veeamBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
+    mockSvc.getJetbackup.and.returnValue(of({ ...jetbackupBase, updatedAt: new Date('2026-09-01'), updatedBy: 'admin@ondra.com.ar' }));
 
     const freshFixture = TestBed.createComponent(IntegracionesComponent);
     const freshComp = freshFixture.componentInstance;
@@ -89,6 +96,7 @@ describe('IntegracionesComponent', () => {
     expect(freshComp.infradoc.connectionStatus).toBe('unknown');
     expect(freshComp.vmware.connectionStatus).toBe('unknown');
     expect(freshComp.veeam.connectionStatus).toBe('unknown');
+    expect(freshComp.jetbackup.connectionStatus).toBe('unknown');
   });
 
   it('guardar la config de Odoo no marca connectionStatus como "ok"', () => {
@@ -121,5 +129,46 @@ describe('IntegracionesComponent', () => {
   it('buildVeeamPatchDto incluye password cuando es un valor nuevo', () => {
     comp.veeamForm.patchValue({ password: 'nueva-pass' });
     expect(comp.buildVeeamPatchDto().password).toBe('nueva-pass');
+  });
+
+  it('popula el form de JetBackup con url y usuario recibidos', () => {
+    expect(comp.jetbackupForm.get('url')?.value).toBe('https://whm.test:2087');
+    expect(comp.jetbackupForm.get('username')?.value).toBe('root');
+    expect(comp.jetbackupForm.get('apiKey')?.value).toBe(MASK);
+  });
+
+  it('buildJetbackupPatchDto omite apiKey cuando es MASK', () => {
+    comp.jetbackupForm.patchValue({ apiKey: MASK });
+    expect(comp.buildJetbackupPatchDto().apiKey).toBeUndefined();
+  });
+
+  it('buildJetbackupPatchDto incluye apiKey cuando es un valor nuevo', () => {
+    comp.jetbackupForm.patchValue({ apiKey: 'nuevo-token' });
+    expect(comp.buildJetbackupPatchDto().apiKey).toBe('nuevo-token');
+  });
+
+  it('guardar la config de JetBackup llama a patchJetbackup y no marca connectionStatus como "ok"', () => {
+    comp.saveJetbackup();
+    expect(mockSvc.patchJetbackup).toHaveBeenCalled();
+    expect(comp.jetbackup.saving).toBe(false);
+    expect(comp.jetbackup.connectionStatus).not.toBe('ok');
+  });
+
+  it('probar la conexión de JetBackup marca connectionStatus según el resultado', () => {
+    mockSvc.testJetbackup.and.returnValue(of({ ok: false, message: 'Invalid token' }));
+    comp.testJetbackup();
+    expect(comp.jetbackup.connectionStatus).toBe('error');
+    expect(comp.jetbackup.connectionMessage).toBe('Invalid token');
+  });
+
+  it('muestra el mensaje de error del backend al fallar el guardado de JetBackup', () => {
+    const snackBar = TestBed.inject(MatSnackBar);
+    const openSpy = spyOn(snackBar, 'open');
+    mockSvc.patchJetbackup.and.returnValue(throwError(() => ({ error: { message: 'INTEGRATIONS_ENCRYPT_KEY no está configurada' } })));
+
+    comp.saveJetbackup();
+
+    expect(comp.jetbackup.saving).toBe(false);
+    expect(openSpy).toHaveBeenCalledWith('INTEGRATIONS_ENCRYPT_KEY no está configurada', '', jasmine.any(Object));
   });
 });
