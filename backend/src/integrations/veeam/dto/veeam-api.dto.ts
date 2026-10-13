@@ -15,7 +15,8 @@ export interface VeeamSessionResult {
 
 export interface VeeamSession {
   id: string;
-  jobId: string;
+  // La API 1.0 (VBR 11) devuelve jobId null; el nombre de la sesión es el del job.
+  jobId: string | null;
   name: string;
   sessionType: string;
   state: string;
