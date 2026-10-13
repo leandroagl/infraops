@@ -264,4 +264,64 @@
       <span class="last-updated" *ngIf="jetbackup.updatedAt">{{ jetbackup.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ jetbackup.updatedBy ? ' · ' + jetbackup.updatedBy : '' }}</span>
     </div>
   </div>
+
+  <!-- ACRONIS -->
+  <div class="integration-card">
+    <div class="card-header">
+      <div class="card-icon vmware">AC</div>
+      <div class="card-title-group">
+        <div class="card-title">Acronis Cyber Protect</div>
+        <div class="card-desc">Conexión a la nube de Acronis para monitorear los backups de los servidores de clientes</div>
+      </div>
+      <div class="status-badge" [ngClass]="{ ok: acronis.connectionStatus === 'ok', err: acronis.connectionStatus === 'error', unk: acronis.connectionStatus === 'unknown' }">
+        <span class="status-dot"></span>
+        {{ acronis.connectionStatus === 'ok' ? 'Conectado' : acronis.connectionStatus === 'error' ? 'Error' : 'Sin probar' }}
+      </div>
+    </div>
+    <div class="card-body" [formGroup]="acronisForm">
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">URL del datacenter <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="baseUrl" placeholder="https://eu2-cloud.acronis.com" />
+          </mat-form-field>
+          <span class="field-hint">Datacenter asignado al registrar el API client. Sin ruta.</span>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Client ID <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="clientId" [type]="showAcronisClientId ? 'text' : 'password'" />
+            <button matSuffix mat-icon-button type="button" (mousedown)="$event.preventDefault()" (click)="toggleAcronisClientId()">
+              <svg *ngIf="!showAcronisClientId" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg *ngIf="showAcronisClientId"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </mat-form-field>
+        </div>
+        <div class="field">
+          <label class="field-label">Client secret <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="clientSecret" [type]="showAcronisClientSecret ? 'text' : 'password'" />
+            <button matSuffix mat-icon-button type="button" (mousedown)="$event.preventDefault()" (click)="toggleAcronisClientSecret()">
+              <svg *ngIf="!showAcronisClientSecret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg *ngIf="showAcronisClientSecret"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </mat-form-field>
+          <span class="field-hint">API client de alcance partner/MSP. Dejar sin cambios para no modificar.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-actions">
+      <button mat-stroked-button [disabled]="acronis.testing || acronis.saving" (click)="testAcronis()">
+        <mat-spinner *ngIf="acronis.testing" diameter="14"></mat-spinner>
+        <span *ngIf="!acronis.testing">Probar conexión</span>
+      </button>
+      <button mat-flat-button color="primary" [disabled]="acronis.saving || acronis.testing" (click)="saveAcronis()">
+        <mat-spinner *ngIf="acronis.saving" diameter="14"></mat-spinner>
+        <span *ngIf="!acronis.saving">Guardar</span>
+      </button>
+      <span class="last-updated" *ngIf="acronis.updatedAt">{{ acronis.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ acronis.updatedBy ? ' · ' + acronis.updatedBy : '' }}</span>
+    </div>
+  </div>
 </div>

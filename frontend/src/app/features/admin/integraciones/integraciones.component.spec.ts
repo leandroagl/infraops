@@ -18,6 +18,7 @@ const infradocBase = { url: 'https://id.test', apiKey: MASK, updatedAt: null, up
 const vmwareBase   = { username: 'ondra-read', password: MASK, updatedAt: null, updatedBy: null };
 const veeamBase    = { username: 'ondra-veeam', password: MASK, updatedAt: null, updatedBy: null };
 const jetbackupBase = { url: 'https://whm.test:2087', username: 'root', apiKey: MASK, updatedAt: null, updatedBy: null };
+const acronisBase = { baseUrl: 'https://eu2-cloud.acronis.com', clientId: MASK, clientSecret: MASK, updatedAt: null, updatedBy: null };
 
 describe('IntegracionesComponent', () => {
   let fixture: ComponentFixture<IntegracionesComponent>;
@@ -31,6 +32,7 @@ describe('IntegracionesComponent', () => {
       'getVmware', 'patchVmware', 'testVmware',
       'getVeeam', 'patchVeeam', 'testVeeam',
       'getJetbackup', 'patchJetbackup', 'testJetbackup',
+      'getAcronis', 'patchAcronis', 'testAcronis',
     ]);
     mockSvc.getOdoo.and.returnValue(of(odooBase));
     mockSvc.patchOdoo.and.returnValue(of(odooBase));
@@ -47,6 +49,9 @@ describe('IntegracionesComponent', () => {
     mockSvc.getJetbackup.and.returnValue(of(jetbackupBase));
     mockSvc.patchJetbackup.and.returnValue(of(jetbackupBase));
     mockSvc.testJetbackup.and.returnValue(of({ ok: true, message: 'OK' }));
+    mockSvc.getAcronis.and.returnValue(of(acronisBase));
+    mockSvc.patchAcronis.and.returnValue(of(acronisBase));
+    mockSvc.testAcronis.and.returnValue(of({ ok: true, message: 'OK' }));
 
     await TestBed.configureTestingModule({
       declarations: [IntegracionesComponent],
@@ -64,6 +69,7 @@ describe('IntegracionesComponent', () => {
     expect(mockSvc.getVmware).toHaveBeenCalled();
     expect(mockSvc.getVeeam).toHaveBeenCalled();
     expect(mockSvc.getJetbackup).toHaveBeenCalled();
+    expect(mockSvc.getAcronis).toHaveBeenCalled();
   });
 
   it('popula el form de Odoo con los datos recibidos', () => {
@@ -169,6 +175,51 @@ describe('IntegracionesComponent', () => {
     comp.saveJetbackup();
 
     expect(comp.jetbackup.saving).toBe(false);
+    expect(openSpy).toHaveBeenCalledWith('INTEGRATIONS_ENCRYPT_KEY no está configurada', '', jasmine.any(Object));
+  });
+
+  it('popula el form de Acronis con la URL recibida y secretos enmascarados', () => {
+    expect(comp.acronisForm.get('baseUrl')?.value).toBe('https://eu2-cloud.acronis.com');
+    expect(comp.acronisForm.get('clientId')?.value).toBe(MASK);
+    expect(comp.acronisForm.get('clientSecret')?.value).toBe(MASK);
+  });
+
+  it('buildAcronisPatchDto omite clientId y clientSecret cuando son MASK', () => {
+    const dto = comp.buildAcronisPatchDto();
+    expect(dto.clientId).toBeUndefined();
+    expect(dto.clientSecret).toBeUndefined();
+    expect(dto.baseUrl).toBe('https://eu2-cloud.acronis.com');
+  });
+
+  it('buildAcronisPatchDto incluye clientId y clientSecret cuando son valores nuevos', () => {
+    comp.acronisForm.patchValue({ clientId: 'nuevo-id', clientSecret: 'nuevo-secret' });
+    const dto = comp.buildAcronisPatchDto();
+    expect(dto.clientId).toBe('nuevo-id');
+    expect(dto.clientSecret).toBe('nuevo-secret');
+  });
+
+  it('guardar la config de Acronis llama a patchAcronis y no marca connectionStatus como "ok"', () => {
+    comp.saveAcronis();
+    expect(mockSvc.patchAcronis).toHaveBeenCalled();
+    expect(comp.acronis.saving).toBe(false);
+    expect(comp.acronis.connectionStatus).not.toBe('ok');
+  });
+
+  it('probar la conexión de Acronis marca connectionStatus según el resultado', () => {
+    mockSvc.testAcronis.and.returnValue(of({ ok: false, message: 'Auth (HTTP 401)' }));
+    comp.testAcronis();
+    expect(comp.acronis.connectionStatus).toBe('error');
+    expect(comp.acronis.connectionMessage).toBe('Auth (HTTP 401)');
+  });
+
+  it('muestra el mensaje de error del backend al fallar el guardado de Acronis', () => {
+    const snackBar = TestBed.inject(MatSnackBar);
+    const openSpy = spyOn(snackBar, 'open');
+    mockSvc.patchAcronis.and.returnValue(throwError(() => ({ error: { message: 'INTEGRATIONS_ENCRYPT_KEY no está configurada' } })));
+
+    comp.saveAcronis();
+
+    expect(comp.acronis.saving).toBe(false);
     expect(openSpy).toHaveBeenCalledWith('INTEGRATIONS_ENCRYPT_KEY no está configurada', '', jasmine.any(Object));
   });
 });
