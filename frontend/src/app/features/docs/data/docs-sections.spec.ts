@@ -44,7 +44,7 @@ describe('DOCS_SECTIONS', () => {
   });
 
   it('las secciones universales tienen roles ["*"]', () => {
-    const universal = ['que-es', 'acceso', 'tareas', 'ejecucion', 'estados'];
+    const universal = ['que-es', 'acceso', 'perfil', 'notif-app', 'tareas', 'ejecucion', 'estados', 'vencimientos', 'backups', 'clientes'];
     universal.forEach(id => {
       const section = DOCS_SECTIONS.find(s => s.id === id);
       expect(section).toBeTruthy(`sección "${id}" no encontrada`);
@@ -52,9 +52,11 @@ describe('DOCS_SECTIONS', () => {
     });
   });
 
-  it('la sección gestión-usuarios solo es visible para ADMIN', () => {
-    const section = DOCS_SECTIONS.find(s => s.id === 'usuarios');
-    expect(section).toBeTruthy();
-    expect(section!.roles).toEqual(['ADMIN']);
+  it('las secciones de administración solo son visibles para ADMIN', () => {
+    ['usuarios', 'admin'].forEach(id => {
+      const section = DOCS_SECTIONS.find(s => s.id === id);
+      expect(section).toBeTruthy(`sección "${id}" no encontrada`);
+      expect(section!.roles).toEqual(['ADMIN']);
+    });
   });
 });

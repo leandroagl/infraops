@@ -4,36 +4,39 @@ import { of } from 'rxjs';
 import { BackupsConfigComponent } from './backups-config.component';
 import { BackupsService } from '../../../features/backups/services/backups.service';
 import { MatDialogModule } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
-
-const mockSvc = { listConfigs: jest.fn(), deleteConfig: jest.fn(), testConnection: jest.fn() };
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 describe('BackupsConfigComponent', () => {
   let fixture: ComponentFixture<BackupsConfigComponent>;
+  let mockSvc: jasmine.SpyObj<BackupsService>;
 
   beforeEach(async () => {
+    mockSvc = jasmine.createSpyObj('BackupsService', ['listConfigs', 'deleteConfig', 'testConnection']);
+
     await TestBed.configureTestingModule({
       declarations: [BackupsConfigComponent],
-      imports: [NoopAnimationsModule, MatDialogModule, MatSnackBarModule, MatTableModule],
+      imports: [NoopAnimationsModule, MatDialogModule, MatIconModule, MatSnackBarModule, MatTableModule, MatProgressSpinnerModule],
       providers: [{ provide: BackupsService, useValue: mockSvc }],
     }).compileComponents();
     fixture = TestBed.createComponent(BackupsConfigComponent);
   });
 
   it('debería cargar configs al init', () => {
-    mockSvc.listConfigs.mockReturnValue(of([]));
+    mockSvc.listConfigs.and.returnValue(of([]));
     fixture.detectChanges();
     expect(mockSvc.listConfigs).toHaveBeenCalled();
   });
 
   it('testConnection debería mostrar resultado en snackBar', () => {
-    mockSvc.listConfigs.mockReturnValue(of([]));
-    mockSvc.testConnection.mockReturnValue(of({ success: true, message: 'Conectado. 12 jobs.' }));
+    mockSvc.listConfigs.and.returnValue(of([]));
+    mockSvc.testConnection.and.returnValue(of({ success: true, message: 'Conectado. 12 jobs.' }));
     fixture.detectChanges();
     const comp = fixture.componentInstance;
-    const snackSpy = jest.spyOn((comp as any).snackBar, 'open');
+    const snackSpy = spyOn((comp as any).snackBar, 'open');
     comp.testConnection({ id: 'x' } as any);
-    expect(snackSpy).toHaveBeenCalledWith('Conectado. 12 jobs.', 'Cerrar', expect.any(Object));
+    expect(snackSpy).toHaveBeenCalledWith('Conectado. 12 jobs.', 'Cerrar', jasmine.any(Object));
   });
 });

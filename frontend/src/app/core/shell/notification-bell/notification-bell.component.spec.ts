@@ -24,21 +24,21 @@ describe('NotificationBellComponent', () => {
   let notifications$: BehaviorSubject<AppNotification[]>;
   let mockService: {
     notifications: BehaviorSubject<AppNotification[]>;
-    unreadCount$: any;
-    markAsRead: jest.Mock;
-    markAllAsRead: jest.Mock;
+    unreadCount$: ReturnType<typeof notifications$.pipe>;
+    markAsRead: jasmine.Spy;
+    markAllAsRead: jasmine.Spy;
   };
-  let mockRouter: { navigate: jest.Mock };
+  let mockRouter: { navigate: jasmine.Spy };
 
   beforeEach(async () => {
     notifications$ = new BehaviorSubject<AppNotification[]>([]);
     mockService = {
       notifications: notifications$,
       unreadCount$: notifications$.pipe(map((n: AppNotification[]) => n.length)),
-      markAsRead: jest.fn(),
-      markAllAsRead: jest.fn(),
+      markAsRead:    jasmine.createSpy('markAsRead'),
+      markAllAsRead: jasmine.createSpy('markAllAsRead'),
     };
-    mockRouter = { navigate: jest.fn() };
+    mockRouter = { navigate: jasmine.createSpy('navigate') };
 
     await TestBed.configureTestingModule({
       declarations: [NotificationBellComponent],
@@ -49,7 +49,7 @@ describe('NotificationBellComponent', () => {
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(NotificationBellComponent);
+    fixture   = TestBed.createComponent(NotificationBellComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
