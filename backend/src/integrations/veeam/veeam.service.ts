@@ -1,5 +1,5 @@
 // backend/src/integrations/veeam/veeam.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import * as https from 'https';
@@ -7,6 +7,7 @@ import type { VeeamJob, VeeamSession, VeeamApiResponse, BackupJobStatus } from '
 
 @Injectable()
 export class VeeamService {
+  private readonly logger = new Logger(VeeamService.name);
   private readonly VERSION_CANDIDATES = ['1.1-rev2', '1.1-rev1', '1.1-rev0', '1.0-rev1', '1.0-rev0'];
   private readonly STALE_HOURS = 30;
   private readonly httpsAgent = new https.Agent({ rejectUnauthorized: false });
@@ -84,7 +85,9 @@ export class VeeamService {
     return res.data.data ?? [];
   }
 
-  private async getBackupSessions(baseUrl: string, token: string, version: string): Promise<VeeamSession[]> {
+  // Sin filtrar por sessionType: la API 1.0 (VBR 11) lo devuelve como "Job" y la 1.1 como "BackupJob".
+  // Alcanza con cruzar por jobId contra la lista de jobs (ver getJobStatuses).
+  private async getSessions(baseUrl: string, token: string, version: string): Promise<VeeamSession[]> {
     const res = await firstValueFrom(
       this.httpService.get<VeeamApiResponse<VeeamSession>>(`${baseUrl}/api/v1/sessions`, {
         headers: this.apiHeaders(token, version),
@@ -93,7 +96,7 @@ export class VeeamService {
         timeout: 30000,
       }),
     );
-    return (res.data.data ?? []).filter(s => s.sessionType === 'BackupJob');
+    return res.data.data ?? [];
   }
 
   private hoursAgo(isoStr: string | null): number | null {
@@ -132,11 +135,20 @@ export class VeeamService {
     const { token, version } = await this.authenticate(host, port, username, password);
     const [jobs, sessions] = await Promise.all([
       this.getJobs(base, token, version),
-      this.getBackupSessions(base, token, version),
+      this.getSessions(base, token, version),
     ]);
+    const jobIds = new Set(jobs.map(j => j.id));
     const lastByJob = new Map<string, VeeamSession>();
     for (const s of sessions) {
-      if (!lastByJob.has(s.jobId)) lastByJob.set(s.jobId, s);
+      if (jobIds.has(s.jobId) && !lastByJob.has(s.jobId)) lastByJob.set(s.jobId, s);
+    }
+    const withoutSession = jobs.filter(j => !lastByJob.has(j.id));
+    if (withoutSession.length) {
+      const types = [...new Set(sessions.map(s => s.sessionType))].join(', ') || 'ninguno';
+      this.logger.warn(
+        `Veeam ${host}:${port} (API ${version}): ${withoutSession.length}/${jobs.length} jobs sin sesión ` +
+        `[${withoutSession.map(j => j.name).join(', ')}]; sesiones leídas=${sessions.length}, sessionType vistos=[${types}]`,
+      );
     }
     return jobs.map(j => this.buildJobStatus(j, lastByJob.get(j.id) ?? null));
   }
