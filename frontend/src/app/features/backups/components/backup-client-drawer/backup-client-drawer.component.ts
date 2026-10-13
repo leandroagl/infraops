@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import type { ClientBackup, BackupJobStatus, BackupItemStatus } from '../../models/backup.models';
+import type { ClientBackup, BackupJobStatus, BackupItemStatus, BackupProvider } from '../../models/backup.models';
 
 @Component({
   selector: 'app-backup-client-drawer',
@@ -70,11 +70,8 @@ export class BackupClientDrawerComponent {
     return `${job.hoursAgo.toFixed(1)}h`;
   }
 
-  stateLabel(job: BackupJobStatus): string {
-    return job.isRunning ? 'En curso' : 'Inactivo';
-  }
-
-  stateClass(job: BackupJobStatus): string {
-    return job.isRunning ? 'chip--running' : 'chip--neutral';
+  providerLabel(job: BackupJobStatus): string {
+    const labels: Record<BackupProvider, string> = { VEEAM: 'Veeam', ACRONIS: 'Acronis', JETBACKUP: 'JetBackup' };
+    return labels[job.provider];
   }
 }

@@ -57,9 +57,11 @@
 
 .card-mid {
   padding: 0 12px 8px;
-  min-height: 22px;
+  // Alto fijo de dos filas de chips: todas las cards miden igual aunque haya varios proveedores.
+  min-height: 50px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  align-content: flex-start;
   gap: 6px;
   flex-wrap: wrap;
 }

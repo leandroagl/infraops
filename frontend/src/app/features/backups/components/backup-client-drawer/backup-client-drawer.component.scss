@@ -3,7 +3,7 @@
   position: fixed;
   top: 50px;
   right: 0;
-  width: 460px;
+  width: 740px;
   bottom: 0;
   background: var(--surface);
   border-left: 1px solid var(--border-lo);
@@ -168,10 +168,16 @@
   font-family: var(--font-mono);
 }
 
-.job-type {
+.provider-chip {
   font-size: 9px;
-  color: var(--tx-lo);
-  margin-top: 1px;
+  font-family: var(--font-mono);
+  padding: 2px 7px;
+  border-radius: 20px;
+  border: 1px solid var(--bkp-bd);
+  background: var(--bkp-bg);
+  color: var(--bkp);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .job-msg {
