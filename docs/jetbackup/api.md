@@ -51,7 +51,7 @@ Una fila por ejecución. Parámetros usados:
 | Parámetro | Valor | Para qué |
 |---|---|---|
 | `find[info.ID]` | `_id` del job | Filtrar por job |
-| `find[Type]` | `1` | Solo ejecuciones de backup (también hay logs de restauración, destinos, etc.) |
+| `find[type]` | `1` | Solo ejecuciones de backup (también hay logs de restauración, destinos, etc.). Va en minúscula: `find[Type]` es válido pero no matchea nada (devuelve 0 logs) |
 | `sort[start_time]` | `-1` | Más reciente primero |
 | `limit` | `1` | Solo la última |
 
@@ -92,6 +92,6 @@ El mensaje es la unión de los `message` de los ítems cuyo `status` ≠ `100`; 
 
 ```bash
 jetbackup5api -F listBackupJobs
-jetbackup5api -F listLogs -D "find[info.ID]=<jobId>&find[Type]=1&sort[start_time]=-1&limit=1"
+jetbackup5api -F listLogs -D "find[info.ID]=<jobId>&find[type]=1&sort[start_time]=-1&limit=1"
 jetbackup5api -F listLogItems -D "log_id=<logId>"
 ```

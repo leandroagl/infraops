@@ -80,7 +80,8 @@ describe('JetbackupService', () => {
       await service.getJobStatuses(CONN, cfgs);
       const logsCall = post.mock.calls.map(c => c[1] as URLSearchParams).find(b => b.get('function') === 'listLogs')!;
       expect(logsCall.get('find[info.ID]')).toBe('job-psq');
-      expect(logsCall.get('find[Type]')).toBe('1');
+      expect(logsCall.get('find[type]')).toBe('1');
+      expect(logsCall.has('find[Type]')).toBe(false);
       expect(logsCall.get('sort[start_time]')).toBe('-1');
       expect(logsCall.get('limit')).toBe('1');
     });
