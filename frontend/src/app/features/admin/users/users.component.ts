@@ -89,10 +89,11 @@ export class UsersComponent implements OnInit {
     });
     ref.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
       if (!result) return;
-      this.loadUsers();
-      if (result.plainPassword) {
+      const { plainPassword, ...newUser } = result;
+      this.users = [newUser as User, ...this.users];
+      if (plainPassword) {
         this.dialog.open(PasswordDisplayDialogComponent, {
-          data: { name: result.name, plainPassword: result.plainPassword },
+          data: { name: result.name, plainPassword },
           width: '420px',
         });
       }
@@ -104,12 +105,19 @@ export class UsersComponent implements OnInit {
       .open(UserFormDialogComponent, { data: { mode: 'edit', user }, width: '480px' })
       .afterClosed()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(updated => { if (updated) this.loadUsers(); });
+      .subscribe(updated => {
+        if (!updated) return;
+        const idx = this.users.findIndex(u => u.id === updated.id);
+        if (idx !== -1) this.users[idx] = { ...this.users[idx], ...updated };
+      });
   }
 
   toggleStatus(user: User): void {
     this.usersService.updateStatus(user.id, !user.isActive).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => this.loadUsers(),
+      next: updated => {
+        const idx = this.users.findIndex(u => u.id === user.id);
+        if (idx !== -1) this.users[idx] = { ...this.users[idx], isActive: updated.isActive };
+      },
       error: () =>
         this.snackBar.open('No se pudo actualizar el estado.', '', {
           duration: 3000,

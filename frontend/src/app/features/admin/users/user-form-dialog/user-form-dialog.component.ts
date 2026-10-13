@@ -58,7 +58,7 @@ export class UserFormDialogComponent implements OnInit {
       this.usersService.create(payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: res => {
           this.loading = false;
-          this.dialogRef.close({ name: res.name, plainPassword: res.plainPassword });
+          this.dialogRef.close(res);
         },
         error: err => {
           this.loading = false;
@@ -71,9 +71,9 @@ export class UserFormDialogComponent implements OnInit {
         role: this.form.value.role,
       };
       this.usersService.update(this.data.user!.id, payload).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-        next: () => {
+        next: updatedUser => {
           this.loading = false;
-          this.dialogRef.close(true);
+          this.dialogRef.close(updatedUser);
         },
         error: err => {
           this.loading = false;

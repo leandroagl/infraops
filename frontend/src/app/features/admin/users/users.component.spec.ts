@@ -121,11 +121,49 @@ describe('UsersComponent', () => {
       expect(usersServiceSpy.updateStatus).toHaveBeenCalledWith(techUser.id, false);
     });
 
-    it('llama loadUsers cuando updateStatus tiene éxito', () => {
+    it('actualiza el usuario en el array local sin recargar desde la API', () => {
+      const loadSpy = spyOn(component, 'loadUsers').and.callThrough();
+      component.users = [seedAdmin, { ...techUser, isActive: true }];
       usersServiceSpy.updateStatus.and.returnValue(of({ ...techUser, isActive: false }));
-      spyOn(component, 'loadUsers').and.callThrough();
-      component.toggleStatus(techUser);
-      expect(component.loadUsers).toHaveBeenCalled();
+
+      component.toggleStatus(component.users[1]);
+
+      expect(loadSpy).not.toHaveBeenCalled();
+      expect(component.users[1].isActive).toBe(false);
+    });
+  });
+
+  describe('openCreateDialog()', () => {
+    it('agrega el usuario creado al array local sin recargar desde la API', () => {
+      const newUser: User = { ...techUser, id: 'new-id', name: 'Nuevo Técnico', email: 'nuevo@ondra.com.ar', isActive: true };
+      const loadSpy = spyOn(component, 'loadUsers').and.callThrough();
+      spyOn(dialog, 'open').and.returnValue({
+        afterClosed: () => of({ ...newUser, plainPassword: 'Abc123!' }),
+      } as any);
+
+      const initialCount = component.users.length;
+      component.openCreateDialog();
+
+      expect(loadSpy).not.toHaveBeenCalled();
+      expect(component.users.length).toBe(initialCount + 1);
+      expect(component.users.some(u => u.id === 'new-id')).toBeTrue();
+    });
+  });
+
+  describe('openEditDialog()', () => {
+    it('actualiza el usuario editado en el array local sin recargar desde la API', () => {
+      const updatedUser: User = { ...techUser, name: 'Valen Senior', role: 'TL' };
+      const loadSpy = spyOn(component, 'loadUsers').and.callThrough();
+      spyOn(dialog, 'open').and.returnValue({
+        afterClosed: () => of(updatedUser),
+      } as any);
+
+      component.openEditDialog(techUser);
+
+      expect(loadSpy).not.toHaveBeenCalled();
+      const stored = component.users.find(u => u.id === techUser.id);
+      expect(stored?.name).toBe('Valen Senior');
+      expect(stored?.role).toBe('TL');
     });
   });
 
