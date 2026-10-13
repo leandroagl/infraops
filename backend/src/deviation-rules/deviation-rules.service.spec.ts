@@ -68,7 +68,25 @@ describe('DeviationRulesService', () => {
 
       expect(result.enabled).toBe(true);
       expect(result.tagIds).toEqual([]);
+      expect(result.ticketTitle).toBeNull();
+      expect(result.ticketDescription).toBeNull();
       expect(repo.save).toHaveBeenCalled();
+    });
+
+    it('persiste ticketTitle y ticketDescription al crear', async () => {
+      repo.findOne.mockResolvedValue(null);
+
+      const result = await service.create({
+        taskType: TaskType.QNAP_MAINTENANCE,
+        signalKey: 'maxUsedSpacePct',
+        operator: DeviationOperator.GT,
+        thresholdNumber: 90,
+        ticketTitle: 'Espacio QNAP crítico',
+        ticketDescription: 'El NAS superó el umbral de uso de disco.',
+      });
+
+      expect(result.ticketTitle).toBe('Espacio QNAP crítico');
+      expect(result.ticketDescription).toBe('El NAS superó el umbral de uso de disco.');
     });
 
     it('crea una regla booleana válida', async () => {
@@ -152,12 +170,38 @@ describe('DeviationRulesService', () => {
         enabled: true,
         helpdeskTeamId: null,
         tagIds: [],
+        ticketTitle: null,
+        ticketDescription: null,
       });
 
       const result = await service.update('r1', { thresholdNumber: 95, enabled: false });
 
       expect(result.thresholdNumber).toBe(95);
       expect(result.enabled).toBe(false);
+    });
+
+    it('actualiza ticketTitle y ticketDescription', async () => {
+      repo.findOne.mockResolvedValue({
+        id: 'r1',
+        taskType: TaskType.QNAP_MAINTENANCE,
+        signalKey: 'maxUsedSpacePct',
+        operator: DeviationOperator.GT,
+        thresholdNumber: 90,
+        thresholdBoolean: null,
+        enabled: true,
+        helpdeskTeamId: null,
+        tagIds: [],
+        ticketTitle: null,
+        ticketDescription: null,
+      });
+
+      const result = await service.update('r1', {
+        ticketTitle: 'Nuevo título',
+        ticketDescription: 'Nueva descripción del ticket.',
+      });
+
+      expect(result.ticketTitle).toBe('Nuevo título');
+      expect(result.ticketDescription).toBe('Nueva descripción del ticket.');
     });
 
     it('lanza NotFoundException si la regla no existe', async () => {
