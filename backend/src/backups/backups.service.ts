@@ -73,7 +73,7 @@ export class BackupsService {
   }
 
   private deriveClientStatus(jobs: Pick<BackupJobStatus, 'lastResult'>[]): ClientStatus {
-    if (!jobs.length) return 'no_data';
+    if (!jobs.some(j => j.lastResult !== null)) return 'no_data';
     if (jobs.some(j => j.lastResult === 'Failed')) return 'crit';
     if (jobs.some(j => j.lastResult === 'Warning')) return 'warn';
     return 'ok';

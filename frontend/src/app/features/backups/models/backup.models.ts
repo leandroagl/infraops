@@ -1,7 +1,10 @@
 export type BackupJobResult = 'Success' | 'Warning' | 'Failed';
 export type ClientBackupStatus = 'ok' | 'warn' | 'crit' | 'no_data' | 'disconnected';
 
+export type BackupProvider = 'VEEAM' | 'JETBACKUP';
+
 export interface BackupJobStatus {
+  provider: BackupProvider;
   jobId: string;
   jobName: string;
   jobType: string;
@@ -26,8 +29,6 @@ export interface ClientBackup {
   jobs: BackupJobStatus[];
   isSnapshot?: boolean;
 }
-
-export type BackupProvider = 'VEEAM' | 'JETBACKUP';
 
 export interface VeeamClientConfig {
   provider: 'VEEAM';

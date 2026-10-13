@@ -59,7 +59,7 @@ export class JetbackupService {
   private async lastLog(conn: JetbackupConnection, jobId: string): Promise<JetbackupLog | null> {
     const data = await this.call<{ logs?: JetbackupLog[] }>(conn, 'listLogs', {
       'find[info.ID]': jobId,
-      'find[Type]': BACKUP_LOG_TYPE,
+      'find[type]': BACKUP_LOG_TYPE,
       'sort[start_time]': -1,
       limit: 1,
     });

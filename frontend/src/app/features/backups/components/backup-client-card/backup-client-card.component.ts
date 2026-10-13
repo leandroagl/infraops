@@ -26,6 +26,14 @@ export class BackupClientCardComponent {
     return map[this.client.status] ?? 'nd';
   }
 
+  get hasJetbackup(): boolean {
+    return this.client.jobs.some(j => j.provider === 'JETBACKUP');
+  }
+
+  get hasResults(): boolean {
+    return this.client.jobs.some(j => j.lastResult !== null);
+  }
+
   get hoursAgo(): string {
     if (!this.client.jobs.length) return '';
     const times = this.client.jobs
