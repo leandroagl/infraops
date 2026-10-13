@@ -11,6 +11,7 @@ import { PatchInfraDocConfigDto, InfraDocConfigResponseDto } from './dto/infrado
 import { PatchVmwareConfigDto, VmwareConfigResponseDto } from './dto/vmware-config.dto';
 import { PatchVeeamIntegrationConfigDto, VeeamIntegrationConfigResponseDto } from './dto/veeam-integration-config.dto';
 import { PatchJetbackupIntegrationConfigDto, JetbackupIntegrationConfigResponseDto } from './dto/jetbackup-integration-config.dto';
+import { PatchAcronisIntegrationConfigDto, AcronisIntegrationConfigResponseDto } from './dto/acronis-integration-config.dto';
 
 @Controller('integration-config')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -81,4 +82,16 @@ export class IntegrationConfigController {
   @Post('jetbackup/test')
   @HttpCode(200)
   testJetbackup(): Promise<{ ok: boolean; message: string }> { return this.svc.testJetbackup(); }
+
+  @Get('acronis')
+  getAcronis(): Promise<AcronisIntegrationConfigResponseDto> { return this.svc.getAcronis(); }
+
+  @Patch('acronis')
+  patchAcronis(@Body() dto: PatchAcronisIntegrationConfigDto, @CurrentUser() u: JwtPayload): Promise<AcronisIntegrationConfigResponseDto> {
+    return this.svc.patchAcronis(dto, u.email);
+  }
+
+  @Post('acronis/test')
+  @HttpCode(200)
+  testAcronis(): Promise<{ ok: boolean; message: string }> { return this.svc.testAcronis(); }
 }

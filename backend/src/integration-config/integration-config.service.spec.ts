@@ -10,6 +10,7 @@ import { InfraDocConfig } from './entities/infradoc-config.entity';
 import { VmwareConfig } from './entities/vmware-config.entity';
 import { VeeamConfig } from './entities/veeam-config.entity';
 import { JetbackupConfig } from './entities/jetbackup-config.entity';
+import { AcronisConfig } from './entities/acronis-config.entity';
 import { MASK, decrypt, encrypt } from './crypto.util';
 
 const KEY = '8b2202fa0aa8498ca124415c67472e7b479e1eb31a24d948eedeccecc2a5a5c2';
@@ -21,6 +22,7 @@ describe('IntegrationConfigService', () => {
   let vmwareRepo: { findOne: jest.Mock; save: jest.Mock };
   let veeamRepo: { findOne: jest.Mock; save: jest.Mock };
   let jetbackupRepo: { findOne: jest.Mock; save: jest.Mock };
+  let acronisRepo: { findOne: jest.Mock; save: jest.Mock };
   let httpGet: jest.Mock;
   let httpPost: jest.Mock;
 
@@ -30,7 +32,8 @@ describe('IntegrationConfigService', () => {
     vmwareRepo    = { findOne: jest.fn(), save: jest.fn() };
     veeamRepo     = { findOne: jest.fn(), save: jest.fn() };
     jetbackupRepo = { findOne: jest.fn(), save: jest.fn() };
-    httpGet       = jest.fn();
+    acronisRepo   = { findOne: jest.fn(), save: jest.fn() };
+    httpGet      = jest.fn();
     httpPost      = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -40,7 +43,7 @@ describe('IntegrationConfigService', () => {
         { provide: getRepositoryToken(InfraDocConfig),  useValue: infradocRepo  },
         { provide: getRepositoryToken(VmwareConfig),    useValue: vmwareRepo    },
         { provide: getRepositoryToken(VeeamConfig),     useValue: veeamRepo     },
-        { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo },
+        { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo }, { provide: getRepositoryToken(AcronisConfig), useValue: acronisRepo },
         { provide: ConfigService, useValue: {
             get: (key: string, def = '') =>
               ({
@@ -528,7 +531,7 @@ describe('IntegrationConfigService', () => {
           { provide: getRepositoryToken(InfraDocConfig), useValue: infradocRepo },
           { provide: getRepositoryToken(VmwareConfig),   useValue: vmwareRepo   },
           { provide: getRepositoryToken(VeeamConfig),    useValue: veeamRepo    },
-          { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo },
+          { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo }, { provide: getRepositoryToken(AcronisConfig), useValue: acronisRepo },
           { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } }, // INTEGRATIONS_ENCRYPT_KEY vacía
           { provide: HttpService, useValue: { get: httpGet } },
         ],
@@ -727,7 +730,7 @@ describe('IntegrationConfigService', () => {
           { provide: getRepositoryToken(InfraDocConfig),  useValue: infradocRepo  },
           { provide: getRepositoryToken(VmwareConfig),    useValue: vmwareRepo    },
           { provide: getRepositoryToken(VeeamConfig),     useValue: veeamRepo     },
-          { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo },
+          { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo }, { provide: getRepositoryToken(AcronisConfig), useValue: acronisRepo },
           { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } },
           { provide: HttpService, useValue: { get: httpGet, post: httpPost } },
         ],
@@ -790,6 +793,149 @@ describe('IntegrationConfigService', () => {
     it('devuelve ok: false sin llamar a la API cuando falta la url', async () => {
       jetbackupRepo.findOne.mockResolvedValue(null);
       const result = await service.testJetbackup();
+      expect(result.ok).toBe(false);
+      expect(httpPost).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getAcronis', () => {
+    it('retorna clientId y clientSecret enmascarados cuando hay fila en DB', async () => {
+      acronisRepo.findOne.mockResolvedValue({
+        id: 1, baseUrl: 'https://eu2-cloud.acronis.com', clientId: 'enc-id', clientSecret: 'enc-secret',
+        updatedAt: new Date('2026-10-01'), updatedBy: 'pepe@ondra.com.ar',
+      });
+      const result = await service.getAcronis();
+      expect(result.baseUrl).toBe('https://eu2-cloud.acronis.com');
+      expect(result.clientId).toBe(MASK);
+      expect(result.clientSecret).toBe(MASK);
+      expect(result.updatedBy).toBe('pepe@ondra.com.ar');
+    });
+
+    it('retorna baseUrl vacía y secretos enmascarados cuando no hay fila en DB', async () => {
+      acronisRepo.findOne.mockResolvedValue(null);
+      const result = await service.getAcronis();
+      expect(result.baseUrl).toBe('');
+      expect(result.clientId).toBe(MASK);
+      expect(result.clientSecret).toBe(MASK);
+      expect(result.updatedAt).toBeNull();
+    });
+  });
+
+  describe('patchAcronis', () => {
+    it('encripta clientId y clientSecret nuevos y normaliza la baseUrl', async () => {
+      acronisRepo.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 1, baseUrl: 'https://x', clientId: 'e', clientSecret: 'e', updatedAt: new Date(), updatedBy: 'u' });
+      acronisRepo.save.mockImplementation((e: AcronisConfig) => Promise.resolve({ ...e, updatedAt: new Date() }));
+      await service.patchAcronis(
+        { baseUrl: ' https://eu2-cloud.acronis.com/ ', clientId: 'my-id', clientSecret: 'my-secret' }, 'u@test.com',
+      );
+      const saved = acronisRepo.save.mock.calls[0][0] as AcronisConfig;
+      expect(saved.baseUrl).toBe('https://eu2-cloud.acronis.com');
+      expect(decrypt(saved.clientId as string, KEY)).toBe('my-id');
+      expect(decrypt(saved.clientSecret as string, KEY)).toBe('my-secret');
+      expect(saved.updatedBy).toBe('u@test.com');
+    });
+
+    it('no modifica los secretos si se envía el MASK', async () => {
+      const row = { id: 1, baseUrl: 'https://x', clientId: 'existing-id', clientSecret: 'existing-secret', updatedAt: new Date(), updatedBy: 'u' };
+      acronisRepo.findOne.mockResolvedValueOnce({ ...row }).mockResolvedValueOnce({ ...row });
+      acronisRepo.save.mockImplementation((e: AcronisConfig) => Promise.resolve({ ...e, updatedAt: new Date() }));
+      await service.patchAcronis({ clientId: MASK, clientSecret: MASK }, 'u@test.com');
+      const saved = acronisRepo.save.mock.calls[0][0] as AcronisConfig;
+      expect(saved.clientId).toBe('existing-id');
+      expect(saved.clientSecret).toBe('existing-secret');
+    });
+
+    it('lanza BadRequestException con mensaje claro cuando falta INTEGRATIONS_ENCRYPT_KEY', async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          IntegrationConfigService,
+          { provide: getRepositoryToken(OdooConfig),      useValue: odooRepo      },
+          { provide: getRepositoryToken(InfraDocConfig),  useValue: infradocRepo  },
+          { provide: getRepositoryToken(VmwareConfig),    useValue: vmwareRepo    },
+          { provide: getRepositoryToken(VeeamConfig),     useValue: veeamRepo     },
+          { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo },
+          { provide: getRepositoryToken(AcronisConfig),   useValue: acronisRepo   },
+          { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } },
+          { provide: HttpService, useValue: { get: httpGet, post: httpPost } },
+        ],
+      }).compile();
+      const brokenService = module.get<IntegrationConfigService>(IntegrationConfigService);
+      acronisRepo.findOne.mockResolvedValue(null);
+      await expect(brokenService.patchAcronis({ clientSecret: 'secret' }, 'u@test.com'))
+        .rejects.toThrow(/INTEGRATIONS_ENCRYPT_KEY/);
+    });
+  });
+
+  describe('getAcronisConfigDecrypted', () => {
+    it('retorna baseUrl, clientId y clientSecret desencriptados desde DB', async () => {
+      acronisRepo.findOne.mockResolvedValue({
+        id: 1, baseUrl: 'https://eu2-cloud.acronis.com',
+        clientId: encrypt('real-id', KEY), clientSecret: encrypt('real-secret', KEY),
+        updatedAt: new Date(), updatedBy: null,
+      });
+      const result = await service.getAcronisConfigDecrypted();
+      expect(result).toEqual({ baseUrl: 'https://eu2-cloud.acronis.com', clientId: 'real-id', clientSecret: 'real-secret' });
+    });
+
+    it('devuelve valores vacíos cuando no hay fila en DB', async () => {
+      acronisRepo.findOne.mockResolvedValue(null);
+      const result = await service.getAcronisConfigDecrypted();
+      expect(result).toEqual({ baseUrl: '', clientId: '', clientSecret: '' });
+    });
+  });
+
+  describe('testAcronis', () => {
+    beforeEach(() => {
+      acronisRepo.findOne.mockResolvedValue({
+        id: 1, baseUrl: 'https://eu2-cloud.acronis.com',
+        clientId: encrypt('cid', KEY), clientSecret: encrypt('csecret', KEY),
+        updatedAt: new Date(), updatedBy: null,
+      });
+    });
+
+    it('pide token con Basic auth y consulta /tasks con el Bearer; ok cuando ambos responden', async () => {
+      httpPost.mockReturnValue(of({ data: { access_token: 'tok', expires_on: 9999999999 } }));
+      httpGet.mockReturnValue(of({ data: { items: [] } }));
+      const result = await service.testAcronis();
+      expect(result.ok).toBe(true);
+      const [tokenUrl, tokenBody, tokenOpts] = httpPost.mock.calls[0];
+      expect(tokenUrl).toBe('https://eu2-cloud.acronis.com/api/2/idp/token');
+      expect(String(tokenBody)).toBe('grant_type=client_credentials');
+      expect(tokenOpts.headers.Authorization).toBe(`Basic ${Buffer.from('cid:csecret').toString('base64')}`);
+      const [tasksUrl, tasksOpts] = httpGet.mock.calls[0];
+      expect(tasksUrl).toBe('https://eu2-cloud.acronis.com/api/task_manager/v2/tasks');
+      expect(tasksOpts.params).toEqual({ limit: 1, state: 'completed' });
+      expect(tasksOpts.headers.Authorization).toBe('Bearer tok');
+    });
+
+    it('devuelve ok: false con el status cuando la autenticación falla', async () => {
+      httpPost.mockReturnValue(throwError(() => ({ message: 'Request failed', response: { status: 401 } })));
+      const result = await service.testAcronis();
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/401/);
+      expect(httpGet).not.toHaveBeenCalled();
+    });
+
+    it('devuelve ok: false cuando el token no trae access_token', async () => {
+      httpPost.mockReturnValue(of({ data: {} }));
+      const result = await service.testAcronis();
+      expect(result.ok).toBe(false);
+      expect(httpGet).not.toHaveBeenCalled();
+    });
+
+    it('devuelve ok: false cuando /tasks rechaza el token (alcance insuficiente)', async () => {
+      httpPost.mockReturnValue(of({ data: { access_token: 'tok' } }));
+      httpGet.mockReturnValue(throwError(() => ({ message: 'Forbidden', response: { status: 403 } })));
+      const result = await service.testAcronis();
+      expect(result.ok).toBe(false);
+      expect(result.message).toMatch(/403/);
+    });
+
+    it('devuelve ok: false sin llamar a la API cuando faltan credenciales', async () => {
+      acronisRepo.findOne.mockResolvedValue(null);
+      const result = await service.testAcronis();
       expect(result.ok).toBe(false);
       expect(httpPost).not.toHaveBeenCalled();
     });

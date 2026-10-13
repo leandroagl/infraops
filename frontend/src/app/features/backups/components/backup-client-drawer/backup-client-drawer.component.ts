@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
-import type { ClientBackup, BackupJobStatus } from '../../models/backup.models';
+import type { ClientBackup, BackupJobStatus, BackupItemStatus, BackupProvider } from '../../models/backup.models';
 
 @Component({
   selector: 'app-backup-client-drawer',
@@ -38,8 +38,18 @@ export class BackupClientDrawerComponent {
     return 'j-ok';
   }
 
+  hasDetails(job: BackupJobStatus): boolean {
+    return (job.items?.length ?? 0) > 0 || !!job.aggregate;
+  }
+
   canExpand(job: BackupJobStatus): boolean {
-    return !!job.lastMessage && (job.lastResult === 'Warning' || job.lastResult === 'Failed');
+    return (!!job.lastMessage && (job.lastResult === 'Warning' || job.lastResult === 'Failed')) || this.hasDetails(job);
+  }
+
+  // Un fallo duro se muestra con su código (error, cancelled…): la antigüedad en ese caso es un valor centinela.
+  itemMeta(item: BackupItemStatus): string {
+    if (item.lastCode !== 'ok' && item.lastCode !== 'warning') return item.lastCode;
+    return `${item.hoursSinceOk.toFixed(1)}h`;
   }
 
   isExpanded(job: BackupJobStatus): boolean {
@@ -60,11 +70,8 @@ export class BackupClientDrawerComponent {
     return `${job.hoursAgo.toFixed(1)}h`;
   }
 
-  stateLabel(job: BackupJobStatus): string {
-    return job.isRunning ? 'En curso' : 'Inactivo';
-  }
-
-  stateClass(job: BackupJobStatus): string {
-    return job.isRunning ? 'chip--running' : 'chip--neutral';
+  providerLabel(job: BackupJobStatus): string {
+    const labels: Record<BackupProvider, string> = { VEEAM: 'Veeam', ACRONIS: 'Acronis', JETBACKUP: 'JetBackup' };
+    return labels[job.provider];
   }
 }

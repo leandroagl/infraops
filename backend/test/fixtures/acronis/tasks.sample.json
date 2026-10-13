@@ -1,0 +1,306 @@
+{
+  "items": [
+    {
+      "id": 9000000,
+      "idString": "1761800000000000000",
+      "type": "catalog_index",
+      "queue": "queue_catalog_indexer_tasks",
+      "state": "completed",
+      "tenant": {
+        "id": "100001",
+        "uuid": "d73327d0-9f53-f421-3434-043b8d97dabd",
+        "name": "Cliente Demo 1",
+        "locator": "/1/100000/100001/"
+      },
+      "resource": {
+        "id": "ff386a22-e7d2-050a-4eb0-5fa15548ee3b",
+        "type": "",
+        "name": "Recurso Demo 1"
+      },
+      "result": {
+        "code": "ok"
+      },
+      "completedAt": "2026-10-13T11:46:01.26395738Z"
+    },
+    {
+      "id": 8999999,
+      "idString": "1761799999999999999",
+      "type": "UserMailboxBackup",
+      "queue": "queue_o365_backup_inc",
+      "state": "completed",
+      "tenant": {
+        "id": "100001",
+        "uuid": "d73327d0-9f53-f421-3434-043b8d97dabd",
+        "name": "Cliente Demo 1",
+        "locator": "/1/100000/100001/"
+      },
+      "policy": {
+        "id": "32aed895-eba0-f138-3bc4-55eabe692988",
+        "type": "backup",
+        "name": "Plan Demo 1"
+      },
+      "resource": {
+        "id": "3bb5061a-4ed0-42dd-ab5e-2c7377a83a09",
+        "type": "MAILBOX",
+        "name": "Usuario Demo 1"
+      },
+      "context": {},
+      "result": {
+        "code": "ok"
+      },
+      "completedAt": "2026-10-13T11:45:57.720031579Z"
+    },
+    {
+      "id": 8999998,
+      "idString": "1761799999999999998",
+      "type": "D332948D-A7A9-4E07-B76C-253DCF6E17FB",
+      "queue": "legacySync",
+      "state": "completed",
+      "tenant": {
+        "id": "100002",
+        "uuid": "43f24515-37df-1b58-82f6-beb890a24c67",
+        "name": "Cliente Demo 2",
+        "locator": "/1/100000/100002/"
+      },
+      "policy": {
+        "id": "08cef71c-2d0a-7b64-35a6-0f012ecf1452",
+        "type": "backup",
+        "name": "Plan Demo 2"
+      },
+      "resource": {
+        "id": "667108b2-4676-4f8b-839e-eddf6a4812d9",
+        "type": "instance",
+        "name": "AGENTE-DEMO-1"
+      },
+      "context": {
+        "HasChildren": true
+      },
+      "result": {
+        "code": "ok"
+      },
+      "completedAt": "2026-10-13T11:40:00.123456789Z"
+    },
+    {
+      "id": 8999997,
+      "idString": "1761799999999999997",
+      "type": "catalog_index",
+      "queue": "queue_catalog_indexer_tasks",
+      "state": "completed",
+      "tenant": {
+        "id": "100001",
+        "uuid": "d73327d0-9f53-f421-3434-043b8d97dabd",
+        "name": "Cliente Demo 1",
+        "locator": "/1/100000/100001/"
+      },
+      "resource": {
+        "id": "80f81145-9c85-b804-84bd-877258ba398e",
+        "type": "",
+        "name": "Recurso Demo 2"
+      },
+      "result": {
+        "code": "ok"
+      },
+      "completedAt": "2026-10-13T11:24:53.295322355Z"
+    },
+    {
+      "id": 8999996,
+      "idString": "1761799999999999996",
+      "type": "UserMailboxBackup",
+      "queue": "queue_o365_backup_inc",
+      "state": "completed",
+      "tenant": {
+        "id": "100001",
+        "uuid": "d73327d0-9f53-f421-3434-043b8d97dabd",
+        "name": "Cliente Demo 1",
+        "locator": "/1/100000/100001/"
+      },
+      "policy": {
+        "id": "32aed895-eba0-f138-3bc4-55eabe692988",
+        "type": "backup",
+        "name": "Plan Demo 1"
+      },
+      "resource": {
+        "id": "c6e3d7e3-0142-6b2b-da83-79a2fefdf131",
+        "type": "MAILBOX",
+        "name": "Usuario Demo 2"
+      },
+      "context": {},
+      "result": {
+        "code": "ok"
+      },
+      "completedAt": "2026-10-13T11:24:06.129734269Z"
+    },
+    {
+      "id": 8999995,
+      "idString": "1761799999999999995",
+      "type": "UserMailboxBackup",
+      "queue": "queue_o365_backup_inc",
+      "state": "completed",
+      "tenant": {
+        "id": "100001",
+        "uuid": "d73327d0-9f53-f421-3434-043b8d97dabd",
+        "name": "Cliente Demo 1",
+        "locator": "/1/100000/100001/"
+      },
+      "policy": {
+        "id": "32aed895-eba0-f138-3bc4-55eabe692988",
+        "type": "backup",
+        "name": "Plan Demo 1"
+      },
+      "resource": {
+        "id": "5c37c830-c4ad-6610-b710-f6b2d6f3334a",
+        "type": "MAILBOX",
+        "name": "Usuario Demo 3"
+      },
+      "context": {},
+      "result": {
+        "code": "ok"
+      },
+      "completedAt": "2026-10-13T11:01:54.720035054Z"
+    },
+    {
+      "id": 8999994,
+      "idString": "1761799999999999994",
+      "type": "UserMailboxBackup",
+      "queue": "queue_o365_backup_inc",
+      "state": "completed",
+      "tenant": {
+        "id": "100001",
+        "uuid": "d73327d0-9f53-f421-3434-043b8d97dabd",
+        "name": "Cliente Demo 1",
+        "locator": "/1/100000/100001/"
+      },
+      "policy": {
+        "id": "32aed895-eba0-f138-3bc4-55eabe692988",
+        "type": "backup",
+        "name": "Plan Demo 1"
+      },
+      "resource": {
+        "id": "64fe2b53-0ce6-a026-68b1-b838f54baee3",
+        "type": "MAILBOX",
+        "name": "Usuario Demo 4"
+      },
+      "context": {},
+      "result": {
+        "code": "ok"
+      },
+      "completedAt": "2026-10-13T08:45:55.036765244Z"
+    },
+    {
+      "id": 8999993,
+      "idString": "1761799999999999993",
+      "type": "UserMailboxBackup",
+      "queue": "queue_o365_backup_inc",
+      "state": "completed",
+      "tenant": {
+        "id": "100001",
+        "uuid": "d73327d0-9f53-f421-3434-043b8d97dabd",
+        "name": "Cliente Demo 1",
+        "locator": "/1/100000/100001/"
+      },
+      "policy": {
+        "id": "32aed895-eba0-f138-3bc4-55eabe692988",
+        "type": "backup",
+        "name": "Plan Demo 1"
+      },
+      "resource": {
+        "id": "40379189-2e92-02d1-00e3-5b12f3f7003d",
+        "type": "MAILBOX",
+        "name": "Usuario Demo 5"
+      },
+      "context": {},
+      "result": {
+        "code": "ok"
+      },
+      "completedAt": "2026-10-13T07:50:43.525887204Z"
+    },
+    {
+      "id": 8999992,
+      "idString": "1761799999999999992",
+      "type": "UserMailboxBackup",
+      "queue": "queue_o365_backup_inc",
+      "state": "completed",
+      "tenant": {
+        "id": "100001",
+        "uuid": "d73327d0-9f53-f421-3434-043b8d97dabd",
+        "name": "Cliente Demo 1",
+        "locator": "/1/100000/100001/"
+      },
+      "policy": {
+        "id": "32aed895-eba0-f138-3bc4-55eabe692988",
+        "type": "backup",
+        "name": "Plan Demo 1"
+      },
+      "resource": {
+        "id": "24e1955d-70e8-15a8-90ea-5930a3124a9d",
+        "type": "MAILBOX",
+        "name": "Usuario Demo 6"
+      },
+      "context": {},
+      "result": {
+        "code": "ok"
+      },
+      "completedAt": "2026-10-13T07:50:33.996590629Z"
+    },
+    {
+      "id": 8999991,
+      "idString": "1761799999999999991",
+      "type": "MsTeamsBackup",
+      "queue": "queue_o365_backup_inc",
+      "state": "completed",
+      "tenant": {
+        "id": "100001",
+        "uuid": "d73327d0-9f53-f421-3434-043b8d97dabd",
+        "name": "Cliente Demo 1",
+        "locator": "/1/100000/100001/"
+      },
+      "policy": {
+        "id": "04b48ae9-cc14-9b54-a36b-3227ad8fd413",
+        "type": "backup",
+        "name": "Plan Demo 3"
+      },
+      "resource": {
+        "id": "60a07dc7-e076-5080-47d1-70973b7de9be",
+        "type": "TEAM",
+        "name": "Equipo Demo 1"
+      },
+      "context": {},
+      "result": {
+        "code": "ok"
+      },
+      "completedAt": "2026-10-13T05:37:05.61259581Z"
+    },
+    {
+      "id": 8999990,
+      "idString": "1761799999999999990",
+      "type": "MsTeamsBackup",
+      "queue": "queue_o365_backup_inc",
+      "state": "completed",
+      "tenant": {
+        "id": "100001",
+        "uuid": "d73327d0-9f53-f421-3434-043b8d97dabd",
+        "name": "Cliente Demo 1",
+        "locator": "/1/100000/100001/"
+      },
+      "policy": {
+        "id": "04b48ae9-cc14-9b54-a36b-3227ad8fd413",
+        "type": "backup",
+        "name": "Plan Demo 3"
+      },
+      "resource": {
+        "id": "81e655f1-a9d8-0b53-5654-f60598df6f0f",
+        "type": "TEAM",
+        "name": "Equipo Demo 2"
+      },
+      "context": {},
+      "result": {
+        "code": "ok"
+      },
+      "completedAt": "2026-10-13T05:33:22.646140451Z"
+    }
+  ],
+  "size": 11,
+  "paging": {
+    "cursors": {}
+  }
+}

@@ -1,4 +1,5 @@
 import type { BackupProvider } from '../backup-provider';
+import type { BackupAggregate, BackupItemStatus } from '../../integrations/veeam/dto/veeam-api.dto';
 
 export type JobResult = 'Success' | 'Warning' | 'Failed';
 export type ClientStatus = 'ok' | 'warn' | 'crit' | 'no_data' | 'disconnected';
@@ -14,6 +15,8 @@ export class BackupJobStatusDto {
   lastRunAt: string | null;
   hoursAgo: number | null;
   isStale: boolean;
+  items?: BackupItemStatus[];
+  aggregate?: BackupAggregate | null;
 }
 
 export class ClientBackupStatusDto {

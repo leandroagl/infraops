@@ -1,5 +1,6 @@
 import { Column, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import type { BackupProvider } from '../backup-provider';
+import type { BackupAggregate, BackupItemStatus } from '../../integrations/veeam/dto/veeam-api.dto';
 
 // Guarda snapshots de ambos proveedores (el nombre de la tabla es histórico, de cuando solo había Veeam).
 @Entity('veeam_daily_snapshots')
@@ -34,6 +35,10 @@ export class VeeamDailySnapshot {
 
   @Column({ type: 'float', name: 'hours_ago', nullable: true })
   hoursAgo: number | null;
+
+  // Desglose por recurso (Acronis). Null para Veeam y JetBackup.
+  @Column({ type: 'jsonb', nullable: true })
+  details: { items: BackupItemStatus[]; aggregate: BackupAggregate | null } | null;
 
   @Column({ type: 'date', name: 'snapshot_date' })
   snapshotDate: string;

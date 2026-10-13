@@ -1,7 +1,27 @@
 export type BackupJobResult = 'Success' | 'Warning' | 'Failed';
 export type ClientBackupStatus = 'ok' | 'warn' | 'crit' | 'no_data' | 'disconnected';
 
-export type BackupProvider = 'VEEAM' | 'JETBACKUP';
+export type BackupProvider = 'VEEAM' | 'JETBACKUP' | 'ACRONIS';
+
+// Detalle por recurso dentro de un job (Acronis: un plan cubre varias VMs o buzones).
+export interface BackupItemStatus {
+  itemId: string;
+  name: string;
+  type: string;
+  result: BackupJobResult;
+  hoursSinceOk: number;
+  lastCode: string;
+  lastRunAt: string | null;
+}
+
+// Recursos agrupados (M365) en conteos más los nombres de los peores.
+export interface BackupAggregate {
+  total: number;
+  okCount: number;
+  warnCount: number;
+  critCount: number;
+  worst: string[];
+}
 
 export interface BackupJobStatus {
   provider: BackupProvider;
@@ -14,6 +34,8 @@ export interface BackupJobStatus {
   lastRunAt: string | null;
   hoursAgo: number | null;
   isStale: boolean;
+  items?: BackupItemStatus[];
+  aggregate?: BackupAggregate | null;
 }
 
 export interface ClientBackup {
@@ -67,7 +89,19 @@ export interface JetbackupJobConfig {
   isEnabled: boolean;
 }
 
-export type BackupConfig = VeeamClientConfig | JetbackupJobConfig;
+// Una fila por plan de Acronis asignado a un cliente.
+export interface AcronisPlanConfig {
+  provider: 'ACRONIS';
+  id: string;
+  clientId: string;
+  clientName: string;
+  policyId: string;
+  policyName: string;
+  tenantName: string;
+  isEnabled: boolean;
+}
+
+export type BackupConfig = VeeamClientConfig | JetbackupJobConfig | AcronisPlanConfig;
 
 // Job disponible en el WHM; `configured` indica si ya está asignado a algún cliente.
 export interface AvailableJetbackupJob {
@@ -86,6 +120,34 @@ export interface CreateJetbackupConfigsRequest {
 }
 
 export interface UpdateJetbackupConfigRequest {
+  isEnabled?: boolean;
+}
+
+// Plan disponible en Acronis; `configured` indica si ya está asignado a algún cliente.
+export interface AvailableAcronisPlan {
+  policyId: string;
+  policyName: string;
+  tenantName: string;
+  resourceTypes: string[];
+  resourceCount: number;
+  configured: boolean;
+  configuredClientName: string | null;
+}
+
+// `partial`: el barrido de Acronis quedó truncado y pueden faltar planes sin corridas recientes.
+export interface AvailableAcronisPlans {
+  plans: AvailableAcronisPlan[];
+  partial: boolean;
+}
+
+export interface CreateAcronisConfigsRequest {
+  clientId: string;
+  clientName: string;
+  isEnabled: boolean;
+  plans: { policyId: string; policyName: string; tenantName?: string }[];
+}
+
+export interface UpdateAcronisConfigRequest {
   isEnabled?: boolean;
 }
 

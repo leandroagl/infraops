@@ -8,6 +8,7 @@
     <mat-select formControlName="provider" (selectionChange)="onProviderChange($event.value)">
       <mat-option value="VEEAM">Veeam</mat-option>
       <mat-option value="JETBACKUP">JetBackup</mat-option>
+      <mat-option value="ACRONIS">Acronis</mat-option>
     </mat-select>
   </mat-form-field>
 
@@ -57,6 +58,32 @@
     <div class="job-readonly" *ngIf="isEdit" style="margin-top: 16px;">
       <span class="job-readonly-label">Job</span>
       <span class="job-readonly-value">{{ editJobName }}</span>
+    </div>
+  </ng-container>
+
+  <!-- Acronis: planes de la nube compartida -->
+  <ng-container *ngIf="provider === 'ACRONIS'">
+    <mat-form-field *ngIf="!isEdit" appearance="outline" subscriptSizing="dynamic" style="margin-top: 16px;">
+      <mat-label>Planes de Acronis</mat-label>
+      <mat-select multiple formControlName="planIds">
+        <mat-option *ngFor="let plan of plans" [value]="plan.policyId" [disabled]="plan.configured">
+          {{ plan.tenantName }} — {{ plan.policyName }}
+          <span class="job-note">· {{ plan.resourceCount }} recursos</span>
+          <span class="job-note" *ngIf="plan.configured">· ya configurado ({{ plan.configuredClientName }})</span>
+        </mat-option>
+      </mat-select>
+      <span matSuffix *ngIf="loadingPlans"><mat-spinner [diameter]="16"></mat-spinner></span>
+      <mat-hint *ngIf="!loadingPlans && !plansError">Podés elegir más de un plan. Los ya asignados no se pueden volver a elegir.</mat-hint>
+      <mat-error *ngIf="form.controls.planIds.invalid">Elegí al menos un plan</mat-error>
+    </mat-form-field>
+    <div class="job-error" *ngIf="plansError">{{ plansError }}</div>
+    <div class="job-note" *ngIf="plansPartial" style="margin-top: 8px;">
+      El listado puede estar incompleto: solo aparecen los planes con corridas recientes.
+    </div>
+
+    <div class="job-readonly" *ngIf="isEdit" style="margin-top: 16px;">
+      <span class="job-readonly-label">Plan</span>
+      <span class="job-readonly-value">{{ editPlanName }}</span>
     </div>
   </ng-container>
 

@@ -48,15 +48,35 @@ export class BackupsConfigComponent implements OnInit {
   }
 
   providerLabel(config: BackupConfig): string {
-    return config.provider === 'JETBACKUP' ? 'JetBackup' : 'Veeam';
+    switch (config.provider) {
+      case 'JETBACKUP': return 'JetBackup';
+      case 'ACRONIS':   return 'Acronis';
+      default:          return 'Veeam';
+    }
+  }
+
+  // Columna "Host / Job / Plan": qué se monitorea en cada fila.
+  detailLabel(config: BackupConfig): string {
+    switch (config.provider) {
+      case 'JETBACKUP': return config.jobName;
+      case 'ACRONIS':   return config.tenantName ? `${config.policyName} · ${config.tenantName}` : config.policyName;
+      default:          return config.host;
+    }
   }
 
   delete(config: BackupConfig): void {
-    const target = config.provider === 'JETBACKUP' ? `${config.clientName} — ${config.jobName}` : config.clientName || config.host;
-    if (!confirm(`¿Eliminar configuración de ${target}?`)) return;
-    const done$ = config.provider === 'JETBACKUP'
-      ? this.svc.deleteJetbackupConfig(config.id)
-      : this.svc.deleteConfig(config.id);
-    done$.subscribe(() => this.load());
+    switch (config.provider) {
+      case 'JETBACKUP':
+        if (!confirm(`¿Eliminar configuración de ${config.clientName} — ${config.jobName}?`)) return;
+        this.svc.deleteJetbackupConfig(config.id).subscribe(() => this.load());
+        return;
+      case 'ACRONIS':
+        if (!confirm(`¿Eliminar configuración de ${config.clientName} — ${config.policyName}?`)) return;
+        this.svc.deleteAcronisConfig(config.id).subscribe(() => this.load());
+        return;
+      default:
+        if (!confirm(`¿Eliminar configuración de ${config.clientName || config.host}?`)) return;
+        this.svc.deleteConfig(config.id).subscribe(() => this.load());
+    }
   }
 }

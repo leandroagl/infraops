@@ -10,7 +10,7 @@
   </div>
 
   <div class="card-mid">
-    <span *ngIf="hasJetbackup" class="provider-chip">JetBackup</span>
+    <span *ngFor="let chip of providerChips" class="provider-chip">{{ chip }}</span>
     <span *ngIf="client.okCount > 0" class="count-chip ok">{{ client.okCount }} ok</span>
     <span *ngIf="client.warnCount > 0" class="count-chip warn">{{ client.warnCount }} warn</span>
     <span *ngIf="client.critCount > 0" class="count-chip crit">{{ client.critCount }} fail</span>

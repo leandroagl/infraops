@@ -9,6 +9,8 @@ import { InfraDocConfig } from './entities/infradoc-config.entity';
 import { VmwareConfig } from './entities/vmware-config.entity';
 import { VeeamConfig } from './entities/veeam-config.entity';
 import { JetbackupConfig } from './entities/jetbackup-config.entity';
+import { AcronisConfig } from './entities/acronis-config.entity';
+import { PatchAcronisIntegrationConfigDto, AcronisIntegrationConfigResponseDto } from './dto/acronis-integration-config.dto';
 import { PatchOdooConfigDto, OdooConfigResponseDto } from './dto/odoo-config.dto';
 import { PatchInfraDocConfigDto, InfraDocConfigResponseDto } from './dto/infradoc-config.dto';
 import { PatchVmwareConfigDto, VmwareConfigResponseDto } from './dto/vmware-config.dto';
@@ -27,6 +29,7 @@ export class IntegrationConfigService {
     @InjectRepository(VmwareConfig)   private readonly vmwareRepo:        Repository<VmwareConfig>,
     @InjectRepository(VeeamConfig)    private readonly veeamIntegrationRepo: Repository<VeeamConfig>,
     @InjectRepository(JetbackupConfig) private readonly jetbackupRepo:     Repository<JetbackupConfig>,
+    @InjectRepository(AcronisConfig)  private readonly acronisRepo:       Repository<AcronisConfig>,
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {}
@@ -361,6 +364,70 @@ export class IntegrationConfigService {
       return { ok: false, message: data?.message || 'JetBackup rechazó la solicitud' };
     } catch (err) {
       return { ok: false, message: (err as Error).message };
+    }
+  }
+
+  // ── ACRONIS ──
+
+  async getAcronis(): Promise<AcronisIntegrationConfigResponseDto> {
+    const row = await this.acronisRepo.findOne({ where: { id: 1 } });
+    if (!row) return { baseUrl: '', clientId: MASK, clientSecret: MASK, updatedAt: null, updatedBy: null };
+    return { baseUrl: row.baseUrl ?? '', clientId: MASK, clientSecret: MASK, updatedAt: row.updatedAt, updatedBy: row.updatedBy };
+  }
+
+  async patchAcronis(dto: PatchAcronisIntegrationConfigDto, updatedBy: string): Promise<AcronisIntegrationConfigResponseDto> {
+    const existing = (await this.acronisRepo.findOne({ where: { id: 1 } })) ?? new AcronisConfig();
+    existing.id = 1;
+    if (dto.baseUrl !== undefined) existing.baseUrl = dto.baseUrl.trim().replace(/\/+$/, '');
+    if (dto.clientId !== undefined && !isMasked(dto.clientId) && dto.clientId.trim() !== '') {
+      existing.clientId = this.safeEncrypt(dto.clientId.trim());
+    }
+    if (dto.clientSecret !== undefined && !isMasked(dto.clientSecret) && dto.clientSecret.trim() !== '') {
+      existing.clientSecret = this.safeEncrypt(dto.clientSecret.trim());
+    }
+    existing.updatedBy = updatedBy;
+    await this.acronisRepo.save(existing);
+    return this.getAcronis();
+  }
+
+  async getAcronisConfigDecrypted(): Promise<{ baseUrl: string; clientId: string; clientSecret: string }> {
+    const row = await this.acronisRepo.findOne({ where: { id: 1 } });
+    if (!row) return { baseUrl: '', clientId: '', clientSecret: '' };
+    return {
+      baseUrl: (row.baseUrl ?? '').replace(/\/+$/, ''),
+      clientId: row.clientId ? decrypt(row.clientId, this.encryptKey) : '',
+      clientSecret: row.clientSecret ? decrypt(row.clientSecret, this.encryptKey) : '',
+    };
+  }
+
+  // Valida credenciales (token) y alcance (lectura de /tasks, que requiere un API client partner/MSP).
+  async testAcronis(): Promise<{ ok: boolean; message: string }> {
+    try {
+      const { baseUrl, clientId, clientSecret } = await this.getAcronisConfigDecrypted();
+      if (!baseUrl || !clientId || !clientSecret) {
+        return { ok: false, message: 'Faltan la URL, el Client ID o el Client secret' };
+      }
+      const basic = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+      const tokenRes = await firstValueFrom(
+        this.httpService.post(
+          `${baseUrl}/api/2/idp/token`,
+          new URLSearchParams({ grant_type: 'client_credentials' }),
+          { headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' } },
+        ),
+      );
+      const token = tokenRes.data?.access_token;
+      if (!token) return { ok: false, message: 'Acronis no devolvió un access_token' };
+      await firstValueFrom(
+        this.httpService.get(`${baseUrl}/api/task_manager/v2/tasks`, {
+          params: { limit: 1, state: 'completed' },
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      );
+      return { ok: true, message: 'Conexión exitosa' };
+    } catch (err) {
+      const e = err as { message?: string; response?: { status?: number } };
+      const status = e.response?.status ? ` (HTTP ${e.response.status})` : '';
+      return { ok: false, message: `${e.message ?? 'Error desconocido'}${status}` };
     }
   }
 }

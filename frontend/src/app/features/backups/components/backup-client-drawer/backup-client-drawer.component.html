@@ -45,13 +45,26 @@
         <th mat-header-cell *matHeaderCellDef>Job</th>
         <td mat-cell *matCellDef="let job" [ngClass]="rowClass(job)">
           <div class="job-name">{{ job.jobName }}</div>
-          <div class="job-type">{{ job.jobType }}</div>
-          <ng-container *ngIf="canExpand(job)">
+          <ng-container *ngIf="canExpand(job) && job.lastMessage">
             <div class="job-msg-full" *ngIf="isExpanded(job); else collapsedMsg">{{ job.lastMessage }}</div>
             <ng-template #collapsedMsg>
               <div class="job-msg">{{ job.lastMessage }}</div>
             </ng-template>
           </ng-container>
+          <div class="job-detail" *ngIf="isExpanded(job) && hasDetails(job)">
+            <div class="job-agg" *ngIf="job.aggregate as agg">
+              <span class="job-agg-label">M365 · {{ agg.total }} recursos</span>
+              <span *ngIf="agg.okCount > 0"   class="d-sum-pill ok">{{ agg.okCount }} ok</span>
+              <span *ngIf="agg.warnCount > 0" class="d-sum-pill warn">{{ agg.warnCount }} warn</span>
+              <span *ngIf="agg.critCount > 0" class="d-sum-pill crit">{{ agg.critCount }} fail</span>
+              <div class="job-agg-worst" *ngIf="agg.worst.length">{{ agg.worst.join(', ') }}</div>
+            </div>
+            <div class="job-item" *ngFor="let item of job.items">
+              <span class="job-item-name">{{ item.name }}</span>
+              <span class="result-chip" [ngClass]="resultClass(item.result)">{{ item.result }}</span>
+              <span class="job-item-meta">{{ itemMeta(item) }}</span>
+            </div>
+          </div>
         </td>
       </ng-container>
 
@@ -59,7 +72,7 @@
       <ng-container matColumnDef="jobType">
         <th mat-header-cell *matHeaderCellDef>Tipo</th>
         <td mat-cell *matCellDef="let job">
-          <span class="result-chip" [ngClass]="stateClass(job)">{{ stateLabel(job) }}</span>
+          <span class="provider-chip" [ngClass]="'provider-chip--' + job.provider.toLowerCase()">{{ providerLabel(job) }}</span>
         </td>
       </ng-container>
 

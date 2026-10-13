@@ -26,8 +26,12 @@ export class BackupClientCardComponent {
     return map[this.client.status] ?? 'nd';
   }
 
-  get hasJetbackup(): boolean {
-    return this.client.jobs.some(j => j.provider === 'JETBACKUP');
+  // Veeam es el proveedor por defecto y no lleva chip; los demás se indican una sola vez.
+  get providerChips(): string[] {
+    const chips: string[] = [];
+    if (this.client.jobs.some(j => j.provider === 'JETBACKUP')) chips.push('JetBackup');
+    if (this.client.jobs.some(j => j.provider === 'ACRONIS')) chips.push('Acronis');
+    return chips;
   }
 
   get hasResults(): boolean {

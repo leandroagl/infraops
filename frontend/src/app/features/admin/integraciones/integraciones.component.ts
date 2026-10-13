@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   IntegrationConfigService, OdooConfigDto, InfraDocConfigDto, VmwareConfigDto, VeeamIntegrationConfigDto,
-  JetbackupIntegrationConfigDto,
+  JetbackupIntegrationConfigDto, AcronisIntegrationConfigDto,
 } from '../../../core/services/integration-config.service';
 
 const MASK = '••••••••';
@@ -34,13 +34,17 @@ export class IntegracionesComponent implements OnInit {
   vmwareForm: FormGroup;
   veeamForm: FormGroup;
   jetbackupForm: FormGroup;
+  acronisForm: FormGroup;
 
-  odoo      = initCard();
+  odoo     = initCard();
   infradoc  = initCard();
   vmware    = initCard();
   veeam     = initCard();
   jetbackup = initCard();
+  acronis   = initCard();
 
+  showAcronisClientId     = false;
+  showAcronisClientSecret = false;
   showOdooApiKey      = false;
   showInfradocApiKey  = false;
   showVmwarePassword  = false;
@@ -52,6 +56,8 @@ export class IntegracionesComponent implements OnInit {
   toggleVmwarePassword(): void { this.showVmwarePassword = !this.showVmwarePassword; }
   toggleVeeamPassword(): void  { this.showVeeamPassword  = !this.showVeeamPassword; }
   toggleJetbackupApiKey(): void { this.showJetbackupApiKey = !this.showJetbackupApiKey; }
+  toggleAcronisClientId(): void     { this.showAcronisClientId     = !this.showAcronisClientId; }
+  toggleAcronisClientSecret(): void { this.showAcronisClientSecret = !this.showAcronisClientSecret; }
 
   constructor(
     private readonly fb: FormBuilder,
@@ -65,6 +71,7 @@ export class IntegracionesComponent implements OnInit {
     this.vmwareForm   = this.fb.group({ username: [''], password: [MASK] });
     this.veeamForm    = this.fb.group({ username: [''], password: [MASK] });
     this.jetbackupForm = this.fb.group({ url: [''], username: ['root'], apiKey: [MASK] });
+    this.acronisForm   = this.fb.group({ baseUrl: [''], clientId: [MASK], clientSecret: [MASK] });
   }
 
   ngOnInit(): void {
@@ -106,6 +113,14 @@ export class IntegracionesComponent implements OnInit {
         this.jetbackup.loading   = false;
         this.jetbackup.updatedAt = d.updatedAt;
         this.jetbackup.updatedBy = d.updatedBy;
+      },
+    });
+    this.svc.getAcronis().subscribe({
+      next: (d) => {
+        this.acronisForm.patchValue(d);
+        this.acronis.loading   = false;
+        this.acronis.updatedAt = d.updatedAt;
+        this.acronis.updatedBy = d.updatedBy;
       },
     });
   }
@@ -314,6 +329,49 @@ export class IntegracionesComponent implements OnInit {
         this.jetbackup.connectionStatus  = 'error';
         this.jetbackup.connectionMessage = e?.error?.message ?? 'Error de conexión';
         this.snackBar.open(this.jetbackup.connectionMessage, '', { duration: 5000 });
+      },
+    });
+  }
+
+  buildAcronisPatchDto(): Partial<AcronisIntegrationConfigDto> {
+    const v = this.acronisForm.value as { baseUrl: string; clientId: string; clientSecret: string };
+    const dto: Partial<AcronisIntegrationConfigDto> = { baseUrl: v.baseUrl };
+    if (v.clientId && v.clientId !== MASK) dto.clientId = v.clientId;
+    if (v.clientSecret && v.clientSecret !== MASK) dto.clientSecret = v.clientSecret;
+    return dto;
+  }
+
+  saveAcronis(): void {
+    this.acronis.saving = true;
+    this.svc.patchAcronis(this.buildAcronisPatchDto()).subscribe({
+      next: (d) => {
+        this.acronisForm.patchValue(d);
+        this.acronis.saving    = false;
+        this.acronis.updatedAt = d.updatedAt;
+        this.acronis.updatedBy = d.updatedBy;
+        this.snackBar.open('Configuración de Acronis guardada', '', { duration: 3000 });
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.acronis.saving = false;
+        this.snackBar.open(e?.error?.message ?? 'Error al guardar configuración de Acronis', '', { duration: 4000 });
+      },
+    });
+  }
+
+  testAcronis(): void {
+    this.acronis.testing = true;
+    this.svc.testAcronis().subscribe({
+      next: (r) => {
+        this.acronis.testing           = false;
+        this.acronis.connectionStatus  = r.ok ? 'ok' : 'error';
+        this.acronis.connectionMessage = r.message;
+        this.snackBar.open(r.message, '', { duration: r.ok ? 3000 : 5000 });
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.acronis.testing           = false;
+        this.acronis.connectionStatus  = 'error';
+        this.acronis.connectionMessage = e?.error?.message ?? 'Error de conexión';
+        this.snackBar.open(this.acronis.connectionMessage, '', { duration: 5000 });
       },
     });
   }

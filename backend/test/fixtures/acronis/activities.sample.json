@@ -1,0 +1,60 @@
+{
+  "items": [
+    {
+      "id": 5000,
+      "idString": "5000",
+      "type": "backup_activity",
+      "resource": {
+        "id": "667108b2-4676-4f8b-839e-eddf6a4812d9",
+        "type": "instance",
+        "name": "AGENTE-DEMO-1"
+      },
+      "result": {
+        "code": "ok"
+      }
+    },
+    {
+      "id": 5001,
+      "idString": "5001",
+      "type": "backup_activity",
+      "resource": {
+        "id": "0c59968e-aeed-1ce8-cf7e-cd4881b113d1",
+        "type": "machine",
+        "name": "VM-DEMO-01"
+      },
+      "result": {
+        "code": "ok"
+      }
+    },
+    {
+      "id": 5002,
+      "idString": "5002",
+      "type": "backup_activity",
+      "resource": {
+        "id": "52db7486-1676-8ae6-fff5-fbe072c9a0f0",
+        "type": "machine",
+        "name": "VM-DEMO-02"
+      },
+      "result": {
+        "code": "warning"
+      }
+    },
+    {
+      "id": 5003,
+      "idString": "5003",
+      "type": "backup_activity",
+      "resource": {
+        "id": "303e4a79-2bef-605b-886f-9904b7ebda45",
+        "type": "machine",
+        "name": "VM-DEMO-03"
+      },
+      "result": {
+        "code": "error"
+      }
+    }
+  ],
+  "size": 4,
+  "paging": {
+    "cursors": {}
+  }
+}

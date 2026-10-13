@@ -3,7 +3,7 @@
   position: fixed;
   top: 50px;
   right: 0;
-  width: 460px;
+  width: 740px;
   bottom: 0;
   background: var(--surface);
   border-left: 1px solid var(--border-lo);
@@ -168,10 +168,19 @@
   font-family: var(--font-mono);
 }
 
-.job-type {
+.provider-chip {
   font-size: 9px;
-  color: var(--tx-lo);
-  margin-top: 1px;
+  font-family: var(--font-mono);
+  padding: 2px 7px;
+  border-radius: 20px;
+  border: 1px solid;
+  font-weight: 500;
+  white-space: nowrap;
+
+  // Mismos colores que los badges de Admin → Backups.
+  &--veeam     { background: var(--srv-bg);    border-color: var(--srv-bd);    color: var(--srv); }
+  &--jetbackup { background: var(--purple-bg); border-color: var(--purple-bd); color: var(--purple); }
+  &--acronis   { background: var(--accent-bg); border-color: var(--accent-bd); color: var(--accent); }
 }
 
 .job-msg {
@@ -223,4 +232,65 @@
   text-align: right;
 
   &.hours--stale { color: var(--warn); }
+}
+
+// ── Detalle por recurso (Acronis) ─────────────────────────────────────────────
+.job-detail {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-lo);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: default;
+}
+
+.job-agg {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.job-agg-label {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--tx-lo);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.job-agg-worst {
+  flex-basis: 100%;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--tx-md);
+  word-break: break-word;
+}
+
+.job-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.job-item-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--tx-hi);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.job-item-meta {
+  min-width: 44px;
+  text-align: right;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--tx-md);
 }

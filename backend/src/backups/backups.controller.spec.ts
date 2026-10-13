@@ -14,6 +14,10 @@ const mockSvc = {
   createJetbackupConfigs: jest.fn(),
   updateJetbackupConfig: jest.fn(),
   deleteJetbackupConfig: jest.fn(),
+  listAcronisPlans: jest.fn(),
+  createAcronisConfigs: jest.fn(),
+  updateAcronisConfig: jest.fn(),
+  deleteAcronisConfig: jest.fn(),
 };
 
 describe('BackupsController', () => {
@@ -61,5 +65,28 @@ describe('BackupsController', () => {
   it('DELETE /backups/configs/jetbackup/:id → llama deleteJetbackupConfig', async () => {
     await ctrl.deleteJetbackupConfig('jc1');
     expect(mockSvc.deleteJetbackupConfig).toHaveBeenCalledWith('jc1');
+  });
+
+  it('GET /backups/acronis/plans → llama listAcronisPlans', async () => {
+    mockSvc.listAcronisPlans.mockResolvedValue({ plans: [], partial: false });
+    expect(await ctrl.listAcronisPlans()).toEqual({ plans: [], partial: false });
+  });
+
+  it('POST /backups/configs/acronis → llama createAcronisConfigs con el dto', async () => {
+    const dto = { clientId: 'c1', clientName: 'C', isEnabled: true, plans: [{ policyId: 'p1', policyName: 'Plan' }] };
+    mockSvc.createAcronisConfigs.mockResolvedValue([]);
+    await ctrl.createAcronisConfigs(dto);
+    expect(mockSvc.createAcronisConfigs).toHaveBeenCalledWith(dto);
+  });
+
+  it('PATCH /backups/configs/acronis/:id → llama updateAcronisConfig', async () => {
+    mockSvc.updateAcronisConfig.mockResolvedValue({});
+    await ctrl.updateAcronisConfig('ac1', { isEnabled: false });
+    expect(mockSvc.updateAcronisConfig).toHaveBeenCalledWith('ac1', { isEnabled: false });
+  });
+
+  it('DELETE /backups/configs/acronis/:id → llama deleteAcronisConfig', async () => {
+    await ctrl.deleteAcronisConfig('ac1');
+    expect(mockSvc.deleteAcronisConfig).toHaveBeenCalledWith('ac1');
   });
 });

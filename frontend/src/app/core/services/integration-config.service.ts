@@ -30,6 +30,9 @@ export interface VeeamIntegrationConfigDto {
 export interface JetbackupIntegrationConfigDto {
   url: string; username: string; apiKey: string; updatedAt: Date | null; updatedBy: string | null;
 }
+export interface AcronisIntegrationConfigDto {
+  baseUrl: string; clientId: string; clientSecret: string; updatedAt: Date | null; updatedBy: string | null;
+}
 export interface TestConnectionResult { ok: boolean; message: string; }
 export interface HelpdeskTeamDto { id: number; name: string; }
 export interface HelpdeskTagDto { id: number; name: string; }
@@ -63,4 +66,8 @@ export class IntegrationConfigService {
   getJetbackup(): Observable<JetbackupIntegrationConfigDto>                                          { return this.http.get<JetbackupIntegrationConfigDto>(`${this.base}/jetbackup`); }
   patchJetbackup(dto: Partial<JetbackupIntegrationConfigDto>): Observable<JetbackupIntegrationConfigDto> { return this.http.patch<JetbackupIntegrationConfigDto>(`${this.base}/jetbackup`, dto); }
   testJetbackup(): Observable<TestConnectionResult>                                                  { return this.http.post<TestConnectionResult>(`${this.base}/jetbackup/test`, {}); }
+
+  getAcronis(): Observable<AcronisIntegrationConfigDto>                                        { return this.http.get<AcronisIntegrationConfigDto>(`${this.base}/acronis`); }
+  patchAcronis(dto: Partial<AcronisIntegrationConfigDto>): Observable<AcronisIntegrationConfigDto> { return this.http.patch<AcronisIntegrationConfigDto>(`${this.base}/acronis`, dto); }
+  testAcronis(): Observable<TestConnectionResult>                                              { return this.http.post<TestConnectionResult>(`${this.base}/acronis/test`, {}); }
 }
