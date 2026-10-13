@@ -46,7 +46,12 @@
         <td mat-cell *matCellDef="let job" [ngClass]="rowClass(job)">
           <div class="job-name">{{ job.jobName }}</div>
           <div class="job-type">{{ job.jobType }}</div>
-          <div class="job-msg" *ngIf="job.lastMessage && (job.lastResult === 'Warning' || job.lastResult === 'Failed')">{{ job.lastMessage }}</div>
+          <ng-container *ngIf="canExpand(job)">
+            <div class="job-msg-full" *ngIf="isExpanded(job); else collapsedMsg">{{ job.lastMessage }}</div>
+            <ng-template #collapsedMsg>
+              <div class="job-msg">{{ job.lastMessage }}</div>
+            </ng-template>
+          </ng-container>
         </td>
       </ng-container>
 
@@ -75,7 +80,9 @@
       </ng-container>
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let job; columns: displayedColumns;" [ngClass]="rowClass(job)"></tr>
+      <tr mat-row *matRowDef="let job; columns: displayedColumns;" [ngClass]="rowClass(job)"
+          [class.j-expandable]="canExpand(job)" [class.j-expanded]="isExpanded(job)"
+          (click)="toggleJob(job)"></tr>
     </table>
 
   </div><!-- /d-body -->

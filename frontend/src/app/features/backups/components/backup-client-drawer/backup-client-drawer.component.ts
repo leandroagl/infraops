@@ -15,6 +15,8 @@ export class BackupClientDrawerComponent {
 
   readonly displayedColumns = ['name', 'jobType', 'lastResult', 'hoursAgo'];
 
+  expandedJobId: string | null = null;
+
   get jobs(): BackupJobStatus[] { return this.client?.jobs ?? []; }
 
   get okCount(): number { return this.jobs.filter(j => j.lastResult === 'Success').length; }
@@ -34,6 +36,19 @@ export class BackupClientDrawerComponent {
     if (job.lastResult === 'Warning') return 'j-warn';
     if (job.lastResult === null)      return 'j-neutral';
     return 'j-ok';
+  }
+
+  canExpand(job: BackupJobStatus): boolean {
+    return !!job.lastMessage && (job.lastResult === 'Warning' || job.lastResult === 'Failed');
+  }
+
+  isExpanded(job: BackupJobStatus): boolean {
+    return this.expandedJobId === job.jobId;
+  }
+
+  toggleJob(job: BackupJobStatus): void {
+    if (!this.canExpand(job)) return;
+    this.expandedJobId = this.isExpanded(job) ? null : job.jobId;
   }
 
   hoursClass(job: BackupJobStatus): string {
