@@ -76,6 +76,19 @@ describe('BackupsService', () => {
     expect((svc as any).deriveClientStatus([])).toBe('no_data');
   });
 
+  it('debería devolver no_data si ningún job tiene resultado todavía', () => {
+    const jobs = [{ lastResult: null, isRunning: false, isStale: false } as any];
+    expect((svc as any).deriveClientStatus(jobs)).toBe('no_data');
+  });
+
+  it('debería ignorar los jobs sin resultado si otro job sí tiene uno', () => {
+    const jobs = [
+      { lastResult: null, isRunning: false, isStale: false } as any,
+      { lastResult: 'Success', isRunning: false, isStale: false } as any,
+    ];
+    expect((svc as any).deriveClientStatus(jobs)).toBe('ok');
+  });
+
   it('crea config sin campos de credencial', async () => {
     mockConfigRepo.create.mockImplementation((d: any) => ({ ...d }));
     mockConfigRepo.save.mockResolvedValue({
