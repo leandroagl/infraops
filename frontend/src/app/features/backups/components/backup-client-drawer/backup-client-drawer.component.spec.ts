@@ -73,6 +73,29 @@ describe('BackupClientDrawerComponent', () => {
     expect(text).toContain('lectura en vivo');
   });
 
+  describe('columna Tipo (proveedor)', () => {
+    const mkJob = (provider: BackupJobStatus['provider']): BackupJobStatus => ({
+      provider, jobId: provider, jobName: `job-${provider}`, jobType: 'Backup', isRunning: false,
+      lastResult: 'Success', lastMessage: null, lastRunAt: null, hoursAgo: 1, isStale: false,
+    });
+
+    it('muestra el proveedor de cada job en la columna Tipo', () => {
+      comp.client = { ...baseClient, jobs: [mkJob('VEEAM'), mkJob('ACRONIS'), mkJob('JETBACKUP')] };
+      comp.open = true;
+      fixture.detectChanges();
+      const chips = Array.from(fixture.nativeElement.querySelectorAll('.provider-chip') as NodeListOf<HTMLElement>)
+        .map(e => e.textContent?.trim());
+      expect(chips).toEqual(['Veeam', 'Acronis', 'JetBackup']);
+    });
+
+    it('no repite el jobType debajo del nombre del job', () => {
+      comp.client = { ...baseClient, jobs: [mkJob('VEEAM')] };
+      comp.open = true;
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('.job-type')).toBeNull();
+    });
+  });
+
   describe('expandir error de job', () => {
     const mkJob = (jobId: string, lastResult: BackupJobResult | null, lastMessage: string | null): BackupJobStatus => ({
       provider: 'VEEAM', jobId, jobName: `job-${jobId}`, jobType: 'Backup', isRunning: false,
