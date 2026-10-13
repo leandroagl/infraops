@@ -151,6 +151,9 @@
     &.j-running td.mat-cell:first-child { border-left: 3px solid var(--accent); }
     &.j-neutral td.mat-cell:first-child { border-left: 3px solid var(--neutral); }
     &.j-replica td.mat-cell:first-child { border-left: 3px solid var(--accent); }
+
+    &.j-expandable { cursor: pointer; }
+    &.j-expanded td.mat-cell { vertical-align: top; }
   }
 
   .col-right {
@@ -180,6 +183,22 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.job-msg-full {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--tx-hi);
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-lo);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 240px;
+  overflow-y: auto;
+  user-select: text;
 }
 
 .result-chip {
