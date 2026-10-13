@@ -67,12 +67,17 @@ export class MaintenanceDeviationsService {
     const label = signal?.label ?? deviation.signalKey;
     const value = deviation.detectedValueBoolean ?? deviation.detectedValueNumber;
 
+    const title = deviation.ticketTitle ?? `Desvío detectado: ${label}`;
+    const description = deviation.ticketDescription
+      ? `<p>${deviation.ticketDescription}</p><p>${label}: ${value}</p>`
+      : `<p>Desvío detectado en un control de mantenimiento.</p><p>${label}: ${value}</p>`;
+
     const odooTicketId = await this.odooService.createDeviationTicket(
       task.clientId,
       deviation.helpdeskTeamId ?? 0,
       deviation.tagIds,
-      `Desvío detectado: ${label}`,
-      `<p>Desvío detectado en un control de mantenimiento.</p><p>${label}: ${value}</p>`,
+      title,
+      description,
     );
 
     deviation.status = MaintenanceDeviationStatus.CONFIRMED;

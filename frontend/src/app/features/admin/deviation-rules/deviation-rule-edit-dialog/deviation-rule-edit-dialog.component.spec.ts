@@ -34,6 +34,8 @@ function makeRule(overrides: Partial<DeviationRuleDto> = {}): DeviationRuleDto {
     enabled: true,
     helpdeskTeamId: 7,
     tagIds: [3],
+    ticketTitle: null,
+    ticketDescription: null,
     createdAt: '2026-09-01T00:00:00Z',
     updatedAt: '2026-09-01T00:00:00Z',
     ...overrides,
@@ -142,8 +144,25 @@ describe('DeviationRuleEditDialogComponent', () => {
       expect(rulesSvc.create).toHaveBeenCalledWith({
         taskType: 'QNAP_MAINTENANCE', signalKey: 'maxUsedSpacePct', operator: 'gt',
         thresholdNumber: 90, thresholdBoolean: undefined, enabled: true, helpdeskTeamId: 7, tagIds: [3],
+        ticketTitle: null, ticketDescription: null,
       });
       expect(dialogRef.close).toHaveBeenCalledWith(makeRule());
+    });
+
+    it('save envía ticketTitle y ticketDescription cuando están completados', () => {
+      rulesSvc.create.and.returnValue(of(makeRule({ ticketTitle: 'Espacio crítico', ticketDescription: 'El NAS superó el umbral.' })));
+      component.form.patchValue({
+        taskType: 'QNAP_MAINTENANCE', signalKey: 'maxUsedSpacePct', operator: 'gt',
+        thresholdNumber: 90, enabled: true, helpdeskTeamId: 7, tagIds: [],
+        ticketTitle: 'Espacio crítico', ticketDescription: 'El NAS superó el umbral.',
+      });
+
+      component.save();
+
+      expect(rulesSvc.create).toHaveBeenCalledWith(jasmine.objectContaining({
+        ticketTitle: 'Espacio crítico',
+        ticketDescription: 'El NAS superó el umbral.',
+      }));
     });
 
     it('save crea la regla con thresholdBoolean cuando la señal es booleana', () => {
@@ -200,7 +219,14 @@ describe('DeviationRuleEditDialogComponent', () => {
       expect(rulesSvc.update).toHaveBeenCalledWith('rule-1', {
         operator: 'gt', thresholdNumber: 95, thresholdBoolean: undefined,
         enabled: true, helpdeskTeamId: 7, tagIds: [3],
+        ticketTitle: null, ticketDescription: null,
       });
+    });
+
+    it('popula ticketTitle y ticketDescription desde la regla existente', () => {
+      setup({ mode: 'edit', rule: makeRule({ ticketTitle: 'Mi título', ticketDescription: 'Mi descripción.' }), signals: SIGNALS });
+      expect(component.form.getRawValue().ticketTitle).toBe('Mi título');
+      expect(component.form.getRawValue().ticketDescription).toBe('Mi descripción.');
     });
   });
 

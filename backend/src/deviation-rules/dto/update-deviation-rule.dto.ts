@@ -5,6 +5,8 @@ import {
   IsInt,
   IsNumber,
   IsOptional,
+  IsString,
+  MaxLength,
   Min,
 } from 'class-validator';
 import { DeviationOperator } from '../deviation-operator.enum';
@@ -35,4 +37,13 @@ export class UpdateDeviationRuleDto {
   @IsArray()
   @IsInt({ each: true })
   tagIds?: number[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  ticketTitle?: string | null;
+
+  @IsOptional()
+  @IsString()
+  ticketDescription?: string | null;
 }

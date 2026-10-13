@@ -53,6 +53,8 @@ export class MaintenanceDeviationEvaluatorService {
         detectedValueBoolean: typeof value === 'boolean' ? value : null,
         helpdeskTeamId: rule.helpdeskTeamId,
         tagIds: rule.tagIds,
+        ticketTitle: rule.ticketTitle,
+        ticketDescription: rule.ticketDescription,
         status: MaintenanceDeviationStatus.PENDING,
       });
       created.push(await this.repo.save(deviation));

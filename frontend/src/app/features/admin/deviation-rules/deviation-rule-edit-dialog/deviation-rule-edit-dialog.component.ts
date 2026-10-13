@@ -37,14 +37,16 @@ export class DeviationRuleEditDialogComponent implements OnInit {
   saving = false;
 
   form = new FormGroup({
-    taskType:         new FormControl<TaskType | null>(null, Validators.required),
-    signalKey:        new FormControl<string | null>(null, Validators.required),
-    operator:         new FormControl<DeviationOperator | null>(null, Validators.required),
-    thresholdNumber:  new FormControl<number | null>(null),
-    thresholdBoolean: new FormControl<boolean>(true),
-    enabled:          new FormControl(true),
-    helpdeskTeamId:   new FormControl<number | null>(null),
-    tagIds:           new FormControl<number[]>([]),
+    taskType:           new FormControl<TaskType | null>(null, Validators.required),
+    signalKey:          new FormControl<string | null>(null, Validators.required),
+    operator:           new FormControl<DeviationOperator | null>(null, Validators.required),
+    thresholdNumber:    new FormControl<number | null>(null),
+    thresholdBoolean:   new FormControl<boolean>(true),
+    enabled:            new FormControl(true),
+    helpdeskTeamId:     new FormControl<number | null>(null),
+    tagIds:             new FormControl<number[]>([]),
+    ticketTitle:        new FormControl<string | null>(null),
+    ticketDescription:  new FormControl<string | null>(null),
   });
 
   constructor(
@@ -66,6 +68,8 @@ export class DeviationRuleEditDialogComponent implements OnInit {
         enabled: r.enabled,
         helpdeskTeamId: r.helpdeskTeamId,
         tagIds: r.tagIds,
+        ticketTitle: r.ticketTitle,
+        ticketDescription: r.ticketDescription,
       });
       this.form.controls.taskType.disable();
       this.form.controls.signalKey.disable();
@@ -146,6 +150,8 @@ export class DeviationRuleEditDialogComponent implements OnInit {
       enabled: v.enabled ?? true,
       helpdeskTeamId: v.helpdeskTeamId ?? null,
       tagIds: v.tagIds ?? [],
+      ticketTitle: v.ticketTitle || null,
+      ticketDescription: v.ticketDescription || null,
     };
 
     const request = this.data.mode === 'create'

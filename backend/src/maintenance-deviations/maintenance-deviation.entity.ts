@@ -68,6 +68,12 @@ export class MaintenanceDeviation {
   @Column({ name: 'tag_ids', type: 'int', array: true, default: [] })
   tagIds: number[];
 
+  @Column({ name: 'ticket_title', type: 'text', nullable: true, default: null })
+  ticketTitle: string | null;
+
+  @Column({ name: 'ticket_description', type: 'text', nullable: true, default: null })
+  ticketDescription: string | null;
+
   @Column({
     type: 'enum',
     enum: MaintenanceDeviationStatus,

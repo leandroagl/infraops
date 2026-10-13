@@ -26,6 +26,8 @@ function deviation(overrides: Partial<MaintenanceDeviation> = {}): MaintenanceDe
     detectedValueBoolean: null,
     helpdeskTeamId: 7,
     tagIds: [3],
+    ticketTitle: null,
+    ticketDescription: null,
     status: MaintenanceDeviationStatus.PENDING,
     detectedAt: new Date('2026-06-01'),
     resolvedAt: null,
@@ -130,6 +132,55 @@ describe('MaintenanceDeviationsService', () => {
       expect(result.odooTicketId).toBe(555);
       expect(result.resolvedByUserId).toBe('user-1');
       expect(result.resolvedAt).toBeInstanceOf(Date);
+    });
+
+    it('usa ticketTitle personalizado si está configurado', async () => {
+      deviationRepo.findOne.mockResolvedValue(
+        deviation({ ticketTitle: 'Espacio QNAP crítico' }),
+      );
+      taskRepo.findOne.mockResolvedValue(task());
+      odooService.createDeviationTicket.mockResolvedValue(556);
+
+      await service.updateStatus('dev-1', MaintenanceDeviationStatus.CONFIRMED, 'user-1');
+
+      expect(odooService.createDeviationTicket).toHaveBeenCalledWith(
+        'client-1', 7, [3], 'Espacio QNAP crítico', expect.any(String),
+      );
+    });
+
+    it('usa título por defecto si ticketTitle es null', async () => {
+      deviationRepo.findOne.mockResolvedValue(deviation({ ticketTitle: null }));
+      taskRepo.findOne.mockResolvedValue(task());
+      odooService.createDeviationTicket.mockResolvedValue(557);
+
+      await service.updateStatus('dev-1', MaintenanceDeviationStatus.CONFIRMED, 'user-1');
+
+      const [, , , title] = odooService.createDeviationTicket.mock.calls[0];
+      expect(title).toContain('Desvío detectado');
+    });
+
+    it('usa ticketDescription personalizada si está configurada', async () => {
+      deviationRepo.findOne.mockResolvedValue(
+        deviation({ ticketDescription: 'El NAS superó el umbral de uso.' }),
+      );
+      taskRepo.findOne.mockResolvedValue(task());
+      odooService.createDeviationTicket.mockResolvedValue(558);
+
+      await service.updateStatus('dev-1', MaintenanceDeviationStatus.CONFIRMED, 'user-1');
+
+      const [, , , , description] = odooService.createDeviationTicket.mock.calls[0];
+      expect(description).toContain('El NAS superó el umbral de uso.');
+    });
+
+    it('usa descripción por defecto si ticketDescription es null', async () => {
+      deviationRepo.findOne.mockResolvedValue(deviation({ ticketDescription: null }));
+      taskRepo.findOne.mockResolvedValue(task());
+      odooService.createDeviationTicket.mockResolvedValue(559);
+
+      await service.updateStatus('dev-1', MaintenanceDeviationStatus.CONFIRMED, 'user-1');
+
+      const [, , , , description] = odooService.createDeviationTicket.mock.calls[0];
+      expect(description).toContain('Desvío detectado');
     });
 
     it('no cambia el estado si Odoo falla', async () => {

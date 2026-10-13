@@ -24,6 +24,8 @@ function makeRule(overrides: Partial<DeviationRuleDto> = {}): DeviationRuleDto {
     enabled: true,
     helpdeskTeamId: 7,
     tagIds: [3],
+    ticketTitle: null,
+    ticketDescription: null,
     createdAt: '2026-09-01T00:00:00Z',
     updatedAt: '2026-09-01T00:00:00Z',
     ...overrides,

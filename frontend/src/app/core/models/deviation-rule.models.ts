@@ -20,6 +20,8 @@ export interface DeviationRuleDto {
   enabled: boolean;
   helpdeskTeamId: number | null;
   tagIds: number[];
+  ticketTitle: string | null;
+  ticketDescription: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -33,6 +35,8 @@ export interface CreateDeviationRulePayload {
   enabled?: boolean;
   helpdeskTeamId?: number | null;
   tagIds?: number[];
+  ticketTitle?: string | null;
+  ticketDescription?: string | null;
 }
 
 export interface UpdateDeviationRulePayload {
@@ -42,4 +46,6 @@ export interface UpdateDeviationRulePayload {
   enabled?: boolean;
   helpdeskTeamId?: number | null;
   tagIds?: number[];
+  ticketTitle?: string | null;
+  ticketDescription?: string | null;
 }
