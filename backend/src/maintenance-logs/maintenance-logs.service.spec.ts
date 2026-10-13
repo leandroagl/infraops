@@ -17,6 +17,7 @@ import { UpdateLogDto } from './dto/update-log.dto';
 import { MaintenanceLog } from './maintenance-log.entity';
 import { WindowsDomainPayload } from './log-item.interface';
 import { MaintenanceLogsService } from './maintenance-logs.service';
+import { MaintenanceDeviationEvaluatorService } from '../maintenance-deviations/maintenance-deviation-evaluator.service';
 
 describe('MaintenanceLogsService', () => {
   let service: MaintenanceLogsService;
@@ -28,6 +29,7 @@ describe('MaintenanceLogsService', () => {
   };
   let taskRepository: { findOne: jest.Mock };
   let userRepository: { findOne: jest.Mock };
+  let deviationEvaluator: { evaluate: jest.Mock };
 
   const mockTechnician: Technician = {
     id: 'tech-1',
@@ -67,9 +69,9 @@ describe('MaintenanceLogsService', () => {
     type: 'WINDOWS_DOMAIN_MAINTENANCE',
     windows: {
       servers: [
-        { serverId: 1, serverName: '47DC', rebootScript: 'ok', updates: 'ok' },
+        { serverId: 1, serverName: '47DC', restartScript: 'ok', updates: 'ok' },
       ],
-      dcdiag: 'OK',
+      domainControllers: [],
     },
   };
 
@@ -97,6 +99,7 @@ describe('MaintenanceLogsService', () => {
     };
     taskRepository = { findOne: jest.fn() };
     userRepository = { findOne: jest.fn() };
+    deviationEvaluator = { evaluate: jest.fn().mockResolvedValue([]) };
 
     const module = await Test.createTestingModule({
       providers: [
@@ -107,6 +110,7 @@ describe('MaintenanceLogsService', () => {
         },
         { provide: getRepositoryToken(Task), useValue: taskRepository },
         { provide: getRepositoryToken(User), useValue: userRepository },
+        { provide: MaintenanceDeviationEvaluatorService, useValue: deviationEvaluator },
       ],
     }).compile();
 
@@ -135,6 +139,7 @@ describe('MaintenanceLogsService', () => {
       expect(userRepository.findOne).toHaveBeenCalledWith({
         where: { id: 'user-1' },
       });
+      expect(deviationEvaluator.evaluate).toHaveBeenCalledWith(mockLog, mockTask);
       expect(logRepository.create).toHaveBeenCalledWith({
         taskId: 'task-1',
         technicianId: 'tech-1',
@@ -229,11 +234,11 @@ describe('MaintenanceLogsService', () => {
             {
               serverId: 1,
               serverName: '47DC',
-              rebootScript: 'error',
+              restartScript: 'error',
               updates: 'pending',
             },
           ],
-          dcdiag: 'OK',
+          domainControllers: [],
         },
       };
       const updatedLog = { ...mockLog, payload: updatedPayload };
@@ -251,8 +256,21 @@ describe('MaintenanceLogsService', () => {
       });
       expect(
         (result.payload as WindowsDomainPayload).windows.servers[0]
-          .rebootScript,
+          .restartScript,
       ).toBe('error');
+      expect(deviationEvaluator.evaluate).toHaveBeenCalledWith(updatedLog, mockTask);
+    });
+
+    it('no evalúa desvíos si el update no incluye payload (ej. solo notes)', async () => {
+      taskRepository.findOne.mockResolvedValue(mockTask);
+      logRepository.findOne
+        .mockResolvedValueOnce(mockLog)
+        .mockResolvedValueOnce(mockLog);
+      logRepository.update.mockResolvedValue({ affected: 1 });
+
+      await service.update('task-1', { notes: 'solo una nota' });
+
+      expect(deviationEvaluator.evaluate).not.toHaveBeenCalled();
     });
 
     it('lanza BadRequestException si el body está vacío', async () => {

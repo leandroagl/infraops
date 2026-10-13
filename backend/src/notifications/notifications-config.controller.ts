@@ -26,14 +26,27 @@ export class NotificationsConfigController {
   }
 
   @Get('urgent-preview')
-  urgentPreview(@Query('maxDays') maxDays?: string): Promise<UrgentBacklogPreviewDto> {
-    const days = maxDays !== undefined ? parseInt(maxDays, 10) : 6;
-    return this.expirationTicketsService.getUrgentBacklogPreview(isNaN(days) ? 6 : days);
+  urgentPreview(
+    @Query('minDays') minDays?: string,
+    @Query('maxDays') maxDays?: string,
+  ): Promise<UrgentBacklogPreviewDto> {
+    return this.expirationTicketsService.getUrgentBacklogPreview(
+      this.parseDays(minDays, 0), this.parseDays(maxDays, 17),
+    );
   }
 
   @Post('urgent-tickets')
-  createUrgentTickets(@Query('maxDays') maxDays?: string): Promise<UrgentBacklogResultDto> {
-    const days = maxDays !== undefined ? parseInt(maxDays, 10) : 6;
-    return this.expirationTicketsService.createUrgentBacklogTickets(isNaN(days) ? 6 : days);
+  createUrgentTickets(
+    @Query('minDays') minDays?: string,
+    @Query('maxDays') maxDays?: string,
+  ): Promise<UrgentBacklogResultDto> {
+    return this.expirationTicketsService.createUrgentBacklogTickets(
+      this.parseDays(minDays, 0), this.parseDays(maxDays, 17),
+    );
+  }
+
+  private parseDays(value: string | undefined, fallback: number): number {
+    const parsed = value !== undefined ? parseInt(value, 10) : NaN;
+    return isNaN(parsed) ? fallback : parsed;
   }
 }

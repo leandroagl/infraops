@@ -15,6 +15,9 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { TaskCreateDialogComponent } from '../admin/tasks/task-create-dialog/task-create-dialog.component';
 import { environment } from '../../../environments/environment';
+import { MaintenanceDeviationsService } from '../../core/services/maintenance-deviations.service';
+import { MaintenanceDeviationDto } from '../../core/models/maintenance-deviation.models';
+import { DeviationBadge, computeDeviationBadge } from '../../shared/utils/deviation-badge';
 
 @Component({
   selector: 'app-tasks-unified',
@@ -35,6 +38,7 @@ export class TasksUnifiedComponent implements OnInit {
   typeFilter: TaskType | null = null;
   statusFilter: TaskStatus | null = null;
   unassignedFilter = false;
+  deviationBadges: Record<string, DeviationBadge | null> = {};
 
   readonly taskTypes: { value: TaskType; label: string }[] = [
     { value: 'SERVER_HOST_MAINTENANCE',  label: 'Servidores' },
@@ -68,6 +72,7 @@ export class TasksUnifiedComponent implements OnInit {
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
     private router: Router,
+    private maintenanceDeviationsService: MaintenanceDeviationsService,
   ) {
     const now = new Date();
     this.currentMonth = now.getMonth() + 1;
@@ -165,7 +170,7 @@ export class TasksUnifiedComponent implements OnInit {
       }),
       takeUntilDestroyed(this.destroyRef),
     ).subscribe({
-      next:  tasks => { this.tasks = tasks; this.loading = false; },
+      next:  tasks => { this.tasks = tasks; this.loading = false; this.loadDeviationBadges(tasks); },
       error: ()    => { this.error = 'No se pudieron cargar las tareas.'; this.loading = false; },
     });
 
@@ -175,6 +180,29 @@ export class TasksUnifiedComponent implements OnInit {
   /** Dispara una recarga del ciclo seleccionado con los filtros activos */
   load(): void {
     this.load$.next();
+  }
+
+  onTaskDeviationsChanged(deviations: MaintenanceDeviationDto[]): void {
+    if (!this.selectedTask) return;
+    this.deviationBadges = { ...this.deviationBadges, [this.selectedTask.id]: computeDeviationBadge(deviations) };
+  }
+
+  private loadDeviationBadges(tasks: Task[]): void {
+    if (tasks.length === 0) { this.deviationBadges = {}; return; }
+    this.maintenanceDeviationsService.getByTaskIds(tasks.map(t => t.id)).subscribe({
+      next: deviations => {
+        const byTask = new Map<string, MaintenanceDeviationDto[]>();
+        for (const d of deviations) {
+          byTask.set(d.taskId, [...(byTask.get(d.taskId) ?? []), d]);
+        }
+        const badges: Record<string, DeviationBadge | null> = {};
+        for (const task of tasks) {
+          badges[task.id] = computeDeviationBadge(byTask.get(task.id) ?? []);
+        }
+        this.deviationBadges = badges;
+      },
+      error: () => { this.deviationBadges = {}; },
+    });
   }
 
   /** Navega al mes anterior y recarga */

@@ -4,6 +4,7 @@ import { Technician } from '../../../core/models/technician.models';
 import { Client } from '../../../core/models/client.models';
 import { typeLabel, typeBadge, statusLabel, statusBadge, expirationTypeLabel } from '../../../shared/utils/task-labels';
 import { formatOdooTicketId } from '../../../shared/utils/odoo';
+import { DeviationBadge } from '../../../shared/utils/deviation-badge';
 
 @Component({
   selector: 'app-cycle-table',
@@ -21,6 +22,7 @@ export class CycleTableComponent {
   @Input() typeFilter: string | null = null;
   @Input() techFilter: string | null = null;
   @Input() statusFilter: string | null = null;
+  @Input() deviationBadges: Record<string, DeviationBadge | null> = {};
   @Output() taskSelected = new EventEmitter<Task>();
   @Output() clientFilterChange = new EventEmitter<string | null>();
   @Output() typeFilterChange = new EventEmitter<string | null>();
@@ -68,5 +70,24 @@ export class CycleTableComponent {
 
   ticketLabel(t: Task): string {
     return t.odooTicketId != null ? formatOdooTicketId(t.odooTicketId) : '—';
+  }
+
+  deviationBadge(t: Task): DeviationBadge | null {
+    return this.deviationBadges[t.id] ?? null;
+  }
+
+  deviationBadgeClass(t: Task): string {
+    return this.deviationBadge(t)?.status === 'PENDING' ? 'badge--warn' : 'badge--accent';
+  }
+
+  deviationBadgeTooltip(t: Task): string {
+    const badge = this.deviationBadge(t);
+    if (!badge) return '';
+    if (badge.status === 'PENDING') {
+      return badge.count > 1 ? `${badge.count} desvíos pendientes de confirmación` : 'Desvío pendiente de confirmación';
+    }
+    return badge.ticketIds.length
+      ? `Ticket${badge.ticketIds.length > 1 ? 's' : ''} ${badge.ticketIds.map(id => '#' + id).join(', ')}`
+      : 'Desvío confirmado';
   }
 }

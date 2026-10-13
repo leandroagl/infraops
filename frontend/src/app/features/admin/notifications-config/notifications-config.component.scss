@@ -1,14 +1,30 @@
-.section-header {
-  padding: 20px 0 16px;
+.nc-page {
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
-.section-header-row {
+
+.nc-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.nc-card-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-lo);
+  background: var(--elevated);
 }
-.section-title    { font-size: 15px; font-weight: 600; color: var(--tx-hi); margin-bottom: 4px; }
-.section-subtitle { font-size: 12px; color: var(--tx-md); }
+
+.nc-card-title    { font-size: 15px; font-weight: 600; color: var(--tx-hi); margin: 0 0 4px; }
+.nc-card-subtitle { font-size: 12px; color: var(--tx-md); margin: 0; }
 
 .nc-loading {
   display: flex;

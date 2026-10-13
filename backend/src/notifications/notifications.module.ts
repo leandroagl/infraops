@@ -11,6 +11,7 @@ import { OdooIntegrationModule } from '../integrations/odoo/odoo-integration.mod
 import { IntegrationConfigModule } from '../integration-config/integration-config.module';
 import { ClientsModule } from '../clients/clients.module';
 import { TasksModule } from '../tasks/tasks.module';
+import { AppNotificationsModule } from '../app-notifications/app-notifications.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { TasksModule } from '../tasks/tasks.module';
     IntegrationConfigModule,
     ClientsModule,
     TasksModule,
+    AppNotificationsModule,
   ],
   controllers: [NotificationsController, NotificationsConfigController],
   providers: [NotificationsService, ExpirationTicketsService],

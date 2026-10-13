@@ -17,6 +17,10 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { TaskConfigModule } from './task-config/task-config.module';
 import { IntegrationConfigModule } from './integration-config/integration-config.module';
+import { DeviationRulesModule } from './deviation-rules/deviation-rules.module';
+import { MaintenanceDeviationsModule } from './maintenance-deviations/maintenance-deviations.module';
+import { BackupsModule } from './backups/backups.module';
+import { AppNotificationsModule } from './app-notifications/app-notifications.module';
 
 @Module({
   imports: [
@@ -51,6 +55,10 @@ import { IntegrationConfigModule } from './integration-config/integration-config
     SchedulesModule,
     TaskConfigModule,
     IntegrationConfigModule,
+    DeviationRulesModule,
+    MaintenanceDeviationsModule,
+    BackupsModule,
+    AppNotificationsModule,
   ],
 })
 export class AppModule {}

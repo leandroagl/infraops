@@ -548,16 +548,32 @@ export class OdooService {
     return teams.map(t => ({ id: t.id, name: t.name })).sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  async getHelpdeskSlas(teamId: number): Promise<{ id: number; name: string; time_days: number }[]> {
-    const slas = await this.systemRpc.callKw<Array<{ id: number; name: string; time_days: number }>>(
+  async getHelpdeskSlas(teamId: number): Promise<{ id: number; name: string; time_hours: number }[]> {
+    // helpdesk.sla expone el target como "time" (float, horas hábiles) — no "time_days".
+    // Confirmado en vivo contra Odoo: el widget "Time" muestra 144:00, 24:00, etc. (HH:MM de horas).
+    const slas = await this.systemRpc.callKw<Array<{ id: number; name: string; time: number }>>(
       'helpdesk.sla',
       'search_read',
       [[['team_id', '=', teamId]]],
-      { fields: ['id', 'name', 'time_days'] },
+      { fields: ['id', 'name', 'time'] },
     );
     return slas
-      .map(s => ({ id: s.id, name: s.name, time_days: s.time_days }))
-      .sort((a, b) => a.time_days - b.time_days);
+      .map(s => ({ id: s.id, name: s.name, time_hours: s.time }))
+      .sort((a, b) => a.time_hours - b.time_hours);
+  }
+
+  // Deadline real del ticket (helpdesk.ticket.sla_deadline), ya calculado por Odoo
+  // teniendo en cuenta el calendario laboral del equipo — no se reimplementa esa
+  // aritmética acá. null si el ticket no tiene SLA aplicable o ya no existe.
+  async getTicketSlaDeadline(ticketId: number): Promise<string | null> {
+    const tickets = await this.systemRpc.callKw<Array<{ id: number; sla_deadline: string | false }>>(
+      'helpdesk.ticket',
+      'search_read',
+      [[['id', '=', ticketId]]],
+      { fields: ['sla_deadline'] },
+    );
+    const deadline = tickets[0]?.sla_deadline;
+    return deadline || null;
   }
 
   async createExpirationTicket(
@@ -609,6 +625,53 @@ export class OdooService {
     if (!ticketId) {
       throw new ServiceUnavailableException(
         'Odoo devolvió false al crear ticket de vencimiento',
+      );
+    }
+
+    return ticketId;
+  }
+
+  async createDeviationTicket(
+    clientId: string,
+    helpdeskTeamId: number,
+    tagIds: number[],
+    name: string,
+    description: string,
+  ): Promise<number> {
+    if (!helpdeskTeamId) {
+      throw new BadRequestException('La regla de desvío no tiene equipo de Odoo configurado');
+    }
+
+    const partnerId = await this.resolvePartnerId(clientId);
+    if (partnerId === null) {
+      throw new BadRequestException(`Cliente ${clientId} no tiene ID de Odoo`);
+    }
+
+    const saleLineId = await this.resolveSaleLineId(clientId);
+
+    const payload: Record<string, unknown> = {
+      team_id: helpdeskTeamId,
+      partner_id: partnerId,
+      name,
+      description,
+    };
+    if (saleLineId !== null) {
+      payload['sale_line_id'] = saleLineId;
+    }
+    if (tagIds.length > 0) {
+      payload['tag_ids'] = [[6, 0, tagIds]];
+    }
+
+    const ticketId = await this.systemRpc.callKw<number>(
+      'helpdesk.ticket',
+      'create',
+      [payload],
+      {},
+    );
+
+    if (!ticketId) {
+      throw new ServiceUnavailableException(
+        'Odoo devolvió false al crear ticket de desvío',
       );
     }
 

@@ -1756,6 +1756,67 @@ describe('OdooService', () => {
     });
   });
 
+  describe('createDeviationTicket', () => {
+    beforeEach(() => {
+      clientRepo.findOne.mockResolvedValue(
+        makeClient({ id: 'client-uuid-1', odooPartnerId: 101 }),
+      );
+      odooRpc.callKw.mockResolvedValue(999);
+    });
+
+    it('crea el ticket con team_id, partner_id, name y description', async () => {
+      const ticketId = await service.createDeviationTicket(
+        'client-uuid-1', 9, [], 'Desvío QNAP', '<p>Espacio en disco al 95%</p>',
+      );
+      expect(ticketId).toBe(999);
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket', 'create',
+        [expect.objectContaining({
+          team_id: 9,
+          partner_id: 101,
+          name: 'Desvío QNAP',
+          description: '<p>Espacio en disco al 95%</p>',
+        })],
+        {},
+      );
+    });
+
+    it('incluye tag_ids si se pasan tags', async () => {
+      await service.createDeviationTicket('client-uuid-1', 9, [3, 5], 'Desvío', 'desc');
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket', 'create',
+        [expect.objectContaining({ tag_ids: [[6, 0, [3, 5]]] })],
+        {},
+      );
+    });
+
+    it('omite tag_ids si el array está vacío', async () => {
+      await service.createDeviationTicket('client-uuid-1', 9, [], 'Desvío', 'desc');
+      const callArg = odooRpc.callKw.mock.calls[0][2][0] as Record<string, unknown>;
+      expect(callArg['tag_ids']).toBeUndefined();
+    });
+
+    it('lanza BadRequestException si no hay helpdeskTeamId configurado en la regla', async () => {
+      await expect(
+        service.createDeviationTicket('client-uuid-1', 0, [], 'Desvío', 'desc'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('lanza BadRequestException si el cliente no tiene partnerId de Odoo', async () => {
+      clientRepo.findOne.mockResolvedValue(makeClient({ odooPartnerId: null, taxIdNumber: null }));
+      await expect(
+        service.createDeviationTicket('client-uuid-1', 9, [], 'Desvío', 'desc'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('lanza ServiceUnavailableException si Odoo devuelve false', async () => {
+      odooRpc.callKw.mockResolvedValue(false);
+      await expect(
+        service.createDeviationTicket('client-uuid-1', 9, [], 'Desvío', 'desc'),
+      ).rejects.toThrow(ServiceUnavailableException);
+    });
+  });
+
   describe('getClientActiveServices', () => {
     it('retorna [] cuando no hay clientes activos con odooPartnerId', async () => {
       clientRepo.find.mockResolvedValue([]);
@@ -1887,10 +1948,10 @@ describe('OdooService', () => {
   });
 
   describe('getHelpdeskSlas', () => {
-    it('retorna los SLAs del equipo ordenados por time_days ascendente', async () => {
+    it('retorna los SLAs del equipo ordenados por time_hours ascendente, mapeando el campo Odoo "time"', async () => {
       odooRpc.callKw.mockResolvedValue([
-        { id: 2, name: 'SLA Urgente', time_days: 5 },
-        { id: 1, name: 'SLA Normal', time_days: 18 },
+        { id: 2, name: 'SLA Urgente', time: 5 },
+        { id: 1, name: 'SLA Normal', time: 18 },
       ]);
 
       const result = await service.getHelpdeskSlas(7);
@@ -1899,11 +1960,11 @@ describe('OdooService', () => {
         'helpdesk.sla',
         'search_read',
         [[['team_id', '=', 7]]],
-        { fields: ['id', 'name', 'time_days'] },
+        { fields: ['id', 'name', 'time'] },
       );
       expect(result).toEqual([
-        { id: 2, name: 'SLA Urgente', time_days: 5 },
-        { id: 1, name: 'SLA Normal', time_days: 18 },
+        { id: 2, name: 'SLA Urgente', time_hours: 5 },
+        { id: 1, name: 'SLA Normal', time_hours: 18 },
       ]);
     });
 
@@ -1913,6 +1974,38 @@ describe('OdooService', () => {
       const result = await service.getHelpdeskSlas(7);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('getTicketSlaDeadline', () => {
+    it('retorna el sla_deadline del ticket', async () => {
+      odooRpc.callKw.mockResolvedValue([{ id: 500, sla_deadline: '2026-07-15 12:00:00' }]);
+
+      const result = await service.getTicketSlaDeadline(500);
+
+      expect(odooRpc.callKw).toHaveBeenCalledWith(
+        'helpdesk.ticket',
+        'search_read',
+        [[['id', '=', 500]]],
+        { fields: ['sla_deadline'] },
+      );
+      expect(result).toBe('2026-07-15 12:00:00');
+    });
+
+    it('retorna null si el ticket no tiene sla_deadline (Odoo devuelve false)', async () => {
+      odooRpc.callKw.mockResolvedValue([{ id: 500, sla_deadline: false }]);
+
+      const result = await service.getTicketSlaDeadline(500);
+
+      expect(result).toBeNull();
+    });
+
+    it('retorna null si el ticket no existe', async () => {
+      odooRpc.callKw.mockResolvedValue([]);
+
+      const result = await service.getTicketSlaDeadline(999);
+
+      expect(result).toBeNull();
     });
   });
 });

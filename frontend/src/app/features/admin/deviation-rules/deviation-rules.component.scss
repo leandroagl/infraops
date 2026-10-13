@@ -1,0 +1,37 @@
+.dr-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.dr-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-lo);
+  background: var(--elevated);
+}
+
+.dr-card-title    { font-size: 15px; font-weight: 600; color: var(--tx-hi); margin: 0 0 4px; }
+.dr-card-subtitle { font-size: 12px; color: var(--tx-md); margin: 0; }
+
+.deviation-rules-table { width: 100%; }
+
+.time-unset { font-size: 12px; color: var(--tx-lo); font-style: italic; }
+
+.tag-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 100px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-bd);
+  margin-right: 4px;
+}

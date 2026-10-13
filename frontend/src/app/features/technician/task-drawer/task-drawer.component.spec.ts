@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { of, throwError } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { Subject, of, throwError } from 'rxjs';
 
 import { TaskDrawerComponent } from './task-drawer.component';
 import { InfradocService } from '../../../core/services/infradoc.service';
@@ -10,6 +11,8 @@ import { TasksService } from '../../../core/services/tasks.service';
 import { TaskConfigService } from '../../../core/services/task-config.service';
 import { NotificationsService } from '../../../core/services/notifications.service';
 import { OdooUrlService } from '../../../core/services/odoo-url.service';
+import { MaintenanceDeviationsService } from '../../../core/services/maintenance-deviations.service';
+import { DeviationRulesService } from '../../../core/services/deviation-rules.service';
 import { Task, TaskType, TaskStatus, TaskTypeConfigDto } from '../../../core/models/task.models';
 import {
   TerminalPayload,
@@ -826,6 +829,206 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(loadComponent.infraError).toBeTruthy();
     });
   });
+
+  // ── Desvíos detectados ───────────────────────────────────────────────────
+
+  describe('desvíos detectados', () => {
+    const emptyInfra = { windowsVMs: [], domainControllers: [], linuxVMs: [], esxiHosts: [], nas: [], routers: [] };
+
+    function makeDeviationComponent(overrides: {
+      deviations?: any[];
+      deviationsError?: boolean;
+      signals?: any[];
+      updateStatusSpy?: jasmine.Spy;
+      snackBarSpy?: jasmine.Spy;
+    } = {}): TaskDrawerComponent {
+      const getByTaskIdSpy = jasmine.createSpy('getByTaskId').and.returnValue(
+        overrides.deviationsError
+          ? throwError(() => ({ status: 500 }))
+          : of(overrides.deviations ?? []),
+      );
+      const c = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(emptyInfra) } as any,
+        mockLogs,
+        mockTasks,
+        mockDialog,
+        makeMockTaskConfigService(),
+        mockOdooUrl,
+        undefined,
+        { getByTaskId: getByTaskIdSpy, updateStatus: overrides.updateStatusSpy ?? jasmine.createSpy('updateStatus') } as any,
+        { getAvailableSignals: () => of(overrides.signals ?? []) } as any,
+        { open: overrides.snackBarSpy ?? jasmine.createSpy('open') } as any,
+      );
+      c.task = makeTask();
+      c.ngOnChanges({ task: {} as any });
+      return c;
+    }
+
+    it('carga solo las detecciones PENDING al cambiar de tarea', () => {
+      const c = makeDeviationComponent({
+        deviations: [
+          { id: 'd1', status: 'PENDING' },
+          { id: 'd2', status: 'CONFIRMED' },
+        ],
+      });
+      expect(c.pendingDeviations.map(d => d.id)).toEqual(['d1']);
+    });
+
+    it('deja pendingDeviations en [] si falla la carga', () => {
+      const c = makeDeviationComponent({ deviationsError: true });
+      expect(c.pendingDeviations).toEqual([]);
+    });
+
+    it('agrupa las detecciones no-PENDING en resolvedDeviations', () => {
+      const c = makeDeviationComponent({
+        deviations: [
+          { id: 'd1', status: 'PENDING' },
+          { id: 'd2', status: 'CONFIRMED' },
+          { id: 'd3', status: 'DISMISSED' },
+        ],
+      });
+      expect(c.resolvedDeviations.map(d => d.id)).toEqual(['d2', 'd3']);
+    });
+
+    it('emite deviationsChanged con todas las detecciones al cargar', () => {
+      const emitted: any[] = [];
+      const c = makeDeviationComponent({
+        deviations: [{ id: 'd1', status: 'PENDING' }, { id: 'd2', status: 'CONFIRMED' }],
+      });
+      c.deviationsChanged.subscribe(v => emitted.push(v));
+      c.ngOnChanges({ task: {} as any });
+      expect(emitted[0].map((d: any) => d.id)).toEqual(['d1', 'd2']);
+    });
+
+    it('deviationStatusLabel muestra el ticket si está CONFIRMED', () => {
+      const c = makeDeviationComponent();
+      expect(c.deviationStatusLabel({ status: 'CONFIRMED', odooTicketId: 123 } as any)).toBe('Ticket #123 creado');
+    });
+
+    it('deviationStatusLabel muestra "Descartado" si está DISMISSED', () => {
+      const c = makeDeviationComponent();
+      expect(c.deviationStatusLabel({ status: 'DISMISSED', odooTicketId: null } as any)).toBe('Descartado');
+    });
+
+    it('deviationSignalLabel devuelve el label de la señal registrada', () => {
+      const c = makeDeviationComponent({
+        signals: [{ taskType: 'WINDOWS_DOMAIN_MAINTENANCE', key: 'sig1', label: 'Mi señal', valueType: 'number' }],
+      });
+      expect(c.deviationSignalLabel({ taskType: 'WINDOWS_DOMAIN_MAINTENANCE', signalKey: 'sig1' } as any)).toBe('Mi señal');
+    });
+
+    it('deviationSignalLabel devuelve el signalKey si no encuentra la señal', () => {
+      const c = makeDeviationComponent({ signals: [] });
+      expect(c.deviationSignalLabel({ taskType: 'WINDOWS_DOMAIN_MAINTENANCE', signalKey: 'sig1' } as any)).toBe('sig1');
+    });
+
+    it('deviationValueDisplay muestra el valor numérico', () => {
+      const c = makeDeviationComponent();
+      expect(c.deviationValueDisplay({ detectedValueNumber: 95, detectedValueBoolean: null } as any)).toBe('95');
+    });
+
+    it('deviationValueDisplay muestra Sí/No para un valor booleano', () => {
+      const c = makeDeviationComponent();
+      expect(c.deviationValueDisplay({ detectedValueNumber: null, detectedValueBoolean: true } as any)).toBe('Sí');
+    });
+
+    it('confirmDeviation llama a updateStatus con CONFIRMED y sacar la fila de pendingDeviations', () => {
+      const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(of({ odooTicketId: 123 }));
+      const c = makeDeviationComponent({
+        deviations: [{ id: 'd1', status: 'PENDING', taskType: 'VEEAM_BACKUP', signalKey: 'anyVmWithoutBackup' }],
+        updateStatusSpy,
+      });
+
+      c.confirmDeviation(c.pendingDeviations[0]);
+
+      expect(updateStatusSpy).toHaveBeenCalledWith('d1', 'CONFIRMED');
+      expect(c.pendingDeviations).toEqual([]);
+      expect(c.resolvedDeviations[0].odooTicketId).toBe(123);
+    });
+
+    it('confirmDeviation muestra un toast con el número de ticket y la señal al confirmar', () => {
+      const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(of({ odooTicketId: 123 }));
+      const snackBarSpy = jasmine.createSpy('open');
+      const c = makeDeviationComponent({
+        deviations: [{ id: 'd1', status: 'PENDING', taskType: 'VEEAM_BACKUP', signalKey: 'anyVmWithoutBackup' }],
+        signals: [{ taskType: 'VEEAM_BACKUP', key: 'anyVmWithoutBackup', label: 'Alguna VM sin backup', valueType: 'boolean' }],
+        updateStatusSpy,
+        snackBarSpy,
+      });
+
+      c.confirmDeviation(c.pendingDeviations[0]);
+
+      expect(snackBarSpy).toHaveBeenCalledWith(
+        jasmine.stringMatching(/#123/), '', jasmine.objectContaining({ duration: 4000 }),
+      );
+      expect(snackBarSpy).toHaveBeenCalledWith(
+        jasmine.stringMatching(/Alguna VM sin backup/), '', jasmine.anything(),
+      );
+    });
+
+    it('isProcessingDeviation es true mientras la llamada está en curso y false al resolver', () => {
+      const pending$ = new Subject<any>();
+      const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(pending$);
+      const c = makeDeviationComponent({
+        deviations: [{ id: 'd1', status: 'PENDING' }],
+        updateStatusSpy,
+      });
+      const deviation = c.pendingDeviations[0];
+
+      expect(c.isProcessingDeviation(deviation)).toBe(false);
+      c.confirmDeviation(deviation);
+      expect(c.isProcessingDeviation(deviation)).toBe(true);
+
+      pending$.next({ odooTicketId: 1 });
+      pending$.complete();
+
+      expect(c.isProcessingDeviation(deviation)).toBe(false);
+    });
+
+    it('dismissDeviation llama a updateStatus con DISMISSED y sacar la fila de pendingDeviations', () => {
+      const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(of({}));
+      const c = makeDeviationComponent({
+        deviations: [{ id: 'd1', status: 'PENDING' }],
+        updateStatusSpy,
+      });
+
+      c.dismissDeviation(c.pendingDeviations[0]);
+
+      expect(updateStatusSpy).toHaveBeenCalledWith('d1', 'DISMISSED');
+      expect(c.pendingDeviations).toEqual([]);
+      expect(c.resolvedDeviations.length).toBe(1);
+    });
+
+    it('emite deviationsChanged al confirmar', () => {
+      const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(of({ odooTicketId: 1, id: 'd1', status: 'CONFIRMED' }));
+      const c = makeDeviationComponent({ deviations: [{ id: 'd1', status: 'PENDING' }], updateStatusSpy });
+      const emitted: any[] = [];
+      c.deviationsChanged.subscribe(v => emitted.push(v));
+
+      c.confirmDeviation(c.pendingDeviations[0]);
+
+      expect(emitted[emitted.length - 1].length).toBe(1);
+    });
+
+    it('si updateStatus falla, no sacar la fila, limpiar isProcessingDeviation y mostrar un toast de error', () => {
+      const updateStatusSpy = jasmine.createSpy('updateStatus').and.returnValue(throwError(() => ({ status: 500 })));
+      const snackBarSpy = jasmine.createSpy('open');
+      const c = makeDeviationComponent({
+        deviations: [{ id: 'd1', status: 'PENDING' }],
+        updateStatusSpy,
+        snackBarSpy,
+      });
+      const deviation = c.pendingDeviations[0];
+
+      c.confirmDeviation(deviation);
+
+      expect(c.pendingDeviations.length).toBe(1);
+      expect(c.isProcessingDeviation(deviation)).toBe(false);
+      expect(snackBarSpy).toHaveBeenCalledWith(
+        jasmine.any(String), '', jasmine.objectContaining({ panelClass: 'snack-error' }),
+      );
+    });
+  });
 });
 
 // ── Template tests (TestBed) ─────────────────────────────────────────────────
@@ -846,6 +1049,9 @@ describe('TaskDrawerComponent — template tests', () => {
         { provide: TaskConfigService, useValue: { getAll: () => of([mockTaskConfig]) } },
         { provide: OdooUrlService, useValue: mockOdooUrl },
         { provide: NotificationsService, useValue: { getExpirationByTaskId: () => of(null) } },
+        { provide: MaintenanceDeviationsService, useValue: { getByTaskId: () => of([]), updateStatus: () => of({}) } },
+        { provide: DeviationRulesService, useValue: { getAvailableSignals: () => of([]) } },
+        { provide: MatSnackBar, useValue: { open: () => ({}) } },
       ],
     }).compileComponents();
 

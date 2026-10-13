@@ -4,12 +4,16 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Task } from '../tasks/task.entity';
 import { User } from '../users/user.entity';
+import { MaintenanceDeviationsModule } from '../maintenance-deviations/maintenance-deviations.module';
 import { MaintenanceLog } from './maintenance-log.entity';
 import { MaintenanceLogsController } from './maintenance-logs.controller';
 import { MaintenanceLogsService } from './maintenance-logs.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MaintenanceLog, Task, User])],
+  imports: [
+    TypeOrmModule.forFeature([MaintenanceLog, Task, User]),
+    MaintenanceDeviationsModule,
+  ],
   controllers: [MaintenanceLogsController],
   providers: [MaintenanceLogsService, JwtAuthGuard, RolesGuard],
   exports: [MaintenanceLogsService],

@@ -10,6 +10,7 @@ import {
 import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, map, of, switchMap, tap, throwError } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Task, TaskStatus, TaskType } from '../../../core/models/task.models';
 import { UserRole } from '../../../core/models/auth.models';
 import { ClientInfrastructure } from '../../../core/models/infradoc.models';
@@ -28,6 +29,10 @@ import {
   MaintenanceLogsService,
 } from '../../../core/services/maintenance-logs.service';
 import { TasksService } from '../../../core/services/tasks.service';
+import { MaintenanceDeviationsService } from '../../../core/services/maintenance-deviations.service';
+import { DeviationRulesService } from '../../../core/services/deviation-rules.service';
+import { AvailableDeviationSignal } from '../../../core/models/deviation-rule.models';
+import { MaintenanceDeviationDto, MaintenanceDeviationStatus } from '../../../core/models/maintenance-deviation.models';
 import { MaintenanceFormComponent } from './maintenance-form/maintenance-form.component';
 import { QnapFormComponent } from './qnap-form/qnap-form.component';
 import { VeeamFormComponent } from './veeam-form/veeam-form.component';
@@ -40,7 +45,7 @@ import {
 import { TaskConfigService } from '../../../core/services/task-config.service';
 import { TaskTypeConfigDto } from '../../../core/models/task.models';
 import { statusLabel, statusBadge, typeLabel, typeBadge, expirationTypeLabel } from '../../../shared/utils/task-labels';
-import { daysUntilCycleClose, urgencyLabel, urgencyClass } from '../../../shared/utils/urgency';
+import { daysUntilCycleClose, urgencyLabel, urgencyClass, daysUntilLabel, daysUntilLevel } from '../../../shared/utils/urgency';
 import { formatOdooTicketId } from '../../../shared/utils/odoo';
 import { OdooUrlService } from '../../../core/services/odoo-url.service';
 
@@ -60,6 +65,7 @@ export class TaskDrawerComponent implements OnChanges {
   @Output() taskStatusChanged = new EventEmitter<TaskStatus>();
   @Output() drawerClosed = new EventEmitter<void>();
   @Output() technicianAssigned = new EventEmitter<Task>();
+  @Output() deviationsChanged = new EventEmitter<MaintenanceDeviationDto[]>();
 
   @ViewChild(MaintenanceFormComponent) maintenanceForm?: MaintenanceFormComponent;
   @ViewChild(QnapFormComponent) qnapForm?: QnapFormComponent;
@@ -79,6 +85,10 @@ export class TaskDrawerComponent implements OnChanges {
   taskConfig: TaskTypeConfigDto | null = null;
   expirationDetail: ExpirationDetail | null = null;
   loadingExpirationDetail = false;
+  pendingDeviations: MaintenanceDeviationDto[] = [];
+  resolvedDeviations: MaintenanceDeviationDto[] = [];
+  processingDeviationIds = new Set<string>();
+  private deviationSignals: AvailableDeviationSignal[] = [];
 
   private pendingPayload: MaintenancePayload | null = null;
   private _currentStatus = '';
@@ -92,6 +102,9 @@ export class TaskDrawerComponent implements OnChanges {
     private taskConfigService: TaskConfigService,
     private odooUrl: OdooUrlService,
     private notificationsService?: NotificationsService,
+    private maintenanceDeviationsService?: MaintenanceDeviationsService,
+    private deviationRulesService?: DeviationRulesService,
+    private snackBar?: MatSnackBar,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -99,6 +112,7 @@ export class TaskDrawerComponent implements OnChanges {
       this._currentStatus = this.task.status;
       this._technicianOverride = null;
       this.loadInfrastructure();
+      this.loadDeviations();
 
       if (this.task.type === 'EXPIRATION_CONTROL') {
         // El tiempo predefinido de esta tarea viene por tipo de vencimiento
@@ -195,11 +209,98 @@ export class TaskDrawerComponent implements OnChanges {
     });
   }
 
+  // ── Desvíos detectados ───────────────────────────────────────────────────────
+
+  private loadDeviations(): void {
+    this.pendingDeviations = [];
+    this.resolvedDeviations = [];
+    this.maintenanceDeviationsService?.getByTaskId(this.task.id).subscribe({
+      next: deviations => {
+        this.pendingDeviations = deviations.filter(d => d.status === 'PENDING');
+        this.resolvedDeviations = deviations.filter(d => d.status !== 'PENDING');
+        this.deviationsChanged.emit(deviations);
+      },
+      error: () => { this.pendingDeviations = []; this.resolvedDeviations = []; },
+    });
+
+    if (this.deviationSignals.length === 0) {
+      this.deviationRulesService?.getAvailableSignals().subscribe({
+        next: signals => { this.deviationSignals = signals; },
+      });
+    }
+  }
+
+  deviationStatusLabel(deviation: MaintenanceDeviationDto): string {
+    return deviation.status === 'CONFIRMED'
+      ? `Ticket #${deviation.odooTicketId} creado`
+      : 'Descartado';
+  }
+
+  deviationSignalLabel(deviation: MaintenanceDeviationDto): string {
+    const signal = this.deviationSignals.find(
+      s => s.taskType === deviation.taskType && s.key === deviation.signalKey,
+    );
+    return signal?.label ?? deviation.signalKey;
+  }
+
+  deviationValueDisplay(deviation: MaintenanceDeviationDto): string {
+    if (deviation.detectedValueBoolean !== null) return deviation.detectedValueBoolean ? 'Sí' : 'No';
+    return deviation.detectedValueNumber !== null ? String(deviation.detectedValueNumber) : '—';
+  }
+
+  isProcessingDeviation(deviation: MaintenanceDeviationDto): boolean {
+    return this.processingDeviationIds.has(deviation.id);
+  }
+
+  confirmDeviation(deviation: MaintenanceDeviationDto): void {
+    this.runDeviationAction(
+      deviation,
+      'CONFIRMED',
+      updated => {
+        this.snackBar?.open(
+          `Ticket #${updated.odooTicketId} creado — ${this.deviationSignalLabel(deviation)}`,
+          '',
+          { duration: 4000 },
+        );
+      },
+      'No se pudo crear el ticket. Intentá de nuevo.',
+    );
+  }
+
+  dismissDeviation(deviation: MaintenanceDeviationDto): void {
+    this.runDeviationAction(deviation, 'DISMISSED', () => {}, 'No se pudo descartar el desvío. Intentá de nuevo.');
+  }
+
+  private runDeviationAction(
+    deviation: MaintenanceDeviationDto,
+    status: MaintenanceDeviationStatus,
+    onSuccess: (updated: MaintenanceDeviationDto) => void,
+    errorMessage: string,
+  ): void {
+    this.processingDeviationIds.add(deviation.id);
+    this.maintenanceDeviationsService?.updateStatus(deviation.id, status).subscribe({
+      next: updated => {
+        this.processingDeviationIds.delete(deviation.id);
+        this.pendingDeviations = this.pendingDeviations.filter(d => d.id !== deviation.id);
+        this.resolvedDeviations = [updated, ...this.resolvedDeviations];
+        this.deviationsChanged.emit([...this.pendingDeviations, ...this.resolvedDeviations]);
+        onSuccess(updated);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.processingDeviationIds.delete(deviation.id);
+        this.snackBar?.open(err.error?.message ?? errorMessage, '', { duration: 4000, panelClass: 'snack-error' });
+      },
+    });
+  }
+
   // ── Urgency helpers ─────────────────────────────────────────────────────────
 
   daysUntilCycleClose(): number      { return daysUntilCycleClose(); }
   urgencyLabel(days: number): string { return urgencyLabel(days); }
   urgencyClass(days: number): string { return urgencyClass(days); }
+
+  slaLabel(days: number): string { return `SLA ${daysUntilLabel(days)}`; }
+  slaClass(days: number): string { return `urg-${daysUntilLevel(days)}`; }
 
   // ── Icon style ──────────────────────────────────────────────────────────────
 
@@ -330,6 +431,7 @@ export class TaskDrawerComponent implements OnChanges {
       next: () => {
         this.saveProgressMsg = 'Progreso guardado.';
         if (wasInPending) this.taskStatusChanged.emit('IN_PROGRESS');
+        this.loadDeviations();
       },
       error: () => { this.saveProgressError = 'No se pudo guardar el progreso. Intentá de nuevo.'; },
     });
@@ -364,7 +466,7 @@ export class TaskDrawerComponent implements OnChanges {
       tap(() => { logSaved = true; }),
       switchMap(() => this.transitionToDone(timeSpentMinutes))
     ).subscribe({
-      next: () => { this.completing = false; this.taskCompleted.emit(); },
+      next: () => { this.completing = false; this.taskCompleted.emit(); this.loadDeviations(); },
       error: () => {
         this.completing = false;
         this.confirmError = logSaved

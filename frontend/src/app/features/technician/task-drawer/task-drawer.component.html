@@ -13,11 +13,12 @@
       <span *ngIf="task.type !== 'EXPIRATION_CONTROL'" class="urg" [ngClass]="urgencyClass(daysUntilCycleClose())">
         {{ urgencyLabel(daysUntilCycleClose()) }}
       </span>
-      <ng-container *ngIf="task.type === 'EXPIRATION_CONTROL' && expirationDetail?.teamSlas?.length">
-        <span *ngFor="let sla of expirationDetail!.teamSlas!" class="urg urg-ok">
-          SLA {{ sla.time_days }}d hábiles
-        </span>
-      </ng-container>
+      <span
+        *ngIf="task.type === 'EXPIRATION_CONTROL' && expirationDetail?.slaDaysUntil != null"
+        class="urg"
+        [ngClass]="slaClass(expirationDetail!.slaDaysUntil!)">
+        {{ slaLabel(expirationDetail!.slaDaysUntil!) }}
+      </span>
       <span class="badge" [ngClass]="statusBadge(task.status)">{{ statusLabel(task.status) }}</span>
       <a
         *ngIf="odooLink"
@@ -61,6 +62,32 @@
 
   <!-- Banner de configuración faltante -->
   <div *ngIf="isActiveTask && !isUnassigned && isConfigMissing" class="d-config-warn">⚠ {{ configWarningMessage }}</div>
+
+  <!-- Desvíos detectados, pendientes de confirmación -->
+  <div *ngFor="let deviation of pendingDeviations" class="d-deviation-banner">
+    <div class="d-deviation-banner__text">
+      ⚠ Desvío detectado: <strong>{{ deviationSignalLabel(deviation) }}</strong>
+      (valor: {{ deviationValueDisplay(deviation) }})
+    </div>
+    <div class="d-deviation-banner__actions">
+      <button mat-flat-button color="warn" (click)="confirmDeviation(deviation)" [disabled]="isProcessingDeviation(deviation)">
+        <mat-spinner *ngIf="isProcessingDeviation(deviation)" [diameter]="16"></mat-spinner>
+        <span *ngIf="!isProcessingDeviation(deviation)">Confirmar y crear ticket</span>
+      </button>
+      <button mat-stroked-button (click)="dismissDeviation(deviation)" [disabled]="isProcessingDeviation(deviation)">Descartar</button>
+    </div>
+  </div>
+
+  <!-- Historial de desvíos ya resueltos en esta tarea -->
+  <div *ngIf="resolvedDeviations.length" class="d-deviation-history">
+    <div class="d-deviation-history__lbl">Desvíos resueltos</div>
+    <div *ngFor="let deviation of resolvedDeviations" class="d-deviation-history__row">
+      <span>{{ deviationSignalLabel(deviation) }}</span>
+      <span class="badge" [ngClass]="deviation.status === 'CONFIRMED' ? 'badge--accent' : 'badge--neutral'">
+        {{ deviationStatusLabel(deviation) }}
+      </span>
+    </div>
+  </div>
 
   <!-- Detalle del vencimiento -->
   <div *ngIf="task.type === 'EXPIRATION_CONTROL'" class="d-expiration-detail">

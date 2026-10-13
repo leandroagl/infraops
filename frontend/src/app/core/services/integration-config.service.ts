@@ -24,10 +24,13 @@ export interface InfraDocConfigDto {
 export interface VmwareConfigDto {
   username: string; password: string; updatedAt: Date | null; updatedBy: string | null;
 }
+export interface VeeamIntegrationConfigDto {
+  username: string; password: string; updatedAt: Date | null; updatedBy: string | null;
+}
 export interface TestConnectionResult { ok: boolean; message: string; }
 export interface HelpdeskTeamDto { id: number; name: string; }
 export interface HelpdeskTagDto { id: number; name: string; }
-export interface HelpdeskSlaDto { id: number; name: string; time_days: number; }
+export interface HelpdeskSlaDto { id: number; name: string; time_hours: number; }
 
 @Injectable({ providedIn: 'root' })
 export class IntegrationConfigService {
@@ -49,4 +52,8 @@ export class IntegrationConfigService {
   getVmware(): Observable<VmwareConfigDto>                              { return this.http.get<VmwareConfigDto>(`${this.base}/vmware`); }
   patchVmware(dto: Partial<VmwareConfigDto>): Observable<VmwareConfigDto> { return this.http.patch<VmwareConfigDto>(`${this.base}/vmware`, dto); }
   testVmware(): Observable<TestConnectionResult>                          { return this.http.post<TestConnectionResult>(`${this.base}/vmware/test`, {}); }
+
+  getVeeam(): Observable<VeeamIntegrationConfigDto>                                    { return this.http.get<VeeamIntegrationConfigDto>(`${this.base}/veeam`); }
+  patchVeeam(dto: Partial<VeeamIntegrationConfigDto>): Observable<VeeamIntegrationConfigDto> { return this.http.patch<VeeamIntegrationConfigDto>(`${this.base}/veeam`, dto); }
+  testVeeam(): Observable<TestConnectionResult>                                          { return this.http.post<TestConnectionResult>(`${this.base}/veeam/test`, {}); }
 }

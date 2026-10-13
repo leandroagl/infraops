@@ -11,8 +11,8 @@ import { DOCS_SECTIONS } from './data/docs-sections';
 import { UserRole } from '../../core/models/auth.models';
 
 function buildAuthSpy(role: UserRole) {
-  const spy = jasmine.createSpyObj<AuthService>('AuthService', ['getCurrentUser']);
-  spy.getCurrentUser.and.returnValue({ id: '1', name: 'Test User', email: 'test@ondra.com', role, technicianId: null, avatarUrl: null });
+  const spy = jasmine.createSpyObj('AuthService', ['getCurrentUser']);
+  (spy.getCurrentUser as jasmine.Spy).and.returnValue({ id: '1', name: 'Test User', email: 'test@ondra.com', role, technicianId: null, avatarUrl: null });
   return spy;
 }
 
@@ -59,12 +59,16 @@ describe('DocsComponent — filtrado por rol', () => {
     expect(ids).not.toContain('usuarios');
   });
 
-  it('COORDINATOR ve visitas pero no asignacion ni usuarios', async () => {
+  it('COORDINATOR ve visitas y módulos pero no asignacion ni admin', async () => {
     const { component } = await setup('COORDINATOR');
     const ids = component.visibleSections.map(s => s.id);
     expect(ids).toContain('visitas');
+    expect(ids).toContain('vencimientos');
+    expect(ids).toContain('backups');
+    expect(ids).toContain('clientes');
     expect(ids).not.toContain('asignacion');
     expect(ids).not.toContain('usuarios');
+    expect(ids).not.toContain('admin');
   });
 });
 

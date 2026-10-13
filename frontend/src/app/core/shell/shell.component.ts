@@ -5,11 +5,12 @@ import { MatSidenavContainer } from '@angular/material/sidenav';
 import { AuthService } from '../services/auth.service';
 import { AuthUser } from '../models/auth.models';
 import { SidenavContextService, ClientSidenavContext } from '../services/sidenav-context.service';
+import { AppNotificationsService } from '../services/app-notifications.service';
 
 interface NavItem {
   route: string;
   label: string;
-  icon: 'dashboard' | 'clients' | 'tasks' | 'notifications' | 'admin' | 'schedules' | 'docs';
+  icon: 'dashboard' | 'clients' | 'tasks' | 'notifications' | 'backups' | 'admin' | 'schedules' | 'docs';
 }
 
 @Component({
@@ -23,6 +24,7 @@ export class ShellComponent implements OnInit {
     { route: '/clients',        label: 'Clientes',     icon: 'clients'       },
     { route: '/tasks',          label: 'Mis tareas',   icon: 'tasks'         },
     { route: '/notifications',  label: 'Vencimientos', icon: 'notifications' },
+    { route: '/backups',        label: 'Backups',      icon: 'backups'       },
     { route: '/admin',          label: 'Admin',        icon: 'admin'         },
     { route: '/schedules',      label: 'Schedules',    icon: 'schedules'     },
     { route: '/docs',           label: 'Documentación', icon: 'docs'         },
@@ -39,6 +41,7 @@ export class ShellComponent implements OnInit {
     private readonly router: Router,
     private readonly auth: AuthService,
     private readonly sidenavCtx: SidenavContextService,
+    private readonly appNotifications: AppNotificationsService,
   ) {
     this.currentUser = this.auth.getCurrentUser();
   }
@@ -56,6 +59,9 @@ export class ShellComponent implements OnInit {
         // el cambio automáticamente en v17, forzamos el recálculo del margen.
         setTimeout(() => this.sidenavContainer?.updateContentMargins());
       });
+
+    this.appNotifications.startPolling();
+    this.destroyRef.onDestroy(() => this.appNotifications.stopPolling());
   }
 
   isActive(route: string): boolean {

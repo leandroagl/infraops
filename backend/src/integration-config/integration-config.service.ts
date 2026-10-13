@@ -7,9 +7,11 @@ import { firstValueFrom } from 'rxjs';
 import { OdooConfig } from './entities/odoo-config.entity';
 import { InfraDocConfig } from './entities/infradoc-config.entity';
 import { VmwareConfig } from './entities/vmware-config.entity';
+import { VeeamConfig } from './entities/veeam-config.entity';
 import { PatchOdooConfigDto, OdooConfigResponseDto } from './dto/odoo-config.dto';
 import { PatchInfraDocConfigDto, InfraDocConfigResponseDto } from './dto/infradoc-config.dto';
 import { PatchVmwareConfigDto, VmwareConfigResponseDto } from './dto/vmware-config.dto';
+import { PatchVeeamIntegrationConfigDto, VeeamIntegrationConfigResponseDto } from './dto/veeam-integration-config.dto';
 import { encrypt, decrypt, isMasked, MASK } from './crypto.util';
 import { buildOdooClient, rpcCall } from '../integrations/odoo/odoo-rpc.helpers';
 
@@ -18,9 +20,10 @@ export class IntegrationConfigService {
   private odooVersion = 0;
 
   constructor(
-    @InjectRepository(OdooConfig)     private readonly odooRepo:     Repository<OdooConfig>,
-    @InjectRepository(InfraDocConfig) private readonly infradocRepo: Repository<InfraDocConfig>,
-    @InjectRepository(VmwareConfig)   private readonly vmwareRepo:   Repository<VmwareConfig>,
+    @InjectRepository(OdooConfig)     private readonly odooRepo:          Repository<OdooConfig>,
+    @InjectRepository(InfraDocConfig) private readonly infradocRepo:      Repository<InfraDocConfig>,
+    @InjectRepository(VmwareConfig)   private readonly vmwareRepo:        Repository<VmwareConfig>,
+    @InjectRepository(VeeamConfig)    private readonly veeamIntegrationRepo: Repository<VeeamConfig>,
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {}
@@ -273,5 +276,39 @@ export class IntegrationConfigService {
 
   async testVmware(): Promise<{ ok: boolean; message: string }> {
     return { ok: true, message: 'Credenciales guardadas. Se verificarán en el próximo health check de ESXi.' };
+  }
+
+  // ── VEEAM ──
+
+  async getVeeam(): Promise<VeeamIntegrationConfigResponseDto> {
+    const row = await this.veeamIntegrationRepo.findOne({ where: { id: 1 } });
+    if (!row) return { username: this.configService.get('VEEAM_USER', ''), password: MASK, updatedAt: null, updatedBy: null };
+    return { username: row.username ?? '', password: MASK, updatedAt: row.updatedAt, updatedBy: row.updatedBy };
+  }
+
+  async patchVeeam(dto: PatchVeeamIntegrationConfigDto, updatedBy: string): Promise<VeeamIntegrationConfigResponseDto> {
+    const existing = (await this.veeamIntegrationRepo.findOne({ where: { id: 1 } })) ?? new VeeamConfig();
+    existing.id = 1;
+    if (dto.username !== undefined) existing.username = dto.username.trim();
+    if (dto.password !== undefined && !isMasked(dto.password) && dto.password.trim() !== '') {
+      existing.password = this.safeEncrypt(dto.password.trim());
+    }
+    if (!existing.password) {
+      const envPass = this.configService.get<string>('VEEAM_PASS', '');
+      if (envPass) existing.password = this.safeEncrypt(envPass);
+    }
+    existing.updatedBy = updatedBy;
+    await this.veeamIntegrationRepo.save(existing);
+    return this.getVeeam();
+  }
+
+  async getVeeamConfigDecrypted(): Promise<{ username: string; password: string }> {
+    const row = await this.veeamIntegrationRepo.findOne({ where: { id: 1 } });
+    if (!row) return { username: this.configService.get('VEEAM_USER', ''), password: this.configService.get('VEEAM_PASS', '') };
+    return { username: row.username ?? '', password: row.password ? decrypt(row.password, this.encryptKey) : '' };
+  }
+
+  async testVeeam(): Promise<{ ok: boolean; message: string }> {
+    return { ok: true, message: 'Credenciales guardadas. Se verificarán al conectar con los servidores Veeam de clientes.' };
   }
 }

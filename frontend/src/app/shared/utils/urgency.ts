@@ -36,3 +36,21 @@ export function urgencyClass(days: number): string {
   if (days <= 7) return 'urg-warn';
   return 'urg-ok';
 }
+
+/**
+ * Etiqueta legible a partir de días restantes hasta un vencimiento genérico
+ * (SLA de un ticket, backlog de vencimientos sin ticket, etc.) — a diferencia
+ * de urgencyLabel(), que es específico del cierre de ciclo mensual.
+ */
+export function daysUntilLabel(days: number): string {
+  if (days < 0) return `Vencido hace ${Math.abs(days)}d`;
+  if (days === 0) return 'Vence hoy';
+  return `${days}d`;
+}
+
+/** Nivel de urgencia (crit/warn/ok) a partir de días restantes hasta un vencimiento genérico. */
+export function daysUntilLevel(days: number): 'crit' | 'warn' | 'ok' {
+  if (days <= 0) return 'crit';
+  if (days <= 3) return 'warn';
+  return 'ok';
+}

@@ -347,8 +347,14 @@ Cuando un componente nuevo duplique lógica existente, **refactorizar primero** 
 - `/tasks` — Vista unificada de tareas por ciclo (todos los roles, comportamiento varía por rol)
 - `/notifications` — Vencimientos: licencias, garantías, dominios y certificados próximos a
   vencer, con indicador de ticket automático ya creado en Odoo
+- `/backups` — Monitoreo de backups Veeam por cliente: grid de cards con semáforo + drawer de
+  detalle por cliente con tabla de jobs. Ver mockup `docs/mockups/backups-v1.html`.
+  **Patrón de diseño obligatorio:** KPI strip, tablas, chips de estado y estructura visual
+  deben seguir exactamente el mismo patrón que `/tasks` y `/notifications`. Ante cualquier
+  duda de estilo, referirse a esos módulos primero.
 - `/admin` — Panel Admin: Usuarios, Sync, Integraciones, Mantenimientos (config. por tipo de
-  tarea), Vencimientos (config. de creación automática de tickets por tipo)
+  tarea), Vencimientos (config. de creación automática de tickets por tipo),
+  Backups (config. de conexión Veeam por cliente: host, puerto, credenciales cifradas, habilitado)
 - `/clients` — Lista de clientes con horas de suscripción y detalle por cliente
 - `/docs` — Módulo de documentación integrada, contenido filtrado por rol
 - `/profile` — Perfil del usuario, cambio de contraseña, avatar upload

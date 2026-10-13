@@ -9,12 +9,12 @@
 
   <ng-container *ngIf="!loading && !error">
     <p *ngIf="preview?.count === 0" class="utd-empty">
-      No hay vencimientos sin ticket dentro de los próximos {{ data.maxDays }} días.
+      No hay vencimientos sin ticket entre {{ data.minDays }} y {{ data.maxDays }} días.
     </p>
 
     <ng-container *ngIf="preview && preview.count > 0">
       <p class="utd-summary">
-        <strong>{{ preview.count }}</strong> vencimiento{{ preview.count !== 1 ? 's' : '' }} sin ticket en los próximos {{ data.maxDays }} días:
+        <strong>{{ preview.count }}</strong> vencimiento{{ preview.count !== 1 ? 's' : '' }} sin ticket entre {{ data.minDays }} y {{ data.maxDays }} días:
       </p>
 
       <mat-table [dataSource]="preview.items" class="utd-table">

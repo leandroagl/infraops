@@ -37,30 +37,30 @@ describe('NotificationsConfigController', () => {
     expect(result).toEqual({ expirationsTypeConfigs: { domain: entry } });
   });
 
-  it('GET /urgent-preview llama getUrgentBacklogPreview con maxDays parseado', async () => {
+  it('GET /urgent-preview llama getUrgentBacklogPreview con minDays y maxDays parseados', async () => {
     mockService.getUrgentBacklogPreview.mockResolvedValue({ count: 2, items: [] });
-    const result = await controller.urgentPreview('4');
-    expect(mockService.getUrgentBacklogPreview).toHaveBeenCalledWith(4);
+    const result = await controller.urgentPreview('6', '17');
+    expect(mockService.getUrgentBacklogPreview).toHaveBeenCalledWith(6, 17);
     expect(result).toEqual({ count: 2, items: [] });
   });
 
-  it('GET /urgent-preview usa 6 como default si no se pasa maxDays', async () => {
+  it('GET /urgent-preview usa defaults (0, 17) si no se pasan los días', async () => {
     mockService.getUrgentBacklogPreview.mockResolvedValue({ count: 0, items: [] });
-    await controller.urgentPreview(undefined);
-    expect(mockService.getUrgentBacklogPreview).toHaveBeenCalledWith(6);
+    await controller.urgentPreview(undefined, undefined);
+    expect(mockService.getUrgentBacklogPreview).toHaveBeenCalledWith(0, 17);
   });
 
-  it('POST /urgent-tickets llama createUrgentBacklogTickets con maxDays parseado', async () => {
+  it('POST /urgent-tickets llama createUrgentBacklogTickets con minDays y maxDays parseados', async () => {
     mockService.createUrgentBacklogTickets.mockResolvedValue({ created: 3, errors: 0 });
-    const result = await controller.createUrgentTickets('6');
-    expect(mockService.createUrgentBacklogTickets).toHaveBeenCalledWith(6);
+    const result = await controller.createUrgentTickets('6', '17');
+    expect(mockService.createUrgentBacklogTickets).toHaveBeenCalledWith(6, 17);
     expect(result).toEqual({ created: 3, errors: 0 });
   });
 
-  it('POST /urgent-tickets usa 6 como default si no se pasa maxDays', async () => {
+  it('POST /urgent-tickets usa defaults (0, 17) si no se pasan los días', async () => {
     mockService.createUrgentBacklogTickets.mockResolvedValue({ created: 0, errors: 0 });
-    await controller.createUrgentTickets(undefined);
-    expect(mockService.createUrgentBacklogTickets).toHaveBeenCalledWith(6);
+    await controller.createUrgentTickets(undefined, undefined);
+    expect(mockService.createUrgentBacklogTickets).toHaveBeenCalledWith(0, 17);
   });
 
   it('tiene JwtAuthGuard y RolesGuard aplicados', () => {

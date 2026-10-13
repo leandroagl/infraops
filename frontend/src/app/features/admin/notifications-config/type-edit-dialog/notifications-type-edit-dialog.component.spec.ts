@@ -44,7 +44,7 @@ describe('NotificationsTypeEditDialogComponent', () => {
     integrationSvc = jasmine.createSpyObj('IntegrationConfigService', ['getHelpdeskTeams', 'getHelpdeskTags', 'getHelpdeskSlas']);
     integrationSvc.getHelpdeskTeams.and.returnValue(of(TEAMS));
     integrationSvc.getHelpdeskTags.and.returnValue(of(TAGS));
-    integrationSvc.getHelpdeskSlas.and.returnValue(of([{ id: 5, name: 'SLA Normal', time_days: 18 }]));
+    integrationSvc.getHelpdeskSlas.and.returnValue(of([{ id: 5, name: 'SLA Normal', time_hours: 18 }]));
     dialogRef = jasmine.createSpyObj('MatDialogRef', ['close']);
 
     TestBed.configureTestingModule({

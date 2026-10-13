@@ -8,7 +8,8 @@ import { IntegrationConfigService } from './integration-config.service';
 import { OdooConfig } from './entities/odoo-config.entity';
 import { InfraDocConfig } from './entities/infradoc-config.entity';
 import { VmwareConfig } from './entities/vmware-config.entity';
-import { MASK, decrypt } from './crypto.util';
+import { VeeamConfig } from './entities/veeam-config.entity';
+import { MASK, decrypt, encrypt } from './crypto.util';
 
 const KEY = '8b2202fa0aa8498ca124415c67472e7b479e1eb31a24d948eedeccecc2a5a5c2';
 
@@ -17,12 +18,14 @@ describe('IntegrationConfigService', () => {
   let odooRepo: { findOne: jest.Mock; save: jest.Mock };
   let infradocRepo: { findOne: jest.Mock; save: jest.Mock };
   let vmwareRepo: { findOne: jest.Mock; save: jest.Mock };
+  let veeamRepo: { findOne: jest.Mock; save: jest.Mock };
   let httpGet: jest.Mock;
 
   beforeEach(async () => {
     odooRepo     = { findOne: jest.fn(), save: jest.fn() };
     infradocRepo = { findOne: jest.fn(), save: jest.fn() };
     vmwareRepo   = { findOne: jest.fn(), save: jest.fn() };
+    veeamRepo    = { findOne: jest.fn(), save: jest.fn() };
     httpGet      = jest.fn();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -31,6 +34,7 @@ describe('IntegrationConfigService', () => {
         { provide: getRepositoryToken(OdooConfig),     useValue: odooRepo     },
         { provide: getRepositoryToken(InfraDocConfig), useValue: infradocRepo },
         { provide: getRepositoryToken(VmwareConfig),   useValue: vmwareRepo   },
+        { provide: getRepositoryToken(VeeamConfig),    useValue: veeamRepo    },
         { provide: ConfigService, useValue: {
             get: (key: string, def = '') =>
               ({
@@ -39,6 +43,7 @@ describe('IntegrationConfigService', () => {
                 ODOO_EXPIRATIONS_HELPDESK_TEAM_ID: '12',
                 INFRADOC_API_KEY: 'env-infradoc-key',
                 VMWARE_PASS:     'env-vmware-pass',
+                VEEAM_USER:      'env-veeam-user',
               } as Record<string, string>)[key] ?? def,
           },
         },
@@ -516,6 +521,7 @@ describe('IntegrationConfigService', () => {
           { provide: getRepositoryToken(OdooConfig),     useValue: odooRepo     },
           { provide: getRepositoryToken(InfraDocConfig), useValue: infradocRepo },
           { provide: getRepositoryToken(VmwareConfig),   useValue: vmwareRepo   },
+          { provide: getRepositoryToken(VeeamConfig),    useValue: veeamRepo    },
           { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } }, // INTEGRATIONS_ENCRYPT_KEY vacía
           { provide: HttpService, useValue: { get: httpGet } },
         ],
@@ -591,6 +597,70 @@ describe('IntegrationConfigService', () => {
       vmwareRepo.findOne.mockResolvedValue(null);
       const cfg = await service.getVmwareConfigDecrypted();
       expect(cfg).toHaveProperty('username');
+      expect(cfg).toHaveProperty('password');
+    });
+  });
+
+  describe('getVeeam', () => {
+    it('retorna password enmascarado cuando hay fila en DB', async () => {
+      veeamRepo.findOne.mockResolvedValue({
+        id: 1, username: 'admin', password: 'encrypted-value',
+        updatedAt: new Date('2026-10-01'), updatedBy: 'pepe@ondra.com.ar',
+      });
+      const result = await service.getVeeam();
+      expect(result.username).toBe('admin');
+      expect(result.password).toBe(MASK);
+      expect(result.updatedBy).toBe('pepe@ondra.com.ar');
+    });
+
+    it('retorna fallback del env cuando no hay fila en DB', async () => {
+      veeamRepo.findOne.mockResolvedValue(null);
+      const result = await service.getVeeam();
+      expect(result.username).toBe('env-veeam-user');
+      expect(result.password).toBe(MASK);
+      expect(result.updatedAt).toBeNull();
+    });
+  });
+
+  describe('patchVeeam', () => {
+    it('encripta el password nuevo al guardar', async () => {
+      veeamRepo.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 1, username: 'admin', password: 'encrypted', updatedAt: new Date(), updatedBy: 'u' });
+      veeamRepo.save.mockImplementation((e: VeeamConfig) => Promise.resolve({ ...e, updatedAt: new Date() }));
+      await service.patchVeeam({ username: 'admin', password: 'plaintext' }, 'u@test.com');
+      const saved = veeamRepo.save.mock.calls[0][0] as VeeamConfig;
+      expect(saved.password).not.toBe('plaintext');
+      expect(saved.password).toBeDefined();
+    });
+
+    it('no modifica el password si se envía el MASK', async () => {
+      veeamRepo.findOne
+        .mockResolvedValueOnce({ id: 1, username: 'admin', password: 'existing-encrypted', updatedAt: new Date(), updatedBy: 'u' })
+        .mockResolvedValueOnce({ id: 1, username: 'admin', password: 'existing-encrypted', updatedAt: new Date(), updatedBy: 'u' });
+      veeamRepo.save.mockImplementation((e: VeeamConfig) => Promise.resolve({ ...e, updatedAt: new Date() }));
+      await service.patchVeeam({ password: MASK }, 'u@test.com');
+      const saved = veeamRepo.save.mock.calls[0][0] as VeeamConfig;
+      expect(saved.password).toBe('existing-encrypted');
+    });
+  });
+
+  describe('getVeeamConfigDecrypted', () => {
+    it('retorna username y password desencriptado desde DB', async () => {
+      const encryptedPassword = encrypt('real-password', KEY);
+      veeamRepo.findOne.mockResolvedValue({
+        id: 1, username: 'admin', password: encryptedPassword,
+        updatedAt: new Date(), updatedBy: null,
+      });
+      const result = await service.getVeeamConfigDecrypted();
+      expect(result.username).toBe('admin');
+      expect(result.password).toBe('real-password');
+    });
+
+    it('devuelve credenciales del .env cuando no hay fila en DB', async () => {
+      veeamRepo.findOne.mockResolvedValue(null);
+      const cfg = await service.getVeeamConfigDecrypted();
+      expect(cfg.username).toBe('env-veeam-user');
       expect(cfg).toHaveProperty('password');
     });
   });
