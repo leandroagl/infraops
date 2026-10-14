@@ -1,13 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of } from 'rxjs';
-import { BackupsConfigComponent } from './backups-config.component';
-import { BackupsService } from '../../../features/backups/services/backups.service';
-import { MatDialogModule } from '@angular/material/dialog';
+import { of, throwError } from 'rxjs';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { BackupsConfigComponent } from './backups-config.component';
+import { BackupsService } from '../../../features/backups/services/backups.service';
+import { SharedModule } from '../../../shared/shared.module';
 import type { BackupConfig } from '../../../features/backups/models/backup.models';
 
 const veeamRow: BackupConfig = {
@@ -27,6 +28,7 @@ const acronisRow: BackupConfig = {
 describe('BackupsConfigComponent', () => {
   let fixture: ComponentFixture<BackupsConfigComponent>;
   let mockSvc: jasmine.SpyObj<BackupsService>;
+  let dialog: MatDialog;
 
   beforeEach(async () => {
     mockSvc = jasmine.createSpyObj('BackupsService', [
@@ -35,16 +37,23 @@ describe('BackupsConfigComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [BackupsConfigComponent],
-      imports: [NoopAnimationsModule, MatDialogModule, MatIconModule, MatSnackBarModule, MatTableModule, MatProgressSpinnerModule],
+      imports: [NoopAnimationsModule, MatDialogModule, MatIconModule, MatSnackBarModule, MatTableModule, MatProgressSpinnerModule, SharedModule],
       providers: [{ provide: BackupsService, useValue: mockSvc }],
     }).compileComponents();
     fixture = TestBed.createComponent(BackupsConfigComponent);
+    dialog = TestBed.inject(MatDialog);
   });
 
   it('debería cargar configs al init', () => {
     mockSvc.listConfigs.and.returnValue(of([]));
     fixture.detectChanges();
     expect(mockSvc.listConfigs).toHaveBeenCalled();
+  });
+
+  it('tiene mecanismo de cleanup de subscripciones (DestroyRef)', () => {
+    mockSvc.listConfigs.and.returnValue(of([]));
+    fixture.detectChanges();
+    expect((fixture.componentInstance as any).destroyRef).toBeDefined();
   });
 
   it('testConnection debería mostrar resultado en snackBar', () => {
@@ -94,23 +103,42 @@ describe('BackupsConfigComponent', () => {
     });
 
     it('elimina una config de Veeam con deleteConfig', () => {
-      spyOn(window, 'confirm').and.returnValue(true);
+      spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(true) } as any);
       fixture.componentInstance.delete(veeamRow);
       expect(mockSvc.deleteConfig).toHaveBeenCalledWith('v1');
       expect(mockSvc.deleteJetbackupConfig).not.toHaveBeenCalled();
     });
 
     it('elimina una config de JetBackup con deleteJetbackupConfig', () => {
-      spyOn(window, 'confirm').and.returnValue(true);
+      spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(true) } as any);
       fixture.componentInstance.delete(jetRow);
       expect(mockSvc.deleteJetbackupConfig).toHaveBeenCalledWith('jc1');
       expect(mockSvc.deleteConfig).not.toHaveBeenCalled();
     });
 
-    it('no elimina si el usuario cancela', () => {
-      spyOn(window, 'confirm').and.returnValue(false);
+    it('no elimina si el usuario cancela el diálogo', () => {
+      spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(false) } as any);
       fixture.componentInstance.delete(jetRow);
       expect(mockSvc.deleteJetbackupConfig).not.toHaveBeenCalled();
+    });
+
+    it('abre ConfirmDialogComponent al eliminar (no window.confirm)', () => {
+      const openSpy = spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(false) } as any);
+      fixture.componentInstance.delete(veeamRow);
+      expect(openSpy).toHaveBeenCalled();
+    });
+
+    it('muestra snackBar de error si la API de eliminación falla', () => {
+      mockSvc.deleteConfig.and.returnValue(throwError(() => new Error('Server error')));
+      spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(true) } as any);
+      const snackBar = TestBed.inject(MatSnackBar);
+      const snackSpy = spyOn(snackBar, 'open');
+
+      fixture.componentInstance.delete(veeamRow);
+
+      expect(snackSpy).toHaveBeenCalledWith(
+        'No se pudo eliminar la configuración.', 'Cerrar', jasmine.any(Object),
+      );
     });
   });
 });
@@ -118,6 +146,7 @@ describe('BackupsConfigComponent', () => {
 describe('BackupsConfigComponent · Acronis', () => {
   let fixture: ComponentFixture<BackupsConfigComponent>;
   let mockSvc: jasmine.SpyObj<BackupsService>;
+  let dialog: MatDialog;
 
   beforeEach(async () => {
     mockSvc = jasmine.createSpyObj('BackupsService', ['listConfigs', 'deleteAcronisConfig', 'deleteConfig', 'deleteJetbackupConfig']);
@@ -125,10 +154,11 @@ describe('BackupsConfigComponent · Acronis', () => {
     mockSvc.deleteAcronisConfig.and.returnValue(of(undefined));
     await TestBed.configureTestingModule({
       declarations: [BackupsConfigComponent],
-      imports: [NoopAnimationsModule, MatDialogModule, MatIconModule, MatSnackBarModule, MatTableModule, MatProgressSpinnerModule],
+      imports: [NoopAnimationsModule, MatDialogModule, MatIconModule, MatSnackBarModule, MatTableModule, MatProgressSpinnerModule, SharedModule],
       providers: [{ provide: BackupsService, useValue: mockSvc }],
     }).compileComponents();
     fixture = TestBed.createComponent(BackupsConfigComponent);
+    dialog = TestBed.inject(MatDialog);
     fixture.detectChanges();
   });
 
@@ -149,7 +179,7 @@ describe('BackupsConfigComponent · Acronis', () => {
   });
 
   it('elimina una config de Acronis con deleteAcronisConfig', () => {
-    spyOn(window, 'confirm').and.returnValue(true);
+    spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(true) } as any);
     fixture.componentInstance.delete(acronisRow);
     expect(mockSvc.deleteAcronisConfig).toHaveBeenCalledWith('ac1');
     expect(mockSvc.deleteConfig).not.toHaveBeenCalled();
