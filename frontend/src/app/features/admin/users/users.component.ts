@@ -42,7 +42,7 @@ export class UsersComponent implements OnInit {
   loadUsers(): void {
     this.loading = true;
     this.error = '';
-    this.usersService.getAll().subscribe({
+    this.usersService.getAll().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: users => {
         this.users = users;
         this.loading = false;
@@ -90,8 +90,8 @@ export class UsersComponent implements OnInit {
     ref.afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(result => {
       if (!result) return;
       const { plainPassword, ...newUser } = result;
-      this.users = [newUser as User, ...this.users];
-      if (plainPassword) {
+      this.users = [...this.users, newUser as User];
+      if (plainPassword != null) {
         this.dialog.open(PasswordDisplayDialogComponent, {
           data: { name: result.name, plainPassword },
           width: '420px',

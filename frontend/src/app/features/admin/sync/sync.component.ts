@@ -28,10 +28,13 @@ export class SyncComponent {
     this.odooResult = null;
     this.currentStep = 'clients';
 
+    let failedStep: 'clients' | 'odoo' = 'clients';
+
     this.syncService.syncClients().pipe(
       concatMap(result => {
         this.clientsResult = result;
         this.currentStep = 'odoo';
+        failedStep = 'odoo';
         return this.syncService.syncOdooPartners();
       }),
       takeUntilDestroyed(this.destroyRef),
@@ -42,7 +45,10 @@ export class SyncComponent {
         this.loading = false;
       },
       error: (err) => {
-        this.error = err?.error?.message ?? 'Error al sincronizar';
+        const fallback = failedStep === 'clients'
+          ? 'Error al sincronizar clientes desde InfraDoc'
+          : 'Error al sincronizar partners de Odoo';
+        this.error = err?.error?.message ?? fallback;
         this.currentStep = null;
         this.loading = false;
       },

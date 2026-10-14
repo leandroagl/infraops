@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError, Subject } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -88,6 +88,14 @@ describe('UsersComponent', () => {
     expect(component.loading).toBeFalse();
   });
 
+  it('loadUsers() cancela la suscripción cuando el componente se destruye (takeUntilDestroyed)', () => {
+    let teardownCalled = false;
+    usersServiceSpy.getAll.and.returnValue(new Observable<User[]>(() => () => { teardownCalled = true; }));
+    component.loadUsers();
+    fixture.destroy();
+    expect(teardownCalled).toBe(true);
+  });
+
   describe('isSeedAdmin()', () => {
     it('devuelve true para el email del seed admin', () => {
       expect(component.isSeedAdmin(seedAdmin)).toBeTrue();
@@ -147,6 +155,31 @@ describe('UsersComponent', () => {
       expect(loadSpy).not.toHaveBeenCalled();
       expect(component.users.length).toBe(initialCount + 1);
       expect(component.users.some(u => u.id === 'new-id')).toBeTrue();
+    });
+
+    it('agrega el usuario creado al FINAL del array (respetando orden createdAt ASC del servidor)', () => {
+      const newUser: User = { ...techUser, id: 'new-id', name: 'Nuevo Técnico', email: 'nuevo@ondra.com.ar', isActive: true };
+      spyOn(dialog, 'open').and.returnValue({
+        afterClosed: () => of({ ...newUser, plainPassword: 'Abc123!' }),
+      } as any);
+
+      component.openCreateDialog();
+
+      expect(component.users[component.users.length - 1].id).toBe('new-id');
+      expect(component.users[0].id).not.toBe('new-id');
+    });
+
+    it('abre PasswordDisplayDialog aunque plainPassword sea string vacío', () => {
+      const newUser: User = { ...techUser, id: 'new-id', name: 'Test', email: 'test@ondra.com.ar', isActive: true };
+      let openCount = 0;
+      spyOn(dialog, 'open').and.callFake(() => {
+        openCount++;
+        return { afterClosed: () => of(openCount === 1 ? { ...newUser, plainPassword: '' } : null) } as any;
+      });
+
+      component.openCreateDialog();
+
+      expect(openCount).toBe(2);
     });
   });
 

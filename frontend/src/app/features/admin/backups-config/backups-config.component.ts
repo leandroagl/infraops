@@ -85,7 +85,10 @@ export class BackupsConfigComponent implements OnInit {
         : config.provider === 'ACRONIS'
           ? this.svc.deleteAcronisConfig(config.id)
           : this.svc.deleteConfig(config.id);
-      call$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
+      call$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: () => this.load(),
+        error: () => this.snackBar.open('No se pudo eliminar la configuración.', 'Cerrar', { duration: 4000 }),
+      });
     });
   }
 }

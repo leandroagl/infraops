@@ -1,9 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { BackupsConfigComponent } from './backups-config.component';
@@ -126,6 +126,19 @@ describe('BackupsConfigComponent', () => {
       const openSpy = spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(false) } as any);
       fixture.componentInstance.delete(veeamRow);
       expect(openSpy).toHaveBeenCalled();
+    });
+
+    it('muestra snackBar de error si la API de eliminación falla', () => {
+      mockSvc.deleteConfig.and.returnValue(throwError(() => new Error('Server error')));
+      spyOn(dialog, 'open').and.returnValue({ afterClosed: () => of(true) } as any);
+      const snackBar = TestBed.inject(MatSnackBar);
+      const snackSpy = spyOn(snackBar, 'open');
+
+      fixture.componentInstance.delete(veeamRow);
+
+      expect(snackSpy).toHaveBeenCalledWith(
+        'No se pudo eliminar la configuración.', 'Cerrar', jasmine.any(Object),
+      );
     });
   });
 });

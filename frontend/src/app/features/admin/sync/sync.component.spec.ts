@@ -61,4 +61,21 @@ describe('SyncComponent', () => {
     expect(comp.error).toBe('Odoo no disponible');
     expect(comp.clientsResult).toEqual(clientsResult);
   });
+
+  it('usa fallback específico "clientes" cuando syncClients falla sin mensaje de error', () => {
+    mockSvc.syncClients.and.returnValue(throwError(() => ({})));
+
+    comp.runSync();
+
+    expect(comp.error).toBe('Error al sincronizar clientes desde InfraDoc');
+  });
+
+  it('usa fallback específico "partners" cuando syncOdooPartners falla sin mensaje de error', () => {
+    mockSvc.syncClients.and.returnValue(of(clientsResult));
+    mockSvc.syncOdooPartners.and.returnValue(throwError(() => ({})));
+
+    comp.runSync();
+
+    expect(comp.error).toBe('Error al sincronizar partners de Odoo');
+  });
 });
