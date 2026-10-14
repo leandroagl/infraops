@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError, Subject } from 'rxjs';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -88,6 +88,14 @@ describe('UsersComponent', () => {
     expect(component.loading).toBeFalse();
   });
 
+  it('loadUsers() cancela la suscripción cuando el componente se destruye (takeUntilDestroyed)', () => {
+    let teardownCalled = false;
+    usersServiceSpy.getAll.and.returnValue(new Observable<User[]>(() => () => { teardownCalled = true; }));
+    component.loadUsers();
+    fixture.destroy();
+    expect(teardownCalled).toBe(true);
+  });
+
   describe('isSeedAdmin()', () => {
     it('devuelve true para el email del seed admin', () => {
       expect(component.isSeedAdmin(seedAdmin)).toBeTrue();
@@ -121,11 +129,74 @@ describe('UsersComponent', () => {
       expect(usersServiceSpy.updateStatus).toHaveBeenCalledWith(techUser.id, false);
     });
 
-    it('llama loadUsers cuando updateStatus tiene éxito', () => {
+    it('actualiza el usuario en el array local sin recargar desde la API', () => {
+      const loadSpy = spyOn(component, 'loadUsers').and.callThrough();
+      component.users = [seedAdmin, { ...techUser, isActive: true }];
       usersServiceSpy.updateStatus.and.returnValue(of({ ...techUser, isActive: false }));
-      spyOn(component, 'loadUsers').and.callThrough();
-      component.toggleStatus(techUser);
-      expect(component.loadUsers).toHaveBeenCalled();
+
+      component.toggleStatus(component.users[1]);
+
+      expect(loadSpy).not.toHaveBeenCalled();
+      expect(component.users[1].isActive).toBe(false);
+    });
+  });
+
+  describe('openCreateDialog()', () => {
+    it('agrega el usuario creado al array local sin recargar desde la API', () => {
+      const newUser: User = { ...techUser, id: 'new-id', name: 'Nuevo Técnico', email: 'nuevo@ondra.com.ar', isActive: true };
+      const loadSpy = spyOn(component, 'loadUsers').and.callThrough();
+      spyOn(dialog, 'open').and.returnValue({
+        afterClosed: () => of({ ...newUser, plainPassword: 'Abc123!' }),
+      } as any);
+
+      const initialCount = component.users.length;
+      component.openCreateDialog();
+
+      expect(loadSpy).not.toHaveBeenCalled();
+      expect(component.users.length).toBe(initialCount + 1);
+      expect(component.users.some(u => u.id === 'new-id')).toBeTrue();
+    });
+
+    it('agrega el usuario creado al FINAL del array (respetando orden createdAt ASC del servidor)', () => {
+      const newUser: User = { ...techUser, id: 'new-id', name: 'Nuevo Técnico', email: 'nuevo@ondra.com.ar', isActive: true };
+      spyOn(dialog, 'open').and.returnValue({
+        afterClosed: () => of({ ...newUser, plainPassword: 'Abc123!' }),
+      } as any);
+
+      component.openCreateDialog();
+
+      expect(component.users[component.users.length - 1].id).toBe('new-id');
+      expect(component.users[0].id).not.toBe('new-id');
+    });
+
+    it('abre PasswordDisplayDialog aunque plainPassword sea string vacío', () => {
+      const newUser: User = { ...techUser, id: 'new-id', name: 'Test', email: 'test@ondra.com.ar', isActive: true };
+      let openCount = 0;
+      spyOn(dialog, 'open').and.callFake(() => {
+        openCount++;
+        return { afterClosed: () => of(openCount === 1 ? { ...newUser, plainPassword: '' } : null) } as any;
+      });
+
+      component.openCreateDialog();
+
+      expect(openCount).toBe(2);
+    });
+  });
+
+  describe('openEditDialog()', () => {
+    it('actualiza el usuario editado en el array local sin recargar desde la API', () => {
+      const updatedUser: User = { ...techUser, name: 'Valen Senior', role: 'TL' };
+      const loadSpy = spyOn(component, 'loadUsers').and.callThrough();
+      spyOn(dialog, 'open').and.returnValue({
+        afterClosed: () => of(updatedUser),
+      } as any);
+
+      component.openEditDialog(techUser);
+
+      expect(loadSpy).not.toHaveBeenCalled();
+      const stored = component.users.find(u => u.id === techUser.id);
+      expect(stored?.name).toBe('Valen Senior');
+      expect(stored?.role).toBe('TL');
     });
   });
 
