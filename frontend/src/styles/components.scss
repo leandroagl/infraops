@@ -168,6 +168,17 @@
   &:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
+// ── mat-icon-button — centrado independiente del tamaño ───────
+// Material fija un padding de 12px pensado para el botón de 48px. Al achicar
+// width/height en un componente, ese padding descentra el ícono. Se anula el
+// padding y se centra con flex: cualquier tamaño que se defina queda centrado.
+.mat-mdc-icon-button.mat-mdc-button-base {
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 // ── Angular Material form field — altura estándar del sistema ─
 // .mat-mdc-form-field tiene misma especificidad que las reglas de densidad
 // que genera Material, pero al estar después en el cascade las sobreescribe.
@@ -502,10 +513,6 @@
   &__dismiss {
     width: 24px !important;
     height: 24px !important;
-    padding: 0 !important;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     flex-shrink: 0;
     color: var(--tx-lo);
 
