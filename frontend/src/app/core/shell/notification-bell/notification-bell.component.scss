@@ -2,8 +2,20 @@
   color: var(--tx-md);
   width: 34px;
   height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     color: var(--tx-hi);
+  }
+
+  // Badge abajo a la derecha del ícono, sin recortarse por el borde del botón
+  ::ng-deep .mat-badge-content {
+    bottom: 4px !important;
+    right: 4px !important;
+    top: auto !important;
+    left: auto !important;
   }
 }
