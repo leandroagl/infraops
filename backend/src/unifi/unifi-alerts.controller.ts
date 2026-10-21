@@ -4,13 +4,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user-role.enum';
 import { UnifiAlertsService } from './unifi-alerts.service';
-
-class CreateTicketDto {
-  helpdeskTeamId: number;
-  tagIds: number[];
-  clientId: string;
-  siteId: string;
-}
+import { CreateTicketDto } from './dto/create-ticket.dto';
 
 @Controller('unifi/alerts')
 @UseGuards(JwtAuthGuard, RolesGuard)
