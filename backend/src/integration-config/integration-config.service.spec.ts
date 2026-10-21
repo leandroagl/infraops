@@ -11,6 +11,7 @@ import { VmwareConfig } from './entities/vmware-config.entity';
 import { VeeamConfig } from './entities/veeam-config.entity';
 import { JetbackupConfig } from './entities/jetbackup-config.entity';
 import { AcronisConfig } from './entities/acronis-config.entity';
+import { UnifiConfig } from './entities/unifi-config.entity';
 import { MASK, decrypt, encrypt } from './crypto.util';
 
 const KEY = '8b2202fa0aa8498ca124415c67472e7b479e1eb31a24d948eedeccecc2a5a5c2';
@@ -23,6 +24,7 @@ describe('IntegrationConfigService', () => {
   let veeamRepo: { findOne: jest.Mock; save: jest.Mock };
   let jetbackupRepo: { findOne: jest.Mock; save: jest.Mock };
   let acronisRepo: { findOne: jest.Mock; save: jest.Mock };
+  let unifiRepo: { findOne: jest.Mock; save: jest.Mock };
   let httpGet: jest.Mock;
   let httpPost: jest.Mock;
 
@@ -33,6 +35,7 @@ describe('IntegrationConfigService', () => {
     veeamRepo     = { findOne: jest.fn(), save: jest.fn() };
     jetbackupRepo = { findOne: jest.fn(), save: jest.fn() };
     acronisRepo   = { findOne: jest.fn(), save: jest.fn() };
+    unifiRepo     = { findOne: jest.fn(), save: jest.fn() };
     httpGet      = jest.fn();
     httpPost      = jest.fn();
 
@@ -44,6 +47,7 @@ describe('IntegrationConfigService', () => {
         { provide: getRepositoryToken(VmwareConfig),    useValue: vmwareRepo    },
         { provide: getRepositoryToken(VeeamConfig),     useValue: veeamRepo     },
         { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo }, { provide: getRepositoryToken(AcronisConfig), useValue: acronisRepo },
+        { provide: getRepositoryToken(UnifiConfig),     useValue: unifiRepo     },
         { provide: ConfigService, useValue: {
             get: (key: string, def = '') =>
               ({
@@ -532,6 +536,7 @@ describe('IntegrationConfigService', () => {
           { provide: getRepositoryToken(VmwareConfig),   useValue: vmwareRepo   },
           { provide: getRepositoryToken(VeeamConfig),    useValue: veeamRepo    },
           { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo }, { provide: getRepositoryToken(AcronisConfig), useValue: acronisRepo },
+          { provide: getRepositoryToken(UnifiConfig),     useValue: unifiRepo     },
           { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } }, // INTEGRATIONS_ENCRYPT_KEY vacía
           { provide: HttpService, useValue: { get: httpGet } },
         ],
@@ -731,6 +736,7 @@ describe('IntegrationConfigService', () => {
           { provide: getRepositoryToken(VmwareConfig),    useValue: vmwareRepo    },
           { provide: getRepositoryToken(VeeamConfig),     useValue: veeamRepo     },
           { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo }, { provide: getRepositoryToken(AcronisConfig), useValue: acronisRepo },
+          { provide: getRepositoryToken(UnifiConfig),     useValue: unifiRepo     },
           { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } },
           { provide: HttpService, useValue: { get: httpGet, post: httpPost } },
         ],
@@ -857,6 +863,7 @@ describe('IntegrationConfigService', () => {
           { provide: getRepositoryToken(VeeamConfig),     useValue: veeamRepo     },
           { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo },
           { provide: getRepositoryToken(AcronisConfig),   useValue: acronisRepo   },
+          { provide: getRepositoryToken(UnifiConfig),     useValue: unifiRepo     },
           { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } },
           { provide: HttpService, useValue: { get: httpGet, post: httpPost } },
         ],
@@ -883,6 +890,37 @@ describe('IntegrationConfigService', () => {
       acronisRepo.findOne.mockResolvedValue(null);
       const result = await service.getAcronisConfigDecrypted();
       expect(result).toEqual({ baseUrl: '', clientId: '', clientSecret: '' });
+    });
+  });
+
+  describe('UniFi', () => {
+    it('getUnifi returns masked apiKey when row exists', async () => {
+      unifiRepo.findOne.mockResolvedValue({ id: 1, apiKey: encrypt('real-key', KEY), updatedAt: new Date(), updatedBy: 'test@test.com' });
+      const result = await service.getUnifi();
+      expect(result.apiKey).toBe(MASK);
+      expect(result.updatedBy).toBe('test@test.com');
+    });
+
+    it('getUnifi returns empty defaults when no row', async () => {
+      unifiRepo.findOne.mockResolvedValue(null);
+      const result = await service.getUnifi();
+      expect(result.apiKey).toBe(MASK);
+      expect(result.updatedAt).toBeNull();
+    });
+
+    it('patchUnifi encrypts apiKey and saves', async () => {
+      unifiRepo.findOne.mockResolvedValue(null);
+      unifiRepo.save.mockImplementation(async (e) => e);
+      await service.patchUnifi({ apiKey: 'new-key' }, 'admin@test.com');
+      const saved = unifiRepo.save.mock.calls[0][0];
+      expect(saved.apiKey).not.toBe('new-key');
+      expect(saved.updatedBy).toBe('admin@test.com');
+    });
+
+    it('getUnifiDecrypted decrypts stored key', async () => {
+      unifiRepo.findOne.mockResolvedValue({ id: 1, apiKey: encrypt('secret', KEY) });
+      const result = await service.getUnifiDecrypted();
+      expect(result.apiKey).toBe('secret');
     });
   });
 

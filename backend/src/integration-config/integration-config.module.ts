@@ -8,12 +8,13 @@ import { VmwareConfig } from './entities/vmware-config.entity';
 import { VeeamConfig } from './entities/veeam-config.entity';
 import { JetbackupConfig } from './entities/jetbackup-config.entity';
 import { AcronisConfig } from './entities/acronis-config.entity';
+import { UnifiConfig } from './entities/unifi-config.entity';
 import { IntegrationConfigService } from './integration-config.service';
 import { IntegrationConfigController } from './integration-config.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([OdooConfig, InfraDocConfig, VmwareConfig, VeeamConfig, JetbackupConfig, AcronisConfig]),
+    TypeOrmModule.forFeature([OdooConfig, InfraDocConfig, VmwareConfig, VeeamConfig, JetbackupConfig, AcronisConfig, UnifiConfig]),
     HttpModule.register({ httpsAgent: new https.Agent({ rejectUnauthorized: false }) }),
   ],
   providers: [IntegrationConfigService],
