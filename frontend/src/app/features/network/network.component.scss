@@ -1,0 +1,36 @@
+.net-view {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+.net-view--drawer-open .net-main { flex: 1; min-width: 0; }
+.net-main { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow: auto; min-width: 0; }
+
+.kpi-strip {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 16px; background: var(--surface-1, #1a1a1a); border-radius: 6px;
+}
+.kpi-strip__spacer { flex: 1; }
+.kpi-card { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 80px; }
+.kpi-card__val { font-size: 22px; font-weight: 700; font-family: var(--font-mono, monospace); }
+.kpi-card__label { font-size: 9px; letter-spacing: 0.8px; text-transform: uppercase; color: var(--tx-lo); }
+.kpi-card--crit .kpi-card__val { color: var(--crit); }
+
+.net-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.net-loading { display: flex; justify-content: center; padding: 48px; }
+.net-empty { text-align: center; color: var(--tx-lo); padding: 32px; }
+.net-table { width: 100%; }
+.net-row--clickable { cursor: pointer; &:hover { background: rgba(255,255,255,.03); } }
+.net-msg { max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.sev-chip {
+  display: inline-block; padding: 2px 6px; border-radius: 4px;
+  font-size: 11px; font-weight: 600; font-family: var(--font-mono, monospace);
+  &--critical { background: rgba(var(--crit-rgb, 220,38,38), 0.15); color: var(--crit); }
+  &--high     { background: rgba(var(--warn-rgb, 234,179,8),  0.15); color: var(--warn); }
+  &--medium, &--low { background: rgba(255,255,255,.07); color: var(--tx-lo); }
+}
+
+.net-ticket-badge { font-family: var(--font-mono, monospace); font-size: 12px; color: var(--accent); }
+.net-ticket-none { color: var(--tx-lo); }

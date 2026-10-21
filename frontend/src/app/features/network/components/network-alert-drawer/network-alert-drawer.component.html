@@ -1,0 +1,36 @@
+<div class="ndr">
+  <div class="ndr__header">
+    <span class="ndr__title">Detalle de alerta</span>
+    <button mat-icon-button (click)="drawerClosed.emit()"><mat-icon>close</mat-icon></button>
+  </div>
+  <div class="ndr__body">
+    <div class="ndr__row"><span class="ndr__label">CLIENTE</span><span>{{ alert.clientName }}</span></div>
+    <div class="ndr__row"><span class="ndr__label">SITE</span><span>{{ alert.siteName }}</span></div>
+    <div class="ndr__row"><span class="ndr__label">SEVERIDAD</span>
+      <span class="sev-chip sev-chip--{{ alert.severity }}">{{ alert.severity }}</span>
+    </div>
+    <div class="ndr__row"><span class="ndr__label">TIPO</span><span>{{ alert.type }}</span></div>
+    <div class="ndr__row"><span class="ndr__label">MENSAJE</span><span class="ndr__msg">{{ alert.message }}</span></div>
+    <div class="ndr__row"><span class="ndr__label">CREADA</span><span>{{ alert.createdAt | date:'dd/MM/yyyy HH:mm' }}</span></div>
+
+    <ng-container *ngIf="alert.odooTicketId">
+      <div class="ndr__divider"></div>
+      <div class="ndr__row"><span class="ndr__label">TICKET ODOO</span>
+        <span class="ndr__ticket">#{{ alert.odooTicketId }}</span>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!alert.odooTicketId">
+      <div class="ndr__divider"></div>
+      <p class="ndr__section-title">Abrir ticket en Odoo</p>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:100%">
+        <mat-label>ID equipo Odoo</mat-label>
+        <input matInput type="number" [(ngModel)]="helpdeskTeamId" />
+      </mat-form-field>
+      <button mat-flat-button color="primary" style="width:100%;margin-top:8px"
+              (click)="createTicket()" [disabled]="creatingTicket">
+        {{ creatingTicket ? 'Creando...' : 'Abrir ticket en Odoo' }}
+      </button>
+    </ng-container>
+  </div>
+</div>

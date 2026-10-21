@@ -42,6 +42,11 @@ const routes: Routes = [
           import('./features/backups/backups.module').then(m => m.BackupsModule),
       },
       {
+        path: 'network',
+        loadChildren: () =>
+          import('./features/network/network.module').then(m => m.NetworkModule),
+      },
+      {
         path: 'admin',
         canActivate: [AdminGuard],
         loadChildren: () =>
