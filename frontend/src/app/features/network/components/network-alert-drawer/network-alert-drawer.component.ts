@@ -1,4 +1,5 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, Input, Output, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NetworkService } from '../../../../core/services/network.service';
 import type { NetworkAlert } from '../../../../core/models/network.models';
@@ -15,6 +16,7 @@ export class NetworkAlertDrawerComponent {
 
   creatingTicket = false;
   helpdeskTeamId: number | null = null;
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private readonly svc: NetworkService,
@@ -32,7 +34,7 @@ export class NetworkAlertDrawerComponent {
       tagIds: [],
       clientId: this.alert.clientId,
       siteId: this.alert.siteId,
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: res => {
         this.snackBar.open(`Ticket #${res.odooTicketId} creado en Odoo`, 'Cerrar', { duration: 4000 });
         this.ticketCreated.emit({ ...this.alert, odooTicketId: res.odooTicketId });

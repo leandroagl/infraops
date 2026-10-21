@@ -69,7 +69,7 @@ export class NetworkComponent implements OnInit {
     this.drawerOpen = true;
   }
 
-  closeDrawer(): void { this.drawerOpen = false; }
+  closeDrawer(): void { this.drawerOpen = false; this.selectedAlert = null; }
 
   onTicketCreated(updated: NetworkAlert): void {
     const idx = this.allAlerts.findIndex(a => a.alertId === updated.alertId);
