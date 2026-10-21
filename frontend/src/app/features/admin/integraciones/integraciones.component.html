@@ -324,4 +324,45 @@
       <span class="last-updated" *ngIf="acronis.updatedAt">{{ acronis.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ acronis.updatedBy ? ' · ' + acronis.updatedBy : '' }}</span>
     </div>
   </div>
+
+  <!-- UNIFI -->
+  <div class="integration-card">
+    <div class="card-header">
+      <div class="card-icon vmware">UF</div>
+      <div class="card-title-group">
+        <div class="card-title">UniFi Site Manager</div>
+        <div class="card-desc">API key global para acceder a los sites de clientes en api.ui.com</div>
+      </div>
+      <div class="status-badge" [ngClass]="{ ok: unifi.connectionStatus === 'ok', err: unifi.connectionStatus === 'error', unk: unifi.connectionStatus === 'unknown' }">
+        <span class="status-dot"></span>
+        {{ unifi.connectionStatus === 'ok' ? 'Conectado' : unifi.connectionStatus === 'error' ? 'Error' : 'Sin probar' }}
+      </div>
+    </div>
+    <div class="card-body" [formGroup]="unifiForm">
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">API Key <span class="req">*</span></label>
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <input matInput formControlName="apiKey" [type]="showUnifiApiKey ? 'text' : 'password'" />
+            <button matSuffix mat-icon-button type="button" (mousedown)="$event.preventDefault()" (click)="toggleUnifiApiKey()">
+              <svg *ngIf="!showUnifiApiKey" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg *ngIf="showUnifiApiKey"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </mat-form-field>
+          <span class="field-hint">API key de la cuenta UniFi Site Manager de ONDRA. Dejar sin cambios para no modificar.</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-actions">
+      <button mat-stroked-button [disabled]="unifi.testing || unifi.saving" (click)="testUnifi()">
+        <mat-spinner *ngIf="unifi.testing" diameter="14"></mat-spinner>
+        <span *ngIf="!unifi.testing">Probar conexión</span>
+      </button>
+      <button mat-flat-button color="primary" [disabled]="unifi.saving || unifi.testing" (click)="saveUnifi()">
+        <mat-spinner *ngIf="unifi.saving" diameter="14"></mat-spinner>
+        <span *ngIf="!unifi.saving">Guardar</span>
+      </button>
+      <span class="last-updated" *ngIf="unifi.updatedAt">{{ unifi.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ unifi.updatedBy ? ' · ' + unifi.updatedBy : '' }}</span>
+    </div>
+  </div>
 </div>

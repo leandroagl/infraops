@@ -1,0 +1,10 @@
+.nc-wrap { display: flex; flex-direction: column; gap: 32px; padding: 16px; }
+.nc-section { display: flex; flex-direction: column; gap: 12px; }
+.nc-section-header { display: flex; align-items: center; justify-content: space-between; }
+.nc-section-title { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--tx-lo); }
+.nc-table { width: 100%; }
+.nc-empty { font-size: 13px; color: var(--tx-lo); padding: 8px 0; }
+.nc-auto-form { display: flex; flex-direction: column; gap: 12px; max-width: 400px; }
+.nc-field-row { display: flex; flex-direction: column; gap: 4px; }
+.nc-label { font-size: 12px; color: var(--tx-lo); }
+.nc-actions { display: flex; gap: 8px; }

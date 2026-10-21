@@ -1,0 +1,26 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Editar site' : 'Agregar site' }}</h2>
+<mat-dialog-content>
+  <form [formGroup]="form" style="display:flex;flex-direction:column;gap:8px;padding-top:4px">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>ID Cliente (UUID)</mat-label>
+      <input matInput formControlName="clientId" [readonly]="isEdit" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Nombre del cliente</mat-label>
+      <input matInput formControlName="clientName" [readonly]="isEdit" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Site ID (UniFi)</mat-label>
+      <input matInput formControlName="siteId" [readonly]="isEdit" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Nombre del site</mat-label>
+      <input matInput formControlName="siteName" />
+    </mat-form-field>
+    <mat-checkbox formControlName="isEnabled">Habilitado</mat-checkbox>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-stroked-button mat-dialog-close>Cancelar</button>
+  <button mat-flat-button color="primary" (click)="save()" [disabled]="saving || form.invalid">Guardar</button>
+</mat-dialog-actions>

@@ -1,0 +1,69 @@
+<div class="nc-wrap">
+  <section class="nc-section">
+    <div class="nc-section-header">
+      <span class="nc-section-title">Sites por cliente</span>
+      <button mat-flat-button color="primary" (click)="openSiteDialog()">Agregar site</button>
+    </div>
+    <mat-table [dataSource]="sites" class="nc-table">
+      <ng-container matColumnDef="clientName">
+        <mat-header-cell *matHeaderCellDef>Cliente</mat-header-cell>
+        <mat-cell *matCellDef="let row">{{ row.clientName }}</mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="siteId">
+        <mat-header-cell *matHeaderCellDef>Site ID</mat-header-cell>
+        <mat-cell *matCellDef="let row"><code>{{ row.siteId }}</code></mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="siteName">
+        <mat-header-cell *matHeaderCellDef>Nombre</mat-header-cell>
+        <mat-cell *matCellDef="let row">{{ row.siteName }}</mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="isEnabled">
+        <mat-header-cell *matHeaderCellDef>Habilitado</mat-header-cell>
+        <mat-cell *matCellDef="let row">
+          <mat-checkbox [checked]="row.isEnabled" (change)="toggleEnabled(row)"></mat-checkbox>
+        </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <mat-header-cell *matHeaderCellDef></mat-header-cell>
+        <mat-cell *matCellDef="let row">
+          <button mat-icon-button (click)="openSiteDialog(row)"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button color="warn" (click)="deleteSite(row)"><mat-icon>delete</mat-icon></button>
+        </mat-cell>
+      </ng-container>
+      <mat-header-row *matHeaderRowDef="siteCols"></mat-header-row>
+      <mat-row *matRowDef="let row; columns: siteCols;"></mat-row>
+    </mat-table>
+    <p *ngIf="!loadingSites && !sites.length" class="nc-empty">No hay sites configurados</p>
+  </section>
+
+  <section class="nc-section">
+    <div class="nc-section-header">
+      <span class="nc-section-title">Auto-tickets</span>
+    </div>
+    <form [formGroup]="autoForm" class="nc-auto-form">
+      <div class="nc-field-row">
+        <mat-checkbox formControlName="enabled">Habilitar creación automática de tickets</mat-checkbox>
+      </div>
+      <div class="nc-field-row">
+        <label class="nc-label">Severidades que crean ticket</label>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-select formControlName="severities" multiple>
+            <mat-option *ngFor="let s of severityOptions" [value]="s">{{ s }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+      <div class="nc-field-row">
+        <label class="nc-label">Equipo Odoo (ID)</label>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <input matInput formControlName="helpdeskTeamId" type="number" />
+        </mat-form-field>
+      </div>
+      <div class="nc-actions">
+        <button mat-flat-button color="primary" type="button" [disabled]="savingAuto" (click)="saveAutoConfig()">
+          <mat-spinner *ngIf="savingAuto" diameter="14"></mat-spinner>
+          <span *ngIf="!savingAuto">Guardar</span>
+        </button>
+      </div>
+    </form>
+  </section>
+</div>
