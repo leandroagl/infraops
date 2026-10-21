@@ -1,4 +1,5 @@
-import { Component, Inject } from '@angular/core';
+import { Component, DestroyRef, inject, Inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -12,6 +13,7 @@ import type { UnifiSiteConfig } from '../../../../core/models/network.models';
 export class NetworkSiteDialogComponent {
   form: FormGroup;
   saving = false;
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(
     private readonly fb: FormBuilder,
@@ -37,8 +39,8 @@ export class NetworkSiteDialogComponent {
     const obs = this.isEdit
       ? this.svc.updateSite(this.data!.id, { siteName: this.form.value.siteName, isEnabled: this.form.value.isEnabled })
       : this.svc.createSite(this.form.value);
-    obs.subscribe({
-      next:  () => { this.snackBar.open('Guardado', 'Cerrar', { duration: 3000 }); this.dialogRef.close(true); },
+    obs.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next:  result => { this.snackBar.open('Guardado', 'Cerrar', { duration: 3000 }); this.dialogRef.close(result); },
       error: () => { this.saving = false; this.snackBar.open('Error al guardar', 'Cerrar', { duration: 3000 }); },
     });
   }

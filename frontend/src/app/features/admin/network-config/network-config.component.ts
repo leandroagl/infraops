@@ -59,14 +59,23 @@ export class NetworkConfigComponent implements OnInit {
   openSiteDialog(site?: UnifiSiteConfig): void {
     this.dialog.open(NetworkSiteDialogComponent, { data: site ?? null, width: '480px' })
       .afterClosed()
-      .subscribe(saved => { if (saved) this.loadSites(); });
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: UnifiSiteConfig | null) => {
+        if (!result) return;
+        if (site) {
+          const idx = this.sites.findIndex(s => s.id === site.id);
+          if (idx !== -1) this.sites = this.sites.map((s, i) => i === idx ? result : s);
+        } else {
+          this.sites = [...this.sites, result];
+        }
+      });
   }
 
   deleteSite(site: UnifiSiteConfig): void {
     this.dialog.open(ConfirmDialogComponent, {
       data: { title: 'Eliminar site', message: `¿Eliminar el site "${site.siteName}" del cliente ${site.clientName}?` },
       width: '420px',
-    }).afterClosed().subscribe(confirmed => {
+    }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef)).subscribe(confirmed => {
       if (!confirmed) return;
       this.svc.deleteSite(site.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => {
