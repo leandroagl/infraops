@@ -4,7 +4,7 @@ import { FormBuilder, FormGroup } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import {
   IntegrationConfigService, OdooConfigDto, InfraDocConfigDto, VmwareConfigDto, VeeamIntegrationConfigDto,
-  JetbackupIntegrationConfigDto, AcronisIntegrationConfigDto, UnifiIntegrationConfigDto,
+  JetbackupIntegrationConfigDto, AcronisIntegrationConfigDto, UnifiIntegrationConfigDto, UnifiLocalIntegrationConfigDto,
 } from '../../../core/services/integration-config.service';
 
 const MASK = '••••••••';
@@ -38,32 +38,36 @@ export class IntegracionesComponent implements OnInit {
   jetbackupForm: FormGroup;
   acronisForm: FormGroup;
   unifiForm: FormGroup;
+  unifiLocalForm: FormGroup;
 
-  odoo     = initCard();
+  odoo      = initCard();
   infradoc  = initCard();
   vmware    = initCard();
   veeam     = initCard();
   jetbackup = initCard();
   acronis   = initCard();
   unifi     = initCard();
+  unifiLocal = initCard();
 
   showAcronisClientId     = false;
   showAcronisClientSecret = false;
-  showOdooApiKey      = false;
-  showInfradocApiKey  = false;
-  showVmwarePassword  = false;
-  showVeeamPassword   = false;
-  showJetbackupApiKey = false;
-  showUnifiApiKey     = false;
+  showOdooApiKey       = false;
+  showInfradocApiKey   = false;
+  showVmwarePassword   = false;
+  showVeeamPassword    = false;
+  showJetbackupApiKey  = false;
+  showUnifiApiKey      = false;
+  showUnifiLocalApiKey = false;
 
-  toggleOdooApiKey(): void     { this.showOdooApiKey     = !this.showOdooApiKey; }
-  toggleInfradocApiKey(): void { this.showInfradocApiKey = !this.showInfradocApiKey; }
-  toggleVmwarePassword(): void { this.showVmwarePassword = !this.showVmwarePassword; }
-  toggleVeeamPassword(): void  { this.showVeeamPassword  = !this.showVeeamPassword; }
+  toggleOdooApiKey(): void      { this.showOdooApiKey      = !this.showOdooApiKey; }
+  toggleInfradocApiKey(): void  { this.showInfradocApiKey  = !this.showInfradocApiKey; }
+  toggleVmwarePassword(): void  { this.showVmwarePassword  = !this.showVmwarePassword; }
+  toggleVeeamPassword(): void   { this.showVeeamPassword   = !this.showVeeamPassword; }
   toggleJetbackupApiKey(): void { this.showJetbackupApiKey = !this.showJetbackupApiKey; }
-  toggleAcronisClientId(): void     { this.showAcronisClientId     = !this.showAcronisClientId; }
-  toggleAcronisClientSecret(): void { this.showAcronisClientSecret = !this.showAcronisClientSecret; }
-  toggleUnifiApiKey(): void    { this.showUnifiApiKey    = !this.showUnifiApiKey; }
+  toggleAcronisClientId(): void      { this.showAcronisClientId      = !this.showAcronisClientId; }
+  toggleAcronisClientSecret(): void  { this.showAcronisClientSecret  = !this.showAcronisClientSecret; }
+  toggleUnifiApiKey(): void      { this.showUnifiApiKey      = !this.showUnifiApiKey; }
+  toggleUnifiLocalApiKey(): void { this.showUnifiLocalApiKey = !this.showUnifiLocalApiKey; }
 
   constructor(
     private readonly fb: FormBuilder,
@@ -79,6 +83,7 @@ export class IntegracionesComponent implements OnInit {
     this.jetbackupForm = this.fb.group({ url: [''], username: ['root'], apiKey: [MASK] });
     this.acronisForm   = this.fb.group({ baseUrl: [''], clientId: [MASK], clientSecret: [MASK] });
     this.unifiForm     = this.fb.group({ apiKey: [MASK] });
+    this.unifiLocalForm = this.fb.group({ url: [''], apiKey: [MASK] });
   }
 
   ngOnInit(): void {
@@ -136,6 +141,14 @@ export class IntegracionesComponent implements OnInit {
         this.unifi.loading   = false;
         this.unifi.updatedAt = d.updatedAt;
         this.unifi.updatedBy = d.updatedBy;
+      },
+    });
+    this.svc.getUnifiLocal().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (d: UnifiLocalIntegrationConfigDto) => {
+        this.unifiLocalForm.patchValue(d);
+        this.unifiLocal.loading   = false;
+        this.unifiLocal.updatedAt = d.updatedAt;
+        this.unifiLocal.updatedBy = d.updatedBy;
       },
     });
   }
@@ -429,6 +442,48 @@ export class IntegracionesComponent implements OnInit {
         this.unifi.connectionStatus  = 'error';
         this.unifi.connectionMessage = e?.error?.message ?? 'Error de conexión';
         this.snackBar.open(this.unifi.connectionMessage, '', { duration: 5000 });
+      },
+    });
+  }
+
+  buildUnifiLocalPatchDto(): Partial<UnifiLocalIntegrationConfigDto> {
+    const v = this.unifiLocalForm.value as { url: string; apiKey: string };
+    const dto: Partial<UnifiLocalIntegrationConfigDto> = { url: v.url };
+    if (v.apiKey && v.apiKey !== MASK) dto.apiKey = v.apiKey;
+    return dto;
+  }
+
+  saveUnifiLocal(): void {
+    this.unifiLocal.saving = true;
+    this.svc.patchUnifiLocal(this.buildUnifiLocalPatchDto()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (d: UnifiLocalIntegrationConfigDto) => {
+        this.unifiLocalForm.patchValue(d);
+        this.unifiLocal.saving    = false;
+        this.unifiLocal.updatedAt = d.updatedAt;
+        this.unifiLocal.updatedBy = d.updatedBy;
+        this.snackBar.open('Configuración de servidor UniFi local guardada', '', { duration: 3000 });
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.unifiLocal.saving = false;
+        this.snackBar.open(e?.error?.message ?? 'Error al guardar configuración del servidor UniFi local', '', { duration: 4000 });
+      },
+    });
+  }
+
+  testUnifiLocal(): void {
+    this.unifiLocal.testing = true;
+    this.svc.testUnifiLocal().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (r) => {
+        this.unifiLocal.testing           = false;
+        this.unifiLocal.connectionStatus  = r.ok ? 'ok' : 'error';
+        this.unifiLocal.connectionMessage = r.message;
+        this.snackBar.open(r.message, '', { duration: r.ok ? 3000 : 5000 });
+      },
+      error: (e: { error?: { message?: string } }) => {
+        this.unifiLocal.testing           = false;
+        this.unifiLocal.connectionStatus  = 'error';
+        this.unifiLocal.connectionMessage = e?.error?.message ?? 'Error de conexión';
+        this.snackBar.open(this.unifiLocal.connectionMessage, '', { duration: 5000 });
       },
     });
   }

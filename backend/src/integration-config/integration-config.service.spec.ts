@@ -12,6 +12,7 @@ import { VeeamConfig } from './entities/veeam-config.entity';
 import { JetbackupConfig } from './entities/jetbackup-config.entity';
 import { AcronisConfig } from './entities/acronis-config.entity';
 import { UnifiConfig } from './entities/unifi-config.entity';
+import { UnifiLocalConfig } from './entities/unifi-local-config.entity';
 import { MASK, decrypt, encrypt } from './crypto.util';
 
 const KEY = '8b2202fa0aa8498ca124415c67472e7b479e1eb31a24d948eedeccecc2a5a5c2';
@@ -25,6 +26,7 @@ describe('IntegrationConfigService', () => {
   let jetbackupRepo: { findOne: jest.Mock; save: jest.Mock };
   let acronisRepo: { findOne: jest.Mock; save: jest.Mock };
   let unifiRepo: { findOne: jest.Mock; save: jest.Mock };
+  let unifiLocalRepo: { findOne: jest.Mock; save: jest.Mock };
   let httpGet: jest.Mock;
   let httpPost: jest.Mock;
 
@@ -36,6 +38,7 @@ describe('IntegrationConfigService', () => {
     jetbackupRepo = { findOne: jest.fn(), save: jest.fn() };
     acronisRepo   = { findOne: jest.fn(), save: jest.fn() };
     unifiRepo     = { findOne: jest.fn(), save: jest.fn() };
+    unifiLocalRepo = { findOne: jest.fn(), save: jest.fn() };
     httpGet      = jest.fn();
     httpPost      = jest.fn();
 
@@ -47,7 +50,8 @@ describe('IntegrationConfigService', () => {
         { provide: getRepositoryToken(VmwareConfig),    useValue: vmwareRepo    },
         { provide: getRepositoryToken(VeeamConfig),     useValue: veeamRepo     },
         { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo }, { provide: getRepositoryToken(AcronisConfig), useValue: acronisRepo },
-        { provide: getRepositoryToken(UnifiConfig),     useValue: unifiRepo     },
+        { provide: getRepositoryToken(UnifiConfig),      useValue: unifiRepo      },
+        { provide: getRepositoryToken(UnifiLocalConfig), useValue: unifiLocalRepo },
         { provide: ConfigService, useValue: {
             get: (key: string, def = '') =>
               ({
@@ -536,7 +540,8 @@ describe('IntegrationConfigService', () => {
           { provide: getRepositoryToken(VmwareConfig),   useValue: vmwareRepo   },
           { provide: getRepositoryToken(VeeamConfig),    useValue: veeamRepo    },
           { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo }, { provide: getRepositoryToken(AcronisConfig), useValue: acronisRepo },
-          { provide: getRepositoryToken(UnifiConfig),     useValue: unifiRepo     },
+          { provide: getRepositoryToken(UnifiConfig),      useValue: unifiRepo      },
+          { provide: getRepositoryToken(UnifiLocalConfig), useValue: unifiLocalRepo },
           { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } }, // INTEGRATIONS_ENCRYPT_KEY vacía
           { provide: HttpService, useValue: { get: httpGet } },
         ],
@@ -736,7 +741,8 @@ describe('IntegrationConfigService', () => {
           { provide: getRepositoryToken(VmwareConfig),    useValue: vmwareRepo    },
           { provide: getRepositoryToken(VeeamConfig),     useValue: veeamRepo     },
           { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo }, { provide: getRepositoryToken(AcronisConfig), useValue: acronisRepo },
-          { provide: getRepositoryToken(UnifiConfig),     useValue: unifiRepo     },
+          { provide: getRepositoryToken(UnifiConfig),      useValue: unifiRepo      },
+          { provide: getRepositoryToken(UnifiLocalConfig), useValue: unifiLocalRepo },
           { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } },
           { provide: HttpService, useValue: { get: httpGet, post: httpPost } },
         ],
@@ -861,9 +867,10 @@ describe('IntegrationConfigService', () => {
           { provide: getRepositoryToken(InfraDocConfig),  useValue: infradocRepo  },
           { provide: getRepositoryToken(VmwareConfig),    useValue: vmwareRepo    },
           { provide: getRepositoryToken(VeeamConfig),     useValue: veeamRepo     },
-          { provide: getRepositoryToken(JetbackupConfig), useValue: jetbackupRepo },
-          { provide: getRepositoryToken(AcronisConfig),   useValue: acronisRepo   },
-          { provide: getRepositoryToken(UnifiConfig),     useValue: unifiRepo     },
+          { provide: getRepositoryToken(JetbackupConfig),  useValue: jetbackupRepo  },
+          { provide: getRepositoryToken(AcronisConfig),   useValue: acronisRepo    },
+          { provide: getRepositoryToken(UnifiConfig),     useValue: unifiRepo      },
+          { provide: getRepositoryToken(UnifiLocalConfig), useValue: unifiLocalRepo },
           { provide: ConfigService, useValue: { get: (_key: string, def = '') => def } },
           { provide: HttpService, useValue: { get: httpGet, post: httpPost } },
         ],

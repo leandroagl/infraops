@@ -4,11 +4,11 @@
     <div class="kpi-strip">
       <div class="kpi-card">
         <span class="kpi-card__val">{{ kpi.total }}</span>
-        <span class="kpi-card__label">ALERTAS ACTIVAS</span>
+        <span class="kpi-card__label">DISPOSITIVOS OFFLINE</span>
       </div>
       <div class="kpi-card kpi-card--crit">
         <span class="kpi-card__val">{{ kpi.critical }}</span>
-        <span class="kpi-card__label">CRÍTICAS</span>
+        <span class="kpi-card__label">CONTROLLERS OFFLINE</span>
       </div>
       <div class="kpi-card">
         <span class="kpi-card__val">{{ kpi.affectedClients }}</span>
@@ -24,22 +24,12 @@
         <mat-label>Cliente</mat-label>
         <input matInput [(ngModel)]="filterClient" (ngModelChange)="applyFilters()" />
       </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:140px">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:160px">
         <mat-label>Severidad</mat-label>
         <mat-select [(ngModel)]="filterSeverity" (ngModelChange)="applyFilters()">
           <mat-option value="">Todas</mat-option>
           <mat-option value="critical">critical</mat-option>
           <mat-option value="high">high</mat-option>
-          <mat-option value="medium">medium</mat-option>
-          <mat-option value="low">low</mat-option>
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:160px">
-        <mat-label>Ticket</mat-label>
-        <mat-select [(ngModel)]="filterHasTicket" (ngModelChange)="applyFilters()">
-          <mat-option value="all">Todos</mat-option>
-          <mat-option value="with">Con ticket</mat-option>
-          <mat-option value="without">Sin ticket</mat-option>
         </mat-select>
       </mat-form-field>
     </div>
@@ -51,46 +41,33 @@
         <mat-header-cell *matHeaderCellDef>CLIENTE</mat-header-cell>
         <mat-cell *matCellDef="let row">{{ row.clientName }}</mat-cell>
       </ng-container>
-      <ng-container matColumnDef="siteName">
-        <mat-header-cell *matHeaderCellDef>SITE</mat-header-cell>
-        <mat-cell *matCellDef="let row">{{ row.siteName }}</mat-cell>
-      </ng-container>
       <ng-container matColumnDef="severity">
         <mat-header-cell *matHeaderCellDef>SEVERIDAD</mat-header-cell>
         <mat-cell *matCellDef="let row">
           <span class="sev-chip sev-chip--{{ row.severity }}">{{ row.severity }}</span>
         </mat-cell>
       </ng-container>
-      <ng-container matColumnDef="type">
-        <mat-header-cell *matHeaderCellDef>TIPO</mat-header-cell>
-        <mat-cell *matCellDef="let row">{{ row.type }}</mat-cell>
-      </ng-container>
-      <ng-container matColumnDef="message">
-        <mat-header-cell *matHeaderCellDef>MENSAJE</mat-header-cell>
-        <mat-cell *matCellDef="let row" class="net-msg">{{ row.message }}</mat-cell>
-      </ng-container>
-      <ng-container matColumnDef="createdAt">
-        <mat-header-cell *matHeaderCellDef>HACE</mat-header-cell>
-        <mat-cell *matCellDef="let row">{{ timeAgo(row.createdAt) }}</mat-cell>
-      </ng-container>
-      <ng-container matColumnDef="odooTicketId">
-        <mat-header-cell *matHeaderCellDef>TICKET</mat-header-cell>
+      <ng-container matColumnDef="deviceCount">
+        <mat-header-cell *matHeaderCellDef>OFFLINE</mat-header-cell>
         <mat-cell *matCellDef="let row">
-          <span *ngIf="row.odooTicketId" class="net-ticket-badge">#{{ row.odooTicketId }}</span>
-          <span *ngIf="!row.odooTicketId" class="net-ticket-none">—</span>
+          <span class="net-count">{{ row.devices.length }}</span>
+          <span class="net-count__label">{{ row.devices.length === 1 ? 'dispositivo' : 'dispositivos' }}</span>
         </mat-cell>
+      </ng-container>
+      <ng-container matColumnDef="lastSeen">
+        <mat-header-cell *matHeaderCellDef>ÚLTIMO DATO</mat-header-cell>
+        <mat-cell *matCellDef="let row">{{ lastSeenLabel(row.lastSeen) }}</mat-cell>
       </ng-container>
       <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
       <mat-row *matRowDef="let row; columns: displayedColumns;" (click)="selectRow(row)" class="net-row--clickable"></mat-row>
     </mat-table>
-    <p *ngIf="!loading && dataSource.data.length === 0" class="net-empty">No hay alertas activas</p>
+    <p *ngIf="!loading && dataSource.data.length === 0" class="net-empty">No hay dispositivos offline</p>
   </div>
 
   <!-- Drawer -->
   <app-network-alert-drawer
-    *ngIf="drawerOpen && selectedAlert"
-    [alert]="selectedAlert"
-    (drawerClosed)="closeDrawer()"
-    (ticketCreated)="onTicketCreated($event)">
+    *ngIf="drawerOpen && selectedClient"
+    [client]="selectedClient"
+    (drawerClosed)="closeDrawer()">
   </app-network-alert-drawer>
 </div>

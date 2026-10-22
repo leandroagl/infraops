@@ -9,13 +9,15 @@
         <mat-header-cell *matHeaderCellDef>Cliente</mat-header-cell>
         <mat-cell *matCellDef="let row">{{ row.clientName }}</mat-cell>
       </ng-container>
-      <ng-container matColumnDef="siteId">
-        <mat-header-cell *matHeaderCellDef>Site ID</mat-header-cell>
-        <mat-cell *matCellDef="let row"><code>{{ row.siteId }}</code></mat-cell>
-      </ng-container>
       <ng-container matColumnDef="siteName">
-        <mat-header-cell *matHeaderCellDef>Nombre</mat-header-cell>
-        <mat-cell *matCellDef="let row">{{ row.siteName }}</mat-cell>
+        <mat-header-cell *matHeaderCellDef>Site</mat-header-cell>
+        <mat-cell *matCellDef="let row">
+          <span *ngIf="row.siteName; else onlyId">
+            {{ row.siteName }}
+            <code class="nc-site-id">{{ row.siteId }}</code>
+          </span>
+          <ng-template #onlyId><code>{{ row.siteId }}</code></ng-template>
+        </mat-cell>
       </ng-container>
       <ng-container matColumnDef="isEnabled">
         <mat-header-cell *matHeaderCellDef>Habilitado</mat-header-cell>
