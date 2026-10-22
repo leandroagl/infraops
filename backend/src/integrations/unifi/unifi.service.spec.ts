@@ -20,34 +20,111 @@ describe('UnifiService', () => {
     service = module.get(UnifiService);
   });
 
-  it('getSiteAlerts returns normalized alerts for active alerts', async () => {
-    httpGet.mockReturnValue(of({
-      data: {
-        data: [
-          { id: 'a1', type: 'gw_wan_transition', severity: 'critical', payload: { message: 'WAN down' }, siteId: 'site-1', closedAt: null, createdAt: '2024-01-01T00:00:00Z' },
-          { id: 'a2', type: 'device_restart', severity: 'high', payload: {}, siteId: 'site-1', closedAt: '2024-01-01T01:00:00Z', createdAt: '2024-01-01T00:30:00Z' },
-        ],
-      },
-    }));
-    const alerts = await service.getSiteAlerts('site-1', API_KEY);
-    // solo devuelve alertas sin closedAt
-    expect(alerts).toHaveLength(1);
-    expect(alerts[0].alertId).toBe('a1');
-    expect(alerts[0].severity).toBe('critical');
-    expect(alerts[0].message).toBe('WAN down');
+  const EMPTY_HOSTS = of({ data: { data: [] } });
+
+  it('getAvailableSites maps siteId and meta.desc (display name)', async () => {
+    httpGet
+      .mockReturnValueOnce(of({ data: { data: [
+        { siteId: 'abc123', hostId: 'h1', meta: { desc: 'Oficina Central', name: 'oficina' } },
+        { siteId: 'def456', hostId: 'h2', meta: { desc: 'Sucursal Norte',  name: 'sucursal' } },
+      ] } }))
+      .mockReturnValueOnce(EMPTY_HOSTS);
+    const result = await service.getAvailableSites(API_KEY);
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({ siteId: 'abc123', siteName: 'Oficina Central' });
+    expect(result[1]).toEqual({ siteId: 'def456', siteName: 'Sucursal Norte' });
   });
 
-  it('getSiteAlerts maps unknown severity to low', async () => {
-    httpGet.mockReturnValue(of({
-      data: { data: [{ id: 'a3', type: 'unknown_type', severity: 'whatever', payload: {}, siteId: 's', closedAt: null, createdAt: '2024-01-01T00:00:00Z' }] },
-    }));
-    const [alert] = await service.getSiteAlerts('s', API_KEY);
-    expect(alert.severity).toBe('low');
+  it('getAvailableSites uses host name for "Default" sites', async () => {
+    httpGet
+      .mockReturnValueOnce(of({ data: { data: [
+        { siteId: 'ghi789', hostId: 'host-A', meta: { desc: 'Default', name: 'default' } },
+      ] } }))
+      .mockReturnValueOnce(of({ data: { data: [
+        { id: 'host-A', reportedState: { name: 'AMSPEC UDM Pro' } },
+      ] } }));
+    const result = await service.getAvailableSites(API_KEY);
+    expect(result[0]).toEqual({ siteId: 'ghi789', siteName: 'AMSPEC UDM Pro' });
   });
 
-  it('getSiteAlerts returns empty array when API returns empty data', async () => {
-    httpGet.mockReturnValue(of({ data: { data: [] } }));
-    const result = await service.getSiteAlerts('site-x', API_KEY);
+  it('getAvailableSites falls back to hardware.name when reportedState.name absent', async () => {
+    httpGet
+      .mockReturnValueOnce(of({ data: { data: [
+        { siteId: 'xxx', hostId: 'host-B', meta: { desc: 'Default', name: 'default' } },
+      ] } }))
+      .mockReturnValueOnce(of({ data: { data: [
+        { id: 'host-B', reportedState: { hardware: { name: 'UCG Ultra' } } },
+      ] } }));
+    const result = await service.getAvailableSites(API_KEY);
+    expect(result[0]).toEqual({ siteId: 'xxx', siteName: 'UCG Ultra' });
+  });
+
+  it('getAvailableSites falls back to WAN IP when host has no name', async () => {
+    httpGet
+      .mockReturnValueOnce(of({ data: { data: [
+        { siteId: 'jkl000', hostId: 'h4', meta: { desc: 'Default', name: 'default' },
+          statistics: { ispInfo: { name: 'Telecom' }, wans: { WAN: { externalIp: '190.137.73.11' } } } },
+      ] } }))
+      .mockReturnValueOnce(EMPTY_HOSTS);
+    const result = await service.getAvailableSites(API_KEY);
+    expect(result[0]).toEqual({ siteId: 'jkl000', siteName: 'Default — 190.137.73.11 (Telecom)' });
+  });
+
+  it('getAvailableSites keeps "Default" when no host name and no WAN info', async () => {
+    httpGet
+      .mockReturnValueOnce(of({ data: { data: [
+        { siteId: 'mno111', hostId: 'h5', meta: { desc: 'Default', name: 'default' } },
+      ] } }))
+      .mockReturnValueOnce(EMPTY_HOSTS);
+    const result = await service.getAvailableSites(API_KEY);
+    expect(result[0]).toEqual({ siteId: 'mno111', siteName: 'Default' });
+  });
+
+  it('getAvailableSites returns empty array when API returns empty data', async () => {
+    httpGet.mockReturnValueOnce(of({ data: { data: [] } })).mockReturnValueOnce(EMPTY_HOSTS);
+    const result = await service.getAvailableSites(API_KEY);
     expect(result).toEqual([]);
+  });
+
+  describe('getSiteHostMap', () => {
+    it('returns a map of siteId to hostId', async () => {
+      httpGet.mockReturnValue(of({ data: { data: [
+        { siteId: 'site-1', hostId: 'host-A', meta: { desc: 'Oficina', name: 'oficina' } },
+        { siteId: 'site-2', hostId: 'host-B', meta: { desc: 'Sucursal', name: 'sucursal' } },
+      ] } }));
+      const result = await service.getSiteHostMap(API_KEY);
+      expect(result.get('site-1')).toBe('host-A');
+      expect(result.get('site-2')).toBe('host-B');
+    });
+
+    it('returns empty map when API returns no sites', async () => {
+      httpGet.mockReturnValue(of({ data: { data: [] } }));
+      const result = await service.getSiteHostMap(API_KEY);
+      expect(result.size).toBe(0);
+    });
+  });
+
+  describe('getAllDevices', () => {
+    it('returns a map of hostId to devices and updatedAt', async () => {
+      httpGet.mockReturnValue(of({ data: {
+        data: [
+          { hostId: 'host-A', hostName: 'UDM Pro', updatedAt: '2026-10-21T10:00:00Z', devices: [
+            { id: 'AA', mac: 'AA', name: 'Router', model: 'UDM', ip: '10.0.0.1', status: 'online', version: '3.0', firmwareStatus: 'upToDate', isConsole: true, isManaged: true },
+          ] },
+          { hostId: 'host-B', hostName: 'UCG', updatedAt: '2026-10-20T10:00:00Z', devices: [] },
+        ],
+        httpStatusCode: 200,
+      } }));
+      const result = await service.getAllDevices(API_KEY);
+      expect(result.get('host-A')?.devices).toHaveLength(1);
+      expect(result.get('host-A')?.updatedAt).toBe('2026-10-21T10:00:00Z');
+      expect(result.get('host-B')?.devices).toHaveLength(0);
+    });
+
+    it('returns empty map when API returns no data', async () => {
+      httpGet.mockReturnValue(of({ data: { data: [], httpStatusCode: 200 } }));
+      const result = await service.getAllDevices(API_KEY);
+      expect(result.size).toBe(0);
+    });
   });
 });

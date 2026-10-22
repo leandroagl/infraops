@@ -325,7 +325,7 @@
     </div>
   </div>
 
-  <!-- UNIFI -->
+  <!-- UNIFI SITE MANAGER (Cloud API) -->
   <div class="integration-card">
     <div class="card-header">
       <div class="card-icon vmware">UF</div>
@@ -363,6 +363,52 @@
         <span *ngIf="!unifi.saving">Guardar</span>
       </button>
       <span class="last-updated" *ngIf="unifi.updatedAt">{{ unifi.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ unifi.updatedBy ? ' · ' + unifi.updatedBy : '' }}</span>
+    </div>
+  </div>
+
+  <!-- UNIFI LOCAL SERVER (Network Application API) -->
+  <div class="integration-card">
+    <div class="card-header">
+      <div class="card-icon vmware">UL</div>
+      <div class="card-title-group">
+        <div class="card-title">UniFi Network — Servidor local</div>
+        <div class="card-desc">API del servidor UniFi de ONDRA para consultar dispositivos de sites gestionados localmente</div>
+      </div>
+      <div class="status-badge" [ngClass]="{ ok: unifiLocal.connectionStatus === 'ok', err: unifiLocal.connectionStatus === 'error', unk: unifiLocal.connectionStatus === 'unknown' }">
+        <span class="status-dot"></span>
+        {{ unifiLocal.connectionStatus === 'ok' ? 'Conectado' : unifiLocal.connectionStatus === 'error' ? 'Error' : 'Sin probar' }}
+      </div>
+    </div>
+    <div class="card-body" [formGroup]="unifiLocalForm">
+      <div class="field full">
+        <label class="field-label">URL del servidor <span class="req">*</span></label>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <input matInput formControlName="url" placeholder="https://192.168.1.1" />
+        </mat-form-field>
+        <span class="field-hint">IP o hostname del servidor UniFi Network Application de ONDRA. Incluir protocolo (https://).</span>
+      </div>
+      <div class="field full">
+        <label class="field-label">API Key <span class="req">*</span></label>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <input matInput formControlName="apiKey" [type]="showUnifiLocalApiKey ? 'text' : 'password'" />
+          <button matSuffix mat-icon-button type="button" (mousedown)="$event.preventDefault()" (click)="toggleUnifiLocalApiKey()">
+            <svg *ngIf="!showUnifiLocalApiKey" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg *ngIf="showUnifiLocalApiKey"  width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </mat-form-field>
+        <span class="field-hint">API key generado en el servidor UniFi local (Settings → System → API). Dejar vacío para no modificar.</span>
+      </div>
+    </div>
+    <div class="card-actions">
+      <button mat-stroked-button [disabled]="unifiLocal.testing || unifiLocal.saving" (click)="testUnifiLocal()">
+        <mat-spinner *ngIf="unifiLocal.testing" diameter="14"></mat-spinner>
+        <span *ngIf="!unifiLocal.testing">Probar conexión</span>
+      </button>
+      <button mat-flat-button color="primary" [disabled]="unifiLocal.saving || unifiLocal.testing" (click)="saveUnifiLocal()">
+        <mat-spinner *ngIf="unifiLocal.saving" diameter="14"></mat-spinner>
+        <span *ngIf="!unifiLocal.saving">Guardar</span>
+      </button>
+      <span class="last-updated" *ngIf="unifiLocal.updatedAt">{{ unifiLocal.updatedAt | date:'dd/MM/yyyy HH:mm' }}{{ unifiLocal.updatedBy ? ' · ' + unifiLocal.updatedBy : '' }}</span>
     </div>
   </div>
 </div>

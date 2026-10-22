@@ -1,4 +1,5 @@
-import { IsBoolean, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsArray, IsBoolean, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateUnifiSiteConfigDto {
   @IsUUID()
@@ -36,4 +37,34 @@ export class UnifiSiteConfigResponseDto {
   siteName: string;
   isEnabled: boolean;
   createdAt: Date;
+}
+
+export class BulkSiteItemDto {
+  @IsString()
+  siteId: string;
+
+  @IsString()
+  siteName: string;
+}
+
+export class CreateUnifiSiteConfigsBulkDto {
+  @IsUUID()
+  clientId: string;
+
+  @IsString()
+  clientName: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isEnabled?: boolean;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BulkSiteItemDto)
+  sites: BulkSiteItemDto[];
+}
+
+export class AvailableUnifiSiteDto {
+  siteId: string;
+  siteName: string;
 }

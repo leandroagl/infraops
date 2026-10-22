@@ -13,6 +13,7 @@ import { PatchVeeamIntegrationConfigDto, VeeamIntegrationConfigResponseDto } fro
 import { PatchJetbackupIntegrationConfigDto, JetbackupIntegrationConfigResponseDto } from './dto/jetbackup-integration-config.dto';
 import { PatchAcronisIntegrationConfigDto, AcronisIntegrationConfigResponseDto } from './dto/acronis-integration-config.dto';
 import { PatchUnifiIntegrationConfigDto, UnifiIntegrationConfigResponseDto } from './dto/unifi-integration-config.dto';
+import { PatchUnifiLocalIntegrationConfigDto, UnifiLocalIntegrationConfigResponseDto } from './dto/unifi-local-integration-config.dto';
 
 @Controller('integration-config')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -107,4 +108,16 @@ export class IntegrationConfigController {
   @Post('unifi/test')
   @HttpCode(200)
   testUnifi(): Promise<{ ok: boolean; message: string }> { return this.svc.testUnifi(); }
+
+  @Get('unifi-local')
+  getUnifiLocal(): Promise<UnifiLocalIntegrationConfigResponseDto> { return this.svc.getUnifiLocal(); }
+
+  @Patch('unifi-local')
+  patchUnifiLocal(@Body() dto: PatchUnifiLocalIntegrationConfigDto, @CurrentUser() u: JwtPayload): Promise<UnifiLocalIntegrationConfigResponseDto> {
+    return this.svc.patchUnifiLocal(dto, u.email);
+  }
+
+  @Post('unifi-local/test')
+  @HttpCode(200)
+  testUnifiLocal(): Promise<{ ok: boolean; message: string }> { return this.svc.testUnifiLocal(); }
 }

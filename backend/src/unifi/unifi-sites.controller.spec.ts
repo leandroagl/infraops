@@ -9,6 +9,8 @@ describe('UnifiSitesController', () => {
     create: jest.fn(),
     update: jest.fn(),
     remove: jest.fn(),
+    createBulk: jest.fn(),
+    getAvailableSites: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -46,5 +48,21 @@ describe('UnifiSitesController', () => {
     svc.remove.mockResolvedValue(undefined);
     await expect(controller.remove('some-id')).resolves.toBeUndefined();
     expect(svc.remove).toHaveBeenCalledWith('some-id');
+  });
+
+  it('getAvailableSites delegates to service', async () => {
+    const sites = [{ siteId: 'site-1', siteName: 'Oficina' }];
+    svc.getAvailableSites.mockResolvedValue(sites);
+    expect(await controller.getAvailableSites()).toEqual(sites);
+    expect(svc.getAvailableSites).toHaveBeenCalledTimes(1);
+  });
+
+  it('createBulk delegates to service', async () => {
+    const dto = { clientId: 'c1', clientName: 'ACME', sites: [{ siteId: 'site-1', siteName: 'Oficina' }] };
+    const created = [{ id: 'uuid-1', ...dto.sites[0], clientId: 'c1', clientName: 'ACME', isEnabled: true, createdAt: new Date() }];
+    svc.createBulk.mockResolvedValue(created);
+    const result = await controller.createBulk(dto as never);
+    expect(result).toEqual(created);
+    expect(svc.createBulk).toHaveBeenCalledWith(dto);
   });
 });

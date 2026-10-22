@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NetworkService } from '../../core/services/network.service';
-import type { NetworkAlert, AlertSeverity } from '../../core/models/network.models';
+import type { NetworkAlert, ClientOfflineAlert, AlertSeverity } from '../../core/models/network.models';
 
 @Component({
   selector: 'app-network',
@@ -11,15 +11,15 @@ import type { NetworkAlert, AlertSeverity } from '../../core/models/network.mode
   styleUrl: './network.component.scss',
 })
 export class NetworkComponent implements OnInit {
-  dataSource = new MatTableDataSource<NetworkAlert>([]);
-  displayedColumns = ['clientName', 'siteName', 'severity', 'type', 'message', 'createdAt', 'odooTicketId'];
-  selectedAlert: NetworkAlert | null = null;
+  dataSource = new MatTableDataSource<ClientOfflineAlert>([]);
+  displayedColumns = ['clientName', 'severity', 'deviceCount', 'lastSeen'];
+  selectedClient: ClientOfflineAlert | null = null;
   drawerOpen = false;
   loading = false;
   filterClient = '';
   filterSeverity: AlertSeverity | '' = '';
-  filterHasTicket: 'all' | 'with' | 'without' = 'all';
   kpi = { total: 0, critical: 0, affectedClients: 0 };
+
   private allAlerts: NetworkAlert[] = [];
   private readonly destroyRef = inject(DestroyRef);
 
@@ -47,13 +47,26 @@ export class NetworkComponent implements OnInit {
   }
 
   applyFilters(): void {
-    this.dataSource.data = this.allAlerts.filter(a => {
-      if (this.filterClient && !a.clientName.toLowerCase().includes(this.filterClient.toLowerCase())) return false;
-      if (this.filterSeverity && a.severity !== this.filterSeverity) return false;
-      if (this.filterHasTicket === 'with'    && a.odooTicketId === null) return false;
-      if (this.filterHasTicket === 'without' && a.odooTicketId !== null) return false;
+    const grouped = this.groupByClient(this.allAlerts);
+    this.dataSource.data = grouped.filter(c => {
+      if (this.filterClient && !c.clientName.toLowerCase().includes(this.filterClient.toLowerCase())) return false;
+      if (this.filterSeverity && c.severity !== this.filterSeverity) return false;
       return true;
     });
+  }
+
+  private groupByClient(alerts: NetworkAlert[]): ClientOfflineAlert[] {
+    const map = new Map<string, ClientOfflineAlert>();
+    for (const a of alerts) {
+      if (!map.has(a.clientId)) {
+        map.set(a.clientId, { clientId: a.clientId, clientName: a.clientName, devices: [], severity: 'high', lastSeen: a.lastSeen });
+      }
+      const client = map.get(a.clientId)!;
+      client.devices.push({ alertId: a.alertId, siteId: a.siteId, siteName: a.siteName, deviceName: a.deviceName, deviceModel: a.deviceModel, type: a.type, severity: a.severity, lastSeen: a.lastSeen });
+      if (a.severity === 'critical') client.severity = 'critical';
+      if (a.lastSeen > client.lastSeen) client.lastSeen = a.lastSeen;
+    }
+    return Array.from(map.values());
   }
 
   private updateKpi(): void {
@@ -64,23 +77,17 @@ export class NetworkComponent implements OnInit {
     };
   }
 
-  selectRow(alert: NetworkAlert): void {
-    this.selectedAlert = alert;
+  selectRow(client: ClientOfflineAlert): void {
+    this.selectedClient = client;
     this.drawerOpen = true;
   }
 
-  closeDrawer(): void { this.drawerOpen = false; this.selectedAlert = null; }
+  closeDrawer(): void { this.drawerOpen = false; this.selectedClient = null; }
 
-  onTicketCreated(updated: NetworkAlert): void {
-    const idx = this.allAlerts.findIndex(a => a.alertId === updated.alertId);
-    if (idx !== -1) this.allAlerts[idx] = { ...this.allAlerts[idx], odooTicketId: updated.odooTicketId };
-    this.applyFilters();
-    this.updateKpi();
-    this.closeDrawer();
-  }
-
-  timeAgo(iso: string): string {
+  lastSeenLabel(iso: string): string {
     const h = Math.round((Date.now() - new Date(iso).getTime()) / 3600000);
-    return h < 1 ? '<1h' : `${h}h`;
+    if (h < 1) return '<1h';
+    if (h < 24) return `${h}h`;
+    return `${Math.floor(h / 24)}d`;
   }
 }

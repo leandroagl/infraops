@@ -7,6 +7,7 @@ import { NetworkService } from '../../../core/services/network.service';
 import { NetworkSiteDialogComponent } from './network-site-dialog/network-site-dialog.component';
 import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 import type { UnifiSiteConfig, UnifiAutoConfig } from '../../../core/models/network.models';
+import type { NetworkSiteDialogData } from './network-site-dialog/network-site-dialog.component';
 
 @Component({
   selector: 'app-network-config',
@@ -19,7 +20,7 @@ export class NetworkConfigComponent implements OnInit {
   loadingSites = false;
   savingAuto = false;
   autoForm: FormGroup;
-  readonly siteCols = ['clientName', 'siteId', 'siteName', 'isEnabled', 'actions'];
+  readonly siteCols = ['clientName', 'siteName', 'isEnabled', 'actions'];
   readonly severityOptions = ['critical', 'high', 'medium', 'low'];
   private readonly destroyRef = inject(DestroyRef);
 
@@ -57,16 +58,20 @@ export class NetworkConfigComponent implements OnInit {
   }
 
   openSiteDialog(site?: UnifiSiteConfig): void {
-    this.dialog.open(NetworkSiteDialogComponent, { data: site ?? null, width: '480px' })
+    const dialogData: NetworkSiteDialogData = {
+      site: site ?? null,
+      configuredSiteIds: this.sites.map(s => s.siteId),
+    };
+    this.dialog.open(NetworkSiteDialogComponent, { data: dialogData, width: '520px' })
       .afterClosed()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((result: UnifiSiteConfig | null) => {
-        if (!result) return;
+      .subscribe((result: UnifiSiteConfig[] | null) => {
+        if (!result?.length) return;
         if (site) {
-          const idx = this.sites.findIndex(s => s.id === site.id);
-          if (idx !== -1) this.sites = this.sites.map((s, i) => i === idx ? result : s);
+          const updated = result[0];
+          this.sites = this.sites.map(s => s.id === site.id ? updated : s);
         } else {
-          this.sites = [...this.sites, result];
+          this.sites = [...this.sites, ...result];
         }
       });
   }

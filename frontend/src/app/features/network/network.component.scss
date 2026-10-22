@@ -34,3 +34,6 @@
 
 .net-ticket-badge { font-family: var(--font-mono, monospace); font-size: 12px; color: var(--accent); }
 .net-ticket-none { color: var(--tx-lo); }
+
+.net-count { font-family: var(--font-mono, monospace); font-weight: 600; margin-right: 4px; }
+.net-count__label { font-size: 11px; color: var(--tx-lo); }

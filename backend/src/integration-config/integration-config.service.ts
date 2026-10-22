@@ -1,3 +1,4 @@
+import * as https from 'https';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -11,8 +12,10 @@ import { VeeamConfig } from './entities/veeam-config.entity';
 import { JetbackupConfig } from './entities/jetbackup-config.entity';
 import { AcronisConfig } from './entities/acronis-config.entity';
 import { UnifiConfig } from './entities/unifi-config.entity';
+import { UnifiLocalConfig } from './entities/unifi-local-config.entity';
 import { PatchAcronisIntegrationConfigDto, AcronisIntegrationConfigResponseDto } from './dto/acronis-integration-config.dto';
 import { PatchUnifiIntegrationConfigDto, UnifiIntegrationConfigResponseDto } from './dto/unifi-integration-config.dto';
+import { PatchUnifiLocalIntegrationConfigDto, UnifiLocalIntegrationConfigResponseDto } from './dto/unifi-local-integration-config.dto';
 import { PatchOdooConfigDto, OdooConfigResponseDto } from './dto/odoo-config.dto';
 import { PatchInfraDocConfigDto, InfraDocConfigResponseDto } from './dto/infradoc-config.dto';
 import { PatchVmwareConfigDto, VmwareConfigResponseDto } from './dto/vmware-config.dto';
@@ -33,6 +36,7 @@ export class IntegrationConfigService {
     @InjectRepository(JetbackupConfig) private readonly jetbackupRepo:     Repository<JetbackupConfig>,
     @InjectRepository(AcronisConfig)  private readonly acronisRepo:       Repository<AcronisConfig>,
     @InjectRepository(UnifiConfig)    private readonly unifiRepo:         Repository<UnifiConfig>,
+    @InjectRepository(UnifiLocalConfig) private readonly unifiLocalRepo:   Repository<UnifiLocalConfig>,
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {}
@@ -438,6 +442,53 @@ export class IntegrationConfigService {
       );
       const count = (res.data?.data ?? []).length;
       return { ok: true, message: `Conexión exitosa. ${count} sites encontrados.` };
+    } catch (err) {
+      return { ok: false, message: (err as Error).message };
+    }
+  }
+
+  // ── UNIFI LOCAL (Network Application Server) ──
+
+  async getUnifiLocal(): Promise<UnifiLocalIntegrationConfigResponseDto> {
+    const row = await this.unifiLocalRepo.findOne({ where: { id: 1 } });
+    return { url: row?.url ?? '', apiKey: MASK, updatedAt: row?.updatedAt ?? null, updatedBy: row?.updatedBy ?? null };
+  }
+
+  async patchUnifiLocal(dto: PatchUnifiLocalIntegrationConfigDto, updatedBy: string): Promise<UnifiLocalIntegrationConfigResponseDto> {
+    const existing = (await this.unifiLocalRepo.findOne({ where: { id: 1 } })) ?? new UnifiLocalConfig();
+    existing.id = 1;
+    if (dto.url !== undefined) existing.url = dto.url.trim();
+    if (dto.apiKey !== undefined && !isMasked(dto.apiKey) && dto.apiKey.trim() !== '') {
+      existing.apiKey = this.safeEncrypt(dto.apiKey.trim());
+    }
+    existing.updatedBy = updatedBy;
+    await this.unifiLocalRepo.save(existing);
+    return this.getUnifiLocal();
+  }
+
+  async getUnifiLocalDecrypted(): Promise<{ url: string; apiKey: string }> {
+    const row = await this.unifiLocalRepo.findOne({ where: { id: 1 } });
+    return {
+      url: row?.url ?? '',
+      apiKey: row?.apiKey ? decrypt(row.apiKey, this.encryptKey) : '',
+    };
+  }
+
+  async testUnifiLocal(): Promise<{ ok: boolean; message: string }> {
+    try {
+      const { url, apiKey } = await this.getUnifiLocalDecrypted();
+      if (!url) return { ok: false, message: 'Falta la URL del servidor UniFi local' };
+      if (!apiKey) return { ok: false, message: 'Falta el API key del servidor UniFi local' };
+      const res = await firstValueFrom(
+        this.httpService.get(`${url}/proxy/network/integration/v1/sites`, {
+          headers: { 'X-API-KEY': apiKey, Accept: 'application/json' },
+          params: { limit: '5' },
+          timeout: 10000,
+          httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+        }),
+      );
+      const count = res.data?.totalCount ?? (res.data?.data ?? []).length;
+      return { ok: true, message: `Conexión exitosa. ${count} site(s) encontrados en el servidor local.` };
     } catch (err) {
       return { ok: false, message: (err as Error).message };
     }

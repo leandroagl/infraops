@@ -36,6 +36,9 @@ export interface AcronisIntegrationConfigDto {
 export interface UnifiIntegrationConfigDto {
   apiKey: string; updatedAt: Date | null; updatedBy: string | null;
 }
+export interface UnifiLocalIntegrationConfigDto {
+  url: string; apiKey: string; updatedAt: Date | null; updatedBy: string | null;
+}
 export interface TestConnectionResult { ok: boolean; message: string; }
 export interface HelpdeskTeamDto { id: number; name: string; }
 export interface HelpdeskTagDto { id: number; name: string; }
@@ -77,4 +80,8 @@ export class IntegrationConfigService {
   getUnifi(): Observable<UnifiIntegrationConfigDto>                                          { return this.http.get<UnifiIntegrationConfigDto>(`${this.base}/unifi`); }
   patchUnifi(dto: Partial<UnifiIntegrationConfigDto>): Observable<UnifiIntegrationConfigDto> { return this.http.patch<UnifiIntegrationConfigDto>(`${this.base}/unifi`, dto); }
   testUnifi(): Observable<TestConnectionResult>                                               { return this.http.post<TestConnectionResult>(`${this.base}/unifi/test`, {}); }
+
+  getUnifiLocal(): Observable<UnifiLocalIntegrationConfigDto>                                              { return this.http.get<UnifiLocalIntegrationConfigDto>(`${this.base}/unifi-local`); }
+  patchUnifiLocal(dto: Partial<UnifiLocalIntegrationConfigDto>): Observable<UnifiLocalIntegrationConfigDto> { return this.http.patch<UnifiLocalIntegrationConfigDto>(`${this.base}/unifi-local`, dto); }
+  testUnifiLocal(): Observable<TestConnectionResult>                                                        { return this.http.post<TestConnectionResult>(`${this.base}/unifi-local/test`, {}); }
 }

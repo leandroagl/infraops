@@ -3,16 +3,22 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UnifiSiteConfig } from './entities/unifi-site-config.entity';
 import {
+  AvailableUnifiSiteDto,
   CreateUnifiSiteConfigDto,
+  CreateUnifiSiteConfigsBulkDto,
   UpdateUnifiSiteConfigDto,
   UnifiSiteConfigResponseDto,
 } from './dto/unifi-site-config.dto';
+import { UnifiService } from '../integrations/unifi/unifi.service';
+import { IntegrationConfigService } from '../integration-config/integration-config.service';
 
 @Injectable()
 export class UnifiSitesService {
   constructor(
     @InjectRepository(UnifiSiteConfig)
     private readonly repo: Repository<UnifiSiteConfig>,
+    private readonly unifiSvc: UnifiService,
+    private readonly integrationCfg: IntegrationConfigService,
   ) {}
 
   async findAll(): Promise<UnifiSiteConfigResponseDto[]> {
@@ -46,5 +52,25 @@ export class UnifiSitesService {
 
   async findEnabled(): Promise<UnifiSiteConfig[]> {
     return this.repo.find({ where: { isEnabled: true } });
+  }
+
+  async createBulk(dto: CreateUnifiSiteConfigsBulkDto): Promise<UnifiSiteConfigResponseDto[]> {
+    const results: UnifiSiteConfigResponseDto[] = [];
+    for (const site of dto.sites) {
+      const entity = this.repo.create({
+        clientId: dto.clientId,
+        clientName: dto.clientName,
+        siteId: site.siteId,
+        siteName: site.siteName,
+        isEnabled: dto.isEnabled ?? true,
+      });
+      results.push(await this.repo.save(entity));
+    }
+    return results;
+  }
+
+  async getAvailableSites(): Promise<AvailableUnifiSiteDto[]> {
+    const { apiKey } = await this.integrationCfg.getUnifiDecrypted();
+    return this.unifiSvc.getAvailableSites(apiKey);
   }
 }
