@@ -18,7 +18,7 @@ export class NetworkComponent implements OnInit {
   loading = false;
   filterClient = '';
   filterSeverity: AlertSeverity | '' = '';
-  kpi = { total: 0, critical: 0, affectedClients: 0 };
+  kpi = { total: 0, critical: 0, high: 0, affectedClients: 0 };
 
   private allAlerts: NetworkAlert[] = [];
   private readonly destroyRef = inject(DestroyRef);
@@ -73,8 +73,20 @@ export class NetworkComponent implements OnInit {
     this.kpi = {
       total: this.allAlerts.length,
       critical: this.allAlerts.filter(a => a.severity === 'critical').length,
+      high: this.allAlerts.filter(a => a.severity === 'high').length,
       affectedClients: new Set(this.allAlerts.map(a => a.clientId)).size,
     };
+  }
+
+  toggleSeverity(severity: AlertSeverity): void {
+    this.filterSeverity = this.filterSeverity === severity ? '' : severity;
+    this.applyFilters();
+  }
+
+  clearFilters(): void {
+    this.filterClient = '';
+    this.filterSeverity = '';
+    this.applyFilters();
   }
 
   selectRow(client: ClientOfflineAlert): void {

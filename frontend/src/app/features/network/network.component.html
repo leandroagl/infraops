@@ -1,67 +1,101 @@
 <div class="net-view" [class.net-view--drawer-open]="drawerOpen">
-  <div class="net-main">
+  <div class="page">
+
+    <!-- Header -->
+    <div class="page-hdr">
+      <span class="page-title">Red</span>
+      <span class="page-sub">{{ kpi.affectedClients }} {{ kpi.affectedClients === 1 ? 'cliente afectado' : 'clientes afectados' }}</span>
+      <span class="page-hdr__spacer"></span>
+      <button mat-stroked-button (click)="load()" [disabled]="loading">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+        Actualizar
+      </button>
+    </div>
+
+    <!-- Loading bar -->
+    <mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar>
+
     <!-- KPI strip -->
     <div class="kpi-strip">
-      <div class="kpi-card">
-        <span class="kpi-card__val">{{ kpi.total }}</span>
-        <span class="kpi-card__label">DISPOSITIVOS OFFLINE</span>
+      <div class="kpi-block kpi-block--total" [class.kpi-block--active]="filterSeverity === ''" (click)="filterSeverity = ''; applyFilters()">
+        <div class="kpi-zone__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+          <span class="kpi-zone__icon-label">Total</span>
+        </div>
+        <div class="kpi-val kpi-val--total">{{ kpi.total }}</div>
+        <div class="kpi-foot">Dispositivos offline</div>
       </div>
-      <div class="kpi-card kpi-card--crit">
-        <span class="kpi-card__val">{{ kpi.critical }}</span>
-        <span class="kpi-card__label">CONTROLLERS OFFLINE</span>
+      <div class="kpi-block kpi-block--crit" [class.kpi-block--active]="filterSeverity === 'critical'" (click)="toggleSeverity('critical')">
+        <div class="kpi-zone__icon kpi-zone__icon--crit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span class="kpi-zone__icon-label">Críticos</span>
+        </div>
+        <div class="kpi-val kpi-val--crit">{{ kpi.critical }}</div>
+        <div class="kpi-foot">Severidad crítica</div>
       </div>
-      <div class="kpi-card">
-        <span class="kpi-card__val">{{ kpi.affectedClients }}</span>
-        <span class="kpi-card__label">CLIENTES AFECTADOS</span>
+      <div class="kpi-block kpi-block--warn" [class.kpi-block--active]="filterSeverity === 'high'" (click)="toggleSeverity('high')">
+        <div class="kpi-zone__icon kpi-zone__icon--warn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span class="kpi-zone__icon-label">Alertas</span>
+        </div>
+        <div class="kpi-val kpi-val--warn">{{ kpi.high }}</div>
+        <div class="kpi-foot">Severidad alta</div>
       </div>
-      <div class="kpi-strip__spacer"></div>
-      <button mat-stroked-button (click)="load()">Actualizar</button>
+      <div class="kpi-block kpi-block--clients">
+        <div class="kpi-zone__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="kpi-zone__icon-label">Clientes</span>
+        </div>
+        <div class="kpi-val">{{ kpi.affectedClients }}</div>
+        <div class="kpi-foot">Afectados</div>
+      </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="net-filters">
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:180px">
-        <mat-label>Cliente</mat-label>
+    <!-- Filtro de cliente -->
+    <div class="net-filter-bar">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:220px">
+        <mat-label>Filtrar cliente</mat-label>
         <input matInput [(ngModel)]="filterClient" (ngModelChange)="applyFilters()" />
       </mat-form-field>
-      <mat-form-field appearance="outline" subscriptSizing="dynamic" style="width:160px">
-        <mat-label>Severidad</mat-label>
-        <mat-select [(ngModel)]="filterSeverity" (ngModelChange)="applyFilters()">
-          <mat-option value="">Todas</mat-option>
-          <mat-option value="critical">critical</mat-option>
-          <mat-option value="high">high</mat-option>
-        </mat-select>
-      </mat-form-field>
+      <button *ngIf="filterClient || filterSeverity" mat-button (click)="clearFilters()">
+        <mat-icon>close</mat-icon>
+        Limpiar filtros
+      </button>
     </div>
 
-    <!-- Tabla -->
-    <div *ngIf="loading" class="net-loading"><mat-spinner [diameter]="36"></mat-spinner></div>
-    <mat-table *ngIf="!loading" [dataSource]="dataSource" class="net-table">
-      <ng-container matColumnDef="clientName">
-        <mat-header-cell *matHeaderCellDef>CLIENTE</mat-header-cell>
-        <mat-cell *matCellDef="let row">{{ row.clientName }}</mat-cell>
-      </ng-container>
-      <ng-container matColumnDef="severity">
-        <mat-header-cell *matHeaderCellDef>SEVERIDAD</mat-header-cell>
-        <mat-cell *matCellDef="let row">
-          <span class="sev-chip sev-chip--{{ row.severity }}">{{ row.severity }}</span>
-        </mat-cell>
-      </ng-container>
-      <ng-container matColumnDef="deviceCount">
-        <mat-header-cell *matHeaderCellDef>OFFLINE</mat-header-cell>
-        <mat-cell *matCellDef="let row">
-          <span class="net-count">{{ row.devices.length }}</span>
-          <span class="net-count__label">{{ row.devices.length === 1 ? 'dispositivo' : 'dispositivos' }}</span>
-        </mat-cell>
-      </ng-container>
-      <ng-container matColumnDef="lastSeen">
-        <mat-header-cell *matHeaderCellDef>ÚLTIMO DATO</mat-header-cell>
-        <mat-cell *matCellDef="let row">{{ lastSeenLabel(row.lastSeen) }}</mat-cell>
-      </ng-container>
-      <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-      <mat-row *matRowDef="let row; columns: displayedColumns;" (click)="selectRow(row)" class="net-row--clickable"></mat-row>
-    </mat-table>
-    <p *ngIf="!loading && dataSource.data.length === 0" class="net-empty">No hay dispositivos offline</p>
+    <!-- Content area -->
+    <div class="content-area">
+      <mat-table [dataSource]="dataSource" class="net-table">
+        <ng-container matColumnDef="clientName">
+          <mat-header-cell *matHeaderCellDef>CLIENTE</mat-header-cell>
+          <mat-cell *matCellDef="let row">{{ row.clientName }}</mat-cell>
+        </ng-container>
+        <ng-container matColumnDef="severity">
+          <mat-header-cell *matHeaderCellDef>SEVERIDAD</mat-header-cell>
+          <mat-cell *matCellDef="let row">
+            <span class="sev-chip sev-chip--{{ row.severity }}">{{ row.severity }}</span>
+          </mat-cell>
+        </ng-container>
+        <ng-container matColumnDef="deviceCount">
+          <mat-header-cell *matHeaderCellDef>OFFLINE</mat-header-cell>
+          <mat-cell *matCellDef="let row">
+            <span class="net-count">{{ row.devices.length }}</span>
+            <span class="net-count__label">{{ row.devices.length === 1 ? 'dispositivo' : 'dispositivos' }}</span>
+          </mat-cell>
+        </ng-container>
+        <ng-container matColumnDef="lastSeen">
+          <mat-header-cell *matHeaderCellDef>ÚLTIMO DATO</mat-header-cell>
+          <mat-cell *matCellDef="let row">{{ lastSeenLabel(row.lastSeen) }}</mat-cell>
+        </ng-container>
+        <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+        <mat-row *matRowDef="let row; columns: displayedColumns;" (click)="selectRow(row)" class="net-row--clickable"></mat-row>
+      </mat-table>
+      <p *ngIf="!loading && dataSource.data.length === 0" class="net-empty">No hay dispositivos offline</p>
+    </div>
+
   </div>
 
   <!-- Drawer -->
