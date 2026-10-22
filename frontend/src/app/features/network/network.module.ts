@@ -5,8 +5,7 @@ import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { NetworkRoutingModule } from './network-routing.module';
@@ -18,7 +17,7 @@ import { NetworkAlertDrawerComponent } from './components/network-alert-drawer/n
   imports: [
     CommonModule, FormsModule,
     MatTableModule, MatButtonModule, MatFormFieldModule, MatInputModule,
-    MatSelectModule, MatProgressSpinnerModule, MatIconModule, MatSnackBarModule,
+    MatProgressBarModule, MatIconModule, MatSnackBarModule,
     NetworkRoutingModule,
   ],
 })
