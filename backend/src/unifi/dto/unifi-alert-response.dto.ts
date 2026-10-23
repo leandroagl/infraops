@@ -5,7 +5,7 @@ export class AlertWithTicketDto {
   clientId: string;
   clientName: string;
   severity: 'critical' | 'high';
-  type: 'console_offline' | 'device_offline';
+  type: 'console_offline' | 'device_offline' | 'wan_down' | 'wan_failover';
   message: string;
   deviceName: string;
   deviceModel: string;

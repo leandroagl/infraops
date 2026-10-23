@@ -3,7 +3,7 @@
     <div class="ndr__header-info">
       <span class="ndr__title">{{ client.clientName }}</span>
       <span class="ndr__subtitle">
-        {{ client.devices.length }} {{ client.devices.length === 1 ? 'dispositivo offline' : 'dispositivos offline' }}
+        {{ client.devices.length }} {{ client.devices.length === 1 ? 'alerta' : 'alertas' }}
         &nbsp;·&nbsp;
         <span class="sev-chip sev-chip--{{ client.severity }}">{{ client.severity }}</span>
       </span>
@@ -18,7 +18,7 @@
         <mat-cell *matCellDef="let d">{{ d.siteName }}</mat-cell>
       </ng-container>
       <ng-container matColumnDef="deviceName">
-        <mat-header-cell *matHeaderCellDef>DISPOSITIVO</mat-header-cell>
+        <mat-header-cell *matHeaderCellDef>ALERTA</mat-header-cell>
         <mat-cell *matCellDef="let d">{{ d.deviceName }}</mat-cell>
       </ng-container>
       <ng-container matColumnDef="deviceModel">

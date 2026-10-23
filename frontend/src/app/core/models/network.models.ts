@@ -1,5 +1,5 @@
 export type AlertSeverity = 'critical' | 'high';
-export type AlertType = 'console_offline' | 'device_offline';
+export type AlertType = 'console_offline' | 'device_offline' | 'wan_down' | 'wan_failover';
 
 export interface NetworkAlert {
   alertId: string;

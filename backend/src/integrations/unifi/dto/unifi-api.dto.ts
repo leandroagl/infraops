@@ -1,3 +1,5 @@
+import type { UnifiInternetIssue } from '../unifi-wan-issues';
+
 export interface UnifiApiHost {
   id: string;
   reportedState?: { name?: string; hardware?: { name?: string } };
@@ -11,6 +13,7 @@ export interface UnifiApiSite {
     counts?: { gatewayDevice?: number };
     ispInfo?: { name?: string; asn?: number };
     wans?: { WAN?: { externalIp?: string }; WAN2?: { externalIp?: string } };
+    internetIssues?: UnifiInternetIssue[] | null;
   };
 }
 

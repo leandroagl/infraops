@@ -17,7 +17,7 @@ const OFFLINE_CONSOLE = { id: 'CON1', mac: 'CON1', name: 'UDM Pro', model: 'UDM'
 describe('UnifiAlertsService', () => {
   let service: UnifiAlertsService;
   let sitesSvc: { findEnabled: jest.Mock };
-  let unifiSvc: { getSiteHostMap: jest.Mock; getAllDevices: jest.Mock };
+  let unifiSvc: { getSiteHostMap: jest.Mock; getAllDevices: jest.Mock; getSiteInternetIssues: jest.Mock };
   let unifiLocalSvc: { findLocalSiteByName: jest.Mock; getSiteDevices: jest.Mock };
   let integrationCfg: { getUnifiDecrypted: jest.Mock; getUnifiLocalDecrypted: jest.Mock };
   let odooSvc: { createDeviationTicket: jest.Mock };
@@ -25,7 +25,11 @@ describe('UnifiAlertsService', () => {
 
   beforeEach(async () => {
     sitesSvc = { findEnabled: jest.fn() };
-    unifiSvc = { getSiteHostMap: jest.fn(), getAllDevices: jest.fn() };
+    unifiSvc = {
+      getSiteHostMap: jest.fn(),
+      getAllDevices: jest.fn(),
+      getSiteInternetIssues: jest.fn().mockResolvedValue(new Map()),
+    };
     unifiLocalSvc = { findLocalSiteByName: jest.fn(), getSiteDevices: jest.fn() };
     integrationCfg = {
       getUnifiDecrypted: jest.fn().mockResolvedValue({ apiKey: 'key' }),
@@ -115,6 +119,76 @@ describe('UnifiAlertsService', () => {
     ticketRepo.find.mockResolvedValue([{ alertId: 'host-A:DEV2:offline', odooTicketId: 42 }]);
     const result = await service.getAlerts();
     expect(result[0].odooTicketId).toBe(42);
+  });
+
+  describe('WAN alerts', () => {
+    const nowIndex = () => Math.floor(Date.now() / (5 * 60 * 1000));
+
+    beforeEach(() => {
+      sitesSvc.findEnabled.mockResolvedValue([SITE]);
+      unifiSvc.getSiteHostMap.mockResolvedValue(new Map([['site-1', 'host-A']]));
+      unifiSvc.getAllDevices.mockResolvedValue(new Map([['host-A', { devices: [ONLINE_DEVICE], updatedAt: '2026-10-21T10:00:00Z' }]]));
+    });
+
+    it('generates a critical wan_down alert for a recent wanDowntime run', async () => {
+      const start = nowIndex() - 6;
+      unifiSvc.getSiteInternetIssues.mockResolvedValue(new Map([['site-1', [{ index: start, count: 3, wanDowntime: true }]]]));
+      const result = await service.getAlerts();
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        type: 'wan_down',
+        severity: 'critical',
+        clientName: 'ACME',
+        siteId: 'site-1',
+        hostId: 'host-A',
+        alertId: `host-A:site-1:wan_down:${start}`,
+        odooTicketId: null,
+      });
+    });
+
+    it('generates a high wan_failover alert for a failover-only run', async () => {
+      const start = nowIndex() - 2;
+      unifiSvc.getSiteInternetIssues.mockResolvedValue(new Map([['site-1', [{ index: start, wan2FailoverActive: true }]]]));
+      const result = await service.getAlerts();
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ type: 'wan_failover', severity: 'high', alertId: `host-A:site-1:wan_failover:${start}` });
+    });
+
+    it('ignores runs older than 24 hours', async () => {
+      const start = nowIndex() - 24 * 12 - 5;
+      unifiSvc.getSiteInternetIssues.mockResolvedValue(new Map([['site-1', [{ index: start, wanDowntime: true }]]]));
+      expect(await service.getAlerts()).toEqual([]);
+    });
+
+    it('generates WAN alerts for sites on a shared host without needing the local API', async () => {
+      const start = nowIndex() - 2;
+      unifiSvc.getSiteHostMap.mockResolvedValue(new Map([['site-1', 'host-shared'], ['site-2', 'host-shared']]));
+      unifiSvc.getSiteInternetIssues.mockResolvedValue(new Map([['site-1', [{ index: start, wanDowntime: true }]]]));
+      const result = await service.getAlerts();
+      expect(result).toHaveLength(1);
+      expect(result[0].type).toBe('wan_down');
+    });
+
+    it('combines WAN alerts with device alerts', async () => {
+      unifiSvc.getAllDevices.mockResolvedValue(new Map([['host-A', { devices: [OFFLINE_AP], updatedAt: '2026-10-21T10:00:00Z' }]]));
+      unifiSvc.getSiteInternetIssues.mockResolvedValue(new Map([['site-1', [{ index: nowIndex() - 2, wanDowntime: true }]]]));
+      const result = await service.getAlerts();
+      expect(result.map(a => a.type).sort()).toEqual(['device_offline', 'wan_down']);
+    });
+
+    it('enriches WAN alerts with existing ticket info', async () => {
+      const start = nowIndex() - 2;
+      unifiSvc.getSiteInternetIssues.mockResolvedValue(new Map([['site-1', [{ index: start, wanDowntime: true }]]]));
+      ticketRepo.find.mockResolvedValue([{ alertId: `host-A:site-1:wan_down:${start}`, odooTicketId: 77 }]);
+      const result = await service.getAlerts();
+      expect(result[0].odooTicketId).toBe(77);
+    });
+
+    it('skips WAN alerts for sites without a known host', async () => {
+      unifiSvc.getSiteHostMap.mockResolvedValue(new Map());
+      unifiSvc.getSiteInternetIssues.mockResolvedValue(new Map([['site-1', [{ index: nowIndex() - 2, wanDowntime: true }]]]));
+      expect(await service.getAlerts()).toEqual([]);
+    });
   });
 
   it('createManualTicket throws ConflictException when ticket already exists', async () => {

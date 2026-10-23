@@ -104,6 +104,27 @@ describe('UnifiService', () => {
     });
   });
 
+  describe('getSiteInternetIssues', () => {
+    it('returns a map of siteId to statistics.internetIssues', async () => {
+      const issues = [{ index: 5975902, count: 3, wanDowntime: true }];
+      httpGet.mockReturnValue(of({ data: { data: [
+        { siteId: 'site-1', hostId: 'host-A', meta: { desc: 'Oficina', name: 'oficina' }, statistics: { internetIssues: issues } },
+        { siteId: 'site-2', hostId: 'host-B', meta: { desc: 'Sucursal', name: 'sucursal' }, statistics: { internetIssues: null } },
+        { siteId: 'site-3', hostId: 'host-C', meta: { desc: 'Sin stats', name: 'sinstats' } },
+      ] } }));
+      const result = await service.getSiteInternetIssues(API_KEY);
+      expect(result.get('site-1')).toEqual(issues);
+      expect(result.has('site-2')).toBe(false);
+      expect(result.has('site-3')).toBe(false);
+    });
+
+    it('returns empty map when API returns no sites', async () => {
+      httpGet.mockReturnValue(of({ data: { data: [] } }));
+      const result = await service.getSiteInternetIssues(API_KEY);
+      expect(result.size).toBe(0);
+    });
+  });
+
   describe('getAllDevices', () => {
     it('returns a map of hostId to devices and updatedAt', async () => {
       httpGet.mockReturnValue(of({ data: {
