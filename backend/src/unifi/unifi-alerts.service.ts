@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { UnifiSitesService } from './unifi-sites.service';
 import { UnifiService } from '../integrations/unifi/unifi.service';
 import { UnifiLocalService } from '../integrations/unifi/unifi-local.service';
+import { extractWanIssues } from '../integrations/unifi/unifi-wan-issues';
 import { IntegrationConfigService } from '../integration-config/integration-config.service';
 import { OdooService } from '../integrations/odoo/odoo.service';
 import { UnifiTicket } from './entities/unifi-ticket.entity';
@@ -27,9 +28,10 @@ export class UnifiAlertsService {
     if (sites.length === 0) return [];
 
     const { apiKey } = await this.integrationCfg.getUnifiDecrypted();
-    const [siteHostMap, allDevices] = await Promise.all([
+    const [siteHostMap, allDevices, internetIssues] = await Promise.all([
       this.unifiSvc.getSiteHostMap(apiKey),
       this.unifiSvc.getAllDevices(apiKey),
+      this.unifiSvc.getSiteInternetIssues(apiKey),
     ]);
 
     // contar todos los sites cloud por host (no solo los configurados) — si un host tiene
@@ -46,6 +48,28 @@ export class UnifiAlertsService {
     for (const site of sites) {
       const hostId = siteHostMap.get(site.siteId);
       if (!hostId) continue;
+
+      // statistics.internetIssues viene por site, así que aplica también a hosts compartidos
+      for (const issue of extractWanIssues(internetIssues.get(site.siteId), Date.now())) {
+        const isDown = issue.type === 'wan_down';
+        alerts.push({
+          alertId: `${hostId}:${site.siteId}:${issue.type}:${issue.startIndex}`,
+          siteId: site.siteId,
+          siteName: site.siteName,
+          clientId: site.clientId,
+          clientName: site.clientName,
+          severity: isDown ? 'critical' : 'high',
+          type: issue.type,
+          message: isDown
+            ? 'Se detectó una caída de la conexión WAN'
+            : 'Failover activo: el site está operando por el enlace WAN secundario',
+          deviceName: isDown ? 'WAN caída' : 'WAN en failover',
+          deviceModel: '',
+          hostId,
+          lastSeen: issue.lastSeen,
+          odooTicketId: null,
+        });
+      }
 
       const sharedSites = hostSiteCount.get(hostId) ?? 0;
 

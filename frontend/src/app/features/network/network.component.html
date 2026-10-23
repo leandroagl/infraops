@@ -26,7 +26,7 @@
           <span class="kpi-zone__icon-label">Total</span>
         </div>
         <div class="kpi-val kpi-val--total">{{ kpi.total }}</div>
-        <div class="kpi-foot">Dispositivos offline</div>
+        <div class="kpi-foot">Alertas activas</div>
       </div>
       <div class="kpi-block kpi-block--crit" [class.kpi-block--active]="filterSeverity === 'critical'" (click)="toggleSeverity('critical')">
         <div class="kpi-zone__icon kpi-zone__icon--crit">
@@ -80,10 +80,10 @@
           </mat-cell>
         </ng-container>
         <ng-container matColumnDef="deviceCount">
-          <mat-header-cell *matHeaderCellDef>OFFLINE</mat-header-cell>
+          <mat-header-cell *matHeaderCellDef>ALERTAS</mat-header-cell>
           <mat-cell *matCellDef="let row">
             <span class="net-count">{{ row.devices.length }}</span>
-            <span class="net-count__label">{{ row.devices.length === 1 ? 'dispositivo' : 'dispositivos' }}</span>
+            <span class="net-count__label">{{ row.devices.length === 1 ? 'alerta' : 'alertas' }}</span>
           </mat-cell>
         </ng-container>
         <ng-container matColumnDef="lastSeen">
@@ -93,7 +93,7 @@
         <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
         <mat-row *matRowDef="let row; columns: displayedColumns;" (click)="selectRow(row)" class="net-row--clickable"></mat-row>
       </mat-table>
-      <p *ngIf="!loading && dataSource.data.length === 0" class="net-empty">No hay dispositivos offline</p>
+      <p *ngIf="!loading && dataSource.data.length === 0" class="net-empty">No hay alertas activas</p>
     </div>
 
   </div>
