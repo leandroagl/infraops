@@ -12,7 +12,8 @@ import {
 } from './acronis.evaluation';
 import { toBackupJobStatus } from './acronis.mapper';
 
-export const DEFAULT_THRESHOLDS: AcronisThresholds = { staleWarningHours: 26, staleErrorHours: 48 };
+// Acronis no corre fines de semana: 72h warning / 96h error para no falsar alertas el lunes.
+export const DEFAULT_THRESHOLDS: AcronisThresholds = { staleWarningHours: 72, staleErrorHours: 96 };
 
 const TASKS_PATH = '/api/task_manager/v2/tasks';
 const ACTIVITIES_PATH = '/api/task_manager/v2/activities';
