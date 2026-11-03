@@ -21,6 +21,7 @@ import { DeviationRulesModule } from './deviation-rules/deviation-rules.module';
 import { MaintenanceDeviationsModule } from './maintenance-deviations/maintenance-deviations.module';
 import { BackupsModule } from './backups/backups.module';
 import { AppNotificationsModule } from './app-notifications/app-notifications.module';
+import { UnifiModule } from './unifi/unifi.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { AppNotificationsModule } from './app-notifications/app-notifications.mo
     MaintenanceDeviationsModule,
     BackupsModule,
     AppNotificationsModule,
+    UnifiModule,
   ],
 })
 export class AppModule {}

@@ -1,0 +1,113 @@
+.ns-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+  min-width: 440px;
+}
+
+.ns-sites-label {
+  font-size: 12px;
+  color: var(--tx-lo);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ns-count {
+  font-size: 11px;
+  background: var(--accent);
+  color: #000;
+  border-radius: 10px;
+  padding: 1px 7px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.ns-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--tx-lo);
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.ns-error {
+  color: var(--crit);
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.ns-empty {
+  color: var(--tx-lo);
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.ns-sites-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 0;
+}
+
+.ns-site-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s;
+
+  &:hover:not(.ns-site-row--configured) {
+    background: var(--surface-2);
+  }
+
+  &.ns-site-row--configured {
+    cursor: default;
+    opacity: 0.55;
+  }
+}
+
+.ns-site-name {
+  flex: 1;
+  font-size: 13px;
+}
+
+.ns-configured-badge {
+  font-size: 11px;
+  color: var(--tx-lo);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1px 7px;
+  white-space: nowrap;
+}
+
+.ns-enabled-check {
+  padding-top: 4px;
+}
+
+.ns-edit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+
+  .ns-site-name {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .ns-client-name {
+    font-size: 12px;
+    color: var(--tx-lo);
+  }
+}

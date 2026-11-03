@@ -19,6 +19,7 @@ export class AdminLayoutComponent {
     { path: '/admin/mantenimientos', label: 'Mantenimientos' },
     { path: '/admin/vencimientos',   label: 'Vencimientos'   },
     { path: '/admin/backups',        label: 'Backups'        },
+    { path: '/admin/red',           label: 'Red'            },
   ];
 
   constructor(private router: Router) {}

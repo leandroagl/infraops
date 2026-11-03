@@ -10,7 +10,7 @@ import { AppNotificationsService } from '../services/app-notifications.service';
 interface NavItem {
   route: string;
   label: string;
-  icon: 'dashboard' | 'clients' | 'tasks' | 'notifications' | 'backups' | 'admin' | 'schedules' | 'docs';
+  icon: 'dashboard' | 'clients' | 'tasks' | 'notifications' | 'backups' | 'network' | 'admin' | 'schedules' | 'docs';
 }
 
 @Component({
@@ -25,6 +25,7 @@ export class ShellComponent implements OnInit {
     { route: '/tasks',          label: 'Mis tareas',   icon: 'tasks'         },
     { route: '/notifications',  label: 'Vencimientos', icon: 'notifications' },
     { route: '/backups',        label: 'Backups',      icon: 'backups'       },
+    { route: '/network',        label: 'Red',          icon: 'network'       },
     { route: '/admin',          label: 'Admin',        icon: 'admin'         },
     { route: '/schedules',      label: 'Schedules',    icon: 'schedules'     },
     { route: '/docs',           label: 'Documentación', icon: 'docs'         },

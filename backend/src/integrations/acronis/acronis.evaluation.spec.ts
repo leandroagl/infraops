@@ -177,6 +177,28 @@ describe('acronis.evaluation', () => {
       const ok: AcronisActivity[] = [{ resource: { id: 'v1', type: 'machine', name: 'V1' }, result: { code: 'ok' } }];
       expect(evaluateActivityResources(ok, 'agent', null, TH)[0].severity).toBe('error');
     });
+
+    it('excluye recursos cuyas actividades son todas cancelled (mailbox sin licencia M365)', () => {
+      const acts: AcronisActivity[] = [
+        { resource: { id: 'agent', type: 'machine', name: 'Agent' }, result: { code: 'ok' } },
+        { resource: { id: 'mb-ok', type: 'MAILBOX', name: 'Active' }, result: { code: 'ok' } },
+        { resource: { id: 'mb-rev1', type: 'MAILBOX', name: 'Revoked1' }, result: { code: 'cancelled' } },
+        { resource: { id: 'mb-rev2', type: 'MAILBOX', name: 'Revoked2' }, result: { code: 'cancelled' } },
+      ];
+      const res = evaluateActivityResources(acts, 'agent', parseAcronisTimestamp(hoursAgoIso(2)), TH);
+      expect(res.map(r => r.name)).toEqual(['Active']);
+      expect(res.length).toBe(1);
+    });
+
+    it('no excluye un recurso con códigos mixtos cancelled+ok (cancelación parcial, no revocación total)', () => {
+      const acts: AcronisActivity[] = [
+        { resource: { id: 'mb-mix', type: 'MAILBOX', name: 'Mixed' }, result: { code: 'cancelled' } },
+        { resource: { id: 'mb-mix', type: 'MAILBOX', name: 'Mixed' }, result: { code: 'ok' } },
+      ];
+      const res = evaluateActivityResources(acts, 'agent', parseAcronisTimestamp(hoursAgoIso(2)), TH);
+      expect(res.length).toBe(1);
+      expect(res[0].name).toBe('Mixed');
+    });
   });
 
   describe('isAggregatedType / summarizeResources', () => {

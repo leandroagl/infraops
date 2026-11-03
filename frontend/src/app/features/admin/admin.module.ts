@@ -39,6 +39,8 @@ import { DeviationRulesComponent } from './deviation-rules/deviation-rules.compo
 import { DeviationRuleEditDialogComponent } from './deviation-rules/deviation-rule-edit-dialog/deviation-rule-edit-dialog.component';
 import { BackupsConfigComponent } from './backups-config/backups-config.component';
 import { BackupsConfigDialogComponent } from './backups-config/backups-config-dialog/backups-config-dialog.component';
+import { NetworkConfigComponent } from './network-config/network-config.component';
+import { NetworkSiteDialogComponent } from './network-config/network-site-dialog/network-site-dialog.component';
 
 @NgModule({
   declarations: [
@@ -59,6 +61,8 @@ import { BackupsConfigDialogComponent } from './backups-config/backups-config-di
     DeviationRuleEditDialogComponent,
     BackupsConfigComponent,
     BackupsConfigDialogComponent,
+    NetworkConfigComponent,
+    NetworkSiteDialogComponent,
   ],
   imports: [
     CommonModule,

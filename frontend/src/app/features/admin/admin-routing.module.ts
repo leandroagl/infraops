@@ -7,6 +7,7 @@ import { IntegracionesComponent } from './integraciones/integraciones.component'
 import { TaskConfigComponent } from './task-config/task-config.component';
 import { NotificationsConfigComponent } from './notifications-config/notifications-config.component';
 import { BackupsConfigComponent } from './backups-config/backups-config.component';
+import { NetworkConfigComponent } from './network-config/network-config.component';
 
 const routes: Routes = [
   {
@@ -19,6 +20,7 @@ const routes: Routes = [
       { path: 'mantenimientos',   component: TaskConfigComponent          },
       { path: 'vencimientos',     component: NotificationsConfigComponent },
       { path: 'backups',          component: BackupsConfigComponent       },
+      { path: 'red',             component: NetworkConfigComponent        },
       { path: '',                 redirectTo: 'users',                    pathMatch: 'full' },
     ],
   },
