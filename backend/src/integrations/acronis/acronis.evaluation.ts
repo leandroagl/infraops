@@ -128,6 +128,9 @@ export function evaluateActivityResources(
   const hours = completedAt ? hoursSince(completedAt) : null;
   const out: AcronisResourceStatus[] = [];
   for (const [resourceId, e] of byResource) {
+    // Mailbox/recurso revocado del plan (sin licencia M365): todas las actividades son 'cancelled'.
+    // No es un fallo de backup sino una cuenta que ya no está protegida intencionalmente.
+    if (e.codes.length > 0 && e.codes.every(c => c === 'cancelled')) continue;
     const hardFail = e.codes.some(c => !COMPLETED_CODES.has(c));
     const { severity, effectiveHours } = classify(hardFail, e.codes.includes('warning'), hours, th);
     out.push({
