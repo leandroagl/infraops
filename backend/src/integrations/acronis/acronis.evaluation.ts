@@ -93,8 +93,15 @@ export function evaluateResources(tasks: AcronisTask[], th: AcronisThresholds): 
     if (COMPLETED_CODES.has(code) && e.lastOkAt === null) e.lastOkAt = at;
   }
 
+  // Un mailbox/team/site removido del plan deja de generar tasks y su último resultado queda congelado
+  // para siempre. Si el plan sigue corriendo y el recurso quedó atrás por más de staleError, se considera removido.
+  // Los recursos individuales no se excluyen: que dejen de correr es justo lo que se quiere detectar.
+  const planLatestMs = Math.max(0, ...[...byResource.values()].map(e => e.latestAt?.getTime() ?? 0));
+  const removedCutoffMs = planLatestMs - th.staleErrorHours * 3600000;
+
   const out: AcronisResourceStatus[] = [];
   for (const [resourceId, e] of byResource) {
+    if (isAggregatedType(e.type) && e.latestAt && e.latestAt.getTime() < removedCutoffMs) continue;
     const hardFail = !COMPLETED_CODES.has(e.latestCode ?? '?');
     const { severity, effectiveHours } = classify(
       hardFail, e.latestCode === 'warning', e.lastOkAt ? hoursSince(e.lastOkAt) : null, th,

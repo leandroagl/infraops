@@ -136,6 +136,43 @@ describe('acronis.evaluation', () => {
       expect(res.map(r => r.name)).toEqual(['Alfa', 'Zeta']);
     });
 
+    it('excluye un mailbox removido del plan: su último task es más viejo que el último del plan por más de staleError', () => {
+      const tasks = [
+        task({ rid: 'mb-act', rname: 'Activo', rtype: 'MAILBOX', hoursAgo: 2 }),
+        task({ rid: 'mb-rem-ok', rname: 'RemovidoOk', rtype: 'MAILBOX', hoursAgo: 30 * 24 }),
+        task({ rid: 'mb-rem-can', rname: 'RemovidoCancelled', rtype: 'MAILBOX', code: 'cancelled', hoursAgo: 30 * 24 }),
+      ];
+      expect(evaluateResources(tasks, TH).map(r => r.name)).toEqual(['Activo']);
+    });
+
+    it('no excluye un mailbox cuyo último task está dentro de la ventana staleError respecto del plan', () => {
+      const tasks = [
+        task({ rid: 'mb-act', rname: 'Activo', rtype: 'MAILBOX', hoursAgo: 2 }),
+        task({ rid: 'mb-lag', rname: 'Atrasado', rtype: 'MAILBOX', hoursAgo: 40 }),
+      ];
+      expect(evaluateResources(tasks, TH).map(r => r.name)).toEqual(['Activo', 'Atrasado']);
+    });
+
+    it('no excluye recursos individuales (VM/equipo) que dejaron de correr: es justo lo que se quiere detectar', () => {
+      const tasks = [
+        task({ rid: 'vm-act', rname: 'VmActiva', rtype: 'instance', hoursAgo: 2 }),
+        task({ rid: 'vm-stop', rname: 'VmParada', rtype: 'instance', hoursAgo: 30 * 24 }),
+      ];
+      const res = evaluateResources(tasks, TH);
+      expect(res.map(r => r.name)).toEqual(['VmActiva', 'VmParada']);
+      expect(res[1].severity).toBe('error');
+    });
+
+    it('si todo el plan dejó de correr no se excluye nada: sigue alertando contra "ahora"', () => {
+      const tasks = [
+        task({ rid: 'mb-a', rname: 'A', rtype: 'MAILBOX', hoursAgo: 10 * 24 }),
+        task({ rid: 'mb-b', rname: 'B', rtype: 'MAILBOX', hoursAgo: 10 * 24 + 1 }),
+      ];
+      const res = evaluateResources(tasks, TH);
+      expect(res.map(r => r.name)).toEqual(['A', 'B']);
+      expect(res.every(r => r.severity === 'error')).toBe(true);
+    });
+
     it('respeta umbrales configurables', () => {
       const [r] = evaluateResources([task({ code: 'ok', hoursAgo: 10 })], { staleWarningHours: 6, staleErrorHours: 9 });
       expect(r.severity).toBe('error');
@@ -209,7 +246,7 @@ describe('acronis.evaluation', () => {
 
     it('cuenta ok/warning/error y lista hasta 5 peores (los más viejos primero)', () => {
       const resources = evaluateResources([
-        ...Array.from({ length: 7 }, (_, i) => task({ rid: `bad${i}`, rname: `Malo ${i}`, code: 'ok', hoursAgo: 100 + i, rtype: 'MAILBOX' })),
+        ...Array.from({ length: 7 }, (_, i) => task({ rid: `bad${i}`, rname: `Malo ${i}`, code: 'ok', hoursAgo: 100 + i, rtype: 'instance' })),
         task({ rid: 'w', rname: 'Warn', code: 'warning', hoursAgo: 1, rtype: 'MAILBOX' }),
         task({ rid: 'g', rname: 'Good', code: 'ok', hoursAgo: 1, rtype: 'MAILBOX' }),
       ], TH);

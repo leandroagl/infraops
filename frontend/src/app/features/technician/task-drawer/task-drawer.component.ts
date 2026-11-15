@@ -141,6 +141,11 @@ export class TaskDrawerComponent implements OnChanges {
     return this.effectiveTechnicianId == null;
   }
 
+  get currentTechnician(): Technician | null {
+    if (!this.effectiveTechnicianId) return null;
+    return this.technicians.find(t => t.id === this.effectiveTechnicianId) ?? null;
+  }
+
   assignTechnician(technicianId: string): void {
     this.tasksService.assignTechnician(this.task.id, technicianId).subscribe(updated => {
       this._technicianOverride = { technicianId: updated.technicianId, technician: updated.technician };

@@ -146,17 +146,23 @@
 // ── Header ────────────────────────────────────────────────
 .d-hdr {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px 18px 14px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 18px 14px;
   border-bottom: 1px solid var(--border-lo);
   background: var(--surface);
   flex-shrink: 0;
 }
 
+.d-hdr__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .d-icon {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius);
   border: 1px solid;
   display: flex;
@@ -167,6 +173,8 @@
 }
 
 .d-client {
+  flex: 1;
+  min-width: 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--tx-hi);
@@ -176,18 +184,10 @@
   letter-spacing: -0.01em;
 }
 
-.d-sub {
-  font-size: 11px;
-  color: var(--tx-md);
-  margin-top: 2px;
-  font-weight: 400;
-}
-
 .d-meta {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 8px;
   flex-wrap: wrap;
 }
 
@@ -204,6 +204,22 @@
   flex-shrink: 0;
   transition: color var(--transition), background var(--transition);
   &:hover { color: var(--tx-hi); background: var(--elevated); }
+}
+
+.d-tech-field {
+  width: 50%;
+  // El avatar sm (24px) en un campo de 32px necesita un poco más de altura para centrar bien
+  --mat-form-field-container-height: 36px;
+  --mat-form-field-container-vertical-padding: 6px;
+}
+
+.d-tech-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1;
+  overflow: hidden;
 }
 
 // ── Read-only banner ──────────────────────────────────────

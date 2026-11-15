@@ -1,47 +1,62 @@
 <!-- ── Header ─────────────────────────────────────────────── -->
 <div class="d-hdr">
-  <div class="d-icon" [ngStyle]="drawerIconStyle()">
-    <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round">
-      <rect x="2" y="3" width="20" height="14" rx="2"/>
-      <path d="M8 21h8M12 17v4"/>
-    </svg>
-  </div>
-  <div style="flex:1;min-width:0">
-    <div class="d-client">{{ task.client?.name ?? task.clientId }}</div>
-    <span class="badge badge--type" [ngClass]="typeBadge(task.type)">{{ typeLabel(task.type) }}</span>
-    <div class="d-meta">
-      <span *ngIf="task.type !== 'EXPIRATION_CONTROL'" class="urg" [ngClass]="urgencyClass(daysUntilCycleClose())">
-        {{ urgencyLabel(daysUntilCycleClose()) }}
-      </span>
-      <span
-        *ngIf="task.type === 'EXPIRATION_CONTROL' && expirationDetail?.slaDaysUntil != null"
-        class="urg"
-        [ngClass]="slaClass(expirationDetail!.slaDaysUntil!)">
-        {{ slaLabel(expirationDetail!.slaDaysUntil!) }}
-      </span>
-      <span class="badge" [ngClass]="statusBadge(task.status)">{{ statusLabel(task.status) }}</span>
-      <a
-        *ngIf="odooLink"
-        [href]="odooLink"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="d-odoo-link">{{ odooLabel }}</a>
-    </div>
 
-    <mat-form-field *ngIf="isUnassigned && (userRole === 'TL' || userRole === 'ADMIN')"
-                    appearance="outline" subscriptSizing="dynamic" style="margin-top:6px">
-      <mat-label>Asignar técnico</mat-label>
-      <mat-select (selectionChange)="assignTechnician($event.value)">
-        <mat-option *ngFor="let t of technicians" [value]="t.id">{{ t.user.name }}</mat-option>
-      </mat-select>
-    </mat-form-field>
-    <span *ngIf="isUnassigned && userRole === 'TECHNICIAN'" class="d-unassigned-hint">Sin técnico asignado</span>
+  <!-- Fila 1: ícono + cliente + cerrar -->
+  <div class="d-hdr__top">
+    <div class="d-icon" [ngStyle]="drawerIconStyle()">
+      <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <path d="M8 21h8M12 17v4"/>
+      </svg>
+    </div>
+    <div class="d-client">{{ task.client?.name ?? task.clientId }}</div>
+    <button mat-icon-button class="d-close" (click)="drawerClosed.emit()">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
   </div>
-  <button mat-icon-button class="d-close" (click)="drawerClosed.emit()">
-    <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round">
-      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-    </svg>
-  </button>
+
+  <!-- Fila 2: tipo, urgencia, estado, ticket Odoo -->
+  <div class="d-meta">
+    <span class="badge badge--type" [ngClass]="typeBadge(task.type)">{{ typeLabel(task.type) }}</span>
+    <span *ngIf="task.type !== 'EXPIRATION_CONTROL'" class="urg" [ngClass]="urgencyClass(daysUntilCycleClose())">
+      {{ urgencyLabel(daysUntilCycleClose()) }}
+    </span>
+    <span
+      *ngIf="task.type === 'EXPIRATION_CONTROL' && expirationDetail?.slaDaysUntil != null"
+      class="urg"
+      [ngClass]="slaClass(expirationDetail!.slaDaysUntil!)">
+      {{ slaLabel(expirationDetail!.slaDaysUntil!) }}
+    </span>
+    <span class="badge" [ngClass]="statusBadge(task.status)">{{ statusLabel(task.status) }}</span>
+    <a
+      *ngIf="odooLink"
+      [href]="odooLink"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="d-odoo-link">{{ odooLabel }}</a>
+  </div>
+
+  <!-- Fila 3: técnico asignado (selector con avatar) -->
+  <mat-form-field *ngIf="isActiveTask" appearance="outline" subscriptSizing="dynamic" class="d-tech-field">
+    <mat-label>{{ isUnassigned ? 'Asignar técnico' : 'Técnico' }}</mat-label>
+    <mat-select [value]="effectiveTechnicianId" (selectionChange)="assignTechnician($event.value)">
+      <mat-select-trigger *ngIf="currentTechnician as t">
+        <div class="d-tech-row">
+          <app-user-avatar [name]="t.user.name" [avatarUrl]="t.user.avatarUrl" size="sm"></app-user-avatar>
+          <span>{{ t.user.name }}</span>
+        </div>
+      </mat-select-trigger>
+      <mat-option *ngFor="let t of technicians" [value]="t.id">
+        <div class="d-tech-row">
+          <app-user-avatar [name]="t.user.name" [avatarUrl]="t.user.avatarUrl" size="sm"></app-user-avatar>
+          <span>{{ t.user.name }}</span>
+        </div>
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
 </div>
 
 <!-- ── Body ──────────────────────────────────────────────── -->
