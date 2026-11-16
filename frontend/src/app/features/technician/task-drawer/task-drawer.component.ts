@@ -10,6 +10,7 @@ import {
 import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, map, of, switchMap, tap, throwError } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSelect } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Task, TaskStatus, TaskType } from '../../../core/models/task.models';
 import { UserRole } from '../../../core/models/auth.models';
@@ -68,6 +69,7 @@ export class TaskDrawerComponent implements OnChanges {
   @Output() deviationsChanged = new EventEmitter<MaintenanceDeviationDto[]>();
 
   @ViewChild(MaintenanceFormComponent) maintenanceForm?: MaintenanceFormComponent;
+  @ViewChild('techSelect') techSelect?: MatSelect;
   @ViewChild(QnapFormComponent) qnapForm?: QnapFormComponent;
   @ViewChild(VeeamFormComponent) veeamForm?: VeeamFormComponent;
   @ViewChild(ServerHostFormComponent) serverHostForm?: ServerHostFormComponent;
@@ -148,9 +150,20 @@ export class TaskDrawerComponent implements OnChanges {
   }
 
   assignTechnician(technicianId: string): void {
-    this.tasksService.assignTechnician(this.task.id, technicianId).subscribe(updated => {
-      this._technicianOverride = { technicianId: updated.technicianId, technician: updated.technician };
-      this.technicianAssigned.emit({ ...this.task, technicianId: updated.technicianId, technician: updated.technician });
+    this.tasksService.assignTechnician(this.task.id, technicianId).subscribe({
+      next: updated => {
+        this._technicianOverride = { technicianId: updated.technicianId, technician: updated.technician };
+        this.technicianAssigned.emit({ ...this.task, technicianId: updated.technicianId, technician: updated.technician });
+      },
+      error: (err: HttpErrorResponse) => {
+        // El select ya muestra la opción elegida: lo devolvemos al técnico real.
+        if (this.techSelect) this.techSelect.value = this.effectiveTechnicianId;
+        this.snackBar?.open(
+          err.error?.message ?? 'No se pudo reasignar la tarea.',
+          '',
+          { duration: 4000, panelClass: 'snack-error' },
+        );
+      },
     });
   }
 

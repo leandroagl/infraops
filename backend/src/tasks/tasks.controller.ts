@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/user-role.enum';
+import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -43,6 +44,17 @@ export class TasksController {
     @Body() dto: UpdateTaskDto,
   ): Promise<Task> {
     return this.tasksService.update(id, dto);
+  }
+
+  // Todos los roles pueden asignarse/reasignar tareas (mismo comportamiento que Odoo).
+  // Endpoint acotado: solo cambia el técnico, no fecha ni ticket.
+  @Patch(':id/technician')
+  @Roles(UserRole.ADMIN, UserRole.TL, UserRole.TECHNICIAN, UserRole.COORDINATOR)
+  assignTechnician(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AssignTechnicianDto,
+  ): Promise<Task> {
+    return this.tasksService.update(id, { technicianId: dto.technicianId });
   }
 
   @Patch(':id/status')

@@ -41,7 +41,7 @@
   <!-- Fila 3: técnico asignado (selector con avatar) -->
   <mat-form-field *ngIf="isActiveTask" appearance="outline" subscriptSizing="dynamic" class="d-tech-field">
     <mat-label>{{ isUnassigned ? 'Asignar técnico' : 'Técnico' }}</mat-label>
-    <mat-select [value]="effectiveTechnicianId" (selectionChange)="assignTechnician($event.value)">
+    <mat-select #techSelect [value]="effectiveTechnicianId" (selectionChange)="assignTechnician($event.value)">
       <mat-select-trigger *ngIf="currentTechnician as t">
         <div class="d-tech-row">
           <app-user-avatar [name]="t.user.name" [avatarUrl]="t.user.avatarUrl" size="sm"></app-user-avatar>
