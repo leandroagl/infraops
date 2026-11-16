@@ -463,6 +463,45 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(emitted.length).toBe(1);
       expect(emitted[0].technicianId).toBe('tech-2');
     });
+
+    describe('cuando el request falla', () => {
+      let snackSpy: jasmine.Spy;
+      let failComponent: TaskDrawerComponent;
+
+      beforeEach(() => {
+        snackSpy = jasmine.createSpy('open');
+        failComponent = new TaskDrawerComponent(
+          { getClientInfrastructure: () => of(null) } as any,
+          { create: () => of({}), update: () => of({}) } as any,
+          {
+            updateStatus: () => of({}),
+            assignTechnician: () => throwError(() => ({ status: 403, error: { message: 'Forbidden resource' } })),
+          } as any,
+          mockDialog,
+          makeMockTaskConfigService(),
+          mockOdooUrl,
+          undefined,
+          undefined,
+          undefined,
+          { open: snackSpy } as any,
+        );
+        failComponent.task = makeTask({ technicianId: 'tech-1' });
+      });
+
+      it('muestra un snackbar de error', () => {
+        failComponent.assignTechnician('tech-2');
+        expect(snackSpy).toHaveBeenCalled();
+        expect(snackSpy.calls.mostRecent().args[2].panelClass).toBe('snack-error');
+      });
+
+      it('mantiene el técnico anterior y no emite technicianAssigned', () => {
+        const emitted: Task[] = [];
+        failComponent.technicianAssigned.subscribe(t => emitted.push(t));
+        failComponent.assignTechnician('tech-2');
+        expect(failComponent.effectiveTechnicianId).toBe('tech-1');
+        expect(emitted.length).toBe(0);
+      });
+    });
   });
 
   // ── loadExpirationDetail() ───────────────────────────────────────────────
