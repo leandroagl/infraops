@@ -142,7 +142,9 @@ registeredAt, notes?
    de InfraOps.
 
 4. **Asignación fija por defecto:** cada cliente tiene un técnico asignado por defecto
-   para cada tipo de tarea. El TL puede reasignar antes de ejecutar.
+   para cada tipo de tarea. Cualquier rol (ADMIN, TL, TECHNICIAN, COORDINATOR) puede
+   asignarse o reasignar una tarea activa desde el drawer, replicando Odoo
+   (`PATCH /tasks/:id/technician`; `PATCH /tasks/:id` sigue siendo solo ADMIN/TL).
 
 5. **Alertas de vencimiento:** InfraOps muestra visualmente los vencimientos próximos o
    ya vencidos de licencias, garantías, dominios y certificados (módulo Vencimientos,

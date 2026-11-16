@@ -89,6 +89,10 @@ Hacer clic en una fila abre el **drawer de detalle** desde la derecha.
 5. Presionar **"Completar tarea"** → ingresar tiempo dedicado → confirmar
 6. El estado pasa a `COMPLETADO`, se cierra el ticket en Odoo y se registra el timesheet
 
+**Reasignar una tarea:**
+
+En el header del drawer, el selector **"Técnico"** permite asignarse la tarea o pasársela a otro técnico mientras esté activa (pendiente o en curso). Cualquier rol puede hacerlo, igual que en Odoo; el ticket de Odoo se reasigna al nuevo técnico. Si la reasignación falla, aparece un mensaje de error y el selector vuelve al técnico anterior.
+
 **Si no se puede completar (solo ADMIN y TL):**
 - Presionar **"No realizado"** → se abre un diálogo donde se debe ingresar un motivo (obligatorio)
 - Al confirmar: se imputan **0:00 hs en Odoo** con el motivo como descripción y el ticket pasa al stage "No realizadas"
@@ -101,11 +105,12 @@ Hacer clic en una fila abre el **drawer de detalle** desde la derecha.
 | Ver todas las tareas del ciclo | Sí (quitando filtro) | Sí | Sí | Sí |
 | Filtro técnico por defecto | Propio | Todos | Todos | Todos |
 | Ejecutar / completar tareas | Sí (propias) | Sí | No | Sí |
+| Asignarse / reasignar una tarea activa | Sí | Sí | Sí | Sí |
 | Botón "Nueva tarea" | No | No | No | Sí |
 | Marcar como "No realizado" con motivo | No | Sí | No | Sí |
 | Ciclos cerrados | Solo lectura | Solo lectura | Solo lectura | Solo lectura |
 
-COORDINATOR accede en modo solo lectura: puede ver el estado de todas las tareas y el detalle de cada una, pero no puede ejecutar ni modificar nada.
+COORDINATOR accede en modo solo lectura: puede ver el estado de todas las tareas y el detalle de cada una, pero no puede ejecutar tareas ni modificarlas; la única excepción es asignarse o reasignar tareas.
 
 ---
 
