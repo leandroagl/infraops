@@ -82,8 +82,8 @@ nano backend/.env   # setear DB_PASSWORD, JWT_SECRET y resto
 | `DB_PASSWORD` | Debe coincidir con el `.env` raíz |
 | `JWT_SECRET` | Secreto para tokens JWT |
 | `PORT` | Puerto del backend (`3000`) |
-| `INFRADOC_URL` | URL base de InfraDoc (ej: `http://192.168.1.x`) — **requerido**, el backend crashea sin esto |
-| `INFRADOC_API_KEY` | API key de InfraDoc — **requerido** |
+| `INFRADOC_URL` | *Opcional.* Solo valor inicial: se usa hasta que se guarde la config en **Admin → Integraciones → InfraDoc** |
+| `INFRADOC_API_KEY` | *Opcional.* Ídem. La URL y la API key se administran desde la UI (la key se guarda cifrada); cambiarlas **no** requiere tocar el `.env` ni redeployar |
 
 ---
 

@@ -591,6 +591,48 @@ describe('TaskDrawerComponent — pure unit tests', () => {
       expect(notifComponent.expirationDetail).toBeNull();
       expect(notifComponent.loadingExpirationDetail).toBe(false);
     });
+
+    it('si falla la carga del detalle, el aviso dice que no se pudo cargar (no que falta configurar el tiempo)', () => {
+      const getDetailSpy = jasmine.createSpy('getExpirationByTaskId').and.returnValue(throwError(() => new Error('caído')));
+      const notifComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: () => of({}), update: () => of({}) } as any,
+        { updateStatus: () => of({}) } as any,
+        mockDialog,
+        makeMockTaskConfigService(),
+        mockOdooUrl,
+        { getExpirationByTaskId: getDetailSpy } as any,
+      );
+      notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL', technicianId: 'tech-1' });
+
+      notifComponent.loadExpirationDetail();
+
+      expect(notifComponent.expirationDetailError).toBe(true);
+      expect(notifComponent.configWarningMessage).toContain('No se pudo cargar el detalle del vencimiento');
+      expect(notifComponent.configWarningMessage).not.toContain('tiempo estimado');
+    });
+
+    it('limpia expirationDetailError al reintentar con éxito', () => {
+      const getDetailSpy = jasmine.createSpy('getExpirationByTaskId').and.returnValues(
+        throwError(() => new Error('caído')),
+        of({ defaultTimeMinutes: 30 }),
+      );
+      const notifComponent = new TaskDrawerComponent(
+        { getClientInfrastructure: () => of(null) } as any,
+        { create: () => of({}), update: () => of({}) } as any,
+        { updateStatus: () => of({}) } as any,
+        mockDialog,
+        makeMockTaskConfigService(),
+        mockOdooUrl,
+        { getExpirationByTaskId: getDetailSpy } as any,
+      );
+      notifComponent.task = makeTask({ type: 'EXPIRATION_CONTROL' });
+
+      notifComponent.loadExpirationDetail();
+      notifComponent.loadExpirationDetail();
+
+      expect(notifComponent.expirationDetailError).toBe(false);
+    });
   });
 
   // ── saveAndComplete — transición PENDING → IN_PROGRESS → DONE ────────────

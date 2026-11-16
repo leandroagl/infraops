@@ -4,10 +4,12 @@ import { ServiceUnavailableException } from '@nestjs/common';
 import { AxiosHeaders, AxiosResponse } from 'axios';
 import { of } from 'rxjs';
 import { InfradocService } from './infradoc.service';
+import { IntegrationConfigService } from '../../integration-config/integration-config.service';
 
 describe('InfradocService', () => {
   let service: InfradocService;
   let httpService: { get: jest.Mock };
+  let integrationConfig: { getInfraDocConfigDecrypted: jest.Mock };
 
   const makeRaw = (override: Record<string, unknown> = {}) => ({
     client_id: '1',
@@ -36,15 +38,49 @@ describe('InfradocService', () => {
 
   beforeEach(async () => {
     httpService = { get: jest.fn() };
+    integrationConfig = {
+      getInfraDocConfigDecrypted: jest.fn().mockResolvedValue({ url: 'http://infradoc.test', apiKey: 'test-key' }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InfradocService,
         { provide: HttpService, useValue: httpService },
+        { provide: IntegrationConfigService, useValue: integrationConfig },
       ],
     }).compile();
 
     service = module.get<InfradocService>(InfradocService);
+  });
+
+  it('getClients usa la URL y la API key de la configuración de integraciones (no del env)', async () => {
+    integrationConfig.getInfraDocConfigDecrypted.mockResolvedValue({ url: 'http://desde-ui.test', apiKey: 'key-ui' });
+    httpService.get.mockReturnValue(of(axiosRes({ success: 'True', count: 0, data: [] })));
+
+    await service.getClients();
+
+    const [url, opts] = httpService.get.mock.calls[0];
+    expect(url).toBe('http://desde-ui.test/api/v1/clients/read.php');
+    expect(opts.params.api_key).toBe('key-ui');
+  });
+
+  it('getLocations usa la URL y la API key de la configuración de integraciones (no del env)', async () => {
+    integrationConfig.getInfraDocConfigDecrypted.mockResolvedValue({ url: 'http://desde-ui.test', apiKey: 'key-ui' });
+    httpService.get.mockReturnValue(of(axiosRes({ success: 'True', count: 0, data: [] })));
+
+    await service.getLocations();
+
+    const [url, opts] = httpService.get.mock.calls[0];
+    expect(url).toBe('http://desde-ui.test/api/v1/locations/read.php');
+    expect(opts.params.api_key).toBe('key-ui');
+  });
+
+  it('falla sin llamar a InfraDoc si no está configurado en Integraciones', async () => {
+    integrationConfig.getInfraDocConfigDecrypted.mockResolvedValue({ url: '', apiKey: '' });
+
+    await expect(service.getClients()).rejects.toThrow('URL y API key de InfraDoc no configuradas');
+    await expect(service.getLocations()).rejects.toThrow('URL y API key de InfraDoc no configuradas');
+    expect(httpService.get).not.toHaveBeenCalled();
   });
 
   it('mapea los campos de InfraDoc al formato InfradocClient', async () => {

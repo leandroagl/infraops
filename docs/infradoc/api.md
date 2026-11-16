@@ -239,6 +239,13 @@ expenses: ver la doc oficial.
 | Assets e interfaces | `assets/read.php` | `backend/src/integrations/infradoc/infradoc-assets.service.ts` |
 | Vencimientos (licencias, dominios, certificados, garantías) | `software`, `domains`, `certificates`, `assets` | `NotificationsService.getExpirations` |
 
+**Configuración:** los tres servicios obtienen la URL y la API key de `IntegrationConfigService`
+(`getInfraDocConfigDecrypted()`), es decir, de **Admin → Integraciones → InfraDoc** (key cifrada en DB).
+Las variables `INFRADOC_URL` / `INFRADOC_API_KEY` del `.env` son solo el valor inicial si todavía no hay
+config guardada. Antes de 2026-11-16 `NotificationsService` e `InfradocService` leían `process.env` directo,
+y tras regenerar la key en la UI seguían usando la vieja (Vencimientos vacío, tareas `EXPIRATION_CONTROL` sin
+tiempo estimado). Para rotar la key: generarla en ITFlow, cargarla en Integraciones y usar "probar conexión".
+
 ## 7. Pendientes conocidos
 
 - `client_rate` y `client_net_terms` ya no llegan: el mapeo `rate: raw.client_rate ? ... : null` de
@@ -258,7 +265,7 @@ expenses: ver la doc oficial.
 
 | Mensaje / código | Causa |
 |---|---|
-| 401, "Authentication failed. API key is invalid or has expired." | Key inválida, vencida, o borrada por la actualización a 26.08 |
+| 401, "Authentication failed. API key is invalid or has expired." | Key inválida, vencida, o borrada por la actualización a 26.08. Regenerarla y cargarla en Admin → Integraciones |
 | "No resource (for this client and company) with the specified parameter(s)." | No existe o la key no tiene acceso |
 | 404 con HTML de Apache | Ruta inexistente (por ejemplo `/licenses/`: se llama `/software/`) |
 | 405 | Solo GET y POST |
