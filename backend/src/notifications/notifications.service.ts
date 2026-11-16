@@ -1,8 +1,9 @@
 import * as https from 'https';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { ExpirationItemDto, ExpirationType } from './dto/expiration-item.dto';
+import { IntegrationConfigService } from '../integration-config/integration-config.service';
 
 interface RawClient     { client_id: string; client_name: string; }
 interface RawAsset      { asset_id: string; asset_name: string; asset_make: string | null; asset_model: string | null; asset_serial: string | null; asset_warranty_expire: string | null; asset_client_id: string; asset_archived_at: string | null; }
@@ -10,17 +11,19 @@ interface RawCert       { certificate_id: string; certificate_name: string; cert
 interface RawDomain     { domain_id: string; domain_name: string; domain_expire: string | null; domain_client_id: string; domain_archived_at: string | null; }
 interface RawSoftware   { software_id: string; software_name: string; software_expire: string | null; software_client_id: string; software_archived_at: string | null; }
 
-interface InfradocResponse<T> { success: string; data: T[]; }
+interface InfradocResponse<T> { success: string; data: T[]; message?: string; }
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly integrationConfigService: IntegrationConfigService,
+  ) {}
 
   async getExpirations(days?: number): Promise<ExpirationItemDto[]> {
-    const baseUrl = process.env.INFRADOC_URL;
-    const apiKey  = process.env.INFRADOC_API_KEY;
+    const { url: baseUrl, apiKey } = await this.integrationConfigService.getInfraDocConfigDecrypted();
     if (!baseUrl || !apiKey) {
-      throw new Error('INFRADOC_URL and INFRADOC_API_KEY deben estar configurados');
+      throw new Error('URL y API key de InfraDoc no configuradas');
     }
 
     const agent = new https.Agent({ rejectUnauthorized: false });
@@ -41,7 +44,7 @@ export class NotificationsService {
     ]);
 
     const clientMap = new Map<string, string>();
-    for (const c of (clientsRes.data.data ?? [])) {
+    for (const c of this.safe(clientsRes.data)) {
       clientMap.set(String(c.client_id), c.client_name);
     }
 
@@ -70,7 +73,14 @@ export class NotificationsService {
   }
 
   private safe<T>(res: InfradocResponse<T>): T[] {
-    return res.success === 'True' && Array.isArray(res.data) ? res.data : [];
+    if (res.success !== 'True') {
+      const msg = res.message ?? '';
+      // "No resource": el módulo no tiene registros para esta key — es vacío, no un error.
+      if (msg.includes('No resource')) return [];
+      // Key inválida/vencida, permisos, etc.: no disfrazarlo de "sin vencimientos".
+      throw new ServiceUnavailableException(`InfraDoc API error: ${msg || 'respuesta sin éxito'}`);
+    }
+    return Array.isArray(res.data) ? res.data : [];
   }
 
   private toItem(

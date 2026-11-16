@@ -1,1080 +1,274 @@
-====== API ======
-
-
-Use ITFlow's API to work with ITFlow in scripts third-party applications.
-
-The current version of the ITFlow API is v1. It can be accessed at **itflow.example.com/api/v1/{module}/{function}.php**
-
-===== Generating an API Key =====
-
-  - Login and navigate to the **Admin Settings** page
-  - Select **API Keys**
-  - Select **Create** to open the New Key modal
-  - On Details tab, input the key name and expiration date. Select whether the key will allow access to all clients or a specific client
-  - On Keys tab, note down the API key and credential password and select the checkbox to confirm you've made a copy of the keys. You will not see these admin in the admin interface.
-  - Select Create to add the key into the database
-
-===== Modules with API support at present =====
-
-  * assets
-  * certificates
-  * clients
-  * contacts
-  * credentials (logins)
-  * documents
-  * domains
-  * expenses
-  * invoices
-  * invoice_items
-  * locations
-  * networks
-  * payments
-  * products
-  * quotes
-  * software
-  * tickets
-  * vendors
-
-
-===== API Functions =====
-
-  * read
-  * create //(partial)//
-  * update //(partial)//
-  * delete //(partial)//
-
-
-  * //We may also add archive//
-
-===== Request Methods =====
-
-  * GET - Retrieving (READ) data
-  * POST - Inserting (CREATE), Updating (UPDATE) or Deleting (DELETE) data
-
-==== Data Returned ====
-
-  * Success - True/False
-  * Message - Failure info / Helpful debug info
-  * Count - Count of rows affected/returned
-  * Data - The data requested/created/changed
-
-
-==== Notes ====
-
-  * For read requests, 50 records are shown by default. This can be adjusted by supplying the ''limit'' and ''offset'' parameters.
-  * For POST requests, the ''client_id'' parameter is always required if the API key used has scope/access to all clients
-  * Be sure to check your Apache/PHP error logs if you're running into issues
-
-==== API Docs/Examples ====
-
-Documentation / an example of how to use a module API endpoint is shown on that module's doc page. Additional examples are available [[https://github.com/itflow-org/itflow-api-powershell|here]].
-
-
-
-----
-
-
-====== API ======
-
-Use ITFlow's API to work with ITFlow in scripts and third-party applications.
-
-The current version of the ITFlow API is v1. It can be accessed at **itflow.example.com/api/v1/{module}/{function}.php**
-
-===== Generating an API Key =====
-
-  - Login and navigate to the **Admin Settings** page
-  - Select **API Keys**
-  - Select **Create** to open the New Key modal
-  - On Details tab, input the key name and expiration date. Select whether the key will allow access to all clients or a specific client
-  - On Keys tab, note down the API key and credential password and select the checkbox to confirm you've made a copy of the keys. You will not see these again in the admin interface.
-  - Select Create to add the key into the database
-
-===== Modules with API support =====
-
-  * assets
-  * certificates
-  * clients
-  * contacts
-  * credentials (logins)
-  * documents
-  * domains
-  * expenses
-  * invoices
-  * invoice_items
-  * locations
-  * networks
-  * payments
-  * products
-  * quotes
-  * software
-  * tickets
-  * vendors
-
-===== API Functions =====
-
-  * read
-  * create //(partial - see module details)//
-  * update //(partial - see module details)//
-  * delete //(partial - see module details)//
-  * archive //(clients and contacts only)//
-  * unarchive //(clients and contacts only)//
-  * resolve //(tickets only)//
-
-===== Request Methods =====
-
-  * GET - Retrieving (READ) data
-  * POST - Inserting (CREATE), Updating (UPDATE), Deleting (DELETE), or Archiving data
-
-==== Data Returned ====
-
-  * Success - True/False
-  * Message - Failure info / Helpful debug info
-  * Count - Count of rows affected/returned
-  * Data - The data requested/created/changed
-
-==== Notes ====
-
-  * For read requests, 50 records are shown by default. This can be adjusted by supplying the ''limit'' and ''offset'' parameters.
-  * For POST requests, the ''client_id'' parameter is always required if the API key used has scope/access to all clients
-  * Be sure to check your Apache/PHP error logs if you're running into issues
-
-----
-
-====== API Reference Guide ======
-
-**Current API v1 Endpoints, Authentication, Examples, and Integration Guide**
-
-===== Quick Start Guide =====
-
-==== Your First API Call in 5 Minutes ====
-
-  - **Generate API Key**
-    - Login to ITFlow as admin
-    - Navigate to **Admin > API**
-    - Click **New Key**
-    - Choose scope: **All Clients** (for testing) or **Specific Client**
-    - Copy the generated key
-
-  - **Test Connection**
-<code bash>
-curl "https://itflow.yourdomain.com/api/v1/clients/read.php?api_key=YOUR_KEY&limit=1"
-</code>
-
-  - **Expected Response**
-<code json>
-{
-  "success": "True",
-  "count": 1,
-  "data": [{"client_id": "123", "client_name": "Example Corp"}]
-}
-</code>
-
-===== API Overview =====
-
-  * **Base URL**: ''/api/v1/{module}/{function}.php''
-  * **Version**: 1.0 (current)
-  * **Authentication**: API Key via query parameter ''?api_key=YOUR_KEY''
-  * **Response Format**: JSON with ''success'', ''message'', ''count'', ''data'' fields
-  * **Pagination**: Default 50 records, adjustable with ''limit'' and ''offset'' parameters
-  * **Content-Type**: ''application/json'' for POST requests
-  * **Character Encoding**: UTF-8 (utf8mb4 in database)
-
-==== Standard Response Format ====
-
-<code json>
-{
-  "success": "True|False",
-  "message": "Descriptive status message",
-  "count": 50,
-  "data": [
-    {
-      "id": 123,
-      "field": "value"
-    }
-  ]
-}
-</code>
-
-==== Create Response Format ====
-
-<code json>
-{
-  "success": "True",
-  "count": "1",
-  "data": [
-    {
-      "insert_id": 123
-    }
-  ]
-}
-</code>
-
-===== Authentication & Security =====
-
-==== API Key Management ====
-
-  * **Generation**: Admin > API > New Key
-  * **Scoping Options**:
-    * **All Clients** (client_id = 0): Full access to all client data
-    * **Specific Client**: Limited to single client data only
-  * **Usage**: Query parameter ''?api_key=YOUR_KEY'' for GET, or in JSON body for POST
-  * **Security**: Keys stored encrypted in database with expiration dates
-
-==== Best Practices ====
-
-  * **Rotate keys** regularly (monthly recommended)
-  * **Use client-scoped keys** for third-party integrations
-  * **Store keys securely** (environment variables, not code)
-  * **Monitor usage** via Apache/PHP logs
-  * **Use HTTPS only** for all API calls
-
-----
-
-===== Module Reference =====
-
-==== Assets ''/api/v1/assets/'' ====
-
-**Purpose**: Computer and equipment inventory management
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get asset information
-  * ''POST /create.php'' - Create new asset record
-  * ''POST /update.php'' - Update existing asset
-  * ''POST /delete.php'' - Delete asset record
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| asset_id | integer | Get specific asset by ID |
-| asset_type | string | Filter by asset type (auto-capitalized) |
-| asset_name | string | Filter by exact asset name |
-| asset_serial | string | Filter by serial number |
-| asset_mac | string | Filter by MAC address (searches primary interface) |
-| asset_uri | string | Filter by URI |
-
-<wrap em>Note: despite the module summary below listing no Archive endpoint, ''read.php'' rows
-include an ''asset_archived_at'' field (datetime, null if active) not covered by the create/update
-parameters — a non-null value means the asset was archived (removed) in the UI. There is no
-archive/unarchive endpoint; archiving happens only through the InfraDoc web UI. Confirmed live
-against a real instance 2026-09-23. **InfraOps must filter these out** — an archived asset is
-equivalent to deleted and must never surface in infrastructure views or task detection.</wrap>
-
-**Create/Update Parameters (POST)**:
-
-^ Parameter ^ Type ^ Required (Create) ^ Description ^
-| api_key | string | Yes | API authentication key |
-| client_id | integer | Yes* | Required if API key has all-client access |
-| asset_name | string | Yes | Asset name/hostname |
-| asset_description | string | No | Asset description |
-| asset_type | string | No | Type (Laptop, Desktop, Server, etc.) |
-| asset_make | string | No | Manufacturer |
-| asset_model | string | No | Model name/number |
-| asset_serial | string | No | Serial number |
-| asset_os | string | No | Operating system |
-| asset_ip | string | No | IP address (stored in primary interface) |
-| asset_mac | string | No | MAC address (stored in primary interface) |
-| asset_uri | string | No | Management URL |
-| asset_status | string | No | Status (Deployed, Spare, etc.) — distinct from archiving |
-| asset_purchase_date | date | No | Purchase date (YYYY-MM-DD) |
-| asset_warranty_expire | date | No | Warranty expiration date |
-| asset_install_date | date | No | Installation date |
-| asset_notes | string | No | Notes |
-| asset_vendor_id | integer | No | Associated vendor ID |
-| asset_location_id | integer | No | Associated location ID |
-| asset_contact_id | integer | No | Associated contact ID |
-| asset_network_id | integer | No | Network ID for primary interface |
-
-**Update Additional Parameters**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| asset_id | integer | Yes | ID of asset to update |
-
-**Delete Parameters**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| asset_id | integer | Yes | ID of asset to delete |
-
-<wrap em>Note: Deleting an asset also removes all associated network interfaces.</wrap>
-
-**Example - Create Asset**:
-
-<code bash>
-curl -X POST "https://itflow.example.com/api/v1/assets/create.php" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "api_key": "YOUR_API_KEY",
-    "client_id": 1,
-    "asset_name": "DESKTOP-001",
-    "asset_type": "Desktop",
-    "asset_make": "Dell",
-    "asset_model": "OptiPlex 7090",
-    "asset_serial": "ABC123XYZ",
-    "asset_os": "Windows 11 Pro",
-    "asset_ip": "192.168.1.100",
-    "asset_mac": "00:11:22:33:44:55",
-    "asset_status": "Deployed"
-  }'
-</code>
-
-----
-
-==== Certificates ''/api/v1/certificates/'' ====
-
-**Purpose**: SSL/TLS certificate management and expiration tracking
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get certificate information
-  * ''POST /create.php'' - Create certificate record
-
-<wrap em>Note: Update and delete endpoints are not implemented.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| certificate_id | integer | Get specific certificate by ID |
-| certificate_name | string | Filter by certificate name |
-
-<wrap em>Note: ''read.php'' rows include ''certificate_archived_at'' (datetime, null if active),
-not covered by the create parameters below. Confirmed live 2026-09-23 — InfraOps must filter
-these out, same as assets.</wrap>
-
-**Create Parameters (POST)**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| api_key | string | Yes | API authentication key |
-| client_id | integer | Yes* | Required if API key has all-client access |
-| certificate_name | string | Yes | Certificate friendly name |
-| certificate_domain | string | Yes | Domain the certificate covers |
-| certificate_description | string | No | Description |
-| certificate_issued_by | string | No | Issuing authority (e.g., Let's Encrypt) |
-| certificate_expire | date | No | Expiration date (YYYY-MM-DD) |
-| certificate_public_key | string | No | Certificate content/public key |
-| certificate_notes | string | No | Additional notes |
-| certificate_domain_id | integer | No | Link to domains table |
-
-----
-
-==== Clients ''/api/v1/clients/'' ====
-
-**Purpose**: Customer/company management
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get client information
-  * ''POST /create.php'' - Create new client
-  * ''POST /update.php'' - Update client details
-  * ''POST /archive.php'' - Archive client
-  * ''POST /unarchive.php'' - Unarchive client
-
-<wrap em>Note: Delete endpoint is not implemented. Use archive instead.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| client_name | string | Get specific client by exact name |
-
-<wrap em>Note: ''read.php'' rows include ''client_archived_at'' (datetime, null if active) — this
-is what a non-null value from archive.php actually looks like in the response; InfraOps already
-relies on this field (see ''clients/infradoc/infradoc.service.ts''). Confirmed live 2026-09-23.</wrap>
-
-**Create Parameters (POST)**:
-
-<wrap em>Important: Creating clients requires an API key with "All Clients" scope (client_id = 0).</wrap>
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| api_key | string | Yes | API authentication key (must be all-client scope) |
-| client_name | string | Yes | Client/company name |
-| client_type | string | No | Business type/category |
-| client_website | string | No | Website URL (https:// prefix auto-removed) |
-| client_referral | string | No | Referral source |
-| client_rate | decimal | No | Hourly rate |
-| client_currency_code | string | No | Currency code (e.g., USD) |
-| client_net_terms | integer | No | Payment terms in days |
-| client_tax_id_number | string | No | Tax ID/EIN |
-| client_abbreviation | string | No | Short code (max 6 chars) |
-| client_is_lead | integer | No | Lead flag (0 or 1) |
-| client_notes | string | No | Additional notes |
-
-**Update Additional Parameters**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| client_id | integer | Yes | ID of client to update |
-
-**Archive/Unarchive Parameters**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| client_id | integer | Yes | ID of client (from API key scope) |
-
-<wrap em>Note: Archiving a client automatically stops all recurring invoices for that client.</wrap>
-
-----
-
-==== Contacts ''/api/v1/contacts/'' ====
-
-**Purpose**: Individual contact management within client organizations
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get contact information
-  * ''POST /create.php'' - Create new contact
-  * ''POST /update.php'' - Update contact details
-  * ''POST /delete.php'' - Delete contact record
-  * ''POST /archive.php'' - Archive contact
-  * ''POST /unarchive.php'' - Unarchive contact
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| contact_id | integer | Get specific contact by ID |
-| contact_email | string | Get contact by email address |
-| contact_phone_or_mobile | string | Get contact by phone or mobile number |
-
-**Create Parameters (POST)**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| api_key | string | Yes | API authentication key |
-| client_id | integer | Yes* | Required if API key has all-client access |
-| contact_name | string | Yes | Full name |
-| contact_email | string | Yes | Email address (must be unique per client) |
-| contact_title | string | No | Job title |
-| contact_department | string | No | Department |
-| contact_phone | string | No | Phone number (non-digits stripped) |
-| contact_extension | string | No | Phone extension |
-| contact_mobile | string | No | Mobile number (non-digits stripped) |
-| contact_notes | string | No | Notes |
-| contact_primary | integer | No | Primary contact flag (0 or 1) |
-| contact_important | integer | No | Important flag (0 or 1) |
-| contact_billing | integer | No | Billing contact flag (0 or 1) |
-| contact_technical | integer | No | Technical contact flag (0 or 1) |
-| contact_location_id | integer | No | Associated location ID |
-
-<wrap em>Note: Setting contact_primary = 1 will remove primary flag from other contacts for that client.</wrap>
-
-**Update Additional Parameters**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| contact_id | integer | Yes | ID of contact to update |
-
-**Delete Parameters**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| contact_id | integer | Yes | ID of contact to delete |
-
-**Archive/Unarchive Parameters**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| contact_id | integer | Yes | ID of contact to archive/unarchive |
-
-<wrap em>Note: Archiving a contact also archives their associated user account if one exists.</wrap>
-
-----
-
-==== Credentials ''/api/v1/credentials/'' ====
-
-**Purpose**: Password and login management (encrypted storage)
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get credential information
-  * ''POST /create.php'' - Create new credential record
-  * ''POST /update.php'' - Update credential details
-
-<wrap em>Note: Delete endpoint is not implemented.</wrap>
-
-<wrap em>Important: The ''api_key_decrypt_password'' parameter is required for ALL credential operations.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| api_key_decrypt_password | string | Yes | Decryption password for the API key |
-| credential_id | integer | No | Get specific credential by ID |
-
-**Create Parameters (POST)**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| api_key | string | Yes | API authentication key |
-| api_key_decrypt_password | string | Yes | Decryption password |
-| client_id | integer | Yes* | Required if API key has all-client access |
-| credential_name | string | Yes | Credential name/label |
-| credential_password | string | Yes | Password (will be encrypted) |
-| credential_description | string | No | Description |
-| credential_uri | string | No | Login URL |
-| credential_uri_2 | string | No | Secondary URL |
-| credential_username | string | No | Username (will be encrypted) |
-| credential_otp_secret | string | No | TOTP/2FA secret |
-| credential_note | string | No | Additional notes |
-| credential_important | integer | No | Important flag (0 or 1) |
-| credential_contact_id | integer | No | Associated contact ID |
-| credential_vendor_id | integer | No | Associated vendor ID |
-| credential_asset_id | integer | No | Associated asset ID |
-| credential_software_id | integer | No | Associated software ID |
-
-**Update Additional Parameters**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| credential_id | integer | Yes | ID of credential to update |
-| api_key_decrypt_password | string | Yes | Decryption password |
-
-<wrap em>Note: Updating the password field automatically updates the password_changed_at timestamp.</wrap>
-
-----
-
-==== Documents ''/api/v1/documents/'' ====
-
-**Purpose**: Internal documentation and knowledge base articles
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get document information
-  * ''POST /create.php'' - Create new document
-  * ''POST /update.php'' - Update document
-
-<wrap em>Note: Delete endpoint is not implemented.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| document_id | integer | Get specific document by ID |
-
-**Create Parameters (POST)**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| api_key | string | Yes | API authentication key |
-| client_id | integer | Yes* | Required if API key has all-client access |
-| document_name | string | Yes | Document title |
-| document_content | string | Yes | Document content (HTML supported) |
-| document_description | string | No | Brief description |
-| document_folder_id | integer | No | Folder ID for organization |
-
-**Update Additional Parameters**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| document_id | integer | Yes | ID of document to update |
-
-----
-
-==== Domains ''/api/v1/domains/'' ====
-
-**Purpose**: Domain name management and renewal tracking
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get domain information
-
-<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| domain_id | integer | Get specific domain by ID |
-| domain_name | string | Get domain by exact name |
-
-**Response Fields**:
-
-^ Field ^ Type ^ Description ^
-| domain_id | integer | Primary key |
-| domain_name | string | Domain name |
-| domain_description | string | Description |
-| domain_expire | date | Expiration date |
-| domain_ip | string | IP address(es) |
-| domain_name_servers | string | Name servers |
-| domain_mail_servers | string | MX records |
-| domain_txt | string | TXT records |
-| domain_raw_whois | string | Raw WHOIS data |
-| domain_notes | string | Notes |
-| domain_registrar | integer | Registrar vendor ID |
-| domain_webhost | integer | Web host vendor ID |
-| domain_dnshost | integer | DNS host vendor ID |
-| domain_mailhost | integer | Mail host vendor ID |
-| domain_client_id | integer | Client ID |
-| domain_archived_at | datetime | Archive timestamp (null if active) — confirmed live 2026-09-23, missing from the original vendor doc; InfraOps must filter these out |
-
-----
-
-==== Expenses ''/api/v1/expenses/'' ====
-
-**Purpose**: Track business expenses
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get expense information
-
-<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
-
-<wrap em>Important: Expenses require an API key with "All Clients" scope.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| expense_id | integer | Get specific expense by ID |
-
-----
-
-==== Invoices ''/api/v1/invoices/'' ====
-
-**Purpose**: Access invoice records
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get invoice information
-
-<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| invoice_id | integer | Get specific invoice by ID |
-
-----
-
-===== Invoice Items ''/api/v1/invoice_items/'' =====
-
-**Purpose**: Retrieve line items associated with invoices
-
-**Available Endpoints**:
-  * ''GET /read.php'' - List/get invoice line items
-
-==== Read Parameters (GET) ====
-
-^ Parameter ^ Type ^ Description ^
-| invoice_id | integer | Filter items by invoice ID |
-| item_id | integer | Get a specific line item by ID |
-
-==== Response Fields ====
-
-^ Field ^ Type ^ Description ^
-| item_id | integer | Unique line item ID |
-| item_name | string | Name/title of the line item |
-| item_description | string | Description or notes |
-| item_quantity | decimal | Quantity billed |
-| item_price | decimal | Unit price |
-| item_subtotal | decimal | quantity × price |
-| item_tax | decimal | Tax amount applied |
-| item_total | decimal | subtotal + tax |
-| item_order | integer | Display sort order |
-| item_tax_id | integer | Associated tax rate ID (0 = no tax) |
-| item_product_id | integer | Associated product ID (0 = ad-hoc item) |
-| item_invoice_id | integer | Parent invoice ID |
-| item_created_at | datetime | Record creation timestamp |
-| item_updated_at | datetime | Last update timestamp |
-| item_archived_at | datetime | Archive timestamp (null if active) |
-
-==== Example - Get all items for an invoice ====
-
-<code bash>
-curl "https://itflow.example.com/api/v1/invoice_items/read.php?api_key=YOUR_KEY&invoice_id=101"
-</code>
-
-==== Example Response ====
-
-<code json>
-{
-  "success": "True",
-  "count": 2,
-  "data": [
-    {
-      "item_id": "184",
-      "item_name": "make pizza",
-      "item_description": "Do it",
-      "item_quantity": "1.00",
-      "item_price": "100.00",
-      "item_subtotal": "100.00",
-      "item_tax": "0.00",
-      "item_total": "100.00",
-      "item_order": "1",
-      "item_tax_id": "0",
-      "item_product_id": "0",
-      "item_invoice_id": "101",
-      "item_created_at": "2026-03-10 13:11:30",
-      "item_updated_at": null,
-      "item_archived_at": null
-    }
-  ]
-}
-</code>
-
-==== Locations ''/api/v1/locations/'' ====
-
-**Purpose**: Manage client office/site locations
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get location information
-  * ''POST /create.php'' - Create new location
-
-<wrap em>Note: Update and delete endpoints are not implemented.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| location_id | integer | Get specific location by ID |
-
-**Create Parameters (POST)**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| api_key | string | Yes | API authentication key |
-| client_id | integer | Yes* | Required if API key has all-client access |
-| location_name | string | Yes | Location name |
-| location_description | string | No | Description |
-| location_country | string | No | Country |
-| location_address | string | No | Street address |
-| location_city | string | No | City |
-| location_state | string | No | State/province |
-| location_zip | string | No | ZIP/postal code |
-| location_hours | string | No | Business hours |
-| location_notes | string | No | Notes |
-| location_primary | integer | No | Primary location flag (0 or 1) |
-
-<wrap em>Note: Setting location_primary = 1 will remove primary flag from other locations for that client.</wrap>
-
-----
-
-==== Networks ''/api/v1/networks/'' ====
-
-**Purpose**: Network infrastructure documentation
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get network information
-
-<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| network_id | integer | Get specific network by ID |
-| network_name | string | Get network by exact name |
-
-----
-
-==== Payments ''/api/v1/payments/'' ====
-
-**Purpose**: Access payment records
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get payment information
-
-<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
-
-<wrap em>Important: Payments require an API key with "All Clients" scope.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| payment_id | integer | Get specific payment by ID |
-| payment_invoice_id | integer | Get all payments for an invoice |
-
-----
-
-==== Products ''/api/v1/products/'' ====
-
-**Purpose**: Access product/service catalog
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get product information
-
-<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
-
-<wrap em>Important: Products require an API key with "All Clients" scope.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| product_id | integer | Get specific product by ID |
-
-----
-
-==== Quotes ''/api/v1/quotes/'' ====
-
-**Purpose**: Access sales quote records
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get quote information
-
-<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| quote_id | integer | Get specific quote by ID |
-
-----
-
-==== Software ''/api/v1/software/'' ====
-
-**Purpose**: Software license and application tracking
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get software information
-
-<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| software_id | integer | Get specific software by ID |
-| software_name | string | Get by exact name |
-| software_type | string | Filter by type |
-
-<wrap em>Note: ''read.php'' rows include ''software_archived_at'' (datetime, null if active).
-Confirmed live 2026-09-23 — InfraOps must filter these out.</wrap>
-
-----
-
-==== Tickets ''/api/v1/tickets/'' ====
-
-**Purpose**: Help desk and issue tracking
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get ticket information
-  * ''POST /create.php'' - Create new ticket
-  * ''POST /resolve.php'' - Resolve/close ticket
-
-<wrap em>Note: Update and delete endpoints are not implemented.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| ticket_id | integer | Get specific ticket by ID (includes status information) |
-
-**Create Parameters (POST)**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| api_key | string | Yes | API authentication key |
-| client_id | integer | No | Client ID (defaults to 0 if not provided) |
-| ticket_subject | string | Yes | Ticket subject/title |
-| ticket_details | string | No | Ticket description |
-| ticket_priority | string | No | Priority (Low, Medium, High) - defaults to "Low" |
-| ticket_contact_id | integer | No | Contact ID (auto-selects primary contact if not provided) |
-| ticket_asset_id | integer | No | Related asset ID |
-| ticket_vendor_id | integer | No | Escalation vendor ID |
-| ticket_vendor_ticket_id | integer | No | Vendor's ticket number |
-| ticket_assigned_to | integer | No | Assigned user ID |
-| ticket_billable | integer | No | Billable flag (0 or 1) |
-
-<wrap em>Note: Ticket number is auto-generated based on system settings. Ticket source is set to "API".</wrap>
-
-**Resolve Parameters (POST)**:
-
-^ Parameter ^ Type ^ Required ^ Description ^
-| ticket_id | integer | Yes | ID of ticket to resolve |
-
-<wrap em>Note: Resolving sets status to Resolved and records the resolution timestamp. Also sets first response time if not already set.</wrap>
-
-**Example - Create Ticket**:
-
-<code bash>
-curl -X POST "https://itflow.example.com/api/v1/tickets/create.php" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "api_key": "YOUR_API_KEY",
-    "client_id": 456,
-    "ticket_subject": "Printer offline",
-    "ticket_details": "Office printer not responding to print jobs",
-    "ticket_priority": "Medium"
-  }'
-</code>
-
-----
-
-==== Vendors ''/api/v1/vendors/'' ====
-
-**Purpose**: Manage vendor/supplier records
-
-**Available Endpoints**:
-
-  * ''GET /read.php'' - List/get vendor information
-
-<wrap em>Note: Create, update, and delete endpoints are not implemented.</wrap>
-
-**Read Parameters (GET)**:
-
-^ Parameter ^ Type ^ Description ^
-| vendor_id | integer | Get specific vendor by ID |
-
-----
-
-===== Custom API Extensions =====
-
-**Location**: ''/api/v1/custom/''
-
-ITFlow supports custom API endpoints. Place custom PHP files in the ''custom'' directory to extend API functionality.
-
-----
-
-===== Error Handling & Troubleshooting =====
-
-==== HTTP Status Codes ====
-
-^ Code ^ Description ^
-| 200 | Success - Request completed successfully |
-| 401 | Unauthorized - Invalid or missing API key |
-| 405 | Method Not Allowed - Only GET and POST supported |
-
-==== Common Error Messages ====
-
-^ Message ^ Cause ^
-| "Authentication failed. API key is invalid or has expired." | Invalid or expired API key |
-| "No resource (for this client and company) with the specified parameter(s)." | Record not found or access denied |
-| "Auth success but insert query failed..." | Missing required fields or duplicate data |
-| "Auth success but update query failed..." | Invalid ID or no matching record |
-| "Auth success but delete query failed..." | Invalid ID or client mismatch |
-
-==== Troubleshooting Steps ====
-
-  - **API Key Issues**
-    * Verify key is correct (copy/paste errors common)
-    * Check key scope (client-specific vs all clients)
-    * Confirm key hasn't expired
-
-  - **Permission Errors**
-    * Add ''client_id'' parameter for scoped keys
-    * Verify client_id exists and is accessible
-
-  - **Server Errors**
-    * Check Apache/PHP error logs: ''/var/log/apache2/error.log''
-    * Verify ITFlow database connectivity
-    * Check PHP memory limits for large requests
-
-  - **Data Issues**
-    * Validate required fields for POST requests
-    * Check data types (strings, integers, dates)
-    * Verify foreign key relationships exist
-    * Ensure unique constraints aren't violated (e.g., contact email per client)
-
-----
-
-===== Integration Examples =====
-
-==== PowerShell ====
-
-**List All Clients**:
-
-<code powershell>
-$apiKey = "YOUR-API-KEY"
-$baseUrl = "https://itflow.yourdomain.com"
-$uri = "$baseUrl/api/v1/clients/read.php?api_key=$apiKey"
-
-Invoke-RestMethod -Uri $uri | ConvertTo-Json
-</code>
-
-**Create New Asset**:
-
-<code powershell>
-$uri = "https://itflow.yourdomain.com/api/v1/assets/create.php"
-$body = @{
-    "api_key" = "YOUR-API-KEY"
-    "asset_name" = "Sample Laptop"
-    "asset_type" = "Laptop"
-    "asset_make" = "Dell"
-    "asset_model" = "Latitude 5520"
-    "client_id" = "1"
-} | ConvertTo-Json
-
-Invoke-RestMethod -Method Post -Uri $uri -Body $body -ContentType "application/json"
-</code>
-
-==== Python ====
-
-<code python>
-import requests
-
-api_key = "YOUR_API_KEY"
-base_url = "https://itflow.yourdomain.com/api/v1/"
-
-# Get all clients
-response = requests.get(f"{base_url}clients/read.php?api_key={api_key}")
-data = response.json()
-print(data)
-
-# Create new ticket
-ticket_data = {
-    "api_key": api_key,
-    "client_id": 456,
-    "ticket_subject": "Network issue",
-    "ticket_details": "Unable to access shared drive",
-    "ticket_priority": "High"
-}
-
-response = requests.post(f"{base_url}tickets/create.php", json=ticket_data)
-result = response.json()
-print(result)
-</code>
-
-==== PHP ====
-
-<code php>
-<?php
-$api_key = 'YOUR_API_KEY';
-$base_url = 'https://itflow.yourdomain.com/api/v1/';
-
-// Get clients
-$url = $base_url . 'clients/read.php?api_key=' . $api_key;
-$response = file_get_contents($url);
-$data = json_decode($response, true);
-
-print_r($data);
-?>
-</code>
-
-==== cURL ====
-
-<code bash>
-# Get all assets for a client
-curl "https://itflow.example.com/api/v1/assets/read.php?api_key=YOUR_KEY&limit=10"
-
-# Create a contact
-curl -X POST "https://itflow.example.com/api/v1/contacts/create.php" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "api_key": "YOUR_KEY",
-    "client_id": 1,
-    "contact_name": "John Smith",
-    "contact_email": "john@example.com",
-    "contact_phone": "5551234567",
-    "contact_primary": 1
-  }'
-</code>
-
-----
-
-===== API Module Summary =====
-
-^ Module ^ Read ^ Create ^ Update ^ Delete ^ Archive ^ Other ^
-| Assets | ✓ | ✓ | ✓ | ✓ | UI only* | - |
-| Certificates | ✓ | ✓ | - | - | UI only* | - |
-| Clients | ✓ | ✓ | ✓ | - | ✓ | unarchive |
-| Contacts | ✓ | ✓ | ✓ | ✓ | ✓ | unarchive |
-| Credentials | ✓ | ✓ | ✓ | - | - | - |
-| Documents | ✓ | ✓ | ✓ | - | - | - |
-| Domains | ✓ | - | - | - | UI only* | - |
-| Expenses | ✓ | - | - | - | - | - |
-| Invoices | ✓ | - | - | - | - | - |
-| [[#invoice_items_api_v1_invoice_items|Invoice Items]] | ✓ | - | - | - | - | - |
-| Locations | ✓ | ✓ | - | - | - | - |
-| Networks | ✓ | - | - | - | - | - |
-| Payments | ✓ | - | - | - | - | - |
-| Products | ✓ | - | - | - | - | - |
-| Quotes | ✓ | - | - | - | - | - |
-| Software | ✓ | - | - | - | UI only* | - |
-| Tickets | ✓ | ✓ | - | - | - | resolve |
-| Vendors | ✓ | - | - | - | - | - |
-
-<wrap em>* "UI only" = no archive/unarchive API endpoint exists for this module, but ''read.php''
-rows still carry an ''<entity>_archived_at'' field (datetime, null if active) reflecting archiving
-done through the InfraDoc web UI. Confirmed live against a real instance 2026-09-23 for assets,
-certificates, domains, software and clients — none of this was documented in the original vendor
-doc despite InfraOps' client sync already relying on ''client_archived_at''. Any consumer reading
-these modules must treat a non-null ''*_archived_at'' as "does not exist" — InfraOps does this in
-''InfradocAssetsService'' and ''NotificationsService.getExpirations''.</wrap>
-
-
-## Documentación completa ITFlow
-https://docs.itflow.org/
+# API de InfraDoc (ITFlow 26.11)
+
+Referencia de la API REST de ITFlow tal como la usa InfraOps. InfraOps solo usa el módulo
+**Documentation** de ITFlow (assets, networks, domains, certificates, licencias, documents, etc.),
+**y solo en modo lectura**.
+
+- Doc oficial: https://docs.itflow.org/ (la versión vigente dice "ITFlow 26.11")
+- Última validación contra una instancia real: **2026-11-16**, ITFlow 26.11, solo GET.
+- Reescrito el 2026-11-16: la versión anterior era una copia de la doc previa a 26.08 y estaba desactualizada.
+
+---
+
+## 1. Autenticación y permisos (cambió en 26.08)
+
+- Base: `https://<host>/api/v1/{módulo}/{función}.php`
+- GET: `?api_key=KEY` en la query. POST: `api_key` en el body JSON (`Content-Type: application/json`).
+- **Las keys pertenecen a un agente** (usuario de ITFlow) y heredan su rol, módulos y clientes visibles.
+  Ya no existe el scope "All Clients" con `client_id = 0`. Se crean en **Admin > API Keys**
+  (nombre, vencimiento, agente) y se muestran una sola vez.
+- La actualización a 26.08 **borró todas las keys anteriores**.
+- Los endpoints de este documento exigen el área **Support** del rol del agente. Credentials exige el
+  área **Credentials** (aparte).
+- Si el agente solo ve algunos clientes, la API devuelve solo esos, **sin dar error**.
+- Los errores de permisos (26.11) nombran el nivel requerido y el que tiene la key.
+- `api_key_decrypt_password` (solo credentials) va en el **body**, nunca en la query (cambio de 26.08).
+
+### Configuración recomendada para InfraOps
+
+- Un agente dedicado a InfraOps (así se puede deshabilitar sin afectar otras integraciones y queda
+  trazable en el audit log).
+- Rol con **Support en lectura**, acceso a **todos los clientes**.
+- **Sin Credentials.** InfraOps no usa ese módulo. Como la key puede escribir según el rol, mantenerla
+  de solo lectura.
+
+## 2. Formato de respuesta
+
+```json
+{ "success": "True", "count": 1, "data": [ { "...": "..." } ] }
+```
+
+- `success` es el **string** `"True"` / `"False"`, no un booleano.
+- Los valores numéricos llegan como string (`"asset_id": "1"`).
+- Crear devuelve `data: [{ "insert_id": 123 }]`.
+- Sin resultados puede venir sin `data` ni `count` y con `message`. Tratar ausencia como lista vacía.
+
+## 3. Paginación
+
+- `limit` y `offset` (verificado en vivo en `clients` y `assets`).
+- **Sin `limit` devuelve 50 filas.** Si se supera el límite pedido, se trunca sin avisar.
+- Nuestros valores: clients/locations `limit: 200` (hoy 55 clientes y 89 locations), assets `limit: 500`
+  (máximo actual 66 assets por cliente).
+
+## 4. Registros archivados — regla crítica para InfraOps
+
+Un registro archivado equivale a eliminado y **nunca** debe aparecer en vistas ni en detección de tareas.
+
+| Módulo | ¿La lectura devuelve archivados? | Qué hace InfraOps |
+|---|---|---|
+| clients | **Sí** (`client_archived_at`) | Filtra (`isActive`) |
+| assets | **Sí** (`asset_archived_at`) | Filtra en `InfradocAssetsService` |
+| certificates | **Sí** (`certificate_archived_at`) | Filtra |
+| credentials | Sí (no los usamos) | — |
+| networks, domains, locations, documents, software | **No** desde 26.10, ni siquiera por ID | El filtro es redundante pero inocuo |
+| services | No por defecto; `archived=1` los incluye | — |
+
+- Desde 26.10 la API no permite listar archivados. Para desarchivar hay que conocer el ID.
+- Verificado 2026-11-16: 7 de 55 clientes, 17 assets y 5 certificados vienen archivados.
+
+## 5. Módulos
+
+Todos los `read.php` aceptan `client_id` (filtra a ese cliente, solo reduce lo que la key ya ve), `limit` y
+`offset`. Los POST de escritura se limitan por el `client_id` enviado.
+
+### Assets `/assets/`
+
+| Endpoint | Hace |
+|---|---|
+| `GET read.php` | Lista o busca |
+| `POST create.php` | Crea (`client_id`, `asset_name` obligatorios) |
+| `POST update.php` | Modifica (`asset_id` + `client_id` obligatorios) |
+| `POST delete.php` | Elimina (`asset_id` + `client_id`; requiere Full en Support; borra sus interfaces y lo saca del rack) |
+
+Filtros de lectura: `asset_id`, `asset_type`, `asset_name`, `asset_serial`, `asset_mac` (MAC de la interfaz
+primaria), `asset_uri`, `asset_uri_2`.
+
+- La lista y `asset_mac` incluyen la **interfaz primaria** aplanada (`interface_ip`, `interface_mac`,
+  `interface_network_id`, etc.). **Una fila por asset**, sin duplicados (verificado: 868 filas, 868 IDs).
+  Los otros filtros devuelven el asset sin interfaz.
+- Campos: `asset_id`, `asset_type`, `asset_name`, `asset_description`, `asset_make`, `asset_model`,
+  `asset_serial`, `asset_os`, `asset_uri`, `asset_uri_2`, `asset_uri_client`, `asset_status`,
+  `asset_purchase_reference`, `asset_purchase_date`, `asset_warranty_expire`, `asset_install_date`,
+  `asset_photo`, `asset_physical_location`, `asset_notes`, `asset_favorite`, `asset_vendor_id`,
+  `asset_location_id`, `asset_contact_id`, `asset_client_id`, `asset_product_id`, `asset_invoice_id`,
+  `asset_invoice_item_id`, `asset_created_at`, `asset_updated_at`, `asset_archived_at`,
+  `asset_accessed_at`, `tags`, `asset_specs` y los `interface_*`.
+- **Tipos válidos al crear:** Laptop, Desktop, Server, NAS, Virtual Machine, Firewall/Router, Switch,
+  Access Point, Modem/ONT, UPS, PDU, Printer, Phone, Mobile Phone, Tablet, Display, Camera, NVR/DVR, Other.
+  En la instancia hay tipos legados que no están en esa lista (por ejemplo "Otro").
+
+#### `asset_specs` (nuevo)
+
+Objeto con detalles propios de cada tipo (`{}` si no tiene). Claves por tipo:
+
+| Tipo | Claves |
+|---|---|
+| Laptop, Desktop, Server | `cpu`, `ram_gb`, `storage` |
+| Virtual Machine | `vm_host` (id o nombre de un server/NAS del cliente), `vcpus`, `ram_gb`, `storage` |
+| NAS | `drive_bays`, `drives`, `raw_tb`, `usable_tb`, `raid`, `ports` |
+| Firewall/Router | `ports`, `sfp_ports` |
+| Switch | `ports`, `sfp_ports`, `poe_watts`, `managed` |
+| Access Point | `wifi` |
+| Modem/ONT | `circuit_id`, `isp_account`, `ports` |
+| UPS | `va`, `watts`, `runtime_min`, `outlets`, `battery_installed`, `battery_replace` (fechas YYYY-MM-DD) |
+| PDU | `pdu_type`, `outlets`, `power_input` |
+| Printer | `color`, `supplies` |
+| Phone | `extension` |
+| Mobile Phone, Tablet | `phone_number`, `carrier`, `imei` |
+| Display | `size_in`, `resolution` |
+| Camera | `resolution` |
+| NVR/DVR | `channels`, `storage`, `ports` |
+
+Verificado 2026-11-16: **casi vacío en la práctica** (1 de 868 assets tiene specs, un Server con
+`ram_gb`). No tomar decisiones de producto sobre `asset_specs` hasta que se cargue en ITFlow.
+En la instancia tampoco hay assets de tipo NAS, UPS ni PDU: se registran como Server u Other.
+
+### Networks `/networks/`
+
+`GET read.php` (filtros `network_id`, `network_name`), `POST create.php`, `update.php`, `archive.php`,
+`unarchive.php`. No hay delete. Solo se pueden modificar redes activas.
+Create: `client_id`, `network_name` y `network` (por ejemplo `192.168.30.0/24`) obligatorios.
+Campos de lectura: `network_id`, `network_name`, `network`, `network_vlan`, `network_gateway`,
+`network_primary_dns`, `network_secondary_dns`, `network_dhcp_range`, `network_subnet`, `network_type`,
+`network_location_id`, `network_vendor_id`, `network_client_id`, `tags`, fechas.
+
+### Licencias (se llaman `software` en la API) `/software/`
+
+`GET read.php` (filtro `software_id`), `POST archive.php`, `unarchive.php` (`software_id` + `client_id`).
+No hay create ni update. Los archivados no se devuelven. Archivar por API solo setea
+`software_archived_at`; **no** elimina los vínculos con assets y contactos (la web sí).
+Campos: `software_id`, `software_name`, `software_description`, `software_version`, `software_type`,
+`software_license_type`, `software_key`, `software_seats`, `software_purchase_reference`,
+`software_purchase`, `software_expire`, `software_notes`, `software_vendor_id`, `software_client_id`,
+`software_template_id`, `tags`, fechas.
+
+- Verificado: 55 filas de 30 clientes. `software_type` son 19 Security Software, 10 SaaS, 9 Other,
+  8 System Software, 4 Desktop Application, 2 Web Application, 2 Operating System y 1 con el valor
+  "Aplicación de escritorio". `software_license_type` son 22 User, 19 Device y 14 vacío. No asumir valores
+  fijos (la doc oficial muestra "Subscription", que acá no existe).
+- 37 de 55 tienen `software_expire`. `software_template_id` es 0 en todas.
+- **`software_key` llega en texto plano.** InfraOps no debe mapearla, guardarla ni loguear respuestas
+  crudas de este endpoint.
+
+### Domains `/domains/`
+
+`GET read.php` (`domain_id`, `domain_name`), `POST create.php`, `update.php`, `archive.php`,
+`unarchive.php`. No hay delete. Los archivados no se devuelven.
+Crear o actualizar hace **consultas DNS y WHOIS en vivo**: completa IP, name servers, MX, TXT, DMARC, DKIM
+y reemplaza `domain_expire` con el de WHOIS si lo encuentra.
+Campos: `domain_id`, `domain_name`, `domain_description`, `domain_expire`, `domain_auto_renew`,
+`domain_ip`, `domain_name_servers`, `domain_mail_servers`, `domain_txt`, `domain_dmarc`, `domain_dkim`,
+`domain_raw_whois`, `domain_notes`, `domain_registrar`, `domain_webhost`, `domain_dnshost`,
+`domain_mailhost` (ids de vendor), `domain_client_id`, `domain_refreshed_at`, `tags`, fechas.
+Verificado: `domain_auto_renew` es `0` en los 163 dominios, así que hoy no aporta información.
+
+### Certificates `/certificates/`
+
+`GET read.php` (`certificate_id`, `certificate_name`), `POST create.php`. No hay update ni delete.
+Crear con un host hace que ITFlow se conecte y registre lo que sirve; con `certificate_public_key` (PEM)
+toma emisor, fechas, nombres y huella del PEM.
+Campos: `certificate_id`, `certificate_name`, `certificate_description`, `certificate_domain`,
+`certificate_names`, `certificate_issued_by`, `certificate_issued_at`, `certificate_expire`,
+`certificate_public_key`, `certificate_fingerprint`, `certificate_check_status`, `certificate_checked_at`,
+`certificate_domain_id`, `certificate_client_id`, fechas. (No devuelve `tags`.)
+`certificate_check_status` (nuevo) tomó estos valores: `ok` 72, `untrusted` 7, `unreachable` 7,
+`mismatch` 1 y null 5.
+
+### Services `/services/` (nuevo, no integrado en InfraOps)
+
+Solo `GET read.php`. Filtros: `service_id` (incluye archivados), `service_name`, `review_due=1`
+(revisión vence en los próximos 30 días o ya venció, ordenado por fecha), `archived=1` (incluye archivados).
+Campos: `service_id`, `service_name`, `service_description`, `service_category`, `service_importance`,
+`service_backup`, `service_notes`, `service_review_due`, `service_reviewed_at`, `service_review_interval`,
+`service_client_id`, `tags`, fechas.
+Verificado: 15 servicios de 10 clientes (importancia High 7, Low 6, Medium 2). Ninguno tiene
+`service_review_due` cargado y `review_due=1` devuelve vacío.
+
+### Documents `/documents/`
+
+`GET read.php` (`document_id`), `POST create.php`, `update.php` (conserva la versión anterior),
+`archive.php`, `unarchive.php`. Los archivados no se devuelven. `document_content` es HTML y las imágenes
+`data:` se guardan como archivos.
+Campos: `document_id`, `document_name`, `document_description`, `document_content`,
+`document_content_raw`, `document_client_visible`, `document_folder_id`, `document_template_id`,
+`document_created_by`, `document_updated_by`, `document_reviewed_by`, `document_reviewed_at`,
+`document_client_id`, `tags`, fechas.
+
+### Locations `/locations/`
+
+`GET read.php` (`location_id`), `POST create.php`, `update.php`, `archive.php`, `unarchive.php`, `delete.php`.
+**Una location debe estar archivada antes de poder eliminarla.** Los archivados no se devuelven.
+
+### Vendors `/vendors/`
+
+`GET read.php` (`vendor_id`), `POST create.php`, `update.php`, `archive.php`, `unarchive.php`.
+Los archivados no se devuelven.
+
+### Clients `/clients/`
+
+`GET read.php` (`client_name`), `POST create.php`, `update.php`, `archive.php`, `unarchive.php`,
+`delete.php` (desde 26.09). Archivar un cliente detiene sus facturas recurrentes.
+
+**Cambios de 26.11 que afectan a InfraOps:**
+- `client_rate` y `client_net_terms` **ya no existen**: tarifas, plazos y SLA pasan a contratos.
+  `clients/read` no los devuelve y `clients/update` no los modifica.
+- `client_is_lead` → `client_lead`.
+- Campos nuevos: `tags`, `client_reminders`, `client_portal_signup`, `client_default_tax_id`,
+  `client_tax_exempt*`, `client_card_fee_exempt`, `client_favorite`, `client_updated_at`,
+  `client_accessed_at`.
+- Siguen: `client_id`, `client_name`, `client_type`, `client_website`, `client_referral`,
+  `client_currency_code`, `client_tax_id_number`, `client_abbreviation`, `client_notes`,
+  `client_created_at`, `client_archived_at`.
+
+### Credentials `/credentials/`
+
+Fuera del alcance de InfraOps. Requiere el área Credentials y `api_key_decrypt_password` en el body,
+incluso para leer. No habilitar este permiso en la key de InfraOps.
+
+### Otros módulos (no usados por InfraOps)
+
+contacts, tickets (create, resolve, close, replies), invoices, invoice_items, payments, products, quotes,
+expenses: ver la doc oficial.
+
+## 6. Qué consume InfraOps
+
+| Dato | Endpoint | Código |
+|---|---|---|
+| Clientes | `clients/read.php` | `backend/src/clients/infradoc/infradoc.service.ts` |
+| Locations | `locations/read.php` | `backend/src/clients/infradoc/infradoc.service.ts` |
+| Assets e interfaces | `assets/read.php` | `backend/src/integrations/infradoc/infradoc-assets.service.ts` |
+| Vencimientos (licencias, dominios, certificados, garantías) | `software`, `domains`, `certificates`, `assets` | `NotificationsService.getExpirations` |
+
+**Configuración:** los tres servicios obtienen la URL y la API key de `IntegrationConfigService`
+(`getInfraDocConfigDecrypted()`), es decir, de **Admin → Integraciones → InfraDoc** (key cifrada en DB).
+Las variables `INFRADOC_URL` / `INFRADOC_API_KEY` del `.env` son solo el valor inicial si todavía no hay
+config guardada. Antes de 2026-11-16 `NotificationsService` e `InfradocService` leían `process.env` directo,
+y tras regenerar la key en la UI seguían usando la vieja (Vencimientos vacío, tareas `EXPIRATION_CONTROL` sin
+tiempo estimado). Para rotar la key: generarla en ITFlow, cargarla en Integraciones y usar "probar conexión".
+
+## 7. Pendientes conocidos
+
+- `client_rate` y `client_net_terms` ya no llegan: el mapeo `rate: raw.client_rate ? ... : null` de
+  `infradoc.service.ts` deja `rate` en `null` para todos los clientes.
+- `docs/superpowers/specs/2026-05-25-clients-design.md` y los planes de clients todavía mencionan
+  `client_rate`.
+- **`client_id=0` ya no significa "todos los clientes".** Con las keys nuevas, `read.php?client_id=0`
+  devuelve HTTP 200 con `success:"False"` y "No resource...". Verificado 2026-11-16 en assets, certificates,
+  domains y software. Para listar todo hay que omitir `client_id`, como hace `NotificationsService`
+  (con `limit: 9999`).
+- `IntegrationConfigService.testInfraDoc()` usa justamente `client_id: 0` y solo mira el código HTTP:
+  con una key válida da "Conexión exitosa" aunque la respuesta sea `success:"False"`, y con una key
+  inválida falla bien (401). Funciona hoy, pero no valida la respuesta. Conviene quitar `client_id: 0` y
+  comprobar `success === 'True'`.
+
+## 8. Errores comunes
+
+| Mensaje / código | Causa |
+|---|---|
+| 401, "Authentication failed. API key is invalid or has expired." | Key inválida, vencida, o borrada por la actualización a 26.08. Regenerarla y cargarla en Admin → Integraciones |
+| "No resource (for this client and company) with the specified parameter(s)." | No existe o la key no tiene acceso |
+| 404 con HTML de Apache | Ruta inexistente (por ejemplo `/licenses/`: se llama `/software/`) |
+| 405 | Solo GET y POST |
+
+Ante problemas, revisar los logs de Apache/PHP del servidor de InfraDoc y el log de la app de ITFlow
+(desde 26.09 las consultas fallidas de la API se registran ahí).
