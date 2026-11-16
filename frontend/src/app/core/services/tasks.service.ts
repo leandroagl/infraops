@@ -48,6 +48,6 @@ export class TasksService {
   }
 
   assignTechnician(id: string, technicianId: string): Observable<Task> {
-    return this.http.patch<Task>(`${this.base}/${id}`, { technicianId });
+    return this.http.patch<Task>(`${this.base}/${id}/technician`, { technicianId });
   }
 }

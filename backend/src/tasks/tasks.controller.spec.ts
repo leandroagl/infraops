@@ -6,6 +6,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { FilterTasksDto } from './dto/filter-tasks.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
+import { UserRole } from '../users/user-role.enum';
 import { TaskStatus } from './task-status.enum';
 import { TaskType } from './task-type.enum';
 import { Task } from './task.entity';
@@ -147,6 +148,37 @@ describe('TasksController', () => {
 
       await expect(controller.update('task-1', {})).rejects.toThrow(
         BadRequestException,
+      );
+    });
+  });
+
+  describe('assignTechnician', () => {
+    it('delega en tasksService.update pasando solo el technicianId', async () => {
+      const updated = { ...mockTask, technicianId: 'tech-2' };
+      tasksService.update.mockResolvedValue(updated);
+
+      const result = await controller.assignTechnician('task-1', {
+        technicianId: 'tech-2',
+      });
+
+      expect(tasksService.update).toHaveBeenCalledWith('task-1', {
+        technicianId: 'tech-2',
+      });
+      expect(result).toEqual(updated);
+    });
+
+    it('está habilitado para todos los roles', () => {
+      const roles = Reflect.getMetadata(
+        'roles',
+        TasksController.prototype.assignTechnician,
+      );
+      expect(roles).toEqual(
+        expect.arrayContaining([
+          UserRole.ADMIN,
+          UserRole.TL,
+          UserRole.TECHNICIAN,
+          UserRole.COORDINATOR,
+        ]),
       );
     });
   });
