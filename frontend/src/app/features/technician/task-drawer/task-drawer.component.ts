@@ -85,6 +85,7 @@ export class TaskDrawerComponent implements OnChanges {
   taskConfig: TaskTypeConfigDto | null = null;
   expirationDetail: ExpirationDetail | null = null;
   loadingExpirationDetail = false;
+  expirationDetailError = false;
   pendingDeviations: MaintenanceDeviationDto[] = [];
   resolvedDeviations: MaintenanceDeviationDto[] = [];
   processingDeviationIds = new Set<string>();
@@ -159,6 +160,7 @@ export class TaskDrawerComponent implements OnChanges {
     this.expirationDetail = null;
     this.taskConfig = null;
     this.loadingExpirationDetail = true;
+    this.expirationDetailError = false;
     this.notificationsService?.getExpirationByTaskId(this.task.id).subscribe({
       next: detail => {
         this.expirationDetail = detail;
@@ -174,7 +176,10 @@ export class TaskDrawerComponent implements OnChanges {
         } : null;
         this.loadingExpirationDetail = false;
       },
-      error: () => { this.loadingExpirationDetail = false; },
+      error: () => {
+        this.loadingExpirationDetail = false;
+        this.expirationDetailError = true;
+      },
     });
   }
 
@@ -376,6 +381,9 @@ export class TaskDrawerComponent implements OnChanges {
   get configWarningMessage(): string {
     if (this.isUnassigned) return 'Asigná un técnico antes de continuar.';
     if (this.task.type === 'EXPIRATION_CONTROL') {
+      if (this.expirationDetailError) {
+        return 'No se pudo cargar el detalle del vencimiento. Cerrá y volvé a abrir la tarea para reintentar; si persiste, avisá al administrador (puede ser la conexión con InfraDoc).';
+      }
       return 'El administrador debe configurar el tiempo estimado para este tipo de tarea antes de poder trabajarla.';
     }
     return 'El administrador debe configurar el tiempo estimado y los tags de Odoo para este tipo de tarea antes de poder trabajarla.';
