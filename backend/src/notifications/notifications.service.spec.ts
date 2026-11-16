@@ -3,10 +3,12 @@ import { HttpService } from '@nestjs/axios';
 import { AxiosHeaders, AxiosResponse } from 'axios';
 import { of } from 'rxjs';
 import { NotificationsService } from './notifications.service';
+import { IntegrationConfigService } from '../integration-config/integration-config.service';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
   let httpService: { get: jest.Mock };
+  let integrationConfig: { getInfraDocConfigDecrypted: jest.Mock };
 
   const axiosRes = (data: object): AxiosResponse => ({
     data, status: 200, statusText: 'OK', headers: {},
@@ -36,15 +38,16 @@ describe('NotificationsService', () => {
 
   beforeEach(async () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-06-28'));
-    process.env.INFRADOC_URL = 'http://infradoc.test';
-    process.env.INFRADOC_API_KEY = 'test-key';
-
     httpService = { get: jest.fn() };
+    integrationConfig = {
+      getInfraDocConfigDecrypted: jest.fn().mockResolvedValue({ url: 'http://infradoc.test', apiKey: 'test-key' }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationsService,
         { provide: HttpService, useValue: httpService },
+        { provide: IntegrationConfigService, useValue: integrationConfig },
       ],
     }).compile();
 
@@ -53,8 +56,23 @@ describe('NotificationsService', () => {
 
   afterEach(() => {
     jest.useRealTimers();
-    delete process.env.INFRADOC_URL;
-    delete process.env.INFRADOC_API_KEY;
+  });
+
+  it('usa la URL y la API key de la configuración de integraciones (no del env)', async () => {
+    integrationConfig.getInfraDocConfigDecrypted.mockResolvedValue({ url: 'http://desde-ui.test', apiKey: 'key-ui' });
+    setupMock();
+
+    await service.getExpirations();
+
+    const [url, opts] = httpService.get.mock.calls[0];
+    expect(url).toBe('http://desde-ui.test/api/v1/clients/read.php');
+    expect(opts.params.api_key).toBe('key-ui');
+  });
+
+  it('falla con mensaje claro si InfraDoc no está configurado en Integraciones', async () => {
+    integrationConfig.getInfraDocConfigDecrypted.mockResolvedValue({ url: '', apiKey: '' });
+
+    await expect(service.getExpirations()).rejects.toThrow('URL y API key de InfraDoc no configuradas');
   });
 
   it('normaliza un asset con warranty_expire a ExpirationItemDto', async () => {
@@ -253,11 +271,9 @@ describe('NotificationsService', () => {
     expect(result[0].itemName).toBe('Activo');
   });
 
-  it('lanza Error cuando INFRADOC_URL no está configurado', async () => {
-    delete process.env.INFRADOC_URL;
-    await expect(service.getExpirations(90)).rejects.toThrow(
-      'INFRADOC_URL and INFRADOC_API_KEY deben estar configurados',
-    );
+  it('no llama a InfraDoc cuando la configuración está vacía', async () => {
+    integrationConfig.getInfraDocConfigDecrypted.mockResolvedValue({ url: '', apiKey: '' });
+    await expect(service.getExpirations(90)).rejects.toThrow('URL y API key de InfraDoc no configuradas');
     expect(httpService.get).not.toHaveBeenCalled();
   });
 });

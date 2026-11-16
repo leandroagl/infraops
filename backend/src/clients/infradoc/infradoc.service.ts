@@ -1,6 +1,7 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { IntegrationConfigService } from '../../integration-config/integration-config.service';
 
 export interface InfradocClient {
   infradocId: number;
@@ -27,14 +28,26 @@ export interface InfradocLocation {
 
 @Injectable()
 export class InfradocService {
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly integrationConfigService: IntegrationConfigService,
+  ) {}
+
+  private async getConfig(): Promise<{ url: string; apiKey: string }> {
+    const cfg = await this.integrationConfigService.getInfraDocConfigDecrypted();
+    if (!cfg.url || !cfg.apiKey) {
+      throw new Error('URL y API key de InfraDoc no configuradas');
+    }
+    return cfg;
+  }
 
   async getClients(): Promise<InfradocClient[]> {
-    const url = `${process.env.INFRADOC_URL}/api/v1/clients/read.php`;
+    const { url: baseUrl, apiKey } = await this.getConfig();
+    const url = `${baseUrl}/api/v1/clients/read.php`;
     // limit: 200 asume que ONDRA no superará ese número de clientes. Si lo hace, la sync truncará silenciosamente.
     const response = await firstValueFrom(
       this.httpService.get(url, {
-        params: { api_key: process.env.INFRADOC_API_KEY, limit: 200 },
+        params: { api_key: apiKey, limit: 200 },
       }),
     );
 
@@ -50,11 +63,12 @@ export class InfradocService {
   }
 
   async getLocations(): Promise<InfradocLocation[]> {
-    const url = `${process.env.INFRADOC_URL}/api/v1/locations/read.php`;
+    const { url: baseUrl, apiKey } = await this.getConfig();
+    const url = `${baseUrl}/api/v1/locations/read.php`;
     // limit: 200 asume que ONDRA no superará ese número de locations. Si lo hace, la sync truncará silenciosamente.
     const response = await firstValueFrom(
       this.httpService.get(url, {
-        params: { api_key: process.env.INFRADOC_API_KEY, limit: 200 },
+        params: { api_key: apiKey, limit: 200 },
       }),
     );
 

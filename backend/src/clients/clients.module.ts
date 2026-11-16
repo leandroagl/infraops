@@ -7,10 +7,12 @@ import { ClientSubscriptionHourSnapshot } from './client-subscription-hour-snaps
 import { ClientsController } from './clients.controller';
 import { ClientsService } from './clients.service';
 import { InfradocService } from './infradoc/infradoc.service';
+import { IntegrationConfigModule } from '../integration-config/integration-config.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Client, ClientSubscriptionHourSnapshot]),
+    IntegrationConfigModule,
     HttpModule.register({
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     }),

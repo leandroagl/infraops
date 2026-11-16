@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { ExpirationItemDto, ExpirationType } from './dto/expiration-item.dto';
+import { IntegrationConfigService } from '../integration-config/integration-config.service';
 
 interface RawClient     { client_id: string; client_name: string; }
 interface RawAsset      { asset_id: string; asset_name: string; asset_make: string | null; asset_model: string | null; asset_serial: string | null; asset_warranty_expire: string | null; asset_client_id: string; asset_archived_at: string | null; }
@@ -14,13 +15,15 @@ interface InfradocResponse<T> { success: string; data: T[]; }
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    private readonly integrationConfigService: IntegrationConfigService,
+  ) {}
 
   async getExpirations(days?: number): Promise<ExpirationItemDto[]> {
-    const baseUrl = process.env.INFRADOC_URL;
-    const apiKey  = process.env.INFRADOC_API_KEY;
+    const { url: baseUrl, apiKey } = await this.integrationConfigService.getInfraDocConfigDecrypted();
     if (!baseUrl || !apiKey) {
-      throw new Error('INFRADOC_URL and INFRADOC_API_KEY deben estar configurados');
+      throw new Error('URL y API key de InfraDoc no configuradas');
     }
 
     const agent = new https.Agent({ rejectUnauthorized: false });
