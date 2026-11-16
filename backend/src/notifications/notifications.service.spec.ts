@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { AxiosHeaders, AxiosResponse } from 'axios';
 import { of } from 'rxjs';
@@ -196,10 +197,21 @@ describe('NotificationsService', () => {
     expect(result[0].sourceId).toBe('1');
   });
 
-  it('ignora un tipo cuya respuesta InfraDoc tiene success False — no lanza', async () => {
+  it('lanza ServiceUnavailableException si InfraDoc responde success False (ej: key inválida)', async () => {
+    httpService.get.mockImplementation((url: string) => {
+      if (url.includes('/clients/'))
+        return of(axiosRes({ success: 'False', message: 'Authentication failed. API key is invalid or has expired.' }));
+      return of(axiosRes({ success: 'True', data: [] }));
+    });
+
+    await expect(service.getExpirations(90)).rejects.toThrow(ServiceUnavailableException);
+    await expect(service.getExpirations(90)).rejects.toThrow(/Authentication failed/);
+  });
+
+  it('trata "No resource" como lista vacía (tipo sin ítems), no como error', async () => {
     httpService.get.mockImplementation((url: string) => {
       if (url.includes('/clients/'))      return of(axiosRes(CLIENTS_OK));
-      if (url.includes('/assets/'))       return of(axiosRes({ success: 'False', message: 'Error' }));
+      if (url.includes('/assets/'))       return of(axiosRes({ success: 'False', message: 'No resource (for this client and company) with the specified parameter(s).' }));
       if (url.includes('/certificates/')) return of(axiosRes({ success: 'True', data: [{
         certificate_id: '1', certificate_name: 'cert.pem',
         certificate_expire: '2026-07-05', certificate_client_id: '1',
@@ -210,7 +222,6 @@ describe('NotificationsService', () => {
     const result = await service.getExpirations(90);
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('certificate');
-    expect(result[0].sourceId).toBe('1');
   });
 
   it('omite items cuyo client_id es null — no genera "Cliente NaN"', async () => {

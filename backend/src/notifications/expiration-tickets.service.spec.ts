@@ -161,6 +161,24 @@ describe('ExpirationTicketsService', () => {
       }));
     });
 
+    it('si InfraDoc falla, igual devuelve el detalle con el tiempo estimado de la config local', async () => {
+      ticketRepo.findOne.mockResolvedValue({
+        type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',
+        clientId: 'client-uuid-1', odooTicketId: null, taskId: 'task-1',
+      });
+      notificationsService.getExpirations.mockRejectedValue(new Error('InfraDoc caído'));
+      integrationConfigService.getOdoo.mockResolvedValue({
+        expirationsTypeConfigs: { domain: { defaultTimeMinutes: 30 } },
+      });
+
+      const result = await service.getExpirationByTaskId('task-1');
+
+      expect(result).toEqual(expect.objectContaining({
+        type: 'domain', sourceId: 'd1', itemName: null, clientName: null, daysUntil: null,
+        defaultTimeMinutes: 30,
+      }));
+    });
+
     it('devuelve un detalle parcial (sin itemName) si el ítem ya no aparece en InfraDoc', async () => {
       ticketRepo.findOne.mockResolvedValue({
         type: 'domain', sourceId: 'd1', expireDate: '2026-07-15',

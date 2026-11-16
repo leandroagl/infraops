@@ -65,10 +65,15 @@ export class ExpirationTicketsService {
     const row = await this.ticketRepo.findOne({ where: { taskId } });
     if (!row) return null;
 
-    const items = await this.notificationsService.getExpirations();
-    const liveItem = items.find(
-      (i) => i.type === row.type && i.sourceId === row.sourceId,
-    );
+    // Los datos vivos de InfraDoc son un enriquecimiento: si InfraDoc no responde, el detalle
+    // igual debe salir (el tiempo estimado viene de la config local y habilita trabajar la tarea).
+    let liveItem: ExpirationItemDto | undefined;
+    try {
+      const items = await this.notificationsService.getExpirations();
+      liveItem = items.find((i) => i.type === row.type && i.sourceId === row.sourceId);
+    } catch (err) {
+      this.logger.warn(`No se pudo leer InfraDoc para el detalle de la tarea ${taskId}: ${(err as Error).message}`);
+    }
 
     const config = await this.integrationConfigService.getOdoo();
     const typeConfigs = (config.expirationsTypeConfigs ?? {}) as TypeConfigs;
